@@ -1,0 +1,26 @@
+{
+  "source": "25406b3414b227bc277f6436286c77fed10b48a4",
+  "selection": "slow-finance-mount-survives-startup-deadline-on-and-off",
+  "cases": [
+    {
+      "name": "slow-finance-mount-survives-startup-deadline-on-and-off",
+      "status": "FAIL",
+      "error": "timeout waiting for same finance mount becomes usable after delayed bootstrap",
+      "state": {
+        "path": "/finance",
+        "policy": "enabled",
+        "p07": "enabled",
+        "boot": "ready",
+        "frameVisible": false,
+        "accountVisible": false,
+        "profile": "r5ownerA5daa20b3",
+        "functionalP07": true,
+        "policyPanelVisible": false,
+        "retryVisible": false,
+        "visibility": "visible"
+      },
+      "screenshot": "FAIL-slow-finance-mount-survives-startup-deadline-on-and-off.png"
+    }
+  ],
+  "scope": "actual isolated local APIs + Chrome; no real accounts or paid model"
+}

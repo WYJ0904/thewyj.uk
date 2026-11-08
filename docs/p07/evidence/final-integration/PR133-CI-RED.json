@@ -1,0 +1,71 @@
+{
+  "source": "c19f2907f43eb636891cfadc3c9716e9573c8ef8",
+  "run": 42375700542,
+  "url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/42375700542",
+  "job": 128412707287,
+  "jobs": [
+    {
+      "id": 128412707113,
+      "name": "Android unit, lint and APK",
+      "conclusion": "success"
+    },
+    {
+      "id": 128412707241,
+      "name": "Sensitive files and static naming",
+      "conclusion": "success"
+    },
+    {
+      "id": 128412707254,
+      "name": "Python syntax and unittest (windows-latest)",
+      "conclusion": "failure"
+    },
+    {
+      "id": 128412707268,
+      "name": "Pages build and publish allowlist",
+      "conclusion": "success"
+    },
+    {
+      "id": 128412707287,
+      "name": "JavaScript and static site checks",
+      "conclusion": "failure"
+    },
+    {
+      "id": 128412707385,
+      "name": "Python syntax and unittest (ubuntu-latest)",
+      "conclusion": "failure"
+    },
+    {
+      "id": 128412708108,
+      "name": "Task 25 cloud credential discovery",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 128412708247,
+      "name": "Task 25 Android runtime contract",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 128413350386,
+      "name": "Browser flow (${{ matrix.suite }})",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 128413350402,
+      "name": "Cloud-only browser, canonical session and toolbox",
+      "conclusion": "skipped"
+    }
+  ],
+  "excerpt": [
+    "2026-11-07T13:12:43.2800319Z FAIL: test_quality_regressions_have_explicit_guards (test_static.StaticSiteTests.test_quality_regressions_have_explicit_guards)",
+    "2026-11-07T13:12:43.2801018Z ----------------------------------------------------------------------",
+    "2026-11-07T13:12:43.2801376Z Traceback (most recent call last):",
+    "2026-11-07T13:12:43.2801983Z   File \"<repo>/local-backend/test_static.py\", line 633, in test_quality_regressions_have_explicit_guards",
+    "2026-11-07T13:12:43.2802610Z     self.assertIn(\"if (state.session) {\\n      showSessionRecovery();\\n      return;\\n    }\", initial_render)",
+    "2026-11-07T13:12:43.2806450Z AssertionError: 'if (state.session) {\\n      showSessionRecovery();\\n      return;\\n    }' not found in '\\n    $(\"appShell\").classList.remove(\"app-shell-pending\");\\n    $(\"appShell\").classList.add(\"app-shell-ready\");\\n    $(\"appShell\").setAttribute(\"aria-hidden\", \"false\");\\n    installNativeNavigation();\\n    installInteractionTracing();\\n    installMotionSystem();\\n    installNativeThemeBridge();\\n    setupResponsiveDisclosures();\\n    document.documentElement.dataset.bootState=\\'ready\\';\\n  }, whenContentReady);\\n}\\n\\nboot().catch(() => {\\n  // Use the existing recovery surface; never leave a failed cosmetic sta [line truncated; original CI retained]",
+    "2026-11-07T13:12:43.2808739Z ",
+    "2026-11-07T13:12:43.2808870Z ----------------------------------------------------------------------",
+    "2026-11-07T13:12:43.2809068Z Ran 31 tests in 0.088s",
+    "2026-11-07T13:12:43.2809154Z "
+  ],
+  "extraction": "Original log lines; a long assertion source dump is truncated in this excerpt only. Full run retained on GitHub. Runner absolute repository prefix is redacted; no assertion, status or test expectation changed."
+}

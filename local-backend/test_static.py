@@ -123,15 +123,15 @@ class StaticSiteTests(unittest.TestCase):
         release_token = self.asset_release()
         for asset in ("manifest.webmanifest", "styles.css", "product-ui.css", "design-system.css", "public-experience.css", "workspace-experience.css", "changelog.js", "tools.js", "workflows.js", "learning-sync.js", "app.js"):
             entry = self.app if asset in ("tools.js", "workflows.js") else self.html
-            self.assertIn(f'/{asset}?v={release_token}', entry)
-            self.assertIn(f'/{asset}?v={release_token}', self.worker)
+            self.assertIn(f'/{asset}?release={release_token}', entry)
+            self.assertIn(f'/{asset}?release={release_token}', self.worker)
         self.assertIn(f'const CACHE = "wyj-shell-{release_token}-es-modules"', self.worker)
         self.assertIn('export const APP_VERSION = "2026-09-26-task24-canonical-review-r15"', self.core)
         self.assertIn(f'export const ASSET_RELEASE = "{release_token}"', self.core)
         self.assertIn('navigator.serviceWorker.register(`/sw.js?v=${ASSET_RELEASE}`)', self.app)
         for module in ("api", "config", "router", "session", "storage", "ui", "design-system"):
-            self.assertIn(f'/js/core/{module}.js?v={release_token}', self.worker)
-        self.assertIn(f'type="module" src="/app.js?v={release_token}"', self.html)
+            self.assertIn(f'/js/core/{module}.js?release={release_token}', self.worker)
+        self.assertIn(f'type="module" src="/app.js?release={release_token}"', self.html)
         stage_script = (ROOT / "scripts" / "stage_pages_deploy.mjs").read_text(encoding="utf-8")
         self.assertIn('const ROOT_DIRECTORIES = Object.freeze(["assets", "functions", "js", "vendor"]);', stage_script)
         for asset in ("design-system.css", "public-experience.css", "workspace-experience.css"):
@@ -158,13 +158,13 @@ class StaticSiteTests(unittest.TestCase):
             for specifier in import_pattern.findall(source):
                 imports_found += 1
                 self.assertTrue(
-                    specifier.endswith(f"?v={release_token}"),
+                    specifier.endswith(f"?release={release_token}"),
                     f"unversioned browser module import in {source_path.relative_to(ROOT)}: {specifier}",
                 )
                 relative_target = specifier.split("?", 1)[0]
                 target_path = (source_path.parent / relative_target).resolve()
                 self.assertTrue(target_path.is_file(), str(target_path))
-                public_url = f"/{target_path.relative_to(ROOT).as_posix()}?v={release_token}"
+                public_url = f"/{target_path.relative_to(ROOT).as_posix()}?release={release_token}"
                 self.assertIn(f'"{public_url}"', self.worker)
         self.assertGreater(imports_found, 20)
         self.assertEqual(re.findall(r'"/js/[^"?]+\.js"', self.worker), [])
@@ -175,7 +175,7 @@ class StaticSiteTests(unittest.TestCase):
             self.app,
         )
         self.assertIn(
-            'const backendPromise = initialPath.startsWith("/share/") || initialPath === "/transfer"',
+        'const backendPromise = !state.session && (initialPath.startsWith("/share/") || initialPath === "/transfer")',
             self.app,
         )
         self.assertIn('? Promise.resolve() : refreshBackendState();', self.app)
@@ -269,9 +269,9 @@ class StaticSiteTests(unittest.TestCase):
 
     def test_task19_design_system_two_contract(self):
         release_token = self.asset_release()
-        self.assertIn(f'href="/design-system.css?v={release_token}"', self.html)
-        self.assertIn(f'href="/public-experience.css?v={release_token}"', self.html)
-        self.assertIn(f'href="/workspace-experience.css?v={release_token}"', self.html)
+        self.assertIn(f'href="/design-system.css?release={release_token}"', self.html)
+        self.assertIn(f'href="/public-experience.css?release={release_token}"', self.html)
+        self.assertIn(f'href="/workspace-experience.css?release={release_token}"', self.html)
         self.assertIn('id="siteNavToggle"', self.html)
         self.assertIn('id="siteNavPanel"', self.html)
         self.assertIn('id="themeToggleBtn"', self.html)
@@ -629,11 +629,22 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn('$("navGuestActions")?.classList.toggle("hidden", Boolean(account));', self.app)
         self.assertIn('$("accountMenu")?.classList.toggle("hidden", !account);', self.app)
         boot_source = self.app.split("async function boot()", 1)[1]
-        initial_render = boot_source.split("await runSplashSequence(() => {", 1)[1].split("await backendPromise;", 1)[0]
-        self.assertIn("if (state.session) {\n      showSessionRecovery();\n      return;\n    }", initial_render)
-        self.assertLess(initial_render.index("showSessionRecovery();"), initial_render.index('showAuth(""'))
+        initial_render = boot_source.split("await runSplashSequence(({ reason }) => {", 1)[1].split("}, whenContentReady);", 1)[0]
+        self.assertIn("if (!startupMounted) showStartupRecovery(reason);", initial_render)
+        preparation = boot_source.split("const whenContentReady = async () => {", 1)[1].split("await runSplashSequence", 1)[0]
+        self.assertLess(preparation.index("await backendPromise;"), preparation.index("await mountVerifiedCurrentRoute();"))
+        self.assertLess(preparation.index("await mountVerifiedCurrentRoute();"), preparation.index("startupMounted = true;"))
+        route_source = self.app.split("async function renderCurrentRoute", 1)[1]
+        self.assertIn("if (state.session && (sessionRestorePending || !state.account))", route_source)
+        self.assertLess(route_source.index("showSessionRecovery("), route_source.index('if (!state.session || !state.account)'))
+        self.assertIn("sessionRestorePending = Boolean(restoredSession);", self.app)
+        self.assertIn("if (!options.preserveWorkspaceMount) hidePrimaryScreens();", self.app)
+        mount_source = self.app.split("async function mountVerifiedCurrentRoute", 1)[1].split("function showStartupRecovery", 1)[0]
+        self.assertLess(mount_source.index("await render;"), mount_source.index("dataset.workspaceMount = 'ready'"))
+        self.assertIn("generation !== routeGeneration", mount_source)
+        self.assertIn("preserveWorkspaceMount: true", self.app)
         self.assertIn('id="sessionRecovery"', self.html)
-        self.assertNotIn('showAuth(state.session ?', initial_render)
+        self.assertNotIn('showAuth(', initial_render)
         membership_source = self.app.split("async function saveAdminMembership()", 1)[1].split("function updateAdminToolsOverride", 1)[0]
         self.assertLess(membership_source.index("await loadAdminData();"), membership_source.index("会员设置已保存并立即生效"))
         admin_action_source = self.app.split("function adminUserAction(kind)", 1)[1].split("function wordDraftKey", 1)[0]

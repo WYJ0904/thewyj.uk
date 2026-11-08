@@ -16,6 +16,32 @@
   box-sizing: border-box;
 }
 
+/* A pending policy is not an OFF decision. Keep one neutral, in-flow state
+   until the bounded API request settles; never expose a provisional layout. */
+html[data-interface-policy="pending"] #v3AppFrame { display: none; }
+html[data-session-verification="pending"] #v3AppFrame { display: none; }
+/* A recovery surface can coexist with an unfinished mount in the DOM. Only
+   the verified, completed destination may become the visible main canvas. */
+html[data-workspace-mount="pending"] #v3AppFrame { display: none; }
+.interface-policy-state { margin: 24px auto; padding: 20px; max-width: 840px; }
+.interface-policy-state[hidden] { display: none; }
+
+.auth-transition-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  place-items: center;
+  pointer-events: auto;
+  opacity: 1;
+  transition: opacity 180ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.auth-transition-overlay.is-exiting {
+  opacity: 0;
+  pointer-events: none;
+}
+body.auth-transition-active { overflow: hidden; }
+
 body {
   background:
     linear-gradient(180deg, rgba(32, 58, 67, 0.10), transparent 280px),
@@ -267,7 +293,7 @@ h1 {
   font-weight: 800;
 }
 
-.auth-panel h2 {
+.auth-panel :is(h1, h2) {
   font-size: 24px;
   margin-bottom: 18px;
 }
@@ -2397,7 +2423,7 @@ textarea {
 }
 
 .admin-user-card p,
-.admin-user-card h3 { margin: 3px 0; }
+.admin-user-card :is(h2, h3) { margin: 3px 0; }
 .admin-user-card .action-row { justify-content: flex-end; }
 .admin-user-identity,
 .admin-user-facts,
@@ -2934,7 +2960,7 @@ body {
 }
 
 .app-shell.app-shell-ready {
-  animation: appShellIn 520ms ease-out both;
+  opacity: 1;
 }
 
 .project-picker {

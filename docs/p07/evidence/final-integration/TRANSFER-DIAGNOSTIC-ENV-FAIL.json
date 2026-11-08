@@ -1,0 +1,8 @@
+{
+  "source": "deaa3b6261db59e4d0df9300fa675ed6c64f9ae3",
+  "status": "FAIL_ENV_BEFORE_BROWSER",
+  "error": "D1 local migration internal error; reference = d56e9pm1apfqo7g8gfd85tm9",
+  "browserAssertionsExecuted": 0,
+  "rootCause": "NOT_DETERMINED",
+  "retry": "none; original diagnostic attempt preserved, not counted as a UI result"
+}

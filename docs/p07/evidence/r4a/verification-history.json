@@ -1,0 +1,58 @@
+{
+  "assertions_deleted_or_relaxed": false,
+  "frozen_assertions_changed": false,
+  "history": [
+    {
+      "run": "r4a-candidate-on",
+      "result": "Frozen 25/25 and primary 3/3 passed; extra 4/6. Tests incorrectly clicked a hidden legacy close button and omitted native bridge opt-in."
+    },
+    {
+      "run": "r4a-runtime-rerun",
+      "result": "Infrastructure failure: HTTP became ready before the seed verification completed, 3 !== 1. Added READY-log handshake; seed guard unchanged."
+    },
+    {
+      "run": "r4a-runtime-verified",
+      "result": "5/6; native opt-in boot query had been removed by SPA navigation before ordinary refresh. Re-entered the documented opt-in before the separate native case."
+    },
+    {
+      "run": "r4a-upgrade-safety",
+      "result": "Original byte assertion passed; added image inspection threw on an unrelated empty src. Resolved URLs against the document origin; Logo loading assertion retained."
+    },
+    {
+      "run": "integrated-preview-5b29f97",
+      "result": "Static verification failed on one HTTP 404 for unchanged source-original.png. Later read-only GET returned 200; exact final deployment is independently hash-verified."
+    },
+    {
+      "run": "preview-intermediate",
+      "result": "Initial publisher screenshot readiness used entryScreen only and captured pending policy. Final publisher waits for explicit non-pending policy and visible home; intermediate proof is not visual acceptance."
+    },
+    {
+      "run": "Core CI 42013739936",
+      "result": "Actual application regression: a successful supported legacy status without Task25 left authenticated presentation permanently pending. Product now explicitly settles unavailable capability; original responsive home assertions retained, with an additional real-browser status-contract regression."
+    },
+    {
+      "run": "r4a-r3-off",
+      "result": "Parallel drivers raced on the shared pages-output directory before browser startup. Per-run staging now materializes only committed allowlisted blobs and still uses the unchanged stagePages validation."
+    },
+    {
+      "run": "rejected reused r4a-final-on label",
+      "result": "Runner rejected reuse without replacing browser results or source manifest. The outer adapter had replaced historical provenance after rejection; that intermediate metadata is marked reconstructed with its original adapter hash unknown. The adapter now rejects before any writes; final closeout uses a fresh label."
+    },
+    {
+      "run": "Core CI 42014908673",
+      "result": "Business flows passed through account deletion. Reduced-motion mobile check measured before the new explicit policy had settled. Added a bounded actual policy/form visibility wait; original width and branded splash time assertions remain."
+    },
+    {
+      "run": "r4a-final-isolated-on",
+      "result": "24/25: one admin approval pointer sample was not visible. Preserved original failure and screenshot. The same unchanged frozen admin contract passed in closeout; no animation or pointer assertion was disabled."
+    },
+    {
+      "run": "r4a-closeout-on",
+      "result": "24/25: account reload boot exceeded 30 seconds with the original branded startup still visible. This remains an unresolved acceptance gate; previous 25/25 runs are not substituted for this failure."
+    },
+    {
+      "run": "Core CI 42016094018 / P5",
+      "result": "Application succeeded; old PWA assertion rejected every non-current cache. Revised test uses the exact release SW, completed install, exact retained fixture cache set, original bytes and no-API checks; actual local compiled runtime passed. The revised CI result is not yet verified."
+    }
+  ]
+}

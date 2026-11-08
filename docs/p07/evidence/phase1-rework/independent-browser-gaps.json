@@ -1,0 +1,103 @@
+{
+  "origin": "http://127.0.0.1:18898",
+  "checks": [
+    {
+      "id": "keyboard-overlap-focus-visible",
+      "status": "PASS",
+      "detail": [
+        {
+          "card": "learning",
+          "hit": "learning",
+          "visible": true,
+          "focusVisible": true,
+          "z": "3",
+          "rect": {
+            "x": 912.4064331054688,
+            "y": 146.00128173828125,
+            "width": 233.99969482421875,
+            "height": 281.9996032714844
+          }
+        },
+        {
+          "card": "finance",
+          "hit": "finance",
+          "visible": true,
+          "focusVisible": true,
+          "z": "3",
+          "rect": {
+            "x": 801.40625,
+            "y": 146,
+            "width": 234,
+            "height": 282
+          }
+        },
+        {
+          "card": "tools",
+          "hit": "tools",
+          "visible": true,
+          "focusVisible": true,
+          "z": "3",
+          "rect": {
+            "x": 1023.40625,
+            "y": 146,
+            "width": 234,
+            "height": 282
+          }
+        }
+      ]
+    },
+    {
+      "id": "two-real-accounts-layout-isolation",
+      "status": "PASS",
+      "detail": {
+        "accounts": 2,
+        "real_local_d1_auth": true,
+        "account_a_id": "8d16d37c-e691-4314-94fc-01eaa44d1a69",
+        "account_b_id": "3d97fd33-2337-43a9-b16f-a93f54ca88c5",
+        "reload_restore": true,
+        "guest_not_persisted": true,
+        "cross_account_leak": false
+      }
+    },
+    {
+      "id": "mobile-touch-editor-scroll-pinch-restore",
+      "status": "PASS",
+      "detail": {
+        "cdp_touch_events": true,
+        "physical_device": false,
+        "pointer_coarse": true,
+        "layouts": [
+          {
+            "card": "learning",
+            "angle": 4,
+            "size": "small"
+          },
+          {
+            "card": "finance",
+            "angle": 4,
+            "size": "large"
+          },
+          {
+            "card": "tools",
+            "angle": 4,
+            "size": "medium"
+          }
+        ],
+        "scroll_delta": 303,
+        "native_pinch": {
+          "status": "NOT_TESTED",
+          "page_scale": 1,
+          "control_scale": 1,
+          "reason": "Native gesture has no scale effect in the independent browser control"
+        },
+        "reload_restore": true,
+        "cancel_preserves": true,
+        "desktop_layout_preserved": true
+      }
+    }
+  ],
+  "pass": 3,
+  "fail": 0,
+  "physical_device": false,
+  "runtime_errors": []
+}

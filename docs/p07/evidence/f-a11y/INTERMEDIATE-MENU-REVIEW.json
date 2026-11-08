@@ -1,0 +1,26 @@
+{
+  "source": "0d0341f352db46a82e27c13997eb663624d37376",
+  "selection": "account-menu-controls-reference-and-expanded-audit",
+  "cases": [
+    {
+      "name": "account-menu-controls-reference-and-expanded-audit",
+      "status": "FAIL",
+      "error": "expanded reference still requires review",
+      "state": {
+        "path": "/account",
+        "policy": "enabled",
+        "p07": "enabled",
+        "boot": "ready",
+        "frameVisible": true,
+        "accountVisible": true,
+        "profile": "r5ownerA7dc3a67c",
+        "functionalP07": true,
+        "policyPanelVisible": false,
+        "retryVisible": false,
+        "visibility": "visible"
+      },
+      "screenshot": "FAIL-account-menu-controls-reference-and-expanded-audit.png"
+    }
+  ],
+  "scope": "actual isolated local APIs + Chrome; no real accounts or paid model"
+}

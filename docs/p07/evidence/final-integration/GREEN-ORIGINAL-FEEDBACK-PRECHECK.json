@@ -1,0 +1,38 @@
+{
+  "checks": [
+    {
+      "name": "register, sign in and load the module picker",
+      "milliseconds": 10475
+    },
+    {
+      "name": "finance candidate refresh shows feedback before the request",
+      "milliseconds": 8852
+    },
+    {
+      "name": "learning sync now shows feedback before the upload",
+      "milliseconds": 2273
+    },
+    {
+      "name": "transfer upload and share keep feedback on the pressed buttons",
+      "milliseconds": 3679
+    },
+    {
+      "name": "tool run shows feedback before the tool reports",
+      "milliseconds": 2413
+    },
+    {
+      "name": "membership recharge submit shows feedback before the order request",
+      "milliseconds": 10878
+    },
+    {
+      "name": "interaction trace records the click-to-render chain",
+      "milliseconds": 25
+    },
+    {
+      "name": "no runtime exception was recorded during the interaction audit",
+      "milliseconds": 0
+    }
+  ],
+  "skips": [],
+  "runtimeErrors": []
+}

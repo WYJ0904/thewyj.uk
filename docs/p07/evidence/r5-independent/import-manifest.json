@@ -1,0 +1,44 @@
+{
+  "r4c": "5f83167d9b6a8433565775b372631c8764eb052e",
+  "r5": "4e2fc0cf553e9490e2282a2ad169c2a8622b0ee3",
+  "commonAncestor": "c8ff0aa55b36e96561dd083bbaf032e4a24b6cd0",
+  "mode": "reviewed product delta without importing credential-bearing QA history",
+  "files": [
+    {
+      "file": "app.js",
+      "r4cBlob": "2da926337813606691e7dc49de0d5d412ebb4625",
+      "r5Blob": "c607989ce362bea4e9a5666b1a44b1a641a401b1",
+      "commonAncestorBlob": "2da926337813606691e7dc49de0d5d412ebb4625"
+    },
+    {
+      "file": "js/core/public-ui-policy.js",
+      "r4cBlob": "f00fc0dfbbe23966c7d85a64e7d4d3e8ad2e42ab",
+      "r5Blob": "436b7647a83914b542f01bbbcb47b23cd8048519",
+      "commonAncestorBlob": "f00fc0dfbbe23966c7d85a64e7d4d3e8ad2e42ab"
+    },
+    {
+      "file": "js/finance/app.js",
+      "r4cBlob": "1273997ba790311a222aef2af72a0af1a3b5fb40",
+      "r5Blob": "0e0020151c3cf9dcbc070e4b5523b49d69985745",
+      "commonAncestorBlob": "1273997ba790311a222aef2af72a0af1a3b5fb40"
+    },
+    {
+      "file": "spatial-experience.css",
+      "r4cBlob": "c45fae543fec696eb4142b69cfe1ca16c41709bd",
+      "r5Blob": "2485c3ee9509eeff9a5f4cfa38f723a9569af6fc",
+      "commonAncestorBlob": "c45fae543fec696eb4142b69cfe1ca16c41709bd"
+    },
+    {
+      "file": "styles.css",
+      "r4cBlob": "2e11e3bb1b2bc949ff0608203495542b9e1ac627",
+      "r5Blob": "4e60b3a9e36027099a65c58f06a4976bd57733dd",
+      "commonAncestorBlob": "2e11e3bb1b2bc949ff0608203495542b9e1ac627"
+    }
+  ],
+  "r5Commits": [
+    "8e63969392db98fd6c3f213467161627990a7e25",
+    "9f02ad85f7d244cebe7787e5d1983586169514ac",
+    "607f3b8683d8148d9aec26fbdf40a3dcce3b18e4",
+    "4e2fc0cf553e9490e2282a2ad169c2a8622b0ee3"
+  ]
+}

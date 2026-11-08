@@ -1,0 +1,162 @@
+{
+  "generatedAt": "2026-11-04T02:30:32.744Z",
+  "origin": "http://127.0.0.1:18898",
+  "passCount": 5,
+  "failCount": 0,
+  "checks": [
+    {
+      "id": "p07-01a-policy-brand-and-v3-tokens",
+      "status": "PASS",
+      "durationMs": 2563,
+      "detail": {
+        "p07Ui": "enabled",
+        "themeColor": "#f4f6f9",
+        "appName": "Aeris",
+        "ogSiteName": "Aeris",
+        "manifestName": "Aeris",
+        "bodyBg": "rgb(244, 246, 249)",
+        "bodyBgImage": "none",
+        "cardBg": "rgb(255, 255, 255)",
+        "quickBg": "rgb(255, 255, 255)",
+        "recentBg": "rgb(255, 255, 255)",
+        "primaryBg": "rgb(37, 99, 235)",
+        "primaryColor": "rgb(255, 255, 255)",
+        "navBg": "color(srgb 1 1 1 / 0.94)",
+        "heroLogoLoaded": true,
+        "navLogoLoaded": true,
+        "previewNoticeHidden": true,
+        "demoBadgeCount": 3,
+        "domNodes": 3590,
+        "fcpMs": 1792
+      }
+    },
+    {
+      "id": "multi-viewport-and-dark-mode-screenshots",
+      "status": "PASS",
+      "durationMs": 8986,
+      "detail": {
+        "screenshotCount": 16,
+        "captured": [
+          "docs/p07/evidence/phase1-argon/after/after-home-375-light.png",
+          "docs/p07/evidence/phase1-argon/after/after-home-mobile-390-light.png",
+          "docs/p07/evidence/phase1-argon/after/after-home-420-light.png",
+          "docs/p07/evidence/phase1-argon/after/after-home-768-light.png",
+          "docs/p07/evidence/phase1-argon/after/after-home-1024-light.png",
+          "docs/p07/evidence/phase1-argon/after/after-home-1366-light.png",
+          "docs/p07/evidence/phase1-argon/after/after-home-desktop-1440-light.png",
+          "docs/p07/evidence/phase1-argon/after/after-home-1920-light.png",
+          "docs/p07/evidence/phase1-argon/after/after-home-desktop-1440-dark.png",
+          "docs/p07/evidence/phase1-argon/after/after-home-mobile-390-dark.png",
+          "docs/p07/evidence/phase1-argon/after/after-login-desktop-1440-light.png",
+          "docs/p07/evidence/phase1-argon/after/after-register-desktop-1440-light.png",
+          "docs/p07/evidence/phase1-argon/after/after-login-375-light.png",
+          "docs/p07/evidence/phase1-argon/after/after-login-mobile-390-light.png",
+          "docs/p07/evidence/phase1-argon/after/after-login-768-light.png",
+          "docs/p07/evidence/phase1-argon/after/after-login-desktop-1440-dark.png"
+        ]
+      }
+    },
+    {
+      "id": "p07-01c-spatial-layer-zorder-escape-and-30-gestures",
+      "status": "PASS",
+      "durationMs": 17259,
+      "detail": {
+        "hoverLiftVerified": true,
+        "escapeCancelVerified": true,
+        "dynamicZOrderVerified": {
+          "writes": 0,
+          "guestMsg": "演示布局仅在本次预览中生效。",
+          "learningZ": 3,
+          "toolsZ": 1
+        },
+        "thirtyGestureRoundsPass": 30,
+        "thirtyGestureDurationMs": 13589,
+        "reducedMotionVerified": true
+      }
+    },
+    {
+      "id": "p07-01a-01d-accessibility-keyboard-and-text-scaling",
+      "status": "PASS",
+      "durationMs": 4804,
+      "detail": {
+        "ariaAudit": {
+          "labels": [
+            {
+              "id": "wordInput",
+              "count": 1
+            },
+            {
+              "id": "answerInput",
+              "count": 1
+            },
+            {
+              "id": "currentSecretInput",
+              "count": 1
+            },
+            {
+              "id": "newSecretInput",
+              "count": 1
+            },
+            {
+              "id": "newSecretConfirmInput",
+              "count": 1
+            },
+            {
+              "id": "deleteSecretInput",
+              "count": 1
+            },
+            {
+              "id": "adminNewSecretInput",
+              "count": 1
+            }
+          ],
+          "brokenTabs": []
+        },
+        "contrasts": [
+          {
+            "theme": "light",
+            "primaryRatio": 5.17,
+            "dangerRatio": 5.5
+          },
+          {
+            "theme": "dark",
+            "primaryRatio": 5.17,
+            "dangerRatio": 9.43
+          }
+        ],
+        "enlargedTextReflowCombinations": 5,
+        "flagOffRollbackVerified": true
+      }
+    },
+    {
+      "id": "authenticated-home-and-route-non-regression",
+      "status": "PASS",
+      "durationMs": 11438,
+      "detail": {
+        "authState": {
+          "sessionMode": "authenticated",
+          "demoBadgesVisible": 0,
+          "accountMenuVisible": true,
+          "personalVisible": true
+        },
+        "visitedCount": 11
+      }
+    }
+  ],
+  "afterAssetBytes": {
+    "index.html": 132022,
+    "styles.css": 65135,
+    "design-system.css": 33955,
+    "product-ui.css": 101314,
+    "public-experience.css": 59223,
+    "workspace-experience.css": 35410,
+    "spatial-experience.css": 21453,
+    "app.js": 316903,
+    "js/core/design-system.js": 15080,
+    "js/core/motion.js": 9893,
+    "js/core/home-widgets.js": 15777,
+    "js/core/public-ui-policy.js": 3383
+  },
+  "totalAfterCssBytes": 316490,
+  "baselineAssetBytes": null
+}

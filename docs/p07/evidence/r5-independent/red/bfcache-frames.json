@@ -1,0 +1,58 @@
+{
+  "source": "40842d138087de15a8c17f1ec9b310dd137e6412",
+  "cases": [
+    {
+      "name": "bfcache-restoration-revalidates-revoked-session-before-private-frame",
+      "status": "FAIL",
+      "error": "revoked private account was displayed in a restored rendering frame",
+      "detail": {
+        "sameDocument": true,
+        "events": [
+          {
+            "type": "pagehide",
+            "persisted": true,
+            "doc": 1793952798435.005,
+            "policy": "enabled",
+            "private": true,
+            "t": 829.6000000014901
+          },
+          {
+            "type": "pageshow",
+            "persisted": true,
+            "doc": 1793952798435.005,
+            "policy": "enabled",
+            "private": true,
+            "t": 879.6999999992549
+          }
+        ],
+        "firstRestoredFrames": [
+          {
+            "private": true,
+            "policy": "enabled",
+            "t": 881.3000000007451
+          }
+        ],
+        "state": {
+          "policy": "enabled",
+          "p07": "enabled"
+        },
+        "notUsedReasons": []
+      },
+      "state": {
+        "path": "/login",
+        "policy": "enabled",
+        "p07": "enabled",
+        "boot": "ready",
+        "frameVisible": true,
+        "accountVisible": false,
+        "profile": "r5ownerA8f77a6c7",
+        "functionalP07": false,
+        "policyPanelVisible": false,
+        "retryVisible": false,
+        "visibility": "visible"
+      },
+      "screenshot": "FAIL-bfcache-restoration-revalidates-revoked-session-before-private-frame.png"
+    }
+  ],
+  "scope": "actual isolated local APIs + Chrome; no real accounts or paid model"
+}

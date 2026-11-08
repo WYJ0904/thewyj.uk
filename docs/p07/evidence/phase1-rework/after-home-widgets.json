@@ -1,0 +1,588 @@
+{
+  "drag": {
+    "writesDuring": 0,
+    "writesAfter": 1,
+    "metricsBefore": [
+      {
+        "name": "Timestamp",
+        "value": 18524.570249
+      },
+      {
+        "name": "AudioHandlers",
+        "value": 0
+      },
+      {
+        "name": "AudioWorkletProcessors",
+        "value": 0
+      },
+      {
+        "name": "Documents",
+        "value": 16
+      },
+      {
+        "name": "Frames",
+        "value": 11
+      },
+      {
+        "name": "JSEventListeners",
+        "value": 899
+      },
+      {
+        "name": "LayoutObjects",
+        "value": 9446
+      },
+      {
+        "name": "MediaKeySessions",
+        "value": 0
+      },
+      {
+        "name": "MediaKeys",
+        "value": 0
+      },
+      {
+        "name": "Nodes",
+        "value": 18277
+      },
+      {
+        "name": "Resources",
+        "value": 214
+      },
+      {
+        "name": "ContextLifecycleStateObservers",
+        "value": 98
+      },
+      {
+        "name": "V8PerContextDatas",
+        "value": 3
+      },
+      {
+        "name": "WorkerGlobalScopes",
+        "value": 1
+      },
+      {
+        "name": "UACSSResources",
+        "value": 2
+      },
+      {
+        "name": "RTCPeerConnections",
+        "value": 0
+      },
+      {
+        "name": "ResourceFetchers",
+        "value": 18
+      },
+      {
+        "name": "AdSubframes",
+        "value": 0
+      },
+      {
+        "name": "DetachedScriptStates",
+        "value": 2
+      },
+      {
+        "name": "ArrayBufferContents",
+        "value": 92
+      },
+      {
+        "name": "LayoutCount",
+        "value": 1
+      },
+      {
+        "name": "RecalcStyleCount",
+        "value": 4
+      },
+      {
+        "name": "LayoutDuration",
+        "value": 0.000035
+      },
+      {
+        "name": "RecalcStyleDuration",
+        "value": 0.004038
+      },
+      {
+        "name": "DevToolsCommandDuration",
+        "value": 0.000847
+      },
+      {
+        "name": "ScriptDuration",
+        "value": 0.002069
+      },
+      {
+        "name": "V8CompileDuration",
+        "value": 0
+      },
+      {
+        "name": "TaskDuration",
+        "value": 0.024389
+      },
+      {
+        "name": "TaskOtherDuration",
+        "value": 0.0174
+      },
+      {
+        "name": "ThreadTime",
+        "value": 0.015008
+      },
+      {
+        "name": "ProcessTime",
+        "value": 1.740481
+      },
+      {
+        "name": "JSHeapUsedSize",
+        "value": 3217412
+      },
+      {
+        "name": "JSHeapTotalSize",
+        "value": 6553600
+      },
+      {
+        "name": "FirstMeaningfulPaint",
+        "value": 0
+      },
+      {
+        "name": "DomContentLoaded",
+        "value": 18523.634419
+      },
+      {
+        "name": "NavigationStart",
+        "value": 18521.148236
+      }
+    ],
+    "metricsAfter": [
+      {
+        "name": "Timestamp",
+        "value": 18525.096324
+      },
+      {
+        "name": "AudioHandlers",
+        "value": 0
+      },
+      {
+        "name": "AudioWorkletProcessors",
+        "value": 0
+      },
+      {
+        "name": "Documents",
+        "value": 16
+      },
+      {
+        "name": "Frames",
+        "value": 11
+      },
+      {
+        "name": "JSEventListeners",
+        "value": 900
+      },
+      {
+        "name": "LayoutObjects",
+        "value": 9487
+      },
+      {
+        "name": "MediaKeySessions",
+        "value": 0
+      },
+      {
+        "name": "MediaKeys",
+        "value": 0
+      },
+      {
+        "name": "Nodes",
+        "value": 18282
+      },
+      {
+        "name": "Resources",
+        "value": 216
+      },
+      {
+        "name": "ContextLifecycleStateObservers",
+        "value": 98
+      },
+      {
+        "name": "V8PerContextDatas",
+        "value": 3
+      },
+      {
+        "name": "WorkerGlobalScopes",
+        "value": 1
+      },
+      {
+        "name": "UACSSResources",
+        "value": 2
+      },
+      {
+        "name": "RTCPeerConnections",
+        "value": 0
+      },
+      {
+        "name": "ResourceFetchers",
+        "value": 18
+      },
+      {
+        "name": "AdSubframes",
+        "value": 0
+      },
+      {
+        "name": "DetachedScriptStates",
+        "value": 2
+      },
+      {
+        "name": "ArrayBufferContents",
+        "value": 94
+      },
+      {
+        "name": "LayoutCount",
+        "value": 4
+      },
+      {
+        "name": "RecalcStyleCount",
+        "value": 36
+      },
+      {
+        "name": "LayoutDuration",
+        "value": 0.000904
+      },
+      {
+        "name": "RecalcStyleDuration",
+        "value": 0.020501
+      },
+      {
+        "name": "DevToolsCommandDuration",
+        "value": 0.001653
+      },
+      {
+        "name": "ScriptDuration",
+        "value": 0.005444
+      },
+      {
+        "name": "V8CompileDuration",
+        "value": 0
+      },
+      {
+        "name": "TaskDuration",
+        "value": 0.064621
+      },
+      {
+        "name": "TaskOtherDuration",
+        "value": 0.036119
+      },
+      {
+        "name": "ThreadTime",
+        "value": 0.057245
+      },
+      {
+        "name": "ProcessTime",
+        "value": 1.824991
+      },
+      {
+        "name": "JSHeapUsedSize",
+        "value": 3686248
+      },
+      {
+        "name": "JSHeapTotalSize",
+        "value": 6553600
+      },
+      {
+        "name": "FirstMeaningfulPaint",
+        "value": 0
+      },
+      {
+        "name": "DomContentLoaded",
+        "value": 18523.634419
+      },
+      {
+        "name": "NavigationStart",
+        "value": 18521.148236
+      }
+    ]
+  },
+  "isolation": {
+    "a": {
+      "version": 2,
+      "learning": {
+        "contentMode": "latest",
+        "layouts": {
+          "desktop": {
+            "size": "large",
+            "rotation": 2,
+            "x": 0.03,
+            "y": 0.04
+          },
+          "mobile": {
+            "size": "medium",
+            "rotation": 1.5,
+            "x": 0.12,
+            "y": 0.15
+          }
+        }
+      },
+      "finance": {
+        "contentMode": "balance",
+        "layouts": {
+          "desktop": {
+            "size": "medium",
+            "rotation": -2,
+            "x": 0.92,
+            "y": 0.41
+          },
+          "mobile": {
+            "size": "medium",
+            "rotation": -1.5,
+            "x": 0.88,
+            "y": 0.35
+          }
+        }
+      },
+      "tools": {
+        "contentMode": "recent",
+        "layouts": {
+          "desktop": {
+            "size": "medium",
+            "rotation": 1,
+            "x": 0.1,
+            "y": 0.94
+          },
+          "mobile": {
+            "size": "medium",
+            "rotation": 1,
+            "x": 0.3,
+            "y": 0.55
+          }
+        }
+      }
+    },
+    "b": {
+      "version": 2,
+      "learning": {
+        "contentMode": "latest",
+        "layouts": {
+          "desktop": {
+            "size": "medium",
+            "rotation": 2,
+            "x": 0.03,
+            "y": 0.04
+          },
+          "mobile": {
+            "size": "medium",
+            "rotation": 1.5,
+            "x": 0.12,
+            "y": 0.15
+          }
+        }
+      },
+      "finance": {
+        "contentMode": "balance",
+        "layouts": {
+          "desktop": {
+            "size": "medium",
+            "rotation": -2,
+            "x": 0.92,
+            "y": 0.41
+          },
+          "mobile": {
+            "size": "medium",
+            "rotation": -1.5,
+            "x": 0.88,
+            "y": 0.35
+          }
+        }
+      },
+      "tools": {
+        "contentMode": "recent",
+        "layouts": {
+          "desktop": {
+            "size": "medium",
+            "rotation": 1,
+            "x": 0.1,
+            "y": 0.94
+          },
+          "mobile": {
+            "size": "medium",
+            "rotation": 1,
+            "x": 0.3,
+            "y": 0.55
+          }
+        }
+      }
+    },
+    "guest": {
+      "version": 2,
+      "learning": {
+        "contentMode": "latest",
+        "layouts": {
+          "desktop": {
+            "size": "medium",
+            "rotation": 2,
+            "x": 0.03,
+            "y": 0.04
+          },
+          "mobile": {
+            "size": "medium",
+            "rotation": 1.5,
+            "x": 0.12,
+            "y": 0.15
+          }
+        }
+      },
+      "finance": {
+        "contentMode": "balance",
+        "layouts": {
+          "desktop": {
+            "size": "medium",
+            "rotation": -2,
+            "x": 0.92,
+            "y": 0.41
+          },
+          "mobile": {
+            "size": "medium",
+            "rotation": -1.5,
+            "x": 0.88,
+            "y": 0.35
+          }
+        }
+      },
+      "tools": {
+        "contentMode": "recent",
+        "layouts": {
+          "desktop": {
+            "size": "medium",
+            "rotation": 1,
+            "x": 0.1,
+            "y": 0.94
+          },
+          "mobile": {
+            "size": "medium",
+            "rotation": 1,
+            "x": 0.3,
+            "y": 0.55
+          }
+        }
+      }
+    },
+    "restored": {
+      "version": 2,
+      "learning": {
+        "contentMode": "latest",
+        "layouts": {
+          "desktop": {
+            "size": "large",
+            "rotation": 2,
+            "x": 0.03,
+            "y": 0.04
+          },
+          "mobile": {
+            "size": "medium",
+            "rotation": 1.5,
+            "x": 0.12,
+            "y": 0.15
+          }
+        }
+      },
+      "finance": {
+        "contentMode": "balance",
+        "layouts": {
+          "desktop": {
+            "size": "medium",
+            "rotation": -2,
+            "x": 0.92,
+            "y": 0.41
+          },
+          "mobile": {
+            "size": "medium",
+            "rotation": -1.5,
+            "x": 0.88,
+            "y": 0.35
+          }
+        }
+      },
+      "tools": {
+        "contentMode": "recent",
+        "layouts": {
+          "desktop": {
+            "size": "medium",
+            "rotation": 1,
+            "x": 0.1,
+            "y": 0.94
+          },
+          "mobile": {
+            "size": "medium",
+            "rotation": 1,
+            "x": 0.3,
+            "y": 0.55
+          }
+        }
+      }
+    },
+    "corrupt": {
+      "version": 2,
+      "learning": {
+        "contentMode": "latest",
+        "layouts": {
+          "desktop": {
+            "size": "medium",
+            "rotation": 2,
+            "x": 0.03,
+            "y": 0.04
+          },
+          "mobile": {
+            "size": "medium",
+            "rotation": 1.5,
+            "x": 0.12,
+            "y": 0.15
+          }
+        }
+      },
+      "finance": {
+        "contentMode": "balance",
+        "layouts": {
+          "desktop": {
+            "size": "medium",
+            "rotation": -2,
+            "x": 0.92,
+            "y": 0.41
+          },
+          "mobile": {
+            "size": "medium",
+            "rotation": -1.5,
+            "x": 0.88,
+            "y": 0.35
+          }
+        }
+      },
+      "tools": {
+        "contentMode": "recent",
+        "layouts": {
+          "desktop": {
+            "size": "medium",
+            "rotation": 1,
+            "x": 0.1,
+            "y": 0.94
+          },
+          "mobile": {
+            "size": "medium",
+            "rotation": 1,
+            "x": 0.3,
+            "y": 0.55
+          }
+        }
+      }
+    },
+    "futureUnchanged": true,
+    "calls": [],
+    "keys": [
+      "aerisHomeWidgets:v2:QA-A",
+      "aerisHomeWidgets:v2:corrupt",
+      "aerisHomeWidgets:v2:future"
+    ]
+  },
+  "nativeBridgeBackResume": true,
+  "pass": true,
+  "navigation": true,
+  "settings": true,
+  "persistence": true,
+  "accountIsolation": true,
+  "responsive": true,
+  "keyboard": true,
+  "reducedMotion": true,
+  "reset": true,
+  "errors": []
+}

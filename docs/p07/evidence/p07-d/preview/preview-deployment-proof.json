@@ -1,0 +1,37 @@
+{
+  "deployedAt": "2026-11-05T08:18:17.461Z",
+  "status": "P07_D_PREVIEW_DEPLOYED_AND_VERIFIED",
+  "commit": "558efd4041f5466bab9ae6663425deef8f40911d",
+  "project": "thewyj-p07-ui-rc",
+  "branch": "v62-p07-d-workspaces",
+  "deploymentId": "dc48a645-d6b1-4ed9-9e53-9aea70babe20",
+  "url": "https://dc48a645.thewyj-p07-ui-rc.pages.dev",
+  "aliases": [
+    "https://v62-p07-d-workspaces.thewyj-p07-ui-rc.pages.dev"
+  ],
+  "isolatedPreviewD1Id": "ee869f78-b54a-4018-bc99-871089ecb8cd",
+  "r2BindingsCount": 0,
+  "aiBindingsCount": 0,
+  "safePreviewVars": {
+    "WORKERS_AI_ENABLED": "false",
+    "LEGACY_API_FALLBACK_ENABLED": "false",
+    "TASK25_FEATURE_FLAGS_ENABLED": "true",
+    "WYJ_ENVIRONMENT": "preview"
+  },
+  "productionTouched": false,
+  "productionMutations": 0,
+  "remoteMigrations": 0,
+  "aiCalls": 0,
+  "allowlistedFileCount": 147,
+  "publicStaticVerifiedCount": 86,
+  "liveBrowserProof": {
+    "previewUrl": "https://dc48a645.thewyj-p07-ui-rc.pages.dev",
+    "runtimeErrors": [],
+    "screenshots": [
+      "docs/p07/evidence/p07-d/preview/preview-live-home-1440.png",
+      "docs/p07/evidence/p07-d/preview/preview-live-home-390.png",
+      "docs/p07/evidence/p07-d/preview/preview-live-tools-1440.png",
+      "docs/p07/evidence/p07-d/preview/preview-live-language-1440.png"
+    ]
+  }
+}

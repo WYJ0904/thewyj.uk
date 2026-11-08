@@ -1,0 +1,85 @@
+{
+  "product_sha": null,
+  "ci_merge_sha": "145d2e55e84a7b68b7afb0aabf4af832eb7d22a7",
+  "readiness": {
+    "atLegacyCondition": {
+      "boot": "splash",
+      "mount": "pending",
+      "splash": true,
+      "htmlOverflow": "hidden",
+      "htmlHeight": "493px",
+      "bodyOverflow": "hidden",
+      "toolsVisible": false
+    },
+    "beforeUserNavigation": {
+      "boot": "ready",
+      "mount": "ready",
+      "splash": false,
+      "htmlOverflow": "visible",
+      "htmlHeight": "2384.5px",
+      "bodyOverflow": "hidden auto",
+      "toolsVisible": true
+    }
+  },
+  "report": [
+    {
+      "viewport": "360x800",
+      "viewportWidth": 360,
+      "scrollWidth": 360,
+      "bodyScrollWidth": 360,
+      "offenders": [],
+      "back": {
+        "left": 12,
+        "right": 348,
+        "top": 392,
+        "bottom": 436,
+        "width": 336,
+        "height": 44
+      },
+      "dropZone": {
+        "left": 12,
+        "right": 348,
+        "top": 826,
+        "bottom": 1074,
+        "width": 336,
+        "height": 248
+      },
+      "quota": {
+        "left": 12,
+        "right": 348,
+        "top": 452,
+        "bottom": 460,
+        "width": 336,
+        "height": 8
+      },
+      "config": {
+        "left": 12,
+        "right": 348,
+        "top": 476,
+        "bottom": 810,
+        "width": 336,
+        "height": 334
+      },
+      "message": {
+        "left": 12,
+        "right": 348,
+        "top": 1438,
+        "bottom": 1438,
+        "width": 336,
+        "height": 0
+      },
+      "viewportHeight": 800,
+      "bottomGuard": {
+        "lastBottom": 830,
+        "viewportHeight": 800,
+        "shellPaddingBottom": "32px",
+        "pagePaddingBottom": "32px",
+        "scrollY": 714,
+        "splash": false,
+        "boot": "ready",
+        "htmlOverflow": "visible",
+        "bodyOverflow": "hidden auto"
+      }
+    }
+  ]
+}

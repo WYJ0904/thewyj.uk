@@ -1,0 +1,217 @@
+{
+  "source": "40842d138087de15a8c17f1ec9b310dd137e6412",
+  "cases": [
+    {
+      "name": "account-switch-drops-previous-owner-presentation",
+      "status": "FAIL",
+      "error": "unknown B inherited A visual authority",
+      "detail": {
+        "before": {
+          "path": "/account",
+          "policy": "enabled",
+          "p07": "enabled",
+          "boot": "ready",
+          "frameVisible": true,
+          "accountVisible": true,
+          "profile": "r5ownerA03aa96cf",
+          "functionalP07": true,
+          "policyPanelVisible": false,
+          "retryVisible": false,
+          "visibility": "visible"
+        },
+        "pending": {
+          "path": "/account",
+          "policy": "pending",
+          "p07": "enabled",
+          "boot": "ready",
+          "frameVisible": true,
+          "accountVisible": true,
+          "profile": "r5ownerA03aa96cf",
+          "functionalP07": false,
+          "policyPanelVisible": false,
+          "retryVisible": false,
+          "visibility": "visible"
+        },
+        "after": {
+          "path": "/account",
+          "policy": "disabled",
+          "p07": "disabled",
+          "boot": "ready",
+          "frameVisible": false,
+          "accountVisible": true,
+          "profile": "r5ownerB0a0e6e46",
+          "functionalP07": false,
+          "policyPanelVisible": false,
+          "retryVisible": false,
+          "visibility": "visible"
+        },
+        "serverBOff": true
+      },
+      "state": {
+        "path": "/account",
+        "policy": "disabled",
+        "p07": "disabled",
+        "boot": "ready",
+        "frameVisible": false,
+        "accountVisible": true,
+        "profile": "r5ownerB0a0e6e46",
+        "functionalP07": false,
+        "policyPanelVisible": false,
+        "retryVisible": false,
+        "visibility": "visible"
+      },
+      "screenshot": "FAIL-account-switch-drops-previous-owner-presentation.png"
+    },
+    {
+      "name": "logout-drops-account-authority-before-public-off-arrives",
+      "status": "FAIL",
+      "error": "guest inherited prior account V3 authority",
+      "detail": {
+        "pending": {
+          "path": "/login",
+          "policy": "pending",
+          "p07": "enabled",
+          "boot": "ready",
+          "frameVisible": true,
+          "accountVisible": false,
+          "profile": "r5ownerA03aa96cf",
+          "functionalP07": false,
+          "policyPanelVisible": false,
+          "retryVisible": false,
+          "visibility": "visible"
+        },
+        "after": {
+          "path": "/login",
+          "policy": "disabled",
+          "p07": "disabled",
+          "boot": "ready",
+          "frameVisible": false,
+          "accountVisible": false,
+          "profile": "r5ownerA03aa96cf",
+          "functionalP07": false,
+          "policyPanelVisible": false,
+          "retryVisible": false,
+          "visibility": "visible"
+        },
+        "realPublicKill": true
+      },
+      "state": {
+        "path": "/login",
+        "policy": "disabled",
+        "p07": "disabled",
+        "boot": "ready",
+        "frameVisible": false,
+        "accountVisible": false,
+        "profile": "r5ownerA03aa96cf",
+        "functionalP07": false,
+        "policyPanelVisible": false,
+        "retryVisible": false,
+        "visibility": "visible"
+      },
+      "screenshot": "FAIL-logout-drops-account-authority-before-public-off-arrives.png"
+    },
+    {
+      "name": "expired-background-lease-does-not-stay-enabled",
+      "status": "FAIL",
+      "error": "expired authority was retained",
+      "detail": {
+        "expired": {
+          "path": "/account",
+          "policy": "pending",
+          "p07": "enabled",
+          "boot": "ready",
+          "frameVisible": true,
+          "accountVisible": true,
+          "profile": "r5ownerA03aa96cf",
+          "functionalP07": false,
+          "policyPanelVisible": false,
+          "retryVisible": false,
+          "visibility": "hidden"
+        },
+        "restored": {
+          "path": "/account",
+          "policy": "enabled",
+          "p07": "enabled",
+          "boot": "ready",
+          "frameVisible": true,
+          "accountVisible": true,
+          "profile": "r5ownerA03aa96cf",
+          "functionalP07": true,
+          "policyPanelVisible": false,
+          "retryVisible": false,
+          "visibility": "visible"
+        },
+        "ttlFixtureSeconds": 1,
+        "realVisibility": true
+      },
+      "state": {
+        "path": "/account",
+        "policy": "enabled",
+        "p07": "enabled",
+        "boot": "ready",
+        "frameVisible": true,
+        "accountVisible": true,
+        "profile": "r5ownerA03aa96cf",
+        "functionalP07": true,
+        "policyPanelVisible": false,
+        "retryVisible": false,
+        "visibility": "visible"
+      },
+      "screenshot": "FAIL-expired-background-lease-does-not-stay-enabled.png"
+    },
+    {
+      "name": "public-foreground-revalidates-real-kill-with-valid-cache",
+      "status": "FAIL",
+      "error": "timeout waiting for foreground real Kill response",
+      "state": {
+        "path": "/",
+        "policy": "enabled",
+        "p07": "enabled",
+        "boot": "ready",
+        "frameVisible": true,
+        "accountVisible": false,
+        "profile": "r5ownerA03aa96cf",
+        "functionalP07": false,
+        "policyPanelVisible": false,
+        "retryVisible": false,
+        "visibility": "visible"
+      },
+      "screenshot": "FAIL-public-foreground-revalidates-real-kill-with-valid-cache.png"
+    },
+    {
+      "name": "post-boot-policy-failure-keeps-visible-retry",
+      "status": "FAIL",
+      "error": "boot-ready failure hid its recovery feedback\n\nfalse !== true\n",
+      "detail": {
+        "failed": {
+          "path": "/",
+          "policy": "error",
+          "p07": "disabled",
+          "boot": "ready",
+          "frameVisible": false,
+          "accountVisible": false,
+          "profile": "r5ownerA03aa96cf",
+          "functionalP07": false,
+          "policyPanelVisible": false,
+          "retryVisible": false,
+          "visibility": "visible"
+        }
+      },
+      "state": {
+        "path": "/",
+        "policy": "error",
+        "p07": "disabled",
+        "boot": "ready",
+        "frameVisible": false,
+        "accountVisible": false,
+        "profile": "r5ownerA03aa96cf",
+        "functionalP07": false,
+        "policyPanelVisible": false,
+        "retryVisible": false,
+        "visibility": "visible"
+      },
+      "screenshot": "FAIL-post-boot-policy-failure-keeps-visible-retry.png"
+    }
+  ],
+  "scope": "actual isolated local APIs + Chrome; no real accounts or paid model"
+}

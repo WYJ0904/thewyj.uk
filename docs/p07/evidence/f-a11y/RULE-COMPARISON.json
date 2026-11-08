@@ -1,0 +1,93 @@
+{
+  "baseline": "72940bede5cff2aacd3bc3c66af5b16be40b243e",
+  "preflightSource": "3760e53712a9dafbbed2290a3da56addf151b506",
+  "comparison": [
+    {
+      "rule": "aria-allowed-role",
+      "impact": "minor",
+      "nodes": 11,
+      "workspaces": [
+        "PublicHome",
+        "LoginPage",
+        "LanguagePicker",
+        "LanguageWorkspace",
+        "FinanceLedger",
+        "MembershipCenter",
+        "AccountCenter",
+        "FileTransfer",
+        "ToolWorkflows",
+        "AdminConsole"
+      ],
+      "afterNodes": 0
+    },
+    {
+      "rule": "landmark-unique",
+      "impact": "moderate",
+      "nodes": 2,
+      "workspaces": [
+        "PublicHome",
+        "FinanceLedger"
+      ],
+      "afterNodes": 0
+    },
+    {
+      "rule": "page-has-heading-one",
+      "impact": "moderate",
+      "nodes": 4,
+      "workspaces": [
+        "LoginPage",
+        "MembershipCenter",
+        "AccountCenter",
+        "ToolWorkflows"
+      ],
+      "afterNodes": 0
+    },
+    {
+      "rule": "aria-prohibited-attr",
+      "impact": "serious",
+      "nodes": 1,
+      "workspaces": [
+        "LanguageWorkspace"
+      ],
+      "afterNodes": 0
+    },
+    {
+      "rule": "heading-order",
+      "impact": "moderate",
+      "nodes": 2,
+      "workspaces": [
+        "LanguageWorkspace",
+        "AdminConsole"
+      ],
+      "afterNodes": 0
+    },
+    {
+      "rule": "landmark-complementary-is-top-level",
+      "impact": "moderate",
+      "nodes": 2,
+      "workspaces": [
+        "FinanceLedger"
+      ],
+      "afterNodes": 0
+    },
+    {
+      "rule": "color-contrast",
+      "impact": "serious",
+      "nodes": 1,
+      "workspaces": [
+        "AccountCenter"
+      ],
+      "afterNodes": 0
+    },
+    {
+      "rule": "label",
+      "impact": "critical",
+      "nodes": 1,
+      "workspaces": [
+        "ToolWorkflows"
+      ],
+      "afterNodes": 0
+    }
+  ],
+  "newRules": []
+}

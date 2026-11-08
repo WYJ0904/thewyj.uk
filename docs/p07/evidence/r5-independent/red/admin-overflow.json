@@ -1,0 +1,113 @@
+{
+  "source": "9387340df75b8703a2fed39a7458fc2ddf8acbf7",
+  "selection": "admin-feature-flags-compact-layout",
+  "cases": [
+    {
+      "name": "admin-feature-flags-compact-layout",
+      "status": "FAIL",
+      "error": "mobile viewport expanded to fit overflowing controls\n\n767 !== 375\n",
+      "detail": {
+        "requestedWidth": 375,
+        "clientWidth": 375,
+        "layoutViewport": 767,
+        "scrollWidth": 767,
+        "overflow": [
+          {
+            "tag": "BUTTON",
+            "id": "adminToolStatsTab",
+            "classes": "",
+            "left": 367,
+            "right": 455,
+            "width": 88,
+            "minWidth": "auto",
+            "cssWidth": "88px",
+            "columns": "none",
+            "display": "flex",
+            "overflowX": "visible"
+          },
+          {
+            "tag": "BUTTON",
+            "id": "adminFeedbackTab",
+            "classes": "",
+            "left": 461,
+            "right": 563,
+            "width": 102,
+            "minWidth": "auto",
+            "cssWidth": "102px",
+            "columns": "none",
+            "display": "flex",
+            "overflowX": "visible"
+          },
+          {
+            "tag": "BUTTON",
+            "id": "adminMessagesTab",
+            "classes": "",
+            "left": 569,
+            "right": 657,
+            "width": 88,
+            "minWidth": "auto",
+            "cssWidth": "88px",
+            "columns": "none",
+            "display": "flex",
+            "overflowX": "visible"
+          },
+          {
+            "tag": "BUTTON",
+            "id": "adminRolesTab",
+            "classes": "",
+            "left": 663,
+            "right": 765,
+            "width": 102,
+            "minWidth": "auto",
+            "cssWidth": "102px",
+            "columns": "none",
+            "display": "flex",
+            "overflowX": "visible"
+          },
+          {
+            "tag": "BUTTON",
+            "id": "adminFeatureFlagsTab",
+            "classes": "active",
+            "left": 771.2804565429688,
+            "right": 858.7196044921875,
+            "width": 87.43914794921875,
+            "minWidth": "auto",
+            "cssWidth": "88px",
+            "columns": "none",
+            "display": "flex",
+            "overflowX": "visible"
+          },
+          {
+            "tag": "SPAN",
+            "id": "",
+            "classes": "ds-tab-indicator",
+            "left": 678.7797241210938,
+            "right": 766.7797241210938,
+            "width": 88,
+            "minWidth": "0px",
+            "cssWidth": "88px",
+            "columns": "none",
+            "display": "block",
+            "overflowX": "visible"
+          }
+        ],
+        "screenshot": "admin-compact-geometry.png"
+      },
+      "state": {
+        "path": "/admin",
+        "policy": "enabled",
+        "p07": "enabled",
+        "boot": "ready",
+        "frameVisible": false,
+        "accountVisible": false,
+        "profile": "wyj",
+        "functionalP07": true,
+        "policyPanelVisible": false,
+        "retryVisible": false,
+        "visibility": "visible"
+      },
+      "screenshot": "FAIL-admin-feature-flags-compact-layout.png"
+    }
+  ],
+  "scope": "actual isolated local APIs + Chrome; no real accounts or paid model"
+}
