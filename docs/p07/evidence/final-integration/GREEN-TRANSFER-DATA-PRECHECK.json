@@ -1,0 +1,430 @@
+{
+  "product_sha": "22f83b783c53058edd6beac0273ebdfdfefbc782",
+  "ci_merge_sha": null,
+  "readiness": {
+    "atLegacyCondition": {
+      "boot": "splash",
+      "mount": "pending",
+      "splash": true,
+      "htmlOverflow": "hidden",
+      "htmlHeight": "482px",
+      "bodyOverflow": "hidden",
+      "toolsVisible": false
+    },
+    "beforeUserNavigation": {
+      "boot": "ready",
+      "mount": "ready",
+      "splash": false,
+      "htmlOverflow": "visible",
+      "htmlHeight": "2463.36px",
+      "bodyOverflow": "hidden auto",
+      "toolsVisible": true
+    },
+    "beforeInitialTransferData": {
+      "documentHeight": 1071,
+      "bodyHeight": 1071,
+      "messageTop": 1007.203125,
+      "sharesChildren": 0,
+      "unfinishedChildren": 0
+    },
+    "initialTransferData": {
+      "completed": [
+        {
+          "path": "/api/transfer/uploads",
+          "status": 200,
+          "failed": false
+        },
+        {
+          "path": "/api/transfer/uploads",
+          "status": 200,
+          "failed": false
+        },
+        {
+          "path": "/api/transfer/capabilities",
+          "status": 200,
+          "failed": false
+        },
+        {
+          "path": "/api/transfer/shares",
+          "status": 200,
+          "failed": false
+        }
+      ],
+      "pending": []
+    },
+    "afterInitialTransferData": {
+      "documentHeight": 1300,
+      "bodyHeight": 1300,
+      "messageTop": 1235.578125,
+      "sharesChildren": 1,
+      "unfinishedChildren": 1
+    }
+  },
+  "report": [
+    {
+      "viewport": "360x800",
+      "viewportWidth": 360,
+      "scrollWidth": 360,
+      "bodyScrollWidth": 360,
+      "offenders": [],
+      "back": {
+        "left": 12,
+        "right": 348,
+        "top": 427,
+        "bottom": 471,
+        "width": 336,
+        "height": 44
+      },
+      "dropZone": {
+        "left": 12,
+        "right": 348,
+        "top": 861,
+        "bottom": 1109,
+        "width": 336,
+        "height": 248
+      },
+      "quota": {
+        "left": 12,
+        "right": 348,
+        "top": 487,
+        "bottom": 495,
+        "width": 336,
+        "height": 8
+      },
+      "config": {
+        "left": 12,
+        "right": 348,
+        "top": 511,
+        "bottom": 845,
+        "width": 336,
+        "height": 334
+      },
+      "message": {
+        "left": 12,
+        "right": 348,
+        "top": 1702,
+        "bottom": 1702,
+        "width": 336,
+        "height": 0
+      },
+      "viewportHeight": 800,
+      "scrollY": 0,
+      "documentHeight": 1766,
+      "bodyHeight": 1766,
+      "bottomGuard": {
+        "lastBottom": 736,
+        "viewportHeight": 800,
+        "shellPaddingBottom": "32px",
+        "pagePaddingBottom": "32px",
+        "scrollY": 966,
+        "splash": false,
+        "boot": "ready",
+        "htmlOverflow": "visible",
+        "bodyOverflow": "hidden auto",
+        "before": {
+          "scrollY": 0,
+          "documentHeight": 1766,
+          "bodyHeight": 1766
+        },
+        "documentHeight": 1766,
+        "bodyHeight": 1766,
+        "clientHeight": 800,
+        "visualHeight": 800,
+        "pageTransform": "none",
+        "shellTransform": "none"
+      }
+    },
+    {
+      "viewport": "390x844",
+      "viewportWidth": 390,
+      "scrollWidth": 390,
+      "bodyScrollWidth": 390,
+      "offenders": [],
+      "back": {
+        "left": 12,
+        "right": 378,
+        "top": -495,
+        "bottom": -451,
+        "width": 366,
+        "height": 44
+      },
+      "dropZone": {
+        "left": 12,
+        "right": 378,
+        "top": -61,
+        "bottom": 187,
+        "width": 366,
+        "height": 248
+      },
+      "quota": {
+        "left": 12,
+        "right": 378,
+        "top": -435,
+        "bottom": -427,
+        "width": 366,
+        "height": 8
+      },
+      "config": {
+        "left": 12,
+        "right": 378,
+        "top": -411,
+        "bottom": -77,
+        "width": 366,
+        "height": 334
+      },
+      "message": {
+        "left": 12,
+        "right": 378,
+        "top": 780,
+        "bottom": 780,
+        "width": 366,
+        "height": 0
+      },
+      "viewportHeight": 844,
+      "scrollY": 887,
+      "documentHeight": 1731,
+      "bodyHeight": 1731,
+      "bottomGuard": {
+        "lastBottom": 780,
+        "viewportHeight": 844,
+        "shellPaddingBottom": "32px",
+        "pagePaddingBottom": "32px",
+        "scrollY": 887,
+        "splash": false,
+        "boot": "ready",
+        "htmlOverflow": "visible",
+        "bodyOverflow": "hidden auto",
+        "before": {
+          "scrollY": 887,
+          "documentHeight": 1731,
+          "bodyHeight": 1731
+        },
+        "documentHeight": 1731,
+        "bodyHeight": 1731,
+        "clientHeight": 844,
+        "visualHeight": 844,
+        "pageTransform": "none",
+        "shellTransform": "none"
+      }
+    },
+    {
+      "viewport": "412x915",
+      "viewportWidth": 412,
+      "scrollWidth": 412,
+      "bodyScrollWidth": 412,
+      "offenders": [],
+      "back": {
+        "left": 12,
+        "right": 400,
+        "top": -368,
+        "bottom": -324,
+        "width": 388,
+        "height": 44
+      },
+      "dropZone": {
+        "left": 12,
+        "right": 400,
+        "top": 66,
+        "bottom": 258,
+        "width": 388,
+        "height": 192
+      },
+      "quota": {
+        "left": 12,
+        "right": 400,
+        "top": -308,
+        "bottom": -300,
+        "width": 388,
+        "height": 8
+      },
+      "config": {
+        "left": 12,
+        "right": 400,
+        "top": -284,
+        "bottom": 50,
+        "width": 388,
+        "height": 334
+      },
+      "message": {
+        "left": 12,
+        "right": 400,
+        "top": 851,
+        "bottom": 851,
+        "width": 388,
+        "height": 0
+      },
+      "viewportHeight": 915,
+      "scrollY": 760,
+      "documentHeight": 1675,
+      "bodyHeight": 1675,
+      "bottomGuard": {
+        "lastBottom": 851,
+        "viewportHeight": 915,
+        "shellPaddingBottom": "32px",
+        "pagePaddingBottom": "32px",
+        "scrollY": 760,
+        "splash": false,
+        "boot": "ready",
+        "htmlOverflow": "visible",
+        "bodyOverflow": "hidden auto",
+        "before": {
+          "scrollY": 760,
+          "documentHeight": 1675,
+          "bodyHeight": 1675
+        },
+        "documentHeight": 1675,
+        "bodyHeight": 1675,
+        "clientHeight": 915,
+        "visualHeight": 915,
+        "pageTransform": "none",
+        "shellTransform": "none"
+      }
+    },
+    {
+      "viewport": "320x640",
+      "viewportWidth": 320,
+      "scrollWidth": 320,
+      "bodyScrollWidth": 320,
+      "offenders": [],
+      "back": {
+        "left": 12,
+        "right": 308,
+        "top": -281,
+        "bottom": -237,
+        "width": 296,
+        "height": 44
+      },
+      "dropZone": {
+        "left": 12,
+        "right": 308,
+        "top": 153,
+        "bottom": 426,
+        "width": 296,
+        "height": 274
+      },
+      "quota": {
+        "left": 12,
+        "right": 308,
+        "top": -221,
+        "bottom": -213,
+        "width": 296,
+        "height": 8
+      },
+      "config": {
+        "left": 12,
+        "right": 308,
+        "top": -197,
+        "bottom": 137,
+        "width": 296,
+        "height": 334
+      },
+      "message": {
+        "left": 12,
+        "right": 308,
+        "top": 1019,
+        "bottom": 1019,
+        "width": 296,
+        "height": 0
+      },
+      "viewportHeight": 640,
+      "scrollY": 760,
+      "documentHeight": 1843,
+      "bodyHeight": 1843,
+      "bottomGuard": {
+        "lastBottom": 576,
+        "viewportHeight": 640,
+        "shellPaddingBottom": "32px",
+        "pagePaddingBottom": "32px",
+        "scrollY": 1203,
+        "splash": false,
+        "boot": "ready",
+        "htmlOverflow": "visible",
+        "bodyOverflow": "hidden auto",
+        "before": {
+          "scrollY": 760,
+          "documentHeight": 1843,
+          "bodyHeight": 1843
+        },
+        "documentHeight": 1843,
+        "bodyHeight": 1843,
+        "clientHeight": 640,
+        "visualHeight": 640,
+        "pageTransform": "none",
+        "shellTransform": "none"
+      }
+    },
+    {
+      "viewport": "desktop-1366",
+      "viewportWidth": 1351,
+      "scrollWidth": 1351,
+      "bodyScrollWidth": 1351,
+      "offenders": [],
+      "back": {
+        "left": 1134,
+        "right": 1200,
+        "top": -241,
+        "bottom": -197,
+        "width": 66,
+        "height": 44
+      },
+      "dropZone": {
+        "left": 152,
+        "right": 1200,
+        "top": 0,
+        "bottom": 183,
+        "width": 1048,
+        "height": 182
+      },
+      "quota": {
+        "left": 152,
+        "right": 1200,
+        "top": -145,
+        "bottom": -137,
+        "width": 1048,
+        "height": 8
+      },
+      "config": {
+        "left": 152,
+        "right": 1200,
+        "top": -121,
+        "bottom": -16,
+        "width": 1048,
+        "height": 105
+      },
+      "message": {
+        "left": 152,
+        "right": 1200,
+        "top": 704,
+        "bottom": 704,
+        "width": 1048,
+        "height": 0
+      },
+      "viewportHeight": 768,
+      "scrollY": 418,
+      "documentHeight": 1186,
+      "bodyHeight": 1186,
+      "bottomGuard": {
+        "lastBottom": 704,
+        "viewportHeight": 768,
+        "shellPaddingBottom": "32px",
+        "pagePaddingBottom": "32px",
+        "scrollY": 418,
+        "splash": false,
+        "boot": "ready",
+        "htmlOverflow": "visible",
+        "bodyOverflow": "hidden auto",
+        "before": {
+          "scrollY": 418,
+          "documentHeight": 1186,
+          "bodyHeight": 1186
+        },
+        "documentHeight": 1186,
+        "bodyHeight": 1186,
+        "clientHeight": 768,
+        "visualHeight": 768,
+        "pageTransform": "none",
+        "shellTransform": "none"
+      }
+    }
+  ]
+}

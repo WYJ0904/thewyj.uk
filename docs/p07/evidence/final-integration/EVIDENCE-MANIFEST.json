@@ -161,5 +161,123 @@
       "sha256": "ee1576b6a97fb91fbad1d4b316400b18220e01885129f1c0c998fafac44547d1",
       "caveat": "Nearest screencast frame precedes the first home DOM sample; shows recovery, not final home. Final driver now captures an explicit composite endpoint before stopping."
     }
+  ],
+  "additionalEvidenceFiles": [
+    {
+      "file": "FINANCE-OFFLINE-FIXTURE-GREEN.txt",
+      "sha256": "67ab7a247cbc7dd3a7dfe5a7ff599a9eb8419313d62e5579f8e23d287431fc69"
+    },
+    {
+      "file": "FINANCE-OFFLINE-FIXTURE-RED.txt",
+      "sha256": "8888724bbdc2c29ea4dee397bcb818b762cf6c197caf8840c6e1a3f52cfec83d"
+    },
+    {
+      "file": "GREEN-FINANCE-MOUNT-PRECHECK.json",
+      "sha256": "537b10769cfe350299ca3c08f7e756300449b26e2fde994873c595ae766f62ec"
+    },
+    {
+      "file": "GREEN-ORIGINAL-FEEDBACK-PRECHECK.json",
+      "sha256": "77e7e97e14d270b52aca083d3dad8e7935c5bac1b258b03106d992cda46a5b9b"
+    },
+    {
+      "file": "GREEN-RC5-TRANSITIONS-PRECHECK.json",
+      "sha256": "576184e7d1512790a3da17c625dd6d7ef88901ccd5cf2212ec2bb4d77620e3fb"
+    },
+    {
+      "file": "GREEN-TRANSFER-DATA-PRECHECK.json",
+      "sha256": "58f1e224e8d13d512a4d35df01cdf2ac36442f2046ff85387c7de07c2f338bdf"
+    },
+    {
+      "file": "INTEGRATION-INPUTS.json",
+      "sha256": "4cecfc781677519bea7a6e887c295895eb8f41f9ab2e5c0bc637eabc79490df8"
+    },
+    {
+      "file": "PR132-FIXED-LOGIN-RED.json",
+      "sha256": "b8114fb2b531fb53cb4ae8321ffb4d8f1d8ff837291dcd8bfa9bdaffa24086c9"
+    },
+    {
+      "file": "PR133-CI-RED.json",
+      "sha256": "12899fdd1733b25660a41922db74351762336aeb65a7b0057f583e521ca237d0"
+    },
+    {
+      "file": "PR135-254-FINANCE-DOM-RED.json",
+      "sha256": "494a84b266968f9664b2e6cb02e72ea865fe1f009b002aff05d6bbb6b4ea3855"
+    },
+    {
+      "file": "PR135-254-FINANCE-RECOVERY-RED.png",
+      "sha256": "d83048d69e2caf10ec1c4b3c07c656fe2d00aeb5c43bdd0f7bd4744f2f9f2bc0"
+    },
+    {
+      "file": "PR135-254-LAB-PARTIAL.json",
+      "sha256": "750e1ecec210a39c89181581b52cd705faf2d569c98fb1837c8fdc9b95e8ff2e"
+    },
+    {
+      "file": "PR135-254-SUITES.json",
+      "sha256": "9c5887005115510a8807ba710f245c0576ed26fb5c854be6f84c33fc69043d88"
+    },
+    {
+      "file": "PR135-254-TRANSITIONS.json",
+      "sha256": "403bc420bba029aec82524bc31b239b00cabfacb30e4596c79de37eda73f37e8"
+    },
+    {
+      "file": "PR135-79-CI-RED.json",
+      "sha256": "ea4c670b07be6b0e3ed5d067e912f2a0db4fb9b322206324f67b8bced894d767"
+    },
+    {
+      "file": "PR135-79-CI-TRANSFER-SNAPSHOT.json",
+      "sha256": "c3233b1f3ba16592fc3f61379d078b1753d886a0bcf5fafad060e516ffce989e"
+    },
+    {
+      "file": "PR135-BB-CI-RED.json",
+      "sha256": "7dcee2457c9f79da87a6c1bf4b8c936d1bb2b67868d4bdf80a569b548456c8df"
+    },
+    {
+      "file": "PR135-BB-COMBINED-DELAY-DOM.json",
+      "sha256": "d5259ede029636b3778b0160a0282dfb5e330a795bf550ecd3e83f1ae3c75b09"
+    },
+    {
+      "file": "PR135-BB-COMBINED-DELAY-RED.json",
+      "sha256": "f9f2034f1dcecc753325a33d63ac86879d7d44d67d2ebf45f74d727f30b17ce3"
+    },
+    {
+      "file": "PR135-BB-LAB-VALID.json",
+      "sha256": "e13c38e78aae6b48891b7e8b91dee61fe942590ae6365f44bf8e47f0cbb410e1"
+    },
+    {
+      "file": "PR135-BB-SUITES.json",
+      "sha256": "0f8fe6726a1cf30418409491d12a9febe43676bf3592682d6a36f9743d65d9f2"
+    },
+    {
+      "file": "PR135-DEAA-CI-RED.json",
+      "sha256": "6d695e26f1935a8020105052674816a13f001c846fa5f137720db277510902f2"
+    },
+    {
+      "file": "PR135-DEAA-LAB-VALID.json",
+      "sha256": "38deef8b41e770401f54a40c5455251b2385e78ce917744c4fe7b0693d2117cc"
+    },
+    {
+      "file": "PR135-DEAA-SUITES.json",
+      "sha256": "73f0fef874dacfd5ff67f1bbf7a73b3dba25d12487cacae43c3d2016b16ef228"
+    },
+    {
+      "file": "PR135-DEAA-TRANSITIONS.json",
+      "sha256": "46a9653c5470ddd9cbe2a153986c4ce7d08f9b89802d22c5e21e5577e4741380"
+    },
+    {
+      "file": "PR135-FINANCE-MOUNT-RED.json",
+      "sha256": "01af162c00d0bde128c66c184cfc94589b7ec6bf85419e526ca2691ac2e18a4c"
+    },
+    {
+      "file": "PR135-FIRST-CI-RED.json",
+      "sha256": "b690cebca6398a89147900bbcf948934b3be6bf5561ebd05777b39365278bfa2"
+    },
+    {
+      "file": "PROTECTION.json",
+      "sha256": "6dbb7e632fd5fbfaeaf61d16fa6963d68b508c4ae10bcf34102641693f6a7147"
+    },
+    {
+      "file": "TRANSFER-DIAGNOSTIC-ENV-FAIL.json",
+      "sha256": "cae4ab6e6bb5a9d9b9931b806514b76947e99e78d2becb77a146fdc02eb1fdc2"
+    }
   ]
 }

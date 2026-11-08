@@ -12,6 +12,8 @@
 
 `deaa3b6261db59e4d0df9300fa675ed6c64f9ae3` 的产品本地门禁通过，但 CI 传输测量仍提前按旧就绪条件执行。最后增加的是更严格的测试就绪/可见/滚动断言和采集，不改变 RC5 的产品发布字节。部署仍只使用最终收据 SHA，不能以这三个中间候选替代。
 
+`79faf5334d6160ed4fba172d717df9b33da156b6` 也保留为 CI 未通过：启动前提补齐后，仍在初始传输列表未全部加载时测量。最后的测试等待真实初始请求完成，保留所有裁切边界，且没有修改产品布局。继续只认最终收据，而非任何中间候选。
+
 仅可在已证实隔离的 `thewyj-p07-ui-rc` 项目与专用绑定部署，AI/OCR OFF。不要操作 Production、正式 D1/R2、用户权限、Stable 或 Android。公开 V3 Flag 由合法环境配置提供，前端不硬编码 ON；公开与账户策略必须分别验证。若公开 API 返回 missing/OFF，记录环境问题，不能擅改 fail-closed 语义。
 
 交付 Hosted URL、Cloudflare deployment ID、完整 commit SHA、资源版本、公开 `/api/ui/features` 的非敏感结果、隔离绑定证明。账户测试凭据走安全渠道，不写 Git、报告或评论。

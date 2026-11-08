@@ -54,6 +54,9 @@ visible/ready precondition restored. It retains all five widths and original
 geometry/scroll limits, removes the arbitrary 350ms sleep, and additionally rejects
 zero-size controls or leftover scroll locks. It records both the old DOM-only
 condition and the actual ready state, rather than guessing what CI rendered.
+It also waits for real initial capabilities/shares/uploads responses within the
+original 25s budget before measuring. Late empty-state rows change document height;
+neither that race nor a real remaining crop is hidden by repeated scroll attempts.
 
 Test corrections are recorded in the report, retaining original failures:
 the navigation log starts after authoritative ON and then allows **no** pending/OFF

@@ -75,6 +75,10 @@
 
 现在保留原 40 秒总启动预算、五个视口、所有原横向/控件/底部可达与 safe-area 断言；补上实际可见且启动清理完成的前提，移除固定 350ms，等待真实布局帧；另外断言控件有正宽高、Splash 不存在、滚动锁没有遗留。原条件刚满足与真正可交互两时刻、完整几何和滚动状态写入 `transfer-responsive.json`，最终同 SHA 的真实结果提供判断依据。此处只修改测试，没有为了通过而延长产品动画或修改传输/滚动 CSS。实际产品若在清理后仍锁滚动或裁切，强化后的测试依然失败。
 
+`79faf5334d6160ed4fba172d717df9b33da156b6` 的 [CI 42445877065](https://github.com/WYJ0904/thewyj.uk/actions/runs/42445877065) 继续保留为 [FAIL](evidence/final-integration/PR135-79-CI-RED.json)。新采集确实在真实 CI 看到了旧前提满足时 splash/pending/滚动锁仍有效；但后一次 30px 超出发生于 Splash 已结束、scrollY=714 的状态，不能再归因启动锁。[完整 CI 传输快照](evidence/final-integration/PR135-79-CI-TRANSFER-SNAPSHOT.json) 保留，原底部断言仍有效检出了问题。
+
+接着补齐独立的初始数据就绪前提：传输页异步并行加载 capabilities、分享、未完成上传，boot ready/可见并不代表这些内容已经到达。测试现观察三个真实 HTTP 200 与请求完成，再等待实际有限动画/布局帧，不增加 25 秒总传输预算，不按“是否满足底部断言”反复滚动。[本地实际记录](evidence/final-integration/GREEN-TRANSFER-DATA-PRECHECK.json) 显示列表由 0 个子节点变为实际空状态，文档高度由 1071px 变为 1300px；加载完后五个视口滚动前后文档高度一致，末项完整可达。该数值属于本地新测量，没有倒填为旧 CI 的精确时序。保留全部原边界，补充请求状态、文档高度、视口及 transform 诊断；产品传输/CSS 未修改。最终只以新完整 SHA 的同样严格检查及全部 CI 收据决定状态。
+
 - [原运行失败](evidence/final-integration/INTERMEDIATE-RUNTIME-FAILURE.json)：导航日志包含首次未决初始化。现先确认 authoritative ON，再记录往返；之后**所有**变更必须保持 ON，原来忽略 pending 的过滤也已去掉。首次加载仍由独立帧测试严格验收。
 - [原 R5 失败](evidence/final-integration/INTERMEDIATE-R5-FAILURE.json)：隐藏冷启动没有先前有效租约，原测试强制要求 ready。现要求有限退出、pending/OFF、没有私有画面、可见恢复操作；保留前台恢复、375px 滚动、确认框、焦点和 Escape 断言。
 - 登录期间 B 恢复后 `/login` 合法规范化至 `/`。原“必须留在 /login”假设已改为检查跳转前当前身份/策略，以及真实 B 工作区；另增加 A 登录响应被延迟、B 已验证后的反向竞态。
