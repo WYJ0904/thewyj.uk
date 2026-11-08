@@ -1581,6 +1581,8 @@ html[data-p07-ui="enabled"][data-large-text="true"] .aeris-live-sample {
 html[data-p07-ui="enabled"][data-large-text="true"] .home-layout-controls { flex-wrap: wrap; }
 
 /* One in-flow help landmark shared by public pages and every workspace. */
+/* Reveal with the page, so the splash cannot briefly place it at the top. */
+html:has(#entryScreen) .site-help-footer { display: none; }
 .site-help-footer {
   width: 100%;
   padding: 12px max(20px, env(safe-area-inset-right)) calc(16px + env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));

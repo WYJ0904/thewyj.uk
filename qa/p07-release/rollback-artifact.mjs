@@ -8,7 +8,7 @@ export async function buildRollback(sha,root){
  assert.match(sha,/^[a-f0-9]{40}$/);root=path.resolve(root);assert.ok(root.startsWith(path.resolve('.wrangler')+path.sep),'Generated assets remain under ignored build output');
  const git=(...a)=>execFileSync('git',a,{maxBuffer:30000000,windowsHide:true}),files=git('ls-tree','-r','--name-only',sha).toString().trim().split(/\r?\n/).filter(isAllowedPagesFile).sort();
  const sourceRelease=git('show',sha+':js/core/config.js').toString().match(/ASSET_RELEASE = "([^"]+)"/)[1];
- const rollbackRelease='20261109-aeris-p07-safe-rollback-r2';await mkdir(root,{recursive:true});const manifest=[];
+ const rollbackRelease='20261109-aeris-p07-safe-rollback-r3';await mkdir(root,{recursive:true});const manifest=[];
  for(const file of files){const original=git('show',sha+':'+file);let bytes=original;
   if(!file.startsWith('assets/')&&!file.startsWith('vendor/')&&!file.startsWith('functions/')&&/\.(?:js|mjs|css|html|webmanifest)$/.test(file)){
    let text=original.toString().replaceAll(sourceRelease,rollbackRelease);

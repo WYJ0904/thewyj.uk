@@ -70,6 +70,6 @@ for(const name of cases){
   if(name!=='body-timeout'){assert.equal(entry.final.currentExists,true);assert.deepEqual(entry.final.missing,[]);assert.equal(entry.final.html,true);await page.send('Network.emulateNetworkConditions',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});entry.offline_html=await page.evaluate(`fetch('/index.html').then(r=>r.text()).then(t=>t.includes(${JSON.stringify(meta.release)}))`);assert.equal(entry.offline_html,true);}
   entry.status='PASS';
  }catch(error){entry.status='FAIL';entry.error=error.message;process.exitCode=1;}
- finally{entry.max_server_active=maxActive;entry.ended_at=new Date().toISOString();await save();if(page){try{await page.send('Browser.close');}catch{}try{await page.close();}catch{}}if(child?.exitCode===null)child.kill();if(server){server.closeAllConnections();await new Promise(r=>server.close(r));}console.log(JSON.stringify({case:name,status:entry.status,error:entry.error,first:entry.first,max_server_active:maxActive}));}
+ finally{entry.max_server_active=maxActive;entry.ended_at=new Date().toISOString();await save();if(page){try{await page.close();}catch{}}if(child?.exitCode===null)child.kill();if(server){server.closeAllConnections();await new Promise(r=>server.close(r));}console.log(JSON.stringify({case:name,status:entry.status,error:entry.error,first:entry.first,max_server_active:maxActive}));}
 }
 await save();
