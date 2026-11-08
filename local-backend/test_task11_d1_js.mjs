@@ -66,7 +66,15 @@ function learningChange(dataType, recordId, payload, updatedAt, baseServerVersio
   };
 }
 
+// The six-request quota assertion belongs to one window, independent of CI's
+// wall-clock ten-minute boundary. Only this isolated feedback fixture uses the clock.
+const feedbackTestNow = Math.floor(Date.now() / 600000) * 600000 + 1000;
 async function task11Request(db, route, options = {}) {
+  const originalNow = Date.now;
+  if (route === "/api/feedback" && options.method === "POST") {
+    Date.now = () => options.testNowMs ?? feedbackTestNow;
+  }
+  try {
   const headers = new Headers(options.headers || {});
   if (options.token) headers.set("X-Session-Token", options.token);
   if (options.body !== undefined) headers.set("Content-Type", "application/json");
@@ -83,6 +91,9 @@ async function task11Request(db, route, options = {}) {
   });
   await Promise.all(waits);
   return { response, payload: await response.json() };
+  } finally {
+    Date.now = originalNow;
+  }
 }
 
 const runtime = await mkdtemp(path.join(os.tmpdir(), "wyj-task11-d1-"));
@@ -177,6 +188,13 @@ try {
   assert.equal(rateLimited.response.status, 429);
   assert.equal(rateLimited.payload.code, "feedback_rate_limited");
   assert.ok(Number(rateLimited.response.headers.get("Retry-After")) > 0);
+  const nextWindow = await task11Request(db, "/api/feedback", {
+    method: "POST",
+    token: "task11-user-one",
+    testNowMs: feedbackTestNow + 600000,
+    body: { type: "other", title: "New quota window", content: "A later window must admit a new request." },
+  });
+  assert.equal(nextWindow.response.status, 201, "the real limiter resets at the next fixed window");
   completed += 1;
 
   const accepted = await task11Request(db, "/api/admin/feedback/update", {
