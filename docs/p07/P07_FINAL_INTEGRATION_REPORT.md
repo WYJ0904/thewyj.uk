@@ -53,6 +53,16 @@
 
 ## 测试修正及失败保留
 
+### 第一次冻结候选未通过，继续修复
+
+`25406b3414b227bc277f6436286c77fed10b48a4` 的 [Core CI 42381660299](https://github.com/WYJ0904/thewyj.uk/actions/runs/42381660299) 实际执行了两个浏览器作业：application 成功，Cloud-only 在原交互反馈脚本等待 finance ready 超时。其余必需 CI 作业通过；**该 SHA 不算 INTEGRATION_PASS**。[原作业状态](evidence/final-integration/PR135-FIRST-CI-RED.json)、[本地实际 DOM](evidence/final-integration/PR135-254-FINANCE-DOM-RED.json)、[首次完整本地门禁](evidence/final-integration/PR135-254-SUITES.json) 保留。
+
+本地按原 400ms 网络和合法财务权益复现：`/finance`、boot ready、身份验证 ready，财务候选数据已加载，但 `financePage` 仍 hidden，只有 sessionRecovery 可见。根因是目标工作区已经开始异步挂载，2500ms Splash deadline 又调用了会清理主工作区的恢复函数；异步工作完成后未重新激活被清理的容器。这是真实产品缺陷，没有改原 CI 的财务、即时反馈、超时或安全断言。
+
+现将有限恢复界面与目标挂载生命周期分开：主画布在挂载 pending 期间由一个中央呈现状态约束；恢复界面不拆掉已开始的控制器；身份、策略及当前路由 generation 都有效、同一次挂载完成后，才关闭恢复界面并呈现目标。没有重复进入财务控制器、放宽时间限制或清理用户数据。[新回归在固定旧 SHA 上 FAIL](evidence/final-integration/PR135-FINANCE-MOUNT-RED.json)，[候选在 ON/OFF 均 PASS](evidence/final-integration/GREEN-FINANCE-MOUNT-PRECHECK.json)。[未改断言的原交互反馈脚本本地 8/8](evidence/final-integration/GREEN-ORIGINAL-FEEDBACK-PRECHECK.json)，之后仍需最终 SHA 完整 Core CI 复核。
+
+该次本地门禁中固定/扩展 axe、120 个布局、R5、连续帧 13 项等均通过；Lab 在打开后续 Chrome CDP 连接时发生 WebSocket error，终止前有 10 张截图，但旧采集器未写出对应性能数据。[这次失败单独保留](evidence/final-integration/PR135-254-LAB-PARTIAL.json)，不能从截图伪造 LCP 或将它改称通过。现在每个完成样本、下一次尝试位置及终止错误都会立即保存；没有自动重连、测量重试或超时上调。连接故障根因仍 NOT_DETERMINED，最终 SHA 的新测量与此次失败分开记录。
+
 - [原运行失败](evidence/final-integration/INTERMEDIATE-RUNTIME-FAILURE.json)：导航日志包含首次未决初始化。现先确认 authoritative ON，再记录往返；之后**所有**变更必须保持 ON，原来忽略 pending 的过滤也已去掉。首次加载仍由独立帧测试严格验收。
 - [原 R5 失败](evidence/final-integration/INTERMEDIATE-R5-FAILURE.json)：隐藏冷启动没有先前有效租约，原测试强制要求 ready。现要求有限退出、pending/OFF、没有私有画面、可见恢复操作；保留前台恢复、375px 滚动、确认框、焦点和 Escape 断言。
 - 登录期间 B 恢复后 `/login` 合法规范化至 `/`。原“必须留在 /login”假设已改为检查跳转前当前身份/策略，以及真实 B 工作区；另增加 A 登录响应被延迟、B 已验证后的反向竞态。
@@ -94,7 +104,7 @@
 | 首帧登录文字 | PASS，4 次扫描 | `6b8116267458a6fb57ded0a6db8f20f21e4bab0a` |
 | 最终完整提交 | 必须冻结后执行完整 ON、OFF、Kill、暖升级和 Core CI | 以 Draft PR 最终同 SHA 收据为准 |
 
-最终资源版本为 **`20261107-aeris-p07-final-rc3`**，由现有 `update_asset_release.mjs` 生成。HTML、JS 模块、CSS 引用和 SW 同源版本统一。`sw.js`、API、会话和路由核心相对 #132 仅版本串改变；功能性变更局限于本任务启动/身份呈现和 #133 的合法隐藏租约续租。服务端、计费、财务账目、套餐、权限/API 合同未修改。
+最终资源版本为 **`20261108-aeris-p07-final-rc4`**，由现有 `update_asset_release.mjs` 生成。HTML、JS 模块、CSS 引用和 SW 同源版本统一。`sw.js`、API、会话和路由核心相对 #132 仅版本串改变；功能性变更局限于本任务启动/身份呈现和 #133 的合法隐藏租约续租。服务端、计费、财务账目、套餐、权限/API 合同未修改。
 
 保护脚本确认 #131 与 #132 的 allowlisted Pages 输入完全相同，因此从精确 #132 暖缓存升级同时覆盖这两者的旧客户端资源字节。最终暖升级必须继续验证普通刷新、实际 JS/CSS 哈希、离线、localStorage、IndexedDB 及独立用户缓存保留；不得清理用户缓存来通过。
 

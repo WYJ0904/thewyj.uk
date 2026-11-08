@@ -1,0 +1,597 @@
+{
+  "source": "25406b3414b227bc277f6436286c77fed10b48a4",
+  "selection": "all",
+  "cases": [
+    {
+      "name": "recovery-whole-document-axe-light-dark-mobile-desktop",
+      "status": "PASS",
+      "detail": {
+        "scans": 4,
+        "noExcludes": true
+      }
+    },
+    {
+      "name": "first-visible-login-contrast-normal-and-reduced",
+      "status": "PASS",
+      "detail": {
+        "scans": 4,
+        "noExcludes": true,
+        "allVisibleLoginOpacity": 1
+      }
+    },
+    {
+      "name": "normal-first-start",
+      "status": "PASS",
+      "detail": {
+        "sampleCount": 235,
+        "renderedFrames": 85,
+        "first": {
+          "t": 91.09999999962747,
+          "epoch": 1794062056444,
+          "path": "/",
+          "policy": "pending",
+          "splash": true,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false
+        },
+        "last": {
+          "t": 1283.8999999985099,
+          "epoch": 1794062057636.7998,
+          "path": "/",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "publicHome"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false
+        },
+        "recoveryFrames": 0,
+        "frameDirectory": "continuous-normal-guest"
+      }
+    },
+    {
+      "name": "normal-session-start",
+      "status": "PASS",
+      "detail": {
+        "sampleCount": 211,
+        "renderedFrames": 75,
+        "first": {
+          "t": 90.70000000111759,
+          "epoch": 1794062057993.9,
+          "path": "/account",
+          "policy": "pending",
+          "splash": true,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false
+        },
+        "last": {
+          "t": 1083.5999999996275,
+          "epoch": 1794062058986.8,
+          "path": "/account",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "accountModal"
+          ],
+          "privateHeader": true,
+          "focus": "",
+          "inert": false,
+          "profile": "r5ownerA4df42d1c"
+        },
+        "recoveryFrames": 0,
+        "frameDirectory": "continuous-normal-account"
+      }
+    },
+    {
+      "name": "slow-public-policy-3200ms-no-blank-or-premature-workspace",
+      "status": "PASS",
+      "detail": {
+        "sampleCount": 850,
+        "renderedFrames": 117,
+        "first": {
+          "t": 106.40000000037253,
+          "epoch": 1794062059118.5,
+          "path": "/",
+          "policy": "pending",
+          "splash": true,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false
+        },
+        "last": {
+          "t": 3796,
+          "epoch": 1794062062808,
+          "path": "/",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "publicHome"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false
+        },
+        "recoveryFrames": 189,
+        "frameDirectory": "continuous-slow-public"
+      }
+    },
+    {
+      "name": "slow-session-3200ms-preserves-route-and-rejects-cached-other-account",
+      "status": "PASS",
+      "detail": {
+        "sampleCount": 874,
+        "renderedFrames": 116,
+        "first": {
+          "t": 84.20000000111759,
+          "epoch": 1794062063188.9,
+          "path": "/account",
+          "policy": "pending",
+          "splash": true,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false
+        },
+        "last": {
+          "t": 3849.300000000745,
+          "epoch": 1794062066954,
+          "path": "/account",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "accountModal"
+          ],
+          "privateHeader": true,
+          "focus": "",
+          "inert": false,
+          "profile": "r5ownerB048b7f1d"
+        },
+        "recoveryFrames": 214,
+        "frameDirectory": "continuous-slow-identity"
+      }
+    },
+    {
+      "name": "failed-session-has-visible-retry-and-can-recover",
+      "status": "PASS",
+      "detail": {
+        "before": {
+          "retry": true,
+          "exit": true,
+          "state": "error",
+          "path": "/account"
+        },
+        "hit": {
+          "x": 646.5,
+          "y": 518.359375,
+          "viewport": {
+            "width": 1440,
+            "height": 960
+          },
+          "targetRect": {
+            "top": 496.359375,
+            "bottom": 540.359375,
+            "width": 94,
+            "height": 44
+          },
+          "hitObject": {
+            "tag": "BUTTON",
+            "id": "retrySessionRecoveryBtn",
+            "classes": "primary"
+          },
+          "hit": true,
+          "disabled": false,
+          "inert": false
+        },
+        "sampleCount": 773,
+        "renderedFrames": 103,
+        "first": {
+          "t": 92.10000000149012,
+          "epoch": 1794062067476.9001,
+          "path": "/account",
+          "policy": "pending",
+          "splash": true,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false
+        },
+        "last": {
+          "t": 3520,
+          "epoch": 1794062070904.8,
+          "path": "/account",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "accountModal"
+          ],
+          "privateHeader": true,
+          "focus": "",
+          "inert": false,
+          "profile": "r5ownerA4df42d1c"
+        },
+        "recoveryFrames": 104,
+        "frameDirectory": "continuous-failed-identity"
+      }
+    },
+    {
+      "name": "normal-login-double-click-single-request",
+      "status": "PASS",
+      "detail": {
+        "hit": {
+          "x": 814.5,
+          "y": 600.171875,
+          "viewport": {
+            "width": 1440,
+            "height": 960
+          },
+          "targetRect": {
+            "top": 576.171875,
+            "bottom": 624.171875,
+            "width": 398,
+            "height": 48
+          },
+          "hitObject": {
+            "tag": "BUTTON",
+            "id": "loginSubmitBtn",
+            "classes": "primary"
+          },
+          "hit": true,
+          "disabled": false,
+          "inert": false
+        },
+        "loginRequests": 1,
+        "sampleCount": 146,
+        "renderedFrames": 57,
+        "first": {
+          "t": 956.2999999988824,
+          "epoch": 1794062071903.4,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        "last": {
+          "t": 1723.5999999996275,
+          "epoch": 1794062072670.6,
+          "path": "/",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "publicHome"
+          ],
+          "privateHeader": true,
+          "focus": "publicHomeTitle",
+          "inert": false
+        },
+        "recoveryFrames": 0,
+        "frameDirectory": "continuous-login-0"
+      }
+    },
+    {
+      "name": "slow-login-policy-3200ms",
+      "status": "PASS",
+      "detail": {
+        "hit": {
+          "x": 814.5,
+          "y": 600.171875,
+          "viewport": {
+            "width": 1440,
+            "height": 960
+          },
+          "targetRect": {
+            "top": 576.171875,
+            "bottom": 624.171875,
+            "width": 398,
+            "height": 48
+          },
+          "hitObject": {
+            "tag": "BUTTON",
+            "id": "loginSubmitBtn",
+            "classes": "primary"
+          },
+          "hit": true,
+          "disabled": false,
+          "inert": false
+        },
+        "loginRequests": 1,
+        "sampleCount": 887,
+        "renderedFrames": 137,
+        "first": {
+          "t": 944.3000000007451,
+          "epoch": 1794062073640.6,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        "last": {
+          "t": 4772,
+          "epoch": 1794062077468.3,
+          "path": "/",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "publicHome"
+          ],
+          "privateHeader": true,
+          "focus": "",
+          "inert": false
+        },
+        "recoveryFrames": 186,
+        "frameDirectory": "continuous-login-3200"
+      }
+    },
+    {
+      "name": "login-account-switch-does-not-finish-old-owner-transition",
+      "status": "PASS",
+      "detail": {
+        "sampleCount": 187,
+        "renderedFrames": 68,
+        "first": {
+          "t": 944.5,
+          "epoch": 1794062078457.6,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        "last": {
+          "t": 1861.9000000003725,
+          "epoch": 1794062079375,
+          "path": "/",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "publicHome"
+          ],
+          "privateHeader": true,
+          "focus": "",
+          "inert": false
+        },
+        "recoveryFrames": 0,
+        "frameDirectory": "continuous-login-switch",
+        "authenticatedLoginAlias": "/",
+        "verifiedOwnerWorkspace": true
+      }
+    },
+    {
+      "name": "real-hidden-cold-start-has-finite-recovery-without-raf",
+      "status": "PASS",
+      "detail": {
+        "hidden": {
+          "visibility": "hidden",
+          "boot": "recovering",
+          "recovery": true,
+          "policy": "pending",
+          "private": false
+        },
+        "restored": true
+      }
+    },
+    {
+      "name": "late-login-response-cannot-replace-newer-verified-identity",
+      "status": "PASS",
+      "detail": {
+        "sampleCount": 181,
+        "renderedFrames": 68,
+        "first": {
+          "t": 971.6999999992549,
+          "epoch": 1794062085369.8,
+          "path": "/login",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "authPanel",
+            "projectApp"
+          ],
+          "privateHeader": false,
+          "focus": "",
+          "inert": false,
+          "loginOpacity": 1
+        },
+        "last": {
+          "t": 1868.5,
+          "epoch": 1794062086266.6,
+          "path": "/account",
+          "boot": "ready",
+          "policy": "enabled",
+          "verification": "ready",
+          "p07": "enabled",
+          "splash": false,
+          "overlay": false,
+          "recovery": false,
+          "policyPanel": false,
+          "primary": [
+            "accountModal"
+          ],
+          "privateHeader": true,
+          "focus": "",
+          "inert": false,
+          "profile": "r5ownerB048b7f1d"
+        },
+        "recoveryFrames": 0,
+        "frameDirectory": "continuous-late-login"
+      }
+    },
+    {
+      "name": "real-background-renewal-and-normal-hidden-reload",
+      "status": "PASS",
+      "detail": {
+        "renewal": {
+          "visibility": "hidden",
+          "policy": "enabled",
+          "functional": false
+        },
+        "continuous": {
+          "sampleCount": 34,
+          "renderedFrames": 7,
+          "first": {
+            "t": 946.2999999988824,
+            "epoch": 1794062087536.7,
+            "path": "/account",
+            "boot": "ready",
+            "policy": "enabled",
+            "verification": "ready",
+            "p07": "enabled",
+            "splash": false,
+            "overlay": false,
+            "recovery": false,
+            "policyPanel": false,
+            "primary": [
+              "accountModal"
+            ],
+            "privateHeader": true,
+            "focus": "",
+            "inert": false,
+            "profile": "r5ownerA4df42d1c"
+          },
+          "last": {
+            "t": 20941.39999999851,
+            "epoch": 1794062107531.7998,
+            "path": "/account",
+            "boot": "ready",
+            "policy": "enabled",
+            "verification": "ready",
+            "p07": "enabled",
+            "splash": false,
+            "overlay": false,
+            "recovery": false,
+            "policyPanel": false,
+            "primary": [
+              "accountModal"
+            ],
+            "privateHeader": true,
+            "focus": "",
+            "inert": false,
+            "profile": "r5ownerA4df42d1c"
+          },
+          "recoveryFrames": 0,
+          "frameDirectory": "continuous-background-renewal"
+        },
+        "refreshed": {
+          "boot": "recovering",
+          "policy": "pending",
+          "recovery": true,
+          "private": false
+        },
+        "normalHiddenReload": true
+      }
+    }
+  ],
+  "scope": "actual isolated local APIs + Chrome; no real accounts or paid model"
+}

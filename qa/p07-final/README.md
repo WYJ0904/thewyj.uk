@@ -34,6 +34,12 @@ or remote availability acceptance. Screencasts are rendering evidence; DOM sampl
 also verify policy, verification, visible primary screens, focus and inert state.
 Continuous-frame checks detect blanks and unverified private content; first-visible
 login checks effective ancestor opacity, whole-document axe, both themes and motion.
+The delayed-finance case also holds the destination bootstrap after identity and
+policy: an ON/OFF workspace already mounting must survive the finite startup
+recovery without controller teardown. It fails on the retained `25406b3` candidate.
+`P07_FINAL_FEEDBACK_ONLY=1` runs the original CI interaction audit unchanged against
+the same isolated compiled runtime. Lab writes completed samples and terminal
+errors immediately; it never reconnects or repeats a failed measurement.
 
 Test corrections are recorded in the report, retaining original failures:
 the navigation log starts after authoritative ON and then allows **no** pending/OFF
