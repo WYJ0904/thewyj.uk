@@ -1,0 +1,43 @@
+{
+  "deployedAt": "2026-11-05T10:59:10.456Z",
+  "status": "P07_R4A_PREVIEW_DEPLOYED_AND_VERIFIED",
+  "commit": "0f2677aaa01f3f1f20e8ba1e76be9fb2dcf204f4",
+  "project": "thewyj-p07-ui-rc",
+  "branch": "codex-p07-r4a-runtime",
+  "deploymentId": "14d4c47b-cae6-4057-be61-95cab2b58f2a",
+  "url": "https://14d4c47b.thewyj-p07-ui-rc.pages.dev",
+  "aliases": [
+    "https://codex-p07-r4a-runtime.thewyj-p07-ui-rc.pages.dev"
+  ],
+  "isolatedPreviewD1Id": "ee869f78-b54a-4018-bc99-871089ecb8cd",
+  "r2BindingsCount": 0,
+  "aiBindingsCount": 0,
+  "safePreviewVars": {
+    "WORKERS_AI_ENABLED": "false",
+    "LEGACY_API_FALLBACK_ENABLED": "false",
+    "TASK25_FEATURE_FLAGS_ENABLED": "true",
+    "WYJ_ENVIRONMENT": "preview"
+  },
+  "productionTouched": false,
+  "productionMutations": 0,
+  "remoteMigrations": 0,
+  "aiCalls": 0,
+  "allowlistedFileCount": 147,
+  "publicStaticVerifiedCount": 86,
+  "liveBrowserProof": {
+    "previewUrl": "https://14d4c47b.thewyj-p07-ui-rc.pages.dev",
+    "runtimeErrors": [],
+    "hostedPolicy": {
+      "policy": "enabled",
+      "p07": "enabled",
+      "homeVisible": true,
+      "logoLoaded": true
+    },
+    "screenshots": [
+      "docs/p07/evidence/r4a/preview/preview-live-home-1440.png",
+      "docs/p07/evidence/r4a/preview/preview-live-home-390.png",
+      "docs/p07/evidence/r4a/preview/preview-live-tools-1440.png",
+      "docs/p07/evidence/r4a/preview/preview-live-language-1440.png"
+    ]
+  }
+}

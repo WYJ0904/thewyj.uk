@@ -1,0 +1,189 @@
+{
+  "kind": "independent synthetic pure-model review; no live data",
+  "production_operations": 0,
+  "versions": [
+    {
+      "label": "rc6",
+      "sha": "e4844a5304709263a2810332eca5d2a87b069d3d",
+      "source_sha256": "19169930e691b47cfecb2f401976fa05a79f5af2354382f54ce5e9ae4c4478c9",
+      "results": [
+        {
+          "name": "same-time acknowledged same-client meaning update",
+          "pass": false,
+          "canonical_deleted": false,
+          "canonical_meaning": "",
+          "changed": false
+        },
+        {
+          "name": "newer same-client offline delete after lost acknowledgement",
+          "pass": false,
+          "canonical_deleted": false,
+          "canonical_meaning": "",
+          "changed": false
+        },
+        {
+          "name": "same-time stale live replay cannot resurrect own tombstone",
+          "pass": true,
+          "canonical_deleted": true,
+          "changed": false
+        },
+        {
+          "name": "same-time acknowledged live replay cannot resurrect tombstone",
+          "pass": true,
+          "canonical_deleted": true,
+          "changed": false
+        },
+        {
+          "name": "same-time stale delete cannot erase later own live record",
+          "pass": true,
+          "canonical_deleted": false,
+          "canonical_meaning": "",
+          "changed": false
+        },
+        {
+          "name": "stale other-device tombstone rejected",
+          "pass": true,
+          "canonical_deleted": false,
+          "canonical_meaning": "",
+          "changed": false
+        },
+        {
+          "name": "old nonempty meaning survives newer empty payload",
+          "pass": false,
+          "canonical_deleted": false,
+          "canonical_meaning": "",
+          "changed": true
+        },
+        {
+          "name": "exact repeated acknowledged payload is idempotent",
+          "pass": true,
+          "canonical_deleted": false,
+          "canonical_meaning": "网络",
+          "changed": false
+        }
+      ]
+    },
+    {
+      "label": "raw-pr136",
+      "sha": "f4ce8c7e7abc12b80895a570068fa7aa2f7a2a17",
+      "source_sha256": "4f8d4e61784d2a83890c9a2df34bfdff9474aeaccf163dfe38fc511f7fb1c9b3",
+      "results": [
+        {
+          "name": "same-time acknowledged same-client meaning update",
+          "pass": true,
+          "canonical_deleted": false,
+          "canonical_meaning": "网络",
+          "changed": true
+        },
+        {
+          "name": "newer same-client offline delete after lost acknowledgement",
+          "pass": true,
+          "canonical_deleted": true,
+          "changed": true
+        },
+        {
+          "name": "same-time stale live replay cannot resurrect own tombstone",
+          "pass": false,
+          "canonical_deleted": false,
+          "canonical_meaning": "网络",
+          "changed": true
+        },
+        {
+          "name": "same-time acknowledged live replay cannot resurrect tombstone",
+          "pass": false,
+          "canonical_deleted": false,
+          "canonical_meaning": "网络",
+          "changed": true
+        },
+        {
+          "name": "same-time stale delete cannot erase later own live record",
+          "pass": false,
+          "canonical_deleted": true,
+          "changed": true
+        },
+        {
+          "name": "stale other-device tombstone rejected",
+          "pass": true,
+          "canonical_deleted": false,
+          "canonical_meaning": "",
+          "changed": false
+        },
+        {
+          "name": "old nonempty meaning survives newer empty payload",
+          "pass": true,
+          "canonical_deleted": false,
+          "canonical_meaning": "网络",
+          "changed": true
+        },
+        {
+          "name": "exact repeated acknowledged payload is idempotent",
+          "pass": true,
+          "canonical_deleted": false,
+          "canonical_meaning": "网络",
+          "changed": false
+        }
+      ]
+    },
+    {
+      "label": "reviewed",
+      "sha": "WORKTREE",
+      "source_sha256": "baa46e7c45eba59c1ef0d38cd75c35b75b7e26b4c5b4c8f79475015fc5bf4386",
+      "results": [
+        {
+          "name": "same-time acknowledged same-client meaning update",
+          "pass": false,
+          "canonical_deleted": false,
+          "canonical_meaning": "",
+          "changed": false
+        },
+        {
+          "name": "newer same-client offline delete after lost acknowledgement",
+          "pass": false,
+          "canonical_deleted": false,
+          "canonical_meaning": "",
+          "changed": false
+        },
+        {
+          "name": "same-time stale live replay cannot resurrect own tombstone",
+          "pass": true,
+          "canonical_deleted": true,
+          "changed": false
+        },
+        {
+          "name": "same-time acknowledged live replay cannot resurrect tombstone",
+          "pass": true,
+          "canonical_deleted": true,
+          "changed": false
+        },
+        {
+          "name": "same-time stale delete cannot erase later own live record",
+          "pass": true,
+          "canonical_deleted": false,
+          "canonical_meaning": "",
+          "changed": false
+        },
+        {
+          "name": "stale other-device tombstone rejected",
+          "pass": true,
+          "canonical_deleted": false,
+          "canonical_meaning": "",
+          "changed": false
+        },
+        {
+          "name": "old nonempty meaning survives newer empty payload",
+          "pass": false,
+          "canonical_deleted": false,
+          "canonical_meaning": "",
+          "changed": true
+        },
+        {
+          "name": "exact repeated acknowledged payload is idempotent",
+          "pass": true,
+          "canonical_deleted": false,
+          "canonical_meaning": "网络",
+          "changed": false
+        }
+      ]
+    }
+  ]
+}

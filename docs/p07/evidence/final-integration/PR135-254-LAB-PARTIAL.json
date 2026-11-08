@@ -1,0 +1,22 @@
+{
+  "source": "25406b3414b227bc277f6436286c77fed10b48a4",
+  "status": "LAB_PARTIAL",
+  "error": "CDP websocket error while opening a subsequent page",
+  "completedScreenshotCount": 10,
+  "screenshots": [
+    "lab-account-workspace-1.png",
+    "lab-account-workspace-2.png",
+    "lab-account-workspace-3.png",
+    "lab-authenticated-home-1.png",
+    "lab-authenticated-home-2.png",
+    "lab-authenticated-home-3.png",
+    "lab-finance-workspace-1.png",
+    "lab-public-home-1.png",
+    "lab-public-home-2.png",
+    "lab-public-home-3.png"
+  ],
+  "metrics": "NOT_RECORDED: old collector wrote metrics only after all samples; screenshots alone are not LCP data",
+  "rootCause": "NOT_DETERMINED",
+  "browserStillAliveEvidence": "Subsequent 13-case transition suite completed in the same Chrome process; no retry was added",
+  "change": "Persist each completed sample and terminal error, no automatic reconnect or repeated measurements"
+}

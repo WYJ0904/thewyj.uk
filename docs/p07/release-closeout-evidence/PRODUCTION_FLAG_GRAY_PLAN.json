@@ -1,0 +1,154 @@
+{
+  "status": "PROPOSAL_ONLY_NOT_EXECUTED",
+  "observed_at": "2026-11-08T15:48:22.042Z",
+  "production_flag_absent": true,
+  "initial_expected_revision": 0,
+  "candidate_sha": "FINAL_PR137_RECEIPT_REQUIRED",
+  "production_code_deployment_requires_separate_approval": true,
+  "flag_endpoint": "POST /api/admin/feature-flags",
+  "stages": [
+    {
+      "stage": "seed_off",
+      "owner_approval_required": true,
+      "minimum_observation_minutes": 15,
+      "expected_revision_if_no_intervening_writes": 0,
+      "payload": {
+        "flag_key": "p07_accessibility",
+        "description": "Owner-accepted P07 presentation only",
+        "enabled": false,
+        "kill_switch": true,
+        "channels": [
+          "beta"
+        ],
+        "rollout_percentage": 0,
+        "expected_revision": "FRESH_VERIFIED_REVISION; initial create must remain 0"
+      }
+    },
+    {
+      "stage": "beta_5",
+      "owner_approval_required": true,
+      "minimum_observation_minutes": 15,
+      "expected_revision_if_no_intervening_writes": 1,
+      "payload": {
+        "flag_key": "p07_accessibility",
+        "description": "Owner-accepted P07 presentation only",
+        "enabled": true,
+        "kill_switch": false,
+        "channels": [
+          "beta"
+        ],
+        "rollout_percentage": 5,
+        "expected_revision": "FRESH_VERIFIED_REVISION; initial create must remain 0"
+      }
+    },
+    {
+      "stage": "beta_25",
+      "owner_approval_required": true,
+      "minimum_observation_minutes": 15,
+      "expected_revision_if_no_intervening_writes": 2,
+      "payload": {
+        "flag_key": "p07_accessibility",
+        "description": "Owner-accepted P07 presentation only",
+        "enabled": true,
+        "kill_switch": false,
+        "channels": [
+          "beta"
+        ],
+        "rollout_percentage": 25,
+        "expected_revision": "FRESH_VERIFIED_REVISION; initial create must remain 0"
+      }
+    },
+    {
+      "stage": "beta_100",
+      "owner_approval_required": true,
+      "minimum_observation_minutes": 15,
+      "expected_revision_if_no_intervening_writes": 3,
+      "payload": {
+        "flag_key": "p07_accessibility",
+        "description": "Owner-accepted P07 presentation only",
+        "enabled": true,
+        "kill_switch": false,
+        "channels": [
+          "beta"
+        ],
+        "rollout_percentage": 100,
+        "expected_revision": "FRESH_VERIFIED_REVISION; initial create must remain 0"
+      }
+    },
+    {
+      "stage": "stable_5",
+      "owner_approval_required": true,
+      "minimum_observation_minutes": 15,
+      "expected_revision_if_no_intervening_writes": 4,
+      "payload": {
+        "flag_key": "p07_accessibility",
+        "description": "Owner-accepted P07 presentation only",
+        "enabled": true,
+        "kill_switch": false,
+        "channels": [
+          "stable",
+          "beta",
+          "experimental"
+        ],
+        "rollout_percentage": 5,
+        "expected_revision": "FRESH_VERIFIED_REVISION; initial create must remain 0"
+      }
+    },
+    {
+      "stage": "stable_25",
+      "owner_approval_required": true,
+      "minimum_observation_minutes": 15,
+      "expected_revision_if_no_intervening_writes": 5,
+      "payload": {
+        "flag_key": "p07_accessibility",
+        "description": "Owner-accepted P07 presentation only",
+        "enabled": true,
+        "kill_switch": false,
+        "channels": [
+          "stable",
+          "beta",
+          "experimental"
+        ],
+        "rollout_percentage": 25,
+        "expected_revision": "FRESH_VERIFIED_REVISION; initial create must remain 0"
+      }
+    },
+    {
+      "stage": "stable_100",
+      "owner_approval_required": true,
+      "minimum_observation_minutes": 60,
+      "expected_revision_if_no_intervening_writes": 6,
+      "payload": {
+        "flag_key": "p07_accessibility",
+        "description": "Owner-accepted P07 presentation only",
+        "enabled": true,
+        "kill_switch": false,
+        "channels": [
+          "stable",
+          "beta",
+          "experimental"
+        ],
+        "rollout_percentage": 100,
+        "expected_revision": "FRESH_VERIFIED_REVISION; initial create must remain 0"
+      }
+    }
+  ],
+  "cas_rule": "Re-read current revision for every owner-approved stage; drift stops execution, never auto-rebase",
+  "account_strategy": "Existing self-selected channels and deterministic server account bucket; no account or membership edits and no production overrides",
+  "public_strategy": "Public UI stays OFF until stable channel is included at 100 percent",
+  "task11_backend_is_not_gray_by_ui_flag": true,
+  "kill": {
+    "enabled": false,
+    "kill_switch": true,
+    "rollout_percentage": 0,
+    "expected_revision": "FRESH_VERIFIED_REVISION",
+    "maximum_snapshot_ttl_seconds": 30,
+    "other_flags_or_business_rights_changed": false
+  },
+  "stop_conditions": [
+    "Any confirmed data loss, cross-account disclosure or rights expansion",
+    "Repeated conflict after normal refresh",
+    "Persistent health/startup failure or release-byte/SW installation failure"
+  ],
+  "production_mutations": 0
+}

@@ -1,0 +1,62 @@
+{
+  "source": "79faf5334d6160ed4fba172d717df9b33da156b6",
+  "run": 42445877065,
+  "url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/42445877065",
+  "jobs": [
+    {
+      "id": 128624573575,
+      "name": "Android unit, lint and APK",
+      "conclusion": "success"
+    },
+    {
+      "id": 128624573781,
+      "name": "Python syntax and unittest (ubuntu-latest)",
+      "conclusion": "success"
+    },
+    {
+      "id": 128624573784,
+      "name": "Python syntax and unittest (windows-latest)",
+      "conclusion": "success"
+    },
+    {
+      "id": 128624573811,
+      "name": "JavaScript and static site checks",
+      "conclusion": "success"
+    },
+    {
+      "id": 128624573823,
+      "name": "Sensitive files and static naming",
+      "conclusion": "success"
+    },
+    {
+      "id": 128624573836,
+      "name": "Pages build and publish allowlist",
+      "conclusion": "success"
+    },
+    {
+      "id": 128624574315,
+      "name": "Task 25 cloud credential discovery",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 128624574509,
+      "name": "Task 25 Android runtime contract",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 128625362962,
+      "name": "Browser flow (application)",
+      "conclusion": "success"
+    },
+    {
+      "id": 128625362977,
+      "name": "Cloud-only browser, canonical session and toolbox",
+      "conclusion": "failure"
+    }
+  ],
+  "errors": [
+    "2026-11-08T04:17:41.1135014Z AssertionError [ERR_ASSERTION]: 360x800: content is still cut off after scrolling to the end ({\"lastBottom\":830,\"viewportHeight\":800,\"shellPaddingBottom\":\"32px\",\"pagePaddingBottom\":\"32px\",\"scrollY\":714,\"splash\":false,\"boot\":\"ready\",\"htmlOverflow\":\"visible\",\"bodyOverflow\":\"hidden auto\"})",
+    "2026-11-08T04:17:41.1167410Z     at main (file://<repo>/local-backend/test_transfer_responsive.mjs:283:14)"
+  ],
+  "note": "Readiness issue was fixed but initial transfer data was not yet awaited. Strict original bottom guard still failed; retained, never reclassified as PASS."
+}

@@ -1,0 +1,43 @@
+{
+  "status": "PROPOSAL_ONLY_NOT_EXECUTED",
+  "source_sha": "e4844a5304709263a2810332eca5d2a87b069d3d",
+  "production_snapshot": {
+    "p07_accessibility_exists": false,
+    "observed_at": "2026-11-08T11:45:48.370Z",
+    "production_mutations": 0
+  },
+  "scope": "P07 presentation only. No account, membership, payment, learning-AI, finance-AI or OCR authority.",
+  "prerequisites": [
+    "Close the independent Task11 data-correctness blocker",
+    "Approve and verify the safe rollback asset/strategy",
+    "Rehearse ON/OFF/Kill on confirmed isolated Preview at the exact candidate SHA",
+    "Verify the production flag is still absent and all relevant identities/bindings are unchanged",
+    "Obtain separate explicit owner approval for production flag creation"
+  ],
+  "proposed_application_definition": {
+    "flag_key": "p07_accessibility",
+    "description": "Owner-accepted Aeris P07 presentation; no business entitlement changes",
+    "enabled": true,
+    "kill_switch": false,
+    "channels": ["stable", "beta", "experimental"],
+    "rollout_percentage": 100,
+    "expected_revision": 0
+  },
+  "effect": {
+    "public": "stable plus 100 percent satisfies the existing public UI decision contract",
+    "authenticated": "all three existing release channels can use P07 presentation under the existing authenticated snapshot",
+    "user_overrides_changed": false,
+    "other_flags_changed": false,
+    "runtime_environment_changed": false
+  },
+  "first_level_ui_rollback_proposal": {
+    "action": "Set only p07_accessibility OFF with Kill Switch using freshly read current revision",
+    "enabled": false,
+    "kill_switch": true,
+    "expected_revision": "MUST_READ_AND_VERIFY_AT_EXECUTION_TIME",
+    "maximum_existing_snapshot_ttl_seconds": 30,
+    "retains_safe_rc6_worker_and_user_storage": true,
+    "does_not_authorize_direct_old_main_deployment_rollback": true,
+    "approval_required": true
+  }
+}

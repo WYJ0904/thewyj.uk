@@ -1,0 +1,78 @@
+{
+  "source": "1c10584652ad43b5052520b448c6baf8b421e00b",
+  "results": [
+    {
+      "name": "round-trip-navigation-keeps-authoritative-mode",
+      "status": "FAIL",
+      "error": "navigation changed valid ON to a legacy mode"
+    },
+    {
+      "name": "finance-return-context-and-browser-history",
+      "status": "PASS",
+      "detail": {
+        "filtersRetained": true,
+        "goalRetainedAcrossForwardAndRefresh": true,
+        "escape": true,
+        "androidWebBridgeBack": true
+      }
+    },
+    {
+      "name": "true-confirmation-modal-lifecycle",
+      "status": "PASS",
+      "detail": {
+        "confirmationRemainsModal": true,
+        "backClosesDialogBeforePage": true,
+        "deletionSubmitted": false
+      }
+    },
+    {
+      "name": "valid-policy-renewal-does-not-reset-presentation",
+      "status": "PASS",
+      "detail": {
+        "changes": [
+          {
+            "t": 993.5,
+            "p07": "enabled",
+            "policy": "enabled",
+            "path": "/account"
+          },
+          {
+            "t": 1068.800000000745,
+            "p07": "enabled",
+            "policy": "enabled",
+            "path": "/account"
+          }
+        ],
+        "actualFeatureResponseObserved": true
+      }
+    },
+    {
+      "name": "slow-authenticated-policy-has-no-legacy-frame",
+      "status": "PASS",
+      "detail": {
+        "delayMs": 1200,
+        "visibleLegacyFrames": 0,
+        "pendingFrames": 320
+      }
+    },
+    {
+      "name": "policy-failure-is-finite-safe-fallback-and-retry",
+      "status": "PASS",
+      "detail": {
+        "errorIsExplicit": true,
+        "baseInterfaceUsable": true,
+        "retryAuthoritative": true
+      }
+    },
+    {
+      "name": "supported-backend-without-task25-keeps-authenticated-home-visible",
+      "status": "PASS",
+      "detail": {
+        "successfulStatusWithoutTask25": true,
+        "authenticatedHomeVisible": true,
+        "permanentPending": false,
+        "featureAuthorityInvented": false
+      }
+    }
+  ]
+}

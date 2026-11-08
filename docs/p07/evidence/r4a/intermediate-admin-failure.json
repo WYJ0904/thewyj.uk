@@ -1,0 +1,12 @@
+{
+  "target_sha": "370dc902cb55db5f19f1ec65d6ceb43fbbd21d6f",
+  "original_failure": {
+    "id": "admin-and-member-authorization-isolation",
+    "status": "FAIL",
+    "error": "not visible #adminRechargeList [data-request-id=\"bf144a2d-42e7-417f-8302-26a3011c6474\"] [data-recharge-approve]",
+    "duration_ms": 3231
+  },
+  "frozen_script_changed": false,
+  "closeout_same_contract": "PASS",
+  "observation": "One original pointer sample reported the approval control not visible. Screenshot and failure retained. The admin view has an existing 220ms opacity animation; timing is a suspected cause, not proven by that screenshot alone."
+}

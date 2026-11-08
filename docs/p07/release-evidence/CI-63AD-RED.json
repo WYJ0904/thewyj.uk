@@ -1,0 +1,17 @@
+{
+  "source_sha": "63ad14ee212b7295ecea9e1003fb3c907929ab54",
+  "run_id": 42475958597,
+  "url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/42475958597",
+  "job_id": 128717275981,
+  "job": "JavaScript and static site checks",
+  "failed_step": "Test Task 11 routing and D1 integration",
+  "assertion": "local-backend/test_task11_d1_js.mjs:177 expected 429, actual 201",
+  "observed_test_span_utc": ["2026-11-08T11:29:58.928Z", "2026-11-08T11:30:00.534Z"],
+  "actual_feedback_window_seconds": 600,
+  "independent_controlled_proof": "task11-ci-clock-proof-600s.json",
+  "jobs": {"success": 5, "failure": 1, "skipped": 4},
+  "dependency_skips": ["Cloud-only browser, canonical session and toolbox", "Browser flow (application)"],
+  "conditional_skips": ["Task 25 cloud credential discovery", "Task 25 Android runtime contract"],
+  "original_failure_preserved": true,
+  "production_operations": 0
+}

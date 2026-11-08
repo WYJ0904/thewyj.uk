@@ -1,0 +1,77 @@
+{
+  "source_sha": "c8e3ae1c30fb905bc9823602d0035d10b92f9d31",
+  "suites": [
+    {
+      "suite": "p07-round3-browser",
+      "script": "qa/p07-round3/browser.mjs",
+      "status": "PASS",
+      "durationMs": 67679
+    },
+    {
+      "suite": "r4a-runtime",
+      "script": ".wrangler/p07-r4a-driver-closeout-c8e-on/runtime-browser.mjs",
+      "status": "PASS",
+      "durationMs": 14960
+    },
+    {
+      "suite": "primary-workspaces",
+      "script": "qa/p07-round3/primary-workspaces.mjs",
+      "status": "PASS",
+      "durationMs": 4356
+    },
+    {
+      "suite": "p4-workspace-behavior",
+      "script": "qa/aeris/p4-behavior-browser.mjs",
+      "status": "PASS",
+      "durationMs": 32193
+    },
+    {
+      "suite": "r5-policy",
+      "script": ".wrangler/p07-r4a-driver-closeout-c8e-on/r5-policy.mjs",
+      "status": "PASS",
+      "durationMs": 12789
+    },
+    {
+      "suite": "r5-browser",
+      "script": ".wrangler/p07-r4a-driver-closeout-c8e-on/r5-browser.mjs",
+      "status": "PASS",
+      "durationMs": 60555
+    },
+    {
+      "suite": "r4c-e",
+      "script": ".wrangler/p07-r4a-driver-closeout-c8e-on/r4c-e.mjs",
+      "status": "PASS",
+      "durationMs": 11205
+    },
+    {
+      "suite": "r4a-pwa",
+      "script": ".wrangler/p07-r4a-driver-closeout-c8e-on/pwa-browser.mjs",
+      "status": "PASS",
+      "durationMs": 3107
+    },
+    {
+      "suite": "r4c-f",
+      "script": ".wrangler/p07-r4a-driver-closeout-c8e-on/r4c-f.mjs",
+      "status": "PASS",
+      "durationMs": 31111
+    },
+    {
+      "suite": "f-closeout",
+      "script": ".wrangler/p07-r4a-driver-closeout-c8e-on/f-closeout.mjs",
+      "status": "PASS",
+      "durationMs": 61647
+    },
+    {
+      "suite": "f-lab",
+      "script": ".wrangler/p07-r4a-driver-closeout-c8e-on/f-lab.mjs",
+      "status": "PASS",
+      "durationMs": 35008
+    },
+    {
+      "suite": "final-transitions",
+      "script": ".wrangler/p07-r4a-driver-closeout-c8e-on/final-transitions.mjs",
+      "status": "PASS",
+      "durationMs": 107171
+    }
+  ]
+}

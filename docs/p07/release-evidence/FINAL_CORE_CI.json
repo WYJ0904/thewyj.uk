@@ -1,0 +1,142 @@
+{
+  "source_sha": "e4844a5304709263a2810332eca5d2a87b069d3d",
+  "run_id": 42476551810,
+  "url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/42476551810",
+  "status": "completed",
+  "conclusion": "success",
+  "run_attempt": 1,
+  "created_at": "2026-11-08T11:37:15Z",
+  "completed_at": "2026-11-08T11:49:44Z",
+  "required_success": 8,
+  "conditional_skipped": 2,
+  "skipped_counted_as_pass": false,
+  "jobs": [
+    {
+      "id": 128719082544,
+      "name": "Sensitive files and static naming",
+      "status": "completed",
+      "conclusion": "success",
+      "non_executed_steps": []
+    },
+    {
+      "id": 128719082709,
+      "name": "Python syntax and unittest (ubuntu-latest)",
+      "status": "completed",
+      "conclusion": "success",
+      "non_executed_steps": []
+    },
+    {
+      "id": 128719082807,
+      "name": "Python syntax and unittest (windows-latest)",
+      "status": "completed",
+      "conclusion": "success",
+      "non_executed_steps": []
+    },
+    {
+      "id": 128719082811,
+      "name": "Pages build and publish allowlist",
+      "status": "completed",
+      "conclusion": "success",
+      "non_executed_steps": []
+    },
+    {
+      "id": 128719082837,
+      "name": "JavaScript and static site checks",
+      "status": "completed",
+      "conclusion": "success",
+      "non_executed_steps": []
+    },
+    {
+      "id": 128719082966,
+      "name": "Android unit, lint and APK",
+      "status": "completed",
+      "conclusion": "success",
+      "non_executed_steps": [
+        "Validate an unreleased higher-version candidate without advancing Stable"
+      ]
+    },
+    {
+      "id": 128719083618,
+      "name": "Task 25 Android runtime contract",
+      "status": "completed",
+      "conclusion": "skipped",
+      "non_executed_steps": []
+    },
+    {
+      "id": 128719083807,
+      "name": "Task 25 cloud credential discovery",
+      "status": "completed",
+      "conclusion": "skipped",
+      "non_executed_steps": []
+    },
+    {
+      "id": 128719769773,
+      "name": "Cloud-only browser, canonical session and toolbox",
+      "status": "completed",
+      "conclusion": "success",
+      "non_executed_steps": []
+    },
+    {
+      "id": 128719769785,
+      "name": "Browser flow (application)",
+      "status": "completed",
+      "conclusion": "success",
+      "non_executed_steps": [
+        "Install independent toolbox artifact validators"
+      ]
+    }
+  ],
+  "actual_new_profile_sw_cases": [
+    {
+      "case": "normal",
+      "status": "PASS",
+      "first": {
+        "state": "activated",
+        "duration_ms": 424
+      },
+      "max_server_active": 3
+    },
+    {
+      "case": "slow",
+      "status": "PASS",
+      "first": {
+        "state": "activated",
+        "duration_ms": 25391
+      },
+      "max_server_active": 4
+    },
+    {
+      "case": "failure-retry",
+      "status": "PASS",
+      "first": {
+        "state": "redundant",
+        "duration_ms": 261
+      },
+      "max_server_active": 3
+    },
+    {
+      "case": "body-timeout",
+      "status": "PASS",
+      "first": {
+        "state": "redundant",
+        "duration_ms": 10134
+      },
+      "max_server_active": 3
+    },
+    {
+      "case": "warm",
+      "status": "PASS",
+      "first": {
+        "state": "activated",
+        "duration_ms": 419
+      },
+      "max_server_active": 3
+    }
+  ],
+  "publish_manifest_sha256": "431e89def1f104d753e78b8422f2ee7eaf8991734af4b77b1f6544dafd290c23",
+  "build_artifact": "https://github.com/WYJ0904/thewyj.uk/actions/runs/42476551810/artifacts/13615323516",
+  "cloud_browser_artifact": "https://github.com/WYJ0904/thewyj.uk/actions/runs/42476551810/artifacts/13616355574",
+  "ci_merge_sha": "9d79456c6dadf8983b0886aa833656ce812d0990",
+  "ci_merge_tree": "c78427bdb7a7229fc5e90b863f1a6df84a3e17d3",
+  "candidate_tree_identical": true
+}

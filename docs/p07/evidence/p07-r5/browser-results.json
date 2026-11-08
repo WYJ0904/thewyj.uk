@@ -1,0 +1,961 @@
+{
+  "source": "gemini-p07-splash-transition-fix",
+  "selection": "all",
+  "cases": [
+    {
+      "name": "real-background-startup-cleans-splash-and-restores-scroll",
+      "status": "PASS",
+      "detail": {
+        "during": {
+          "splash": true,
+          "y": 0,
+          "overflow": "hidden"
+        },
+        "background": {
+          "path": "/account",
+          "policy": "pending",
+          "p07": "disabled",
+          "boot": "ready",
+          "frameVisible": false,
+          "accountVisible": false,
+          "profile": "r5ownerA6e854d6c",
+          "functionalP07": false,
+          "policyPanelVisible": false,
+          "retryVisible": false,
+          "visibility": "hidden"
+        },
+        "after": {
+          "y": 500,
+          "overflow": "hidden auto",
+          "boot": "ready"
+        }
+      }
+    },
+    {
+      "name": "workflow-first-visible-frame-precedes-access-response",
+      "status": "PASS",
+      "detail": {
+        "first": {
+          "t": 1573.300000000745,
+          "path": "/tools/workflows",
+          "workflow": true,
+          "dashboard": false,
+          "workbench": false,
+          "header": false
+        },
+        "framesBeforeAccessResponse": 3,
+        "actualExecution": true
+      }
+    },
+    {
+      "name": "workflow-direct-document-first-visible-frame",
+      "status": "PASS",
+      "detail": {
+        "first": {
+          "path": "/tools/workflows",
+          "workflow": true,
+          "dashboard": false,
+          "header": false,
+          "width": 1093,
+          "height": 2073.890625,
+          "policy": "enabled"
+        },
+        "sampleCount": 22
+      }
+    },
+    {
+      "name": "finance-actual-ledger-fold-refresh-route-and-account-isolation",
+      "status": "PASS",
+      "detail": {
+        "totals": {
+          "Income": 1000000,
+          "Expense": 10001000,
+          "Balance": -9001000
+        },
+        "open": {
+          "expanded": "true",
+          "height": 393.359375,
+          "chartVisible": true,
+          "ledgerY": 1380.390625,
+          "months": 6,
+          "storage": [
+            "wyjFinanceFold:v1:a4a0fb6b-e224-4a5b-82d9-c7f4b856fd66:pending:seen"
+          ]
+        },
+        "closed": {
+          "expanded": "false",
+          "height": 0,
+          "chartVisible": false,
+          "ledgerY": 971.03125,
+          "months": 6,
+          "storage": [
+            "wyjFinanceFold:v1:a4a0fb6b-e224-4a5b-82d9-c7f4b856fd66:pending:seen",
+            "wyjFinanceFold:v1:a4a0fb6b-e224-4a5b-82d9-c7f4b856fd66:trend:open"
+          ]
+        },
+        "phases": [
+          {
+            "reload": "normal",
+            "expanded": "false",
+            "height": 0,
+            "chartVisible": false,
+            "ledgerY": 971.03125,
+            "months": 6,
+            "storage": [
+              "wyjFinanceFold:v1:a4a0fb6b-e224-4a5b-82d9-c7f4b856fd66:pending:seen",
+              "wyjFinanceFold:v1:a4a0fb6b-e224-4a5b-82d9-c7f4b856fd66:trend:open"
+            ]
+          },
+          {
+            "reload": "hard",
+            "expanded": "false",
+            "height": 0,
+            "chartVisible": false,
+            "ledgerY": 971.03125,
+            "months": 6,
+            "storage": [
+              "wyjFinanceFold:v1:a4a0fb6b-e224-4a5b-82d9-c7f4b856fd66:pending:seen",
+              "wyjFinanceFold:v1:a4a0fb6b-e224-4a5b-82d9-c7f4b856fd66:trend:open"
+            ]
+          }
+        ],
+        "B": {
+          "expanded": "true",
+          "height": 198.59375,
+          "chartVisible": true,
+          "ledgerY": 1185.625,
+          "months": 0,
+          "storage": [
+            "wyjFinanceFold:v1:4fc9804d-b27e-4099-8c7f-36fca955224d:pending:seen",
+            "wyjFinanceFold:v1:a4a0fb6b-e224-4a5b-82d9-c7f4b856fd66:pending:seen",
+            "wyjFinanceFold:v1:a4a0fb6b-e224-4a5b-82d9-c7f4b856fd66:trend:open"
+          ]
+        },
+        "reloginA": {
+          "expanded": "false",
+          "height": 0,
+          "chartVisible": false,
+          "ledgerY": 971.03125,
+          "months": 6,
+          "storage": [
+            "wyjFinanceFold:v1:4fc9804d-b27e-4099-8c7f-36fca955224d:pending:seen",
+            "wyjFinanceFold:v1:a4a0fb6b-e224-4a5b-82d9-c7f4b856fd66:pending:seen",
+            "wyjFinanceFold:v1:a4a0fb6b-e224-4a5b-82d9-c7f4b856fd66:trend:open"
+          ]
+        },
+        "screenshot": "finance-real-ledger.png"
+      }
+    },
+    {
+      "name": "375-to-1920-workspaces-content-and-scroll",
+      "status": "PASS",
+      "detail": [
+        {
+          "route": "/account",
+          "width": 375,
+          "viewport": 375,
+          "scrollWidth": 375,
+          "rect": {
+            "left": 0,
+            "right": 375,
+            "width": 375
+          },
+          "visible": true,
+          "contentWidth": 335,
+          "columns": "335px",
+          "overflow": "visible",
+          "rows": 8,
+          "goals": 7
+        },
+        {
+          "route": "/recharge",
+          "width": 375,
+          "viewport": 375,
+          "scrollWidth": 375,
+          "rect": {
+            "left": 0,
+            "right": 375,
+            "width": 375
+          },
+          "visible": true,
+          "contentWidth": 335,
+          "columns": "1fr",
+          "overflow": "visible",
+          "rows": 8,
+          "goals": 7
+        },
+        {
+          "route": "/tools/workflows",
+          "width": 375,
+          "viewport": 375,
+          "scrollWidth": 375,
+          "rect": {
+            "left": 12,
+            "right": 363,
+            "width": 351
+          },
+          "visible": true,
+          "contentWidth": 0,
+          "columns": "1fr",
+          "overflow": "visible",
+          "rows": 8,
+          "goals": 7
+        },
+        {
+          "route": "/finance",
+          "width": 375,
+          "viewport": 375,
+          "scrollWidth": 375,
+          "rect": {
+            "left": 12,
+            "right": 363,
+            "width": 351
+          },
+          "visible": true,
+          "contentWidth": 351,
+          "columns": "1fr",
+          "overflow": "visible",
+          "rows": 8,
+          "goals": 7
+        },
+        {
+          "route": "/account",
+          "width": 390,
+          "viewport": 390,
+          "scrollWidth": 390,
+          "rect": {
+            "left": 0,
+            "right": 390,
+            "width": 390
+          },
+          "visible": true,
+          "contentWidth": 350,
+          "columns": "350px",
+          "overflow": "visible",
+          "rows": 8,
+          "goals": 7
+        },
+        {
+          "route": "/recharge",
+          "width": 390,
+          "viewport": 390,
+          "scrollWidth": 390,
+          "rect": {
+            "left": 0,
+            "right": 390,
+            "width": 390
+          },
+          "visible": true,
+          "contentWidth": 350,
+          "columns": "1fr",
+          "overflow": "visible",
+          "rows": 8,
+          "goals": 7
+        },
+        {
+          "route": "/tools/workflows",
+          "width": 390,
+          "viewport": 390,
+          "scrollWidth": 390,
+          "rect": {
+            "left": 12,
+            "right": 378,
+            "width": 366
+          },
+          "visible": true,
+          "contentWidth": 0,
+          "columns": "1fr",
+          "overflow": "visible",
+          "rows": 8,
+          "goals": 7
+        },
+        {
+          "route": "/finance",
+          "width": 390,
+          "viewport": 390,
+          "scrollWidth": 390,
+          "rect": {
+            "left": 12,
+            "right": 378,
+            "width": 366
+          },
+          "visible": true,
+          "contentWidth": 366,
+          "columns": "1fr",
+          "overflow": "visible",
+          "rows": 8,
+          "goals": 7
+        },
+        {
+          "route": "/account",
+          "width": 768,
+          "viewport": 768,
+          "scrollWidth": 753,
+          "rect": {
+            "left": 0,
+            "right": 753,
+            "width": 753
+          },
+          "visible": true,
+          "contentWidth": 699.25,
+          "columns": "699.25px",
+          "overflow": "visible",
+          "rows": 8,
+          "goals": 7
+        },
+        {
+          "route": "/recharge",
+          "width": 768,
+          "viewport": 768,
+          "scrollWidth": 753,
+          "rect": {
+            "left": 0,
+            "right": 753,
+            "width": 753
+          },
+          "visible": true,
+          "contentWidth": 699.25,
+          "columns": "1fr",
+          "overflow": "visible",
+          "rows": 8,
+          "goals": 7
+        },
+        {
+          "route": "/tools/workflows",
+          "width": 768,
+          "viewport": 768,
+          "scrollWidth": 753,
+          "rect": {
+            "left": 12,
+            "right": 741,
+            "width": 729
+          },
+          "visible": true,
+          "contentWidth": 0,
+          "columns": "1fr",
+          "overflow": "visible",
+          "rows": 8,
+          "goals": 7
+        },
+        {
+          "route": "/finance",
+          "width": 768,
+          "viewport": 768,
+          "scrollWidth": 753,
+          "rect": {
+            "left": 12,
+            "right": 741,
+            "width": 729
+          },
+          "visible": true,
+          "contentWidth": 729,
+          "columns": "1fr",
+          "overflow": "visible",
+          "rows": 8,
+          "goals": 7
+        },
+        {
+          "route": "/account",
+          "width": 1024,
+          "viewport": 1024,
+          "scrollWidth": 1009,
+          "rect": {
+            "left": 204,
+            "right": 1009,
+            "width": 805
+          },
+          "visible": true,
+          "contentWidth": 733.34375,
+          "columns": "356.672px 356.672px",
+          "overflow": "visible",
+          "rows": 8,
+          "goals": 7
+        },
+        {
+          "route": "/recharge",
+          "width": 1024,
+          "viewport": 1024,
+          "scrollWidth": 1009,
+          "rect": {
+            "left": 204,
+            "right": 1009,
+            "width": 805
+          },
+          "visible": true,
+          "contentWidth": 733.34375,
+          "columns": "repeat(2, 1fr)",
+          "overflow": "visible",
+          "rows": 8,
+          "goals": 7
+        },
+        {
+          "route": "/tools/workflows",
+          "width": 1024,
+          "viewport": 1024,
+          "scrollWidth": 1009,
+          "rect": {
+            "left": 229.59375,
+            "right": 983.390625,
+            "width": 753.796875
+          },
+          "visible": true,
+          "contentWidth": 0,
+          "columns": "repeat(2, 1fr)",
+          "overflow": "visible",
+          "rows": 8,
+          "goals": 7
+        },
+        {
+          "route": "/finance",
+          "width": 1024,
+          "viewport": 1024,
+          "scrollWidth": 1009,
+          "rect": {
+            "left": 229.59375,
+            "right": 983.390625,
+            "width": 753.796875
+          },
+          "visible": true,
+          "contentWidth": 753.796875,
+          "columns": "repeat(2, 1fr)",
+          "overflow": "visible",
+          "rows": 8,
+          "goals": 7
+        },
+        {
+          "route": "/account",
+          "width": 1366,
+          "viewport": 1366,
+          "scrollWidth": 1351,
+          "rect": {
+            "left": 204,
+            "right": 1351,
+            "width": 1147
+          },
+          "visible": true,
+          "contentWidth": 1075,
+          "columns": "527.5px 527.5px",
+          "overflow": "visible",
+          "rows": 8,
+          "goals": 7
+        },
+        {
+          "route": "/recharge",
+          "width": 1366,
+          "viewport": 1366,
+          "scrollWidth": 1351,
+          "rect": {
+            "left": 204,
+            "right": 1351,
+            "width": 1147
+          },
+          "visible": true,
+          "contentWidth": 1075,
+          "columns": "repeat(2, 1fr)",
+          "overflow": "visible",
+          "rows": 8,
+          "goals": 7
+        },
+        {
+          "route": "/tools/workflows",
+          "width": 1366,
+          "viewport": 1366,
+          "scrollWidth": 1351,
+          "rect": {
+            "left": 236,
+            "right": 1319,
+            "width": 1083
+          },
+          "visible": true,
+          "contentWidth": 0,
+          "columns": "repeat(2, 1fr)",
+          "overflow": "visible",
+          "rows": 8,
+          "goals": 7
+        },
+        {
+          "route": "/finance",
+          "width": 1366,
+          "viewport": 1366,
+          "scrollWidth": 1351,
+          "rect": {
+            "left": 236,
+            "right": 1319,
+            "width": 1083
+          },
+          "visible": true,
+          "contentWidth": 1083,
+          "columns": "repeat(2, 1fr)",
+          "overflow": "visible",
+          "rows": 8,
+          "goals": 7
+        },
+        {
+          "route": "/account",
+          "width": 1440,
+          "viewport": 1440,
+          "scrollWidth": 1425,
+          "rect": {
+            "left": 214.5,
+            "right": 1414.5,
+            "width": 1200
+          },
+          "visible": true,
+          "contentWidth": 1128,
+          "columns": "554px 554px",
+          "overflow": "visible",
+          "rows": 8,
+          "goals": 7
+        },
+        {
+          "route": "/recharge",
+          "width": 1440,
+          "viewport": 1440,
+          "scrollWidth": 1425,
+          "rect": {
+            "left": 214.5,
+            "right": 1414.5,
+            "width": 1200
+          },
+          "visible": true,
+          "contentWidth": 1128,
+          "columns": "repeat(2, 1fr)",
+          "overflow": "visible",
+          "rows": 8,
+          "goals": 7
+        },
+        {
+          "route": "/tools/workflows",
+          "width": 1440,
+          "viewport": 1440,
+          "scrollWidth": 1425,
+          "rect": {
+            "left": 236,
+            "right": 1393,
+            "width": 1157
+          },
+          "visible": true,
+          "contentWidth": 0,
+          "columns": "repeat(2, 1fr)",
+          "overflow": "visible",
+          "rows": 8,
+          "goals": 7
+        },
+        {
+          "route": "/finance",
+          "width": 1440,
+          "viewport": 1440,
+          "scrollWidth": 1425,
+          "rect": {
+            "left": 236,
+            "right": 1393,
+            "width": 1157
+          },
+          "visible": true,
+          "contentWidth": 1157,
+          "columns": "repeat(2, 1fr)",
+          "overflow": "visible",
+          "rows": 8,
+          "goals": 7
+        },
+        {
+          "route": "/account",
+          "width": 1920,
+          "viewport": 1920,
+          "scrollWidth": 1905,
+          "rect": {
+            "left": 454.5,
+            "right": 1654.5,
+            "width": 1200
+          },
+          "visible": true,
+          "contentWidth": 1128,
+          "columns": "554px 554px",
+          "overflow": "visible",
+          "rows": 8,
+          "goals": 7
+        },
+        {
+          "route": "/recharge",
+          "width": 1920,
+          "viewport": 1920,
+          "scrollWidth": 1905,
+          "rect": {
+            "left": 454.5,
+            "right": 1654.5,
+            "width": 1200
+          },
+          "visible": true,
+          "contentWidth": 1128,
+          "columns": "repeat(2, 1fr)",
+          "overflow": "visible",
+          "rows": 8,
+          "goals": 7
+        },
+        {
+          "route": "/tools/workflows",
+          "width": 1920,
+          "viewport": 1920,
+          "scrollWidth": 1905,
+          "rect": {
+            "left": 434.5,
+            "right": 1674.5,
+            "width": 1240
+          },
+          "visible": true,
+          "contentWidth": 0,
+          "columns": "repeat(2, 1fr)",
+          "overflow": "visible",
+          "rows": 8,
+          "goals": 7
+        },
+        {
+          "route": "/finance",
+          "width": 1920,
+          "viewport": 1920,
+          "scrollWidth": 1905,
+          "rect": {
+            "left": 434.5,
+            "right": 1674.5,
+            "width": 1240
+          },
+          "visible": true,
+          "contentWidth": 1240,
+          "columns": "repeat(2, 1fr)",
+          "overflow": "visible",
+          "rows": 8,
+          "goals": 7
+        }
+      ]
+    },
+    {
+      "name": "mobile-confirmation-focus-scroll-and-escape",
+      "status": "PASS",
+      "detail": {
+        "focus": [
+          {
+            "id": "confirmDeleteAccountBtn",
+            "inDialog": true
+          },
+          {
+            "id": "deleteSecretInput",
+            "inDialog": true
+          },
+          {
+            "id": "",
+            "inDialog": true
+          },
+          {
+            "id": "confirmDeleteAccountBtn",
+            "inDialog": true
+          },
+          {
+            "id": "deleteSecretInput",
+            "inDialog": true
+          },
+          {
+            "id": "",
+            "inDialog": true
+          },
+          {
+            "id": "confirmDeleteAccountBtn",
+            "inDialog": true
+          },
+          {
+            "id": "deleteSecretInput",
+            "inDialog": true
+          }
+        ],
+        "backgroundScrollUnchanged": true,
+        "escapeRestoredFocus": true
+      }
+    },
+    {
+      "name": "late-health-A-cannot-replace-B",
+      "status": "PASS",
+      "detail": {
+        "pending": {
+          "path": "/account",
+          "policy": "pending",
+          "p07": "disabled",
+          "boot": "ready",
+          "frameVisible": false,
+          "accountVisible": false,
+          "profile": "r5ownerA6e854d6c",
+          "functionalP07": false,
+          "policyPanelVisible": false,
+          "retryVisible": false,
+          "visibility": "visible"
+        },
+        "after": {
+          "path": "/account",
+          "policy": "enabled",
+          "p07": "enabled",
+          "boot": "ready",
+          "frameVisible": true,
+          "accountVisible": true,
+          "profile": "r5ownerBf407f8f9",
+          "functionalP07": true,
+          "policyPanelVisible": false,
+          "retryVisible": false,
+          "visibility": "visible"
+        },
+        "realStorageEvent": true
+      }
+    },
+    {
+      "name": "real-background-token-revocation-cannot-retain-private-account",
+      "status": "PASS",
+      "detail": {
+        "actualRejectedStatus": 401,
+        "restored": {
+          "path": "/login",
+          "policy": "pending",
+          "p07": "disabled",
+          "boot": "ready",
+          "frameVisible": false,
+          "accountVisible": false,
+          "profile": "r5ownerA6e854d6c",
+          "functionalP07": false,
+          "policyPanelVisible": false,
+          "retryVisible": false,
+          "visibility": "visible"
+        }
+      }
+    },
+    {
+      "name": "bfcache-restoration-revalidates-revoked-session-before-private-frame",
+      "status": "PASS",
+      "detail": {
+        "sameDocument": true,
+        "events": [
+          {
+            "type": "pagehide",
+            "persisted": true,
+            "doc": 1794056631307.7727,
+            "policy": "pending",
+            "private": false,
+            "t": 1094.4000000003725
+          },
+          {
+            "type": "pageshow",
+            "persisted": true,
+            "doc": 1794056631307.7727,
+            "policy": "pending",
+            "private": false,
+            "t": 1281.6000000005588
+          }
+        ],
+        "firstRestoredFrames": [
+          {
+            "private": false,
+            "policy": "pending",
+            "t": 1282.5
+          }
+        ],
+        "state": {
+          "policy": "pending",
+          "p07": "disabled"
+        },
+        "notUsedReasons": []
+      }
+    },
+    {
+      "name": "bfcache-offline-recovery-has-finite-visible-retry",
+      "status": "PASS",
+      "detail": {
+        "before": {
+          "path": "/account",
+          "policy": "error",
+          "p07": "disabled",
+          "boot": "ready",
+          "frameVisible": false,
+          "accountVisible": false,
+          "profile": "r5ownerA6e854d6c",
+          "functionalP07": false,
+          "policyPanelVisible": true,
+          "retryVisible": true,
+          "visibility": "visible"
+        },
+        "after": {
+          "path": "/account",
+          "policy": "enabled",
+          "p07": "enabled",
+          "boot": "ready",
+          "frameVisible": true,
+          "accountVisible": true,
+          "profile": "r5ownerA6e854d6c",
+          "functionalP07": true,
+          "policyPanelVisible": false,
+          "retryVisible": false,
+          "visibility": "visible"
+        },
+        "sameDocument": true
+      }
+    },
+    {
+      "name": "offline-imported-wrong-book-submit-without-remote-judge",
+      "status": "PASS",
+      "detail": {
+        "result": {
+          "title": "正确",
+          "gloss": "标准释义：网络",
+          "validation": ""
+        },
+        "remoteJudgeResponses": 0,
+        "scope": "saved deterministic meanings; real AI not called"
+      }
+    },
+    {
+      "name": "admin-feature-flags-compact-layout",
+      "status": "PASS",
+      "detail": {
+        "requestedWidth": 375,
+        "clientWidth": 375,
+        "layoutViewport": 375,
+        "scrollWidth": 375,
+        "overflow": [
+          {
+            "tag": "BUTTON",
+            "id": "adminToolStatsTab",
+            "classes": "",
+            "left": 367,
+            "right": 455,
+            "width": 88,
+            "minWidth": "auto",
+            "cssWidth": "88px",
+            "columns": "none",
+            "display": "flex",
+            "overflowX": "visible"
+          },
+          {
+            "tag": "BUTTON",
+            "id": "adminFeedbackTab",
+            "classes": "",
+            "left": 461,
+            "right": 563,
+            "width": 102,
+            "minWidth": "auto",
+            "cssWidth": "102px",
+            "columns": "none",
+            "display": "flex",
+            "overflowX": "visible"
+          },
+          {
+            "tag": "BUTTON",
+            "id": "adminMessagesTab",
+            "classes": "",
+            "left": 569,
+            "right": 657,
+            "width": 88,
+            "minWidth": "auto",
+            "cssWidth": "88px",
+            "columns": "none",
+            "display": "flex",
+            "overflowX": "visible"
+          },
+          {
+            "tag": "BUTTON",
+            "id": "adminRolesTab",
+            "classes": "",
+            "left": 663,
+            "right": 765,
+            "width": 102,
+            "minWidth": "auto",
+            "cssWidth": "102px",
+            "columns": "none",
+            "display": "flex",
+            "overflowX": "visible"
+          },
+          {
+            "tag": "BUTTON",
+            "id": "adminFeatureFlagsTab",
+            "classes": "active",
+            "left": 771.22119140625,
+            "right": 858.7788696289062,
+            "width": 87.55767822265625,
+            "minWidth": "auto",
+            "cssWidth": "88px",
+            "columns": "none",
+            "display": "flex",
+            "overflowX": "visible"
+          },
+          {
+            "tag": "SPAN",
+            "id": "",
+            "classes": "ds-tab-indicator",
+            "left": 662.8740234375,
+            "right": 750.8740234375,
+            "width": 88,
+            "minWidth": "0px",
+            "cssWidth": "88px",
+            "columns": "none",
+            "display": "block",
+            "overflowX": "visible"
+          }
+        ],
+        "screenshot": "admin-compact-geometry.png",
+        "hits": {
+          "users": {
+            "x": 49,
+            "y": 396.5,
+            "viewport": {
+              "width": 375,
+              "height": 812
+            },
+            "targetRect": {
+              "top": 374.5,
+              "bottom": 418.5,
+              "width": 60,
+              "height": 44
+            },
+            "hitObject": {
+              "tag": "BUTTON",
+              "id": "adminUsersTab",
+              "classes": ""
+            },
+            "hit": true,
+            "disabled": false,
+            "inert": false
+          },
+          "flags": {
+            "x": 318,
+            "y": 396.5,
+            "viewport": {
+              "width": 375,
+              "height": 812
+            },
+            "targetRect": {
+              "top": 374.5,
+              "bottom": 418.5,
+              "width": 88,
+              "height": 44
+            },
+            "hitObject": {
+              "tag": "BUTTON",
+              "id": "adminFeatureFlagsTab",
+              "classes": ""
+            },
+            "hit": true,
+            "disabled": false,
+            "inert": false
+          }
+        }
+      }
+    },
+    {
+      "name": "actual-local-account-delete-revokes-token-and-admin-isolation",
+      "status": "PASS",
+      "detail": {
+        "statuses": {
+          "deleted": 403,
+          "anonymous": 401,
+          "member": 403,
+          "admin": 200
+        },
+        "scope": "new disposable local account only"
+      }
+    }
+  ],
+  "scope": "actual isolated local APIs + Chrome; no real accounts or paid model"
+}

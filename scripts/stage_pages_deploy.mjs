@@ -16,6 +16,7 @@ export const ROOT_FILES = Object.freeze([
   "manifest.webmanifest",
   "product-ui.css",
   "public-experience.css",
+  "spatial-experience.css",
   "styles.css",
   "sw.js",
   "THIRD_PARTY_NOTICES.md",

@@ -1,0 +1,25 @@
+{
+  "source_sha": "c8e3ae1c30fb905bc9823602d0035d10b92f9d31",
+  "scope": "canonical generated rollback assets + real isolated compiled D1 APIs; only owned browser/test data",
+  "production_operations": 0,
+  "cases": [
+    {
+      "name": "forward real login and completed original shell",
+      "status": "PASS"
+    },
+    {
+      "name": "rollback ordinary reload preserves verified identity, old cache and all user stores with server policy ON",
+      "status": "FAIL",
+      "error": "old peer must actually finish the forward application before rollback"
+    }
+  ],
+  "policy_on_revision": 2,
+  "rollback_manifest": {
+    "release": "20261108-aeris-p07-safe-rollback-rc1",
+    "sha256": "eba1ab774ed66311199587614b16cec4dc86c80e81f52dee87f1a9c358f8082b",
+    "files": 148,
+    "source_sha": "c8e3ae1c30fb905bc9823602d0035d10b92f9d31"
+  },
+  "status": "FAIL",
+  "error": "old peer must actually finish the forward application before rollback"
+}

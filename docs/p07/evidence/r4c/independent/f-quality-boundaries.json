@@ -1,0 +1,182 @@
+{
+  "executedSource": "ca203c95ca3f022a1f14c0a56b00d29292adbf0e",
+  "artifactStatus": "P07_F_PREFLIGHT_READY",
+  "quality": {
+    "status": "REVIEW_REQUIRED",
+    "findingCount": 8,
+    "seriousOrCriticalAxeRules": 3
+  },
+  "labMetrics": {
+    "ttfbMs": 16,
+    "fcpMs": 340,
+    "lcpMs": 340,
+    "lcpElement": {
+      "tagName": "IMG",
+      "id": "splashImage",
+      "className": "entry-logo",
+      "size": 3813
+    },
+    "cls": 0,
+    "tbtMs": 44,
+    "domInteractiveMs": 131,
+    "domContentLoadedMs": 273,
+    "loadCompleteMs": 284,
+    "domNodeCount": 3750,
+    "resourceCount": 58,
+    "totalTransferKb": 368.5,
+    "totalDecodedKb": 1173.88,
+    "jsHeapUsedMb": 2.52,
+    "cdpMetrics": {
+      "LayoutDuration": 0,
+      "RecalcStyleDuration": 0,
+      "ScriptDuration": 0,
+      "JSHeapUsedSize": 1979224
+    },
+    "thresholds": {
+      "lcp": "GOOD",
+      "cls": "GOOD",
+      "tbt": "GOOD",
+      "fcp": "GOOD"
+    }
+  },
+  "lcpCandidateIsSplash": true,
+  "fieldINP": "NOT_MEASURED",
+  "mainCanvasPerformanceAcceptance": "NOT_ESTABLISHED_BY_SPLASH_LCP",
+  "findings": [
+    {
+      "category": "ACCESSIBILITY",
+      "ruleId": "aria-allowed-role",
+      "severity": "LOW",
+      "impact": "minor",
+      "description": "Ensures role attribute has an appropriate value for the element",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.9/aria-allowed-role?application=axeAPI",
+      "affectedWorkspaces": [
+        "PublicHome",
+        "LoginPage",
+        "LanguagePicker",
+        "LanguageWorkspace",
+        "FinanceLedger",
+        "MembershipCenter",
+        "AccountCenter",
+        "FileTransfer",
+        "ToolWorkflows",
+        "AdminConsole"
+      ],
+      "totalNodes": 11,
+      "sampleTargets": [
+        "#versionNotice"
+      ]
+    },
+    {
+      "category": "ACCESSIBILITY",
+      "ruleId": "landmark-unique",
+      "severity": "LOW",
+      "impact": "moderate",
+      "description": "Landmarks should have a unique role or role/label/title (i.e. accessible name) combination",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.9/landmark-unique?application=axeAPI",
+      "affectedWorkspaces": [
+        "PublicHome",
+        "FinanceLedger"
+      ],
+      "totalNodes": 2,
+      "sampleTargets": [
+        "#publicHome"
+      ]
+    },
+    {
+      "category": "ACCESSIBILITY",
+      "ruleId": "page-has-heading-one",
+      "severity": "LOW",
+      "impact": "moderate",
+      "description": "Ensure that the page, or at least one of its frames contains a level-one heading",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.9/page-has-heading-one?application=axeAPI",
+      "affectedWorkspaces": [
+        "LoginPage",
+        "MembershipCenter",
+        "AccountCenter",
+        "ToolWorkflows"
+      ],
+      "totalNodes": 4,
+      "sampleTargets": [
+        "html"
+      ]
+    },
+    {
+      "category": "ACCESSIBILITY",
+      "ruleId": "aria-prohibited-attr",
+      "severity": "MEDIUM",
+      "impact": "serious",
+      "description": "Ensures ARIA attributes are not prohibited for an element's role",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.9/aria-prohibited-attr?application=axeAPI",
+      "affectedWorkspaces": [
+        "LanguageWorkspace"
+      ],
+      "totalNodes": 1,
+      "sampleTargets": [
+        "#statusDot"
+      ]
+    },
+    {
+      "category": "ACCESSIBILITY",
+      "ruleId": "heading-order",
+      "severity": "LOW",
+      "impact": "moderate",
+      "description": "Ensures the order of headings is semantically correct",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.9/heading-order?application=axeAPI",
+      "affectedWorkspaces": [
+        "LanguageWorkspace",
+        "AdminConsole"
+      ],
+      "totalNodes": 2,
+      "sampleTargets": [
+        "#aiSuggestTitle"
+      ]
+    },
+    {
+      "category": "ACCESSIBILITY",
+      "ruleId": "landmark-complementary-is-top-level",
+      "severity": "LOW",
+      "impact": "moderate",
+      "description": "Ensures the complementary landmark or aside is at top level",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.9/landmark-complementary-is-top-level?application=axeAPI",
+      "affectedWorkspaces": [
+        "FinanceLedger"
+      ],
+      "totalNodes": 2,
+      "sampleTargets": [
+        ".finance-sync-note",
+        ".finance-side-column"
+      ]
+    },
+    {
+      "category": "ACCESSIBILITY",
+      "ruleId": "color-contrast",
+      "severity": "MEDIUM",
+      "impact": "serious",
+      "description": "Ensures the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.9/color-contrast?application=axeAPI",
+      "affectedWorkspaces": [
+        "AccountCenter"
+      ],
+      "totalNodes": 1,
+      "sampleTargets": [
+        "#accountSyncBadge"
+      ]
+    },
+    {
+      "category": "ACCESSIBILITY",
+      "ruleId": "label",
+      "severity": "HIGH",
+      "impact": "critical",
+      "description": "Ensures every form element has a label",
+      "helpUrl": "https://dequeuniversity.com/rules/axe/4.9/label?application=axeAPI",
+      "affectedWorkspaces": [
+        "ToolWorkflows"
+      ],
+      "totalNodes": 1,
+      "sampleTargets": [
+        "#workflowImportInput"
+      ]
+    }
+  ]
+}

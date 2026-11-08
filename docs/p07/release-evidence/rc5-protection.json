@@ -1,0 +1,259 @@
+{
+  "baseline": "91f0d466361ee80fbd6475facea0b9620f950661",
+  "original": "7e938bdbda734d319053f1e23fe4a96703486ae6",
+  "resources": [
+    {
+      "file": "android/app/src/main/res/drawable-nodpi/ic_aeris_foreground.png",
+      "blob": "91958904140f448e439250120f083f3d5ab01c34",
+      "unchanged": true
+    },
+    {
+      "file": "android/app/src/main/res/drawable-nodpi/ic_aeris_monochrome.png",
+      "blob": "eed8bf2a3f5d8e52cc4e42430403023ea1e6d9a6",
+      "unchanged": true
+    },
+    {
+      "file": "android/app/src/main/res/drawable-nodpi/ic_launcher.png",
+      "blob": "3bfffb83977306bce44edc0d375fda5f605f2b85",
+      "unchanged": true
+    },
+    {
+      "file": "android/app/src/main/res/drawable-nodpi/ic_notification_aeris.png",
+      "blob": "ac89d1092f2d23b7a6e81334c23e1057a4a40bf9",
+      "unchanged": true
+    },
+    {
+      "file": "android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml",
+      "blob": "4bc9636b66e50aca928485383f9fd57a5babf597",
+      "unchanged": true
+    },
+    {
+      "file": "android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml",
+      "blob": "4bc9636b66e50aca928485383f9fd57a5babf597",
+      "unchanged": true
+    },
+    {
+      "file": "android/app/src/main/res/mipmap-anydpi-v33/ic_launcher.xml",
+      "blob": "9dd5a311c10e14f7d6b411b222e3441740200c79",
+      "unchanged": true
+    },
+    {
+      "file": "android/app/src/main/res/mipmap-anydpi-v33/ic_launcher_round.xml",
+      "blob": "9dd5a311c10e14f7d6b411b222e3441740200c79",
+      "unchanged": true
+    },
+    {
+      "file": "android/app/src/main/res/mipmap-hdpi/ic_launcher.png",
+      "blob": "52c643a779d2139217477f96459279f605987f5b",
+      "unchanged": true
+    },
+    {
+      "file": "android/app/src/main/res/mipmap-hdpi/ic_launcher_round.png",
+      "blob": "52c643a779d2139217477f96459279f605987f5b",
+      "unchanged": true
+    },
+    {
+      "file": "android/app/src/main/res/mipmap-mdpi/ic_launcher.png",
+      "blob": "52fb0585b8464705346c3c89e0edfc0e27850b92",
+      "unchanged": true
+    },
+    {
+      "file": "android/app/src/main/res/mipmap-mdpi/ic_launcher_round.png",
+      "blob": "52fb0585b8464705346c3c89e0edfc0e27850b92",
+      "unchanged": true
+    },
+    {
+      "file": "android/app/src/main/res/mipmap-xhdpi/ic_launcher.png",
+      "blob": "85594c9808ada7c0de19798eda9ce27f46103b92",
+      "unchanged": true
+    },
+    {
+      "file": "android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png",
+      "blob": "85594c9808ada7c0de19798eda9ce27f46103b92",
+      "unchanged": true
+    },
+    {
+      "file": "android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png",
+      "blob": "7e0b04a05b561d5766d25db940d655712c07b04d",
+      "unchanged": true
+    },
+    {
+      "file": "android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png",
+      "blob": "7e0b04a05b561d5766d25db940d655712c07b04d",
+      "unchanged": true
+    },
+    {
+      "file": "android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png",
+      "blob": "3bfffb83977306bce44edc0d375fda5f605f2b85",
+      "unchanged": true
+    },
+    {
+      "file": "android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png",
+      "blob": "3bfffb83977306bce44edc0d375fda5f605f2b85",
+      "unchanged": true
+    },
+    {
+      "file": "android/app/src/main/res/values-night-v31/themes.xml",
+      "blob": "b87fc3f4bd44634ad1e36cf5fb5765c14e18d76b",
+      "unchanged": true
+    },
+    {
+      "file": "android/app/src/main/res/values-night/aeris_brand.xml",
+      "blob": "f4744af8e8cc33f7694c619c4ed9c1a0ae53c407",
+      "unchanged": true
+    },
+    {
+      "file": "android/app/src/main/res/values-night/themes.xml",
+      "blob": "1f4291c5be87625293143157b96bbde021dac675",
+      "unchanged": true
+    },
+    {
+      "file": "android/app/src/main/res/values-v31/themes.xml",
+      "blob": "41095dda434ef8df03365d0adc20e78057f2a0bf",
+      "unchanged": true
+    },
+    {
+      "file": "android/app/src/main/res/values/aeris_brand.xml",
+      "blob": "f24c3c590cc45b31778d01c4247fd315d62822d1",
+      "unchanged": true
+    },
+    {
+      "file": "android/app/src/main/res/values/strings.xml",
+      "blob": "4f3ff2a35fd9bb4b4962f5badc103a585bfef280",
+      "unchanged": true
+    },
+    {
+      "file": "android/app/src/main/res/values/themes.xml",
+      "blob": "db98f2509eacb61d6996d4b06a2d03dfd9e54342",
+      "unchanged": true
+    },
+    {
+      "file": "android/app/src/main/res/xml/data_extraction_rules.xml",
+      "blob": "491c90fd5f783712abda0e0d73f78a8971c6c15f",
+      "unchanged": true
+    },
+    {
+      "file": "android/app/src/main/res/xml/network_security_config.xml",
+      "blob": "6115950862363ee36769a4cc0323679f04e62e83",
+      "unchanged": true
+    },
+    {
+      "file": "android/app/src/main/res/xml/thewyj_accessibility_service.xml",
+      "blob": "2a2348dfde7e1470272a416257e33ba5c754b7a9",
+      "unchanged": true
+    },
+    {
+      "file": "android/app/src/main/res/xml/update_file_paths.xml",
+      "blob": "f9dd4911e804cf25acba4a1c6bbe50179e16eb4d",
+      "unchanged": true
+    },
+    {
+      "file": "assets/brand/aeris-lockup.png",
+      "blob": "5558f115224106ec015cb150bfebaf2c46f73b2e",
+      "unchanged": true
+    },
+    {
+      "file": "assets/brand/aeris-maskable-512.png",
+      "blob": "628de92522cd0f8facc96d06c5fd2f56a572105c",
+      "unchanged": true
+    },
+    {
+      "file": "assets/brand/aeris-monogram.png",
+      "blob": "fecdf510a62199e0240fc7681f6c5bff240e2618",
+      "unchanged": true
+    },
+    {
+      "file": "assets/brand/aeris-og.png",
+      "blob": "500cab9f095ddf85a709ab06a2903d16b16c5e1c",
+      "unchanged": true
+    },
+    {
+      "file": "assets/brand/apple-touch-icon.png",
+      "blob": "b5c6a73837be866ab368b6008082e5ced54fe040",
+      "unchanged": true
+    },
+    {
+      "file": "assets/brand/asset-manifest.json",
+      "blob": "3750ca41ac487627d9a591c6b8465212999e155b",
+      "unchanged": true
+    },
+    {
+      "file": "assets/brand/favicon-32.png",
+      "blob": "24e4d91560db42b78122eddaa1234160eb64e365",
+      "unchanged": true
+    },
+    {
+      "file": "assets/brand/favicon-64.png",
+      "blob": "a9370ca2ff4b64529a725a984bc92038d46a0836",
+      "unchanged": true
+    },
+    {
+      "file": "assets/brand/source-original.png",
+      "blob": "93e58e18cc947ef43f4f1c224bd56df31a62afc6",
+      "unchanged": true
+    },
+    {
+      "file": "favicon.ico",
+      "blob": "aba881eabd266e7001788e9ea935a6d380116185",
+      "unchanged": true
+    },
+    {
+      "file": "icon-192.png",
+      "blob": "3bfffb83977306bce44edc0d375fda5f605f2b85",
+      "unchanged": true
+    },
+    {
+      "file": "icon-512.png",
+      "blob": "362c6f51441e36e692e51533535cb512818960cc",
+      "unchanged": true
+    }
+  ],
+  "cards": [
+    {
+      "name": "learning",
+      "sha256": "c9fc28c1d96e880835a446257c3f822887b752a050fc52a540a3223c4f54be66",
+      "unchanged": true
+    },
+    {
+      "name": "finance",
+      "sha256": "b1449f14dcf7a434965eb289270fa54a8125113a12449b12ec487aeb6605ddaa",
+      "unchanged": true
+    },
+    {
+      "name": "tools",
+      "sha256": "bac6c877be12d5816105fc6f9d9832e3450a30e5f70370737e055b5db291a576",
+      "unchanged": true
+    }
+  ],
+  "officialHtmlReferences": [
+    "/favicon.ico",
+    "/assets/brand/favicon-32.png",
+    "/assets/brand/apple-touch-icon.png",
+    "/icon-192.png",
+    "/icon-192.png",
+    "/icon-192.png",
+    "/icon-192.png",
+    "/icon-192.png",
+    "/icon-192.png",
+    "/assets/brand/aeris-lockup.png"
+  ],
+  "core": [
+    {
+      "file": "sw.js",
+      "identicalAfterReleaseNormalization": true
+    },
+    {
+      "file": "js/core/api.js",
+      "identicalAfterReleaseNormalization": true
+    },
+    {
+      "file": "js/core/session.js",
+      "identicalAfterReleaseNormalization": true
+    },
+    {
+      "file": "js/core/router.js",
+      "identicalAfterReleaseNormalization": true
+    }
+  ],
+  "old131And132PagesInputsIdentical": true
+}

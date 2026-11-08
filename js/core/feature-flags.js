@@ -24,7 +24,7 @@ export function snapshotFeatureEnabled(snapshot, key, accountId, now = Date.now(
 }
 
 export function createFeatureController({ getAccount, apiGet, api, document = globalThis.document, onAvailable = () => {}, onChange = () => {} }) {
-  let available = false, accountId = '', snapshot = null, sequence = 0, timer = null, renewalTimer = null, busy = false, status = '';
+  let available = false, availabilityKnown = false, accountId = '', snapshot = null, sequence = 0, timer = null, renewalTimer = null, busy = false, status = '', phase = 'pending';
   const node = id => document.getElementById(id);
   const currentId = () => String(getAccount()?.id || '');
   function render(message) {
@@ -37,8 +37,8 @@ export function createFeatureController({ getAccount, apiGet, api, document = gl
     node('experimentalFeatureBadge')?.classList.toggle('hidden', !snapshotFeatureEnabled(snapshot, 'aeris_experimental_badge', accountId));
     onChange();
   }
-  function clear(message = '') {
-    snapshot = null; clearTimeout(timer); clearTimeout(renewalTimer);
+  function clear(message = '', next = 'pending') {
+    snapshot = null; phase = next; clearTimeout(timer); clearTimeout(renewalTimer);
     timer = null; renewalTimer = null; render(message);
   }
   function scheduleExpiry() {
@@ -51,7 +51,10 @@ export function createFeatureController({ getAccount, apiGet, api, document = gl
     timer = setTimeout(() => { clear(); void refresh(); }, remaining);
   }
   async function refresh() {
-    if (!available || !accountId || document.hidden || globalThis.navigator?.onLine === false) { clear(); return; }
+    if (!available || !accountId) { clear('', availabilityKnown && !available ? 'disabled' : 'pending'); return; }
+    if (globalThis.navigator?.onLine === false) { clear('当前离线，预览功能已关闭', 'error'); return; }
+    const isStillValid = Boolean(snapshot && snapshot.accountId === accountId && snapshot.expiresAt > Date.now());
+    if (document.hidden && !isStillValid) { render(); return; }
     const ticket = ++sequence, owner = accountId;
     busy = false;
     // Clearing a still-valid decision aborts active Task26 requests through
@@ -62,8 +65,9 @@ export function createFeatureController({ getAccount, apiGet, api, document = gl
       if (ticket !== sequence || owner !== currentId()) return;
       snapshot = parseFeatureSnapshot(response.snapshot, owner);
       if (!snapshot) throw new Error('体验设置响应无效，所有预览功能已关闭');
+      phase = 'decided';
       render(''); scheduleExpiry();
-    } catch (error) { if (ticket === sequence && owner === currentId()) clear(error.message || '读取失败，预览功能已关闭'); }
+    } catch (error) { if (ticket === sequence && owner === currentId()) clear(error.message || '读取失败，预览功能已关闭', 'error'); }
   }
   function updateAccount() {
     const next = currentId(); if (next === accountId) return;
@@ -72,8 +76,8 @@ export function createFeatureController({ getAccount, apiGet, api, document = gl
     if (accountId) void refresh();
   }
   function setAvailable(enabled) {
-    if (available === (enabled === true)) return;
-    available = enabled === true; sequence++; busy = false; clear(); onAvailable(available && Boolean(accountId));
+    if (availabilityKnown && available === (enabled === true)) return;
+    availabilityKnown = true; available = enabled === true; sequence++; busy = false; clear('', available ? 'pending' : 'disabled'); onAvailable(available && Boolean(accountId));
     if (available) void refresh();
   }
   node('saveReleaseChannelBtn')?.addEventListener('click', async () => {
@@ -86,16 +90,23 @@ export function createFeatureController({ getAccount, apiGet, api, document = gl
       if (owner !== currentId() || ticket !== sequence) return;
       snapshot = parseFeatureSnapshot(response.snapshot, owner);
       if (!snapshot) throw new Error('体验设置响应无效');
+      phase = 'decided';
       render('体验通道已保存'); scheduleExpiry();
-    } catch (error) { if (owner === currentId() && ticket === sequence) clear(error.message); }
+    } catch (error) { if (owner === currentId() && ticket === sequence) clear(error.message, 'error'); }
     finally { if (ticket === sequence) { busy = false; render(); } }
   });
   node('refreshReleaseChannelBtn')?.addEventListener('click', () => void refresh());
   document.addEventListener('visibilitychange', () => {
-    sequence++; busy = false; if (document.hidden) clear(); else void refresh();
+    sequence++; busy = false; if (document.hidden) render(); else void refresh();
   });
-  globalThis.addEventListener?.('offline', () => { sequence++; busy = false; clear('当前离线，预览功能已关闭'); });
+  globalThis.addEventListener?.('offline', () => { sequence++; busy = false; clear('当前离线，预览功能已关闭', 'error'); });
   globalThis.addEventListener?.('online', () => void refresh());
   return Object.freeze({ setAvailable, updateAccount, refresh,
-    enabled: key => snapshotFeatureEnabled(snapshot, key, currentId()), channel: () => snapshot?.channel || 'stable' });
+    enabled: key => !document.hidden && snapshotFeatureEnabled(snapshot, key, currentId()), channel: () => snapshot?.channel || 'stable',
+    decision: key => {
+      const valid = snapshot && snapshot.accountId === currentId() && snapshot.expiresAt > Date.now();
+      const flag = valid ? snapshot.flags[key] : null;
+      return Object.freeze({ status: valid ? (flag?.enabled ? 'enabled' : 'disabled') : phase === 'error' ? 'error' : phase === 'disabled' ? 'disabled' : 'pending',
+        reason: valid ? flag?.reason || 'unknown_flag' : status, revision: flag?.revision ?? null, expiresAt: valid ? snapshot.expiresAt : null });
+    } });
 }

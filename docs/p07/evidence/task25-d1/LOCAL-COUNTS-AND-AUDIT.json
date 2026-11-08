@@ -1,0 +1,102 @@
+{
+  "code": 0,
+  "node": "v24.18.1",
+  "platform": "win32",
+  "source": "710df46080de511b252af6f7ccbd4acf05679bdac6835f9fe24700e21bfe7556",
+  "events": [
+    {
+      "type": "cohort_start",
+      "requests": 31,
+      "windowStart": 1794054540000,
+      "barrier": null
+    },
+    {
+      "type": "cohort_result",
+      "statuses": [
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        429,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "codes": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        "task25_rate_limited",
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "type": "cohort_database",
+      "windows": [
+        {
+          "route": "/api/admin/feature-flags/evaluate:task25:POST:/api/admin/feature-flags/evaluate",
+          "window_started_at": 1794054540,
+          "request_count": 31
+        }
+      ],
+      "auditBefore": 22,
+      "auditAfter": 22
+    },
+    {
+      "type": "recovery_verified",
+      "windowCounts": [
+        31,
+        1
+      ]
+    }
+  ]
+}

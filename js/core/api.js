@@ -4,8 +4,8 @@ import {
   BACKEND_NETWORK_MESSAGE,
   GET_RETRYABLE_STATUS,
   STATUS_RETRY_BASE_DELAYS_MS,
-} from "./config.js?v=20261027-aeris-p07-ui-r1";
-import { accountSessionHeaders } from "./session.js?v=20261027-aeris-p07-ui-r1";
+} from "./config.js?release=20261109-aeris-p07-production-r2";
+import { accountSessionHeaders } from "./session.js?release=20261109-aeris-p07-production-r2";
 
 export const CANONICAL_SESSION_ERROR_CODES = new Set([
   "authentication_required",
@@ -87,22 +87,32 @@ export function createApiClient({
   handleSessionExpired,
   handleMembershipRequired,
 }) {
+  function assertSessionOwner(owner) {
+    if (owner === getSession()) return;
+    const error = new Error("账户已切换，请重新打开当前页面");
+    error.name = "AbortError";
+    error.code = "account_changed";
+    throw error;
+  }
   async function requestJsonGet(path, options = {}) {
     const authenticated = options.authenticated === true;
+    const owner = authenticated ? getSession() : null;
     let lastError = new Error(BACKEND_NETWORK_MESSAGE);
     for (let attempt = 0; attempt < STATUS_RETRY_BASE_DELAYS_MS.length; attempt += 1) {
       const delay = retryDelayWithJitter(STATUS_RETRY_BASE_DELAYS_MS[attempt]);
       if (delay) await waitForDelay(delay, options.controller?.signal);
+      if (authenticated) assertSessionOwner(owner);
       let response;
       try {
         response = await fetchWithTimeout(path, {
           method: "GET",
           cache: "no-store",
           credentials: "same-origin",
-          headers: authenticated ? accountSessionHeaders(getSession()) : {},
+          headers: authenticated ? accountSessionHeaders(owner) : {},
           controller: options.controller,
         }, options.timeoutMs || API_GET_TIMEOUT_MS);
       } catch (networkError) {
+        if (authenticated) assertSessionOwner(owner);
         if (networkError?.name === "AbortError") throw networkError;
         const message = backendErrorMessage(networkError);
         markNetworkFailure(message, "get");
@@ -112,6 +122,7 @@ export function createApiClient({
       }
 
       const data = await response.json().catch(() => ({}));
+      if (authenticated) assertSessionOwner(owner);
       if (response.ok) {
         markGetReachable(data);
         return data;
@@ -144,23 +155,26 @@ export function createApiClient({
   }
 
   async function api(path, body = {}, options = {}) {
+    const owner = getSession();
     let response;
     try {
       response = await fetchWithTimeout(path, {
         method: "POST",
         cache: "no-store",
-        headers: { "Content-Type": "application/json", ...accountSessionHeaders(getSession()) },
+        headers: { "Content-Type": "application/json", ...accountSessionHeaders(owner) },
         body: JSON.stringify(body),
         controller: options.controller,
         signal: options.signal,
       }, options.timeoutMs || API_TIMEOUT_MS);
     } catch (error) {
+      assertSessionOwner(owner);
       if (error.name === "AbortError") throw error;
       const message = backendErrorMessage(error);
       markNetworkFailure(message, "api");
       throw new Error(message);
     }
     const data = await response.json().catch(() => ({}));
+    assertSessionOwner(owner);
     if (response.ok || response.status < 500) markBackendReachable(data);
     if (!response.ok) {
       if (isCanonicalSessionFailure(data)) {

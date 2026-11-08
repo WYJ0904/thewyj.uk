@@ -2991,12 +2991,18 @@ class AccountStore:
             encoded = cls._learning_sync_json(record_payload).encode("utf-8")
             if len(encoded) > LEARNING_SYNC_MAX_PAYLOAD_BYTES:
                 raise AccountError("单项学习数据超出大小限制", 413, "learning_sync_record_too_large")
+            updated_ms = (updated_time.microsecond // 1000) * 1000
+            normalized_updated_at = (
+                updated_time.replace(microsecond=0).isoformat().replace("+00:00", "Z")
+                if updated_ms == 0
+                else updated_time.replace(microsecond=updated_ms).isoformat(timespec="milliseconds").replace("+00:00", "Z")
+            )
             cleaned_changes.append(
                 {
                     "data_type": data_type,
                     "record_id": record_id,
                     "payload": record_payload,
-                    "updated_at": updated_time.replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+                    "updated_at": normalized_updated_at,
                     "deleted": deleted,
                     "base_server_version": base_server_version,
                     "client_id": client_id,
@@ -3065,11 +3071,17 @@ class AccountStore:
 
     @classmethod
     def _merge_wrong_payload(cls, current, incoming, incoming_newer):
-        merged = {**current, **incoming} if incoming_newer else {**incoming, **current}
+        preferred = incoming if incoming_newer else current
+        fallback = current if incoming_newer else incoming
+        merged = {**fallback, **preferred}
         merged["wrong_count"] = max(
             int(current.get("wrong_count") or 0),
             int(incoming.get("wrong_count") or 0),
         )
+        preferred_correct = str(preferred.get("correct_answer") or "").strip()
+        fallback_correct = str(fallback.get("correct_answer") or "").strip()
+        if preferred_correct or fallback_correct:
+            merged["correct_answer"] = preferred.get("correct_answer") if preferred_correct else fallback.get("correct_answer")
         accepted = []
         seen = set()
         for item in [*(current.get("accepted") or []), *(incoming.get("accepted") or [])]:
@@ -3083,11 +3095,16 @@ class AccountStore:
         current_rubric = current.get("rubric") if isinstance(current.get("rubric"), dict) else {}
         incoming_rubric = incoming.get("rubric") if isinstance(incoming.get("rubric"), dict) else {}
         if current_rubric or incoming_rubric:
-            merged["rubric"] = (
-                {**current_rubric, **incoming_rubric}
-                if incoming_newer
-                else {**incoming_rubric, **current_rubric}
-            )
+            preferred_rubric = incoming_rubric if incoming_newer else current_rubric
+            fallback_rubric = current_rubric if incoming_newer else incoming_rubric
+            merged["rubric"] = {**fallback_rubric, **preferred_rubric}
+            for rubric_field in ("language", "gloss", "notes", "reading"):
+                pref_val = str(preferred_rubric.get(rubric_field) or "").strip()
+                fall_val = str(fallback_rubric.get(rubric_field) or "").strip()
+                if pref_val or fall_val:
+                    merged["rubric"][rubric_field] = (
+                        preferred_rubric.get(rubric_field) if pref_val else fallback_rubric.get(rubric_field)
+                    )
             rubric_accepted = []
             rubric_seen = set()
             for item in [
@@ -3109,7 +3126,10 @@ class AccountStore:
         incoming_time = parse_time(incoming["updated_at"]) or datetime.min.replace(tzinfo=timezone.utc)
         if incoming_time != existing_time:
             return incoming_time > existing_time
-        return incoming["client_id"] > str(existing["client_id"] or "")
+        return incoming["client_id"] > str(existing["client_id"] or "") or (
+            incoming["client_id"] == str(existing["client_id"] or "")
+            and incoming["base_server_version"] >= int(existing["server_version"])
+        )
 
     @classmethod
     def _merge_learning_sync_record(cls, existing, incoming):
@@ -3118,7 +3138,16 @@ class AccountStore:
         existing_payload = cls._learning_sync_row_payload(existing)
         existing_output = cls._learning_sync_record_payload(existing)
         incoming_newer = cls._learning_sync_incoming_is_newer(existing, incoming)
-        base_is_current = incoming["base_server_version"] >= int(existing["server_version"])
+        strictly_newer = parse_time(incoming["updated_at"]) > parse_time(existing["updated_at"])
+        same_client_newer = strictly_newer and incoming["client_id"] == str(existing["client_id"] or "")
+        base_is_current = incoming["base_server_version"] >= int(existing["server_version"]) or same_client_newer
+
+        if (
+            incoming["deleted"] and not existing["deleted"] and not base_is_current
+            and incoming["client_id"] == str(existing["client_id"] or "")
+            and parse_time(incoming["updated_at"]) == parse_time(existing["updated_at"])
+        ):
+            raise AccountError("同步变更时间冲突，已保留本机记录，请刷新页面后重试", 409, "learning_sync_refresh_required")
 
         if incoming["deleted"]:
             if not base_is_current:
@@ -3128,7 +3157,7 @@ class AccountStore:
             return canonical, not bool(existing["deleted"]), not base_is_current
 
         if existing["deleted"]:
-            if not base_is_current or not incoming_newer:
+            if not base_is_current or not incoming_newer or not strictly_newer:
                 return existing_output, False, True
             return dict(incoming), True, False
 

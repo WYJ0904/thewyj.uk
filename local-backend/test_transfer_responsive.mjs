@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import path from "node:path";
 
 const BASE_URL = process.env.WYJ_TEST_BASE || "http://127.0.0.1:8892";
@@ -9,6 +10,7 @@ const ADMIN_SECRET = process.env.WYJ_TEST_ADMIN_SECRET || "";
 const RUN_ID = Date.now().toString(36);
 const USERNAME = `responsive${RUN_ID}`.slice(0, 32);
 const USER_SECRET = "Responsive-Matrix-2026!";
+const ARTIFACT_DIR = path.resolve(process.env.WYJ_TEST_ARTIFACT_DIR || path.join(ROOT, 'artifacts'));
 
 async function api(pathname, payload, token = "", expected = [200]) {
   const response = await fetch(`${BASE_URL}${pathname}`, {
@@ -52,9 +54,20 @@ class CdpClient {
     this.nextId = 1;
     this.pending = new Map();
     this.events = [];
+    this.transferPending = new Map();
+    this.transferCompleted = [];
     this.socket.addEventListener("message", (event) => {
       const message = JSON.parse(String(event.data));
       if (!message.id) {
+        const p = message.params || {};
+        if (message.method === 'Network.requestWillBeSent' && String(p.request?.url || '').includes('/api/transfer/')) {
+          this.transferPending.set(p.requestId, {path:new URL(p.request.url).pathname,status:null});
+        } else if (message.method === 'Network.responseReceived' && this.transferPending.has(p.requestId)) {
+          this.transferPending.get(p.requestId).status = p.response.status;
+        } else if (['Network.loadingFinished','Network.loadingFailed'].includes(message.method) && this.transferPending.has(p.requestId)) {
+          this.transferCompleted.push({...this.transferPending.get(p.requestId),failed:message.method==='Network.loadingFailed'});
+          this.transferPending.delete(p.requestId);
+        }
         if (message.method === "Runtime.exceptionThrown" || message.method === "Log.entryAdded") {
           this.events.push(message);
           if (this.events.length > 40) this.events.shift();
@@ -120,6 +133,7 @@ const MEASURE = `(() => {
       top: Math.round(rect.top),
       bottom: Math.round(rect.bottom),
       width: Math.round(rect.width),
+      height: Math.round(rect.height),
     };
   };
   return {
@@ -133,6 +147,9 @@ const MEASURE = `(() => {
     config: rectOf(".transfer-config"),
     message: rectOf("#transferMessage"),
     viewportHeight: window.innerHeight,
+    scrollY: window.scrollY,
+    documentHeight: root.scrollHeight,
+    bodyHeight: document.body.scrollHeight,
   };
 })()`;
 
@@ -148,7 +165,7 @@ async function main() {
   const attached = await client.send("Target.attachToTarget", { targetId: target.targetId, flatten: true });
   const sessionId = attached.sessionId;
   const send = (method, params = {}) => client.send(method, params, sessionId);
-  await Promise.all([send("Page.enable"), send("DOM.enable"), send("Runtime.enable")]);
+  await Promise.all([send("Page.enable"), send("DOM.enable"), send("Runtime.enable"), send('Network.enable')]);
 
   const evaluate = async (expression) => {
     const response = await send("Runtime.evaluate", { expression, returnByValue: true, awaitPromise: true, userGesture: true });
@@ -170,14 +187,15 @@ async function main() {
     throw new Error(`timeout waiting for ${description}`);
   };
 
+  const report = [], readiness = {};
   try {
-    const report = [];
     // Boot once at the default (desktop) viewport exactly like a real user:
     // login → workspace → 工具箱 → 文件传输. The per-viewport measurements then
     // resize the live page, which is what a phone rotation/resize also does.
     await send("Page.navigate", { url: `${BASE_URL}/login?responsive=${Date.now()}` });
     await waitFor("document.querySelector('#usernameInput')", 25_000, "login page");
     await evaluate(`localStorage.setItem('wyjAccountSession', ${JSON.stringify(member.session)}); location.href = '/tools?responsive=${Date.now()}'; true`);
+    const toolboxDeadline = Date.now() + 40_000;
     await waitFor(
       "window.WYJTools?.tools?.length >= 100 && !document.querySelector('#toolsPanel')?.classList.contains('hidden')",
       40_000,
@@ -198,10 +216,18 @@ async function main() {
       }).slice(-6);
       throw new Error(`${error.message} :: ${JSON.stringify(diagnostic)} :: events=${JSON.stringify(events)}`);
     });
+    const readyState = `({boot:document.documentElement.dataset.bootState,mount:document.documentElement.dataset.workspaceMount,splash:!!document.getElementById('entryScreen'),htmlOverflow:getComputedStyle(document.documentElement).overflow,htmlHeight:getComputedStyle(document.documentElement).height,bodyOverflow:getComputedStyle(document.body).overflow,toolsVisible:document.getElementById('toolsPanel').checkVisibility({checkOpacity:true,checkVisibilityCSS:true})})`;
+    readiness.atLegacyCondition = await evaluate(readyState);
+    // A bound controller and a non-hidden class can precede both the completed
+    // mount and Splash removal. Preserve the original 40s total boot budget.
+    await waitFor("document.documentElement.dataset.bootState === 'ready' && !document.getElementById('entryScreen') && document.getElementById('toolsPanel').checkVisibility({checkOpacity:true,checkVisibilityCSS:true})",
+      Math.max(1, toolboxDeadline - Date.now()), 'visible toolbox after startup cleanup');
+    readiness.beforeUserNavigation = await evaluate(readyState);
+    const transferDeadline = Date.now() + 25_000;
     await evaluate("window.WYJTools.openTool('file-transfer', false); true");
     await waitFor(
-      "location.pathname === '/transfer' && !document.querySelector('#transferPage')?.classList.contains('hidden')",
-      25_000,
+      "location.pathname === '/transfer' && !document.getElementById('entryScreen') && document.querySelector('#transferPage')?.checkVisibility({checkOpacity:true,checkVisibilityCSS:true})",
+      Math.max(1, transferDeadline-Date.now()),
       "transfer page",
     ).catch(async (error) => {
       const diagnostic = await evaluate(`({
@@ -212,6 +238,16 @@ async function main() {
       })`).catch(() => ({}));
       throw new Error(`${error.message} :: ${JSON.stringify(diagnostic)}`);
     });
+    const initialPaths=['/api/transfer/capabilities','/api/transfer/shares','/api/transfer/uploads'];
+    readiness.beforeInitialTransferData = await evaluate(`({documentHeight:document.documentElement.scrollHeight,bodyHeight:document.body.scrollHeight,messageTop:document.getElementById('transferMessage').getBoundingClientRect().top,sharesChildren:document.getElementById('transferMyShares').children.length,unfinishedChildren:document.getElementById('transferUnfinishedSessions').children.length})`);
+    const initialComplete=()=>initialPaths.every(path=>client.transferCompleted.some(r=>r.path===path&&r.status===200&&!r.failed))&&client.transferPending.size===0;
+    while(!initialComplete()&&Date.now()<transferDeadline) await delay(100);
+    readiness.initialTransferData={completed:client.transferCompleted,pending:[...client.transferPending.values()]};
+    assert.ok(initialComplete(),'initial transfer data did not finish within the original 25s budget: '+JSON.stringify(readiness.initialTransferData));
+    await evaluate('new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))');
+    readiness.afterInitialTransferData = await evaluate(`({documentHeight:document.documentElement.scrollHeight,bodyHeight:document.body.scrollHeight,messageTop:document.getElementById('transferMessage').getBoundingClientRect().top,sharesChildren:document.getElementById('transferMyShares').children.length,unfinishedChildren:document.getElementById('transferUnfinishedSessions').children.length})`);
+    // Initial list placeholders can otherwise arrive after scrolling and grow
+    // the page beneath the measurement. Wait on real responses, not a sleep.
 
     for (const viewport of VIEWPORTS) {
       await send("Emulation.setDeviceMetricsOverride", {
@@ -221,11 +257,12 @@ async function main() {
         mobile: viewport.mobile,
       });
       await waitFor(
-        "!document.querySelector('#transferPage')?.classList.contains('hidden') && document.querySelector('#transferPage')",
+        "document.querySelector('#transferPage')?.checkVisibility({checkOpacity:true,checkVisibilityCSS:true}) && document.fonts.status === 'loaded'",
         15_000,
         `transfer page at ${viewport.name}`,
       );
-      await delay(350);
+      await evaluate("new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+      await evaluate("Promise.allSettled(document.getAnimations().filter(a=>a.playState==='running'&&Number.isFinite(a.effect.getComputedTiming().endTime)).map(a=>a.finished))");
       const layout = await evaluate(MEASURE);
       report.push({ viewport: viewport.name, ...layout });
 
@@ -235,6 +272,7 @@ async function main() {
       assert.deepEqual(layout.offenders, [], `${viewport.name}: elements overflow the viewport`);
       for (const [name, rect] of Object.entries({ backButton: layout.back, dropZone: layout.dropZone, quota: layout.quota, config: layout.config })) {
         assert.ok(rect, `${viewport.name}: ${name} is missing`);
+        assert.ok(rect.width > 0 && rect.height > 0, `${viewport.name}: ${name} has no rendered size`);
         assert.ok(
           rect.left >= -1 && rect.right <= layout.viewportWidth + 1,
           `${viewport.name}: ${name} is outside the viewport (${JSON.stringify(rect)})`,
@@ -244,8 +282,10 @@ async function main() {
       // Bottom guard: scroll to the very end and prove the last content row is
       // still fully visible (the shell reserves safe-area/bottom padding for the
       // native bottom navigation instead of letting it cover content).
-      const bottomGuard = await evaluate(`(() => {
-        window.scrollTo(0, document.body.scrollHeight);
+      const bottomGuard = await evaluate(`(async () => {
+        const before={scrollY,documentHeight:document.documentElement.scrollHeight,bodyHeight:document.body.scrollHeight};
+        window.scrollTo({top:document.body.scrollHeight,behavior:'instant'});
+        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
         const page = document.querySelector("#transferPage");
         const last = page.lastElementChild;
         const lastRect = last.getBoundingClientRect();
@@ -257,8 +297,23 @@ async function main() {
           shellPaddingBottom: shellStyle.paddingBottom,
           pagePaddingBottom: pageStyle.paddingBottom,
           scrollY: Math.round(window.scrollY),
+          splash: Boolean(document.getElementById('entryScreen')),
+          boot: document.documentElement.dataset.bootState,
+          htmlOverflow: getComputedStyle(document.documentElement).overflow,
+          bodyOverflow: getComputedStyle(document.body).overflow,
+          before,
+          documentHeight: document.documentElement.scrollHeight,
+          bodyHeight: document.body.scrollHeight,
+          clientHeight: document.documentElement.clientHeight,
+          visualHeight: window.visualViewport?.height,
+          pageTransform: pageStyle.transform,
+          shellTransform: shellStyle.transform,
         };
       })()`);
+      report.at(-1).bottomGuard = bottomGuard;
+      assert.equal(bottomGuard.splash, false, 'layout/scroll measurement must not run beneath Splash');
+      assert.notEqual(bottomGuard.htmlOverflow, 'hidden', 'startup scroll lock survived cleanup');
+      assert.notEqual(bottomGuard.bodyOverflow, 'hidden', 'body remained scroll locked after cleanup');
       assert.ok(
         bottomGuard.lastBottom <= bottomGuard.viewportHeight + 1,
         `${viewport.name}: content is still cut off after scrolling to the end (${JSON.stringify(bottomGuard)})`,
@@ -267,12 +322,13 @@ async function main() {
         Number.parseFloat(bottomGuard.shellPaddingBottom) >= 16 || Number.parseFloat(bottomGuard.pagePaddingBottom) >= 16,
         `${viewport.name}: no bottom/safe-area padding reserved (${JSON.stringify(bottomGuard)})`,
       );
-      report.at(-1).bottomGuard = bottomGuard;
     }
 
     console.log(JSON.stringify({ checked: report.length, widths: report.map((entry) => ({ viewport: entry.viewport, scrollWidth: entry.scrollWidth, clientWidth: entry.viewportWidth })) }, null, 2));
     console.log("Transfer responsive checks passed (320/360/390/412 mobile + desktop, no horizontal overflow, controls inside the viewport).");
   } finally {
+    fs.mkdirSync(ARTIFACT_DIR, {recursive:true});
+    fs.writeFileSync(path.join(ARTIFACT_DIR,'transfer-responsive.json'), JSON.stringify({product_sha:process.env.P07_D_TARGET_HEAD||null,ci_merge_sha:process.env.GITHUB_SHA||null,readiness,report},null,2));
     await client.send("Target.closeTarget", { targetId: target.targetId }).catch(() => {});
     await client.send("Target.disposeBrowserContext", { browserContextId }).catch(() => {});
     client.close();

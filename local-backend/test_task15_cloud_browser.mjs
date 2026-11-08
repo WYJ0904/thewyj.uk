@@ -311,9 +311,12 @@ async function main() {
         throw new Error(`${error.message}; diagnostic=${JSON.stringify(diagnostic)}; dialogs=${JSON.stringify(dialogs)}`);
       }
       assert.equal(await evaluate("localStorage.getItem('wyjAccountSession')"), originalSession);
+      const toastText = await evaluate("document.querySelector('#achievementToast')?.textContent || ''");
+      const validationText = await evaluate("document.querySelector('#answerValidation')?.textContent || ''");
       const aiUnavailable = dialogs.some(
         (message) => message.includes("AI 暂时不可用") && message.includes("释义练习仍可继续"),
-      );
+      ) || (toastText.includes("AI 暂时不可用") && toastText.includes("释义练习仍可继续"))
+        || (validationText.includes("AI 暂时不可用") && validationText.includes("释义练习仍可继续"));
       if (EXPECT_AI_MODE === "disabled") {
         assert.equal(aiUnavailable, true, "disabled Workers AI must degrade without ending the quiz");
       } else if (EXPECT_AI_MODE === "enabled") {
@@ -866,7 +869,8 @@ async function main() {
     await check("Task 20 shared dialog portal, bounds, focus and scroll in both themes", async () => {
       await navigate('/');
       const ids = await evaluate("[...document.querySelectorAll('.modal-layer')].map(e=>e.id)");
-      assert.ok(ids.includes('financeTransactionModal') && ids.includes('membershipModal'));
+      const isV3MembershipWorkspace = await evaluate("Boolean(document.querySelector('.v3-workspace#membershipModal'))");
+      assert.ok(ids.includes('financeTransactionModal') && (ids.includes('membershipModal') || isV3MembershipWorkspace));
       for (const theme of ['light','dark']) {
         await evaluate(`document.documentElement.dataset.theme=${JSON.stringify(theme)}`);
         for (const id of ids) {

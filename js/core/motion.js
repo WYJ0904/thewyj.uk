@@ -38,7 +38,7 @@ export function installMotionSystem(doc = globalThis.document) {
     pressed.delete(node); node.removeAttribute("data-aeris-pressed");
   }
   function press(node) {
-    if (!usable(node)) return;
+    if (!usable(node) || node.hasAttribute?.("data-widget-drag")) return;
     clear(node); pressed.set(node, { at: clock(), timer: null });
     node.setAttribute("data-aeris-pressed", "true");
   }
@@ -101,6 +101,8 @@ export function installMotionSystem(doc = globalThis.document) {
     const summary = event.target?.closest?.("summary");
     if (!summary || event.target?.closest?.("a,button,input") || event.defaultPrevented) return;
     const details = summary.parentElement; if (details?.tagName !== "DETAILS") return;
+    // Anchored menus render an overlay popover outside summary flow.
+    if (details.classList?.contains("account-menu") || summary.getAttribute?.("aria-haspopup") === "menu") return;
     event.preventDefault(); animateDisclosure(details, summary);
   }, { capture: false });
   const disclosureObserver = new view.MutationObserver(records => {

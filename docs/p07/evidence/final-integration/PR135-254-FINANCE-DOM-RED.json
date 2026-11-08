@@ -1,0 +1,24 @@
+{
+  "path": "/finance",
+  "policy": "disabled",
+  "boot": "ready",
+  "verification": "ready",
+  "shown": [
+    "sessionRecovery"
+  ],
+  "financeMessage": "",
+  "locked": false,
+  "candidatesClass": "finance-candidates-section finance-fold",
+  "recovery": "连接较慢，正在安全恢复页面。你可以等待、重试或返回公开首页。",
+  "account": {
+    "entitlements": [
+      "finance_access",
+      "notification_archive_access",
+      "save_tool_config",
+      "temporary_share_access",
+      "tools_access",
+      "tools_batch_access"
+    ],
+    "role": "user"
+  }
+}

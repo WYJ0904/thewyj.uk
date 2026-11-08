@@ -1,0 +1,620 @@
+{
+  "source": "cef7db9bc4ffd3e2641df4e190ba5938a1b4ff34",
+  "permissions": {
+    "anonymous": 401,
+    "member": 403,
+    "admin": 200
+  },
+  "results": [
+    {
+      "route": "/transfer",
+      "width": 375,
+      "theme": "light",
+      "layout": {
+        "viewport": 375,
+        "scrollWidth": 375,
+        "visible": true,
+        "rect": {
+          "left": 12,
+          "right": 363,
+          "width": 351
+        },
+        "policy": "enabled",
+        "transferColumns": "327px",
+        "workflowColumns": null
+      },
+      "screenshot": "E-transferPage-375-light.png"
+    },
+    {
+      "route": "/transfer",
+      "width": 375,
+      "theme": "dark",
+      "layout": {
+        "viewport": 375,
+        "scrollWidth": 375,
+        "visible": true,
+        "rect": {
+          "left": 12,
+          "right": 363,
+          "width": 351
+        },
+        "policy": "enabled",
+        "transferColumns": "327px",
+        "workflowColumns": null
+      },
+      "screenshot": "E-transferPage-375-dark.png"
+    },
+    {
+      "route": "/transfer",
+      "width": 390,
+      "theme": "light",
+      "layout": {
+        "viewport": 390,
+        "scrollWidth": 390,
+        "visible": true,
+        "rect": {
+          "left": 12,
+          "right": 378,
+          "width": 366
+        },
+        "policy": "enabled",
+        "transferColumns": "342px",
+        "workflowColumns": null
+      },
+      "screenshot": "E-transferPage-390-light.png"
+    },
+    {
+      "route": "/transfer",
+      "width": 390,
+      "theme": "dark",
+      "layout": {
+        "viewport": 390,
+        "scrollWidth": 390,
+        "visible": true,
+        "rect": {
+          "left": 12,
+          "right": 378,
+          "width": 366
+        },
+        "policy": "enabled",
+        "transferColumns": "342px",
+        "workflowColumns": null
+      },
+      "screenshot": "E-transferPage-390-dark.png"
+    },
+    {
+      "route": "/transfer",
+      "width": 1024,
+      "theme": "light",
+      "layout": {
+        "viewport": 1024,
+        "scrollWidth": 1009,
+        "visible": true,
+        "rect": {
+          "left": 229.59375,
+          "right": 983.390625,
+          "width": 753.796875
+        },
+        "policy": "enabled",
+        "transferColumns": "377.797px 320px",
+        "workflowColumns": null
+      },
+      "screenshot": "E-transferPage-1024-light.png"
+    },
+    {
+      "route": "/transfer",
+      "width": 1024,
+      "theme": "dark",
+      "layout": {
+        "viewport": 1024,
+        "scrollWidth": 1009,
+        "visible": true,
+        "rect": {
+          "left": 229.59375,
+          "right": 983.390625,
+          "width": 753.796875
+        },
+        "policy": "enabled",
+        "transferColumns": "377.797px 320px",
+        "workflowColumns": null
+      },
+      "screenshot": "E-transferPage-1024-dark.png"
+    },
+    {
+      "route": "/transfer",
+      "width": 1440,
+      "theme": "light",
+      "layout": {
+        "viewport": 1440,
+        "scrollWidth": 1425,
+        "visible": true,
+        "rect": {
+          "left": 236,
+          "right": 1393,
+          "width": 1157
+        },
+        "policy": "enabled",
+        "transferColumns": "651.609px 449.391px",
+        "workflowColumns": null
+      },
+      "screenshot": "E-transferPage-1440-light.png"
+    },
+    {
+      "route": "/transfer",
+      "width": 1440,
+      "theme": "dark",
+      "layout": {
+        "viewport": 1440,
+        "scrollWidth": 1425,
+        "visible": true,
+        "rect": {
+          "left": 236,
+          "right": 1393,
+          "width": 1157
+        },
+        "policy": "enabled",
+        "transferColumns": "651.609px 449.391px",
+        "workflowColumns": null
+      },
+      "screenshot": "E-transferPage-1440-dark.png"
+    },
+    {
+      "route": "/tools/workflows",
+      "width": 375,
+      "theme": "light",
+      "layout": {
+        "viewport": 375,
+        "scrollWidth": 375,
+        "visible": true,
+        "rect": {
+          "left": 24,
+          "right": 351,
+          "width": 327
+        },
+        "policy": "enabled",
+        "transferColumns": null,
+        "workflowColumns": "327px"
+      },
+      "screenshot": "E-workflowWorkspace-375-light.png"
+    },
+    {
+      "route": "/tools/workflows",
+      "width": 375,
+      "theme": "dark",
+      "layout": {
+        "viewport": 375,
+        "scrollWidth": 375,
+        "visible": true,
+        "rect": {
+          "left": 24,
+          "right": 351,
+          "width": 327
+        },
+        "policy": "enabled",
+        "transferColumns": null,
+        "workflowColumns": "327px"
+      },
+      "screenshot": "E-workflowWorkspace-375-dark.png"
+    },
+    {
+      "route": "/tools/workflows",
+      "width": 390,
+      "theme": "light",
+      "layout": {
+        "viewport": 390,
+        "scrollWidth": 390,
+        "visible": true,
+        "rect": {
+          "left": 24,
+          "right": 366,
+          "width": 342
+        },
+        "policy": "enabled",
+        "transferColumns": null,
+        "workflowColumns": "342px"
+      },
+      "screenshot": "E-workflowWorkspace-390-light.png"
+    },
+    {
+      "route": "/tools/workflows",
+      "width": 390,
+      "theme": "dark",
+      "layout": {
+        "viewport": 390,
+        "scrollWidth": 390,
+        "visible": true,
+        "rect": {
+          "left": 24,
+          "right": 366,
+          "width": 342
+        },
+        "policy": "enabled",
+        "transferColumns": null,
+        "workflowColumns": "342px"
+      },
+      "screenshot": "E-workflowWorkspace-390-dark.png"
+    },
+    {
+      "route": "/tools/workflows",
+      "width": 1024,
+      "theme": "light",
+      "layout": {
+        "viewport": 1024,
+        "scrollWidth": 1009,
+        "visible": true,
+        "rect": {
+          "left": 255.1875,
+          "right": 957.78125,
+          "width": 702.59375
+        },
+        "policy": "enabled",
+        "transferColumns": null,
+        "workflowColumns": "320px 358.594px"
+      },
+      "screenshot": "E-workflowWorkspace-1024-light.png"
+    },
+    {
+      "route": "/tools/workflows",
+      "width": 1024,
+      "theme": "dark",
+      "layout": {
+        "viewport": 1024,
+        "scrollWidth": 1009,
+        "visible": true,
+        "rect": {
+          "left": 255.1875,
+          "right": 957.78125,
+          "width": 702.59375
+        },
+        "policy": "enabled",
+        "transferColumns": null,
+        "workflowColumns": "320px 358.594px"
+      },
+      "screenshot": "E-workflowWorkspace-1024-dark.png"
+    },
+    {
+      "route": "/tools/workflows",
+      "width": 1440,
+      "theme": "light",
+      "layout": {
+        "viewport": 1440,
+        "scrollWidth": 1425,
+        "visible": true,
+        "rect": {
+          "left": 268,
+          "right": 1361,
+          "width": 1093
+        },
+        "policy": "enabled",
+        "transferColumns": null,
+        "workflowColumns": "320px 749px"
+      },
+      "screenshot": "E-workflowWorkspace-1440-light.png"
+    },
+    {
+      "route": "/tools/workflows",
+      "width": 1440,
+      "theme": "dark",
+      "layout": {
+        "viewport": 1440,
+        "scrollWidth": 1425,
+        "visible": true,
+        "rect": {
+          "left": 268,
+          "right": 1361,
+          "width": 1093
+        },
+        "policy": "enabled",
+        "transferColumns": null,
+        "workflowColumns": "320px 749px"
+      },
+      "screenshot": "E-workflowWorkspace-1440-dark.png"
+    },
+    {
+      "route": "/admin",
+      "width": 375,
+      "theme": "light",
+      "layout": {
+        "viewport": 871,
+        "scrollWidth": 871,
+        "visible": true,
+        "rect": {
+          "left": 12,
+          "right": 363,
+          "width": 351
+        },
+        "policy": "enabled",
+        "transferColumns": null,
+        "workflowColumns": null
+      },
+      "screenshot": "E-adminPanel-375-light.png"
+    },
+    {
+      "route": "/admin",
+      "width": 375,
+      "theme": "dark",
+      "layout": {
+        "viewport": 871,
+        "scrollWidth": 871,
+        "visible": true,
+        "rect": {
+          "left": 12,
+          "right": 363,
+          "width": 351
+        },
+        "policy": "enabled",
+        "transferColumns": null,
+        "workflowColumns": null
+      },
+      "screenshot": "E-adminPanel-375-dark.png"
+    },
+    {
+      "route": "/admin",
+      "width": 390,
+      "theme": "light",
+      "layout": {
+        "viewport": 871,
+        "scrollWidth": 871,
+        "visible": true,
+        "rect": {
+          "left": 12,
+          "right": 378,
+          "width": 366
+        },
+        "policy": "enabled",
+        "transferColumns": null,
+        "workflowColumns": null
+      },
+      "screenshot": "E-adminPanel-390-light.png"
+    },
+    {
+      "route": "/admin",
+      "width": 390,
+      "theme": "dark",
+      "layout": {
+        "viewport": 871,
+        "scrollWidth": 871,
+        "visible": true,
+        "rect": {
+          "left": 12,
+          "right": 378,
+          "width": 366
+        },
+        "policy": "enabled",
+        "transferColumns": null,
+        "workflowColumns": null
+      },
+      "screenshot": "E-adminPanel-390-dark.png"
+    },
+    {
+      "route": "/admin",
+      "width": 1024,
+      "theme": "light",
+      "layout": {
+        "viewport": 1024,
+        "scrollWidth": 1009,
+        "visible": true,
+        "rect": {
+          "left": 229.59375,
+          "right": 983.390625,
+          "width": 753.796875
+        },
+        "policy": "enabled",
+        "transferColumns": null,
+        "workflowColumns": null
+      },
+      "screenshot": "E-adminPanel-1024-light.png"
+    },
+    {
+      "route": "/admin",
+      "width": 1024,
+      "theme": "dark",
+      "layout": {
+        "viewport": 1024,
+        "scrollWidth": 1009,
+        "visible": true,
+        "rect": {
+          "left": 229.59375,
+          "right": 983.390625,
+          "width": 753.796875
+        },
+        "policy": "enabled",
+        "transferColumns": null,
+        "workflowColumns": null
+      },
+      "screenshot": "E-adminPanel-1024-dark.png"
+    },
+    {
+      "route": "/admin",
+      "width": 1440,
+      "theme": "light",
+      "layout": {
+        "viewport": 1440,
+        "scrollWidth": 1425,
+        "visible": true,
+        "rect": {
+          "left": 236,
+          "right": 1393,
+          "width": 1157
+        },
+        "policy": "enabled",
+        "transferColumns": null,
+        "workflowColumns": null
+      },
+      "screenshot": "E-adminPanel-1440-light.png"
+    },
+    {
+      "route": "/admin",
+      "width": 1440,
+      "theme": "dark",
+      "layout": {
+        "viewport": 1440,
+        "scrollWidth": 1425,
+        "visible": true,
+        "rect": {
+          "left": 236,
+          "right": 1393,
+          "width": 1157
+        },
+        "policy": "enabled",
+        "transferColumns": null,
+        "workflowColumns": null
+      },
+      "screenshot": "E-adminPanel-1440-dark.png"
+    },
+    {
+      "route": "/finance",
+      "width": 375,
+      "theme": "light",
+      "layout": {
+        "viewport": 375,
+        "scrollWidth": 375,
+        "visible": true,
+        "rect": {
+          "left": 12,
+          "right": 363,
+          "width": 351
+        },
+        "policy": "enabled",
+        "transferColumns": null,
+        "workflowColumns": null
+      },
+      "screenshot": "E-financePage-375-light.png"
+    },
+    {
+      "route": "/finance",
+      "width": 375,
+      "theme": "dark",
+      "layout": {
+        "viewport": 375,
+        "scrollWidth": 375,
+        "visible": true,
+        "rect": {
+          "left": 12,
+          "right": 363,
+          "width": 351
+        },
+        "policy": "enabled",
+        "transferColumns": null,
+        "workflowColumns": null
+      },
+      "screenshot": "E-financePage-375-dark.png"
+    },
+    {
+      "route": "/finance",
+      "width": 390,
+      "theme": "light",
+      "layout": {
+        "viewport": 390,
+        "scrollWidth": 390,
+        "visible": true,
+        "rect": {
+          "left": 12,
+          "right": 378,
+          "width": 366
+        },
+        "policy": "enabled",
+        "transferColumns": null,
+        "workflowColumns": null
+      },
+      "screenshot": "E-financePage-390-light.png"
+    },
+    {
+      "route": "/finance",
+      "width": 390,
+      "theme": "dark",
+      "layout": {
+        "viewport": 390,
+        "scrollWidth": 390,
+        "visible": true,
+        "rect": {
+          "left": 12,
+          "right": 378,
+          "width": 366
+        },
+        "policy": "enabled",
+        "transferColumns": null,
+        "workflowColumns": null
+      },
+      "screenshot": "E-financePage-390-dark.png"
+    },
+    {
+      "route": "/finance",
+      "width": 1024,
+      "theme": "light",
+      "layout": {
+        "viewport": 1024,
+        "scrollWidth": 1009,
+        "visible": true,
+        "rect": {
+          "left": 229.59375,
+          "right": 983.390625,
+          "width": 753.796875
+        },
+        "policy": "enabled",
+        "transferColumns": null,
+        "workflowColumns": null
+      },
+      "screenshot": "E-financePage-1024-light.png"
+    },
+    {
+      "route": "/finance",
+      "width": 1024,
+      "theme": "dark",
+      "layout": {
+        "viewport": 1024,
+        "scrollWidth": 1009,
+        "visible": true,
+        "rect": {
+          "left": 229.59375,
+          "right": 983.390625,
+          "width": 753.796875
+        },
+        "policy": "enabled",
+        "transferColumns": null,
+        "workflowColumns": null
+      },
+      "screenshot": "E-financePage-1024-dark.png"
+    },
+    {
+      "route": "/finance",
+      "width": 1440,
+      "theme": "light",
+      "layout": {
+        "viewport": 1440,
+        "scrollWidth": 1425,
+        "visible": true,
+        "rect": {
+          "left": 236,
+          "right": 1393,
+          "width": 1157
+        },
+        "policy": "enabled",
+        "transferColumns": null,
+        "workflowColumns": null
+      },
+      "screenshot": "E-financePage-1440-light.png"
+    },
+    {
+      "route": "/finance",
+      "width": 1440,
+      "theme": "dark",
+      "layout": {
+        "viewport": 1440,
+        "scrollWidth": 1425,
+        "visible": true,
+        "rect": {
+          "left": 236,
+          "right": 1393,
+          "width": 1157
+        },
+        "policy": "enabled",
+        "transferColumns": null,
+        "workflowColumns": null
+      },
+      "screenshot": "E-financePage-1440-dark.png"
+    }
+  ],
+  "scope": "Actual authorized local pages; pending-summary fixture goes through existing candidate controller; no AI/OCR or ledger confirmation",
+  "runtimeErrors": []
+}

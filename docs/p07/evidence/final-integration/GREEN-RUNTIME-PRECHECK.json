@@ -1,0 +1,297 @@
+{
+  "source": "aef7902bea49d5b507cdab704c02e7110296462b",
+  "results": [
+    {
+      "name": "round-trip-navigation-keeps-authoritative-mode",
+      "status": "PASS",
+      "detail": {
+        "initialization": [
+          {
+            "t": 96.5,
+            "p07": "disabled",
+            "policy": "error",
+            "path": "/"
+          },
+          {
+            "t": 182.19999999925494,
+            "p07": "disabled",
+            "policy": "error",
+            "path": "/"
+          },
+          {
+            "t": 242.7999999988824,
+            "p07": "disabled",
+            "policy": "pending",
+            "path": "/"
+          },
+          {
+            "t": 307.8999999985099,
+            "p07": "enabled",
+            "policy": "enabled",
+            "path": "/"
+          },
+          {
+            "t": 314,
+            "p07": "enabled",
+            "policy": "enabled",
+            "path": "/"
+          },
+          {
+            "t": 452.8999999985099,
+            "p07": "enabled",
+            "policy": "enabled",
+            "path": "/"
+          }
+        ],
+        "rows": [
+          {
+            "hit": {
+              "x": 101.5,
+              "y": 151,
+              "ok": true,
+              "tag": "A",
+              "id": null
+            },
+            "path": "/language",
+            "p07": "enabled",
+            "policy": "enabled",
+            "shown": [
+              "projectPicker"
+            ],
+            "inert": false
+          },
+          {
+            "hit": {
+              "x": 101.5,
+              "y": 103,
+              "ok": true,
+              "tag": "A",
+              "id": null
+            },
+            "path": "/",
+            "p07": "enabled",
+            "policy": "enabled",
+            "shown": [
+              "publicHome"
+            ],
+            "inert": false
+          },
+          {
+            "hit": {
+              "x": 101.5,
+              "y": 439,
+              "ok": true,
+              "tag": "A",
+              "id": null
+            },
+            "path": "/recharge",
+            "p07": "enabled",
+            "policy": "enabled",
+            "shown": [
+              "membershipModal"
+            ],
+            "inert": false
+          },
+          {
+            "hit": {
+              "x": 101.5,
+              "y": 487,
+              "ok": true,
+              "tag": "A",
+              "id": null
+            },
+            "path": "/account",
+            "p07": "enabled",
+            "policy": "enabled",
+            "shown": [
+              "accountModal"
+            ],
+            "inert": false
+          },
+          {
+            "hit": {
+              "x": 101.5,
+              "y": 151,
+              "ok": true,
+              "tag": "A",
+              "id": null
+            },
+            "path": "/language",
+            "p07": "enabled",
+            "policy": "enabled",
+            "shown": [
+              "projectPicker"
+            ],
+            "inert": false
+          },
+          {
+            "hit": {
+              "x": 101.5,
+              "y": 247,
+              "ok": true,
+              "tag": "A",
+              "id": null
+            },
+            "path": "/finance",
+            "p07": "enabled",
+            "policy": "enabled",
+            "shown": [
+              "financePage"
+            ],
+            "inert": false
+          },
+          {
+            "hit": {
+              "x": 101.5,
+              "y": 151,
+              "ok": true,
+              "tag": "A",
+              "id": null
+            },
+            "path": "/language",
+            "p07": "enabled",
+            "policy": "enabled",
+            "shown": [
+              "projectPicker"
+            ],
+            "inert": false
+          },
+          {
+            "hit": {
+              "x": 101.5,
+              "y": 103,
+              "ok": true,
+              "tag": "A",
+              "id": null
+            },
+            "path": "/",
+            "p07": "enabled",
+            "policy": "enabled",
+            "shown": [
+              "publicHome"
+            ],
+            "inert": false
+          }
+        ],
+        "changes": [
+          {
+            "t": 919.7999999988824,
+            "p07": "enabled",
+            "policy": "enabled",
+            "path": "/language"
+          },
+          {
+            "t": 953.2999999988824,
+            "p07": "enabled",
+            "policy": "enabled",
+            "path": "/"
+          },
+          {
+            "t": 989.5,
+            "p07": "enabled",
+            "policy": "enabled",
+            "path": "/recharge"
+          },
+          {
+            "t": 1043.699999999255,
+            "p07": "enabled",
+            "policy": "enabled",
+            "path": "/account"
+          },
+          {
+            "t": 1096.0999999996275,
+            "p07": "enabled",
+            "policy": "enabled",
+            "path": "/language"
+          },
+          {
+            "t": 1122.2999999988824,
+            "p07": "enabled",
+            "policy": "enabled",
+            "path": "/finance"
+          },
+          {
+            "t": 1243.0999999996275,
+            "p07": "enabled",
+            "policy": "enabled",
+            "path": "/language"
+          },
+          {
+            "t": 1269.699999999255,
+            "p07": "enabled",
+            "policy": "enabled",
+            "path": "/"
+          }
+        ]
+      }
+    },
+    {
+      "name": "finance-return-context-and-browser-history",
+      "status": "PASS",
+      "detail": {
+        "filtersRetained": true,
+        "goalRetainedAcrossForwardAndRefresh": true,
+        "escape": true,
+        "androidWebBridgeBack": true
+      }
+    },
+    {
+      "name": "true-confirmation-modal-lifecycle",
+      "status": "PASS",
+      "detail": {
+        "confirmationRemainsModal": true,
+        "backClosesDialogBeforePage": true,
+        "deletionSubmitted": false
+      }
+    },
+    {
+      "name": "valid-policy-renewal-does-not-reset-presentation",
+      "status": "PASS",
+      "detail": {
+        "changes": [
+          {
+            "t": 891.5999999996275,
+            "p07": "enabled",
+            "policy": "enabled",
+            "path": "/account"
+          },
+          {
+            "t": 957.5999999996275,
+            "p07": "enabled",
+            "policy": "enabled",
+            "path": "/account"
+          }
+        ],
+        "actualFeatureResponseObserved": true
+      }
+    },
+    {
+      "name": "slow-authenticated-policy-has-no-legacy-frame",
+      "status": "PASS",
+      "detail": {
+        "delayMs": 1200,
+        "visibleLegacyFrames": 0,
+        "pendingFrames": 318
+      }
+    },
+    {
+      "name": "policy-failure-is-finite-safe-fallback-and-retry",
+      "status": "PASS",
+      "detail": {
+        "errorIsExplicit": true,
+        "baseInterfaceUsable": true,
+        "retryAuthoritative": true
+      }
+    },
+    {
+      "name": "supported-backend-without-task25-keeps-authenticated-home-visible",
+      "status": "PASS",
+      "detail": {
+        "successfulStatusWithoutTask25": true,
+        "authenticatedHomeVisible": true,
+        "permanentPending": false,
+        "featureAuthorityInvented": false
+      }
+    }
+  ]
+}

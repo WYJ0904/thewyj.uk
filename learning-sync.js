@@ -243,16 +243,30 @@
   function mergeWrongPayload(current, incoming, incomingNewer = true) {
     const left = current && typeof current === "object" ? current : {};
     const right = incoming && typeof incoming === "object" ? incoming : {};
-    const merged = incomingNewer ? { ...clone(left), ...clone(right) } : { ...clone(right), ...clone(left) };
+    const preferred = incomingNewer ? right : left;
+    const fallback = incomingNewer ? left : right;
+    const merged = { ...clone(fallback), ...clone(preferred) };
     merged.wrong_count = Math.max(Number(left.wrong_count) || 0, Number(right.wrong_count) || 0);
+    const preferredCorrect = String(preferred.correct_answer || "").trim();
+    const fallbackCorrect = String(fallback.correct_answer || "").trim();
+    if (preferredCorrect || fallbackCorrect) {
+      merged.correct_answer = preferredCorrect ? preferred.correct_answer : fallback.correct_answer;
+    }
     const accepted = mergeUnique(left.accepted, right.accepted, 50);
     if (accepted.length) merged.accepted = accepted;
     const leftRubric = left.rubric && typeof left.rubric === "object" ? left.rubric : {};
     const rightRubric = right.rubric && typeof right.rubric === "object" ? right.rubric : {};
     if (Object.keys(leftRubric).length || Object.keys(rightRubric).length) {
-      merged.rubric = incomingNewer
-        ? { ...clone(leftRubric), ...clone(rightRubric) }
-        : { ...clone(rightRubric), ...clone(leftRubric) };
+      const preferredRubric = incomingNewer ? rightRubric : leftRubric;
+      const fallbackRubric = incomingNewer ? leftRubric : rightRubric;
+      merged.rubric = { ...clone(fallbackRubric), ...clone(preferredRubric) };
+      for (const field of ["language", "gloss", "notes", "reading"]) {
+        const prefVal = String(preferredRubric[field] || "").trim();
+        const fallVal = String(fallbackRubric[field] || "").trim();
+        if (prefVal || fallVal) {
+          merged.rubric[field] = prefVal ? preferredRubric[field] : fallbackRubric[field];
+        }
+      }
       const rubricAccepted = mergeUnique(leftRubric.accepted, rightRubric.accepted, 50);
       if (rubricAccepted.length) merged.rubric.accepted = rubricAccepted;
     }
@@ -464,7 +478,17 @@
       this.lastDetail = "";
       this.generation = 0;
       this.boundOnline = () => this.schedule(50);
+      this.boundOffline = () => {
+        clearTimeout(this.timer);
+        this.timer = null;
+        this.syncController?.abort();
+        this.syncController = null;
+        if (this.state && this.dirtyRecords().length) {
+          this.emitStatus("pending", "离线时已保存在本机，联网后自动同步");
+        }
+      };
       this.onlineSource?.addEventListener?.("online", this.boundOnline);
+      this.onlineSource?.addEventListener?.("offline", this.boundOffline);
     }
 
     start({ accountId, clientVersion, legacyRecords = [] }) {
@@ -479,6 +503,18 @@
         this.storage.setItem(CLIENT_ID_KEY, this.clientId);
       }
       this.state = parseStoredState(this.storage.getItem(this.storageKey()), this.accountId);
+      // Preserve a legacy pending delete across the required page refresh.
+      // Its old equal timestamp was ambiguous; a newly loaded client can give
+      // the still-pending same-device intent a strictly increasing timestamp.
+      let rebasedDelete = false;
+      for (const record of Object.values(this.state.records)) {
+        if (record.dirty && record.deleted && record.client_id === this.clientId) {
+          record.updated_at = new Date(Math.max(Date.now(), Date.parse(record.updated_at) + 1)).toISOString();
+          record.revision = (record.revision || 0) + 1;
+          rebasedDelete = true;
+        }
+      }
+      if (rebasedDelete) this.persist();
       if (!this.state.migration_complete) {
         legacyRecords.slice(0, MAX_RECORDS).forEach((raw) => {
           try {
@@ -520,6 +556,7 @@
     destroy() {
       this.stop();
       this.onlineSource?.removeEventListener?.("online", this.boundOnline);
+      this.onlineSource?.removeEventListener?.("offline", this.boundOffline);
     }
 
     storageKey() {
@@ -588,8 +625,12 @@
         && stableStringify(existing.payload) === stableStringify(record.payload);
       if (unchanged) return existing;
       if (!existing && Object.keys(this.state.records).length >= MAX_RECORDS) throw new Error("本地学习同步记录数量已达上限");
+      const nextUpdatedAt = raw.updated_at
+        ? record.updated_at
+        : new Date(Math.max(Date.now(), (Date.parse(existing?.updated_at || "") || 0) + 1)).toISOString();
       const next = {
         ...record,
+        updated_at: nextUpdatedAt,
         server_version: existing?.server_version || 0,
         dirty: true,
         revision: (existing?.revision || 0) + 1,
@@ -620,7 +661,6 @@
             record_id: existing.record_id,
             payload: {},
             deleted: true,
-            updated_at: new Date().toISOString(),
           }, { schedule: false });
         }
       });
@@ -670,7 +710,30 @@
         && !local.deleted
         && remote.deleted
         && Number(local.server_version || 0) < Number(remote.server_version || 0);
-      if (local && changedDuringRequest) {
+      // An old server can reject a newer same-device offline delete solely
+      // because its preceding acknowledgement was lost. Rebase that pending
+      // intent on the observed version; never rebase across another device.
+      const retryOwnDelete = local?.dirty && local.deleted && !remote.deleted &&
+        remote.client_id === this.clientId && local.client_id === this.clientId &&
+        Date.parse(local.updated_at) > Date.parse(remote.updated_at) &&
+        Number(local.server_version || 0) < Number(remote.server_version || 0);
+      // Preserve saved nonempty meanings when talking to a legacy server that
+      // canonicalizes an acknowledgement to an older empty rubric.
+      if (local && !remote.deleted && !local.deleted && remote.data_type === "wrong_book") {
+        next.payload = mergePayload("wrong_book", local.payload, remote.payload, true);
+        if (remote.client_id === this.clientId && submittedRevision !== undefined &&
+            !changedDuringRequest && stableStringify(next.payload) !== stableStringify(remote.payload)) {
+          next.dirty = true;
+          next.client_id = this.clientId;
+          // Legacy Python servers round to seconds. Advance beyond their
+          // canonical timestamp when repairing an acknowledged empty meaning.
+          next.updated_at = new Date(Math.max(Date.now(), Date.parse(local.updated_at) + 1,
+            Date.parse(remote.updated_at) + 1000)).toISOString();
+        }
+      }
+      if (retryOwnDelete) {
+        next = { ...local, server_version: remote.server_version, dirty: true };
+      } else if (local && changedDuringRequest) {
         const mergeable = remote.data_type === "wrong_book" || remote.data_type === "achievement";
         next = {
           ...local,
@@ -728,6 +791,10 @@
         let ignoredTombstones = 0;
         let loops = 0;
         do {
+          if (this.onlineSource?.navigator?.onLine === false) {
+            this.emitStatus("pending", "离线时已保存在本机，联网后自动同步");
+            return { ok: false, offline: true };
+          }
           const batch = this.requestBatch();
           const submitted = new Map(batch.map((item) => [item.key, item.revision]));
           const response = await this.transport({
@@ -738,6 +805,10 @@
             changes: batch.map((item) => item.change),
           }, syncController ? { signal: syncController.signal } : {});
           if (syncGeneration !== this.generation) return { ok: false, cancelled: true };
+          if (syncController?.signal?.aborted || this.onlineSource?.navigator?.onLine === false) {
+            this.emitStatus("pending", "离线时已保存在本机，联网后自动同步");
+            return { ok: false, offline: true };
+          }
           if (!response || response.schema_version !== SCHEMA_VERSION) throw new Error("服务器同步响应版本无效");
           const remoteByKey = new Map();
           let compatibleCount = 0;
@@ -790,6 +861,10 @@
       })().catch((error) => {
         if (syncGeneration !== this.generation || !this.state || !this.accountId) {
           return { ok: false, cancelled: true };
+        }
+        if (this.onlineSource?.navigator?.onLine === false || syncController?.signal?.aborted) {
+          this.emitStatus("pending", "离线时已保存在本机，联网后自动同步");
+          return { ok: false, offline: true };
         }
         this.retryCount += 1;
         this.emitStatus("failed", String(error?.message || "网络暂时不可用").slice(0, 160));

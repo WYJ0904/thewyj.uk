@@ -1,0 +1,61 @@
+{
+  "head": "25406b3414b227bc277f6436286c77fed10b48a4",
+  "run": 42381660299,
+  "url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/42381660299",
+  "jobs": [
+    {
+      "id": 128430375294,
+      "name": "Android unit, lint and APK",
+      "conclusion": "success"
+    },
+    {
+      "id": 128430375445,
+      "name": "Python syntax and unittest (windows-latest)",
+      "conclusion": "success"
+    },
+    {
+      "id": 128430375457,
+      "name": "Sensitive files and static naming",
+      "conclusion": "success"
+    },
+    {
+      "id": 128430375460,
+      "name": "Python syntax and unittest (ubuntu-latest)",
+      "conclusion": "success"
+    },
+    {
+      "id": 128430375465,
+      "name": "JavaScript and static site checks",
+      "conclusion": "success"
+    },
+    {
+      "id": 128430375579,
+      "name": "Pages build and publish allowlist",
+      "conclusion": "success"
+    },
+    {
+      "id": 128430376198,
+      "name": "Task 25 Android runtime contract",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 128430376673,
+      "name": "Task 25 cloud credential discovery",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 128431306626,
+      "name": "Browser flow (application)",
+      "conclusion": "success"
+    },
+    {
+      "id": 128431306645,
+      "name": "Cloud-only browser, canonical session and toolbox",
+      "conclusion": "failure"
+    }
+  ],
+  "failure": [
+    "2026-11-07T14:33:13.2960722Z [interaction-browser] FAILED: timeout waiting for finance ready"
+  ],
+  "classification": "Product race reproduced locally with real APIs; never replaced the original finance readiness assertion."
+}

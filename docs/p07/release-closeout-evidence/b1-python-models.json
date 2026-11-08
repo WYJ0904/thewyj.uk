@@ -1,0 +1,133 @@
+{
+  "kind": "pure Python AccountStore methods and actual request normalization; synthetic only",
+  "production_operations": 0,
+  "versions": [
+    {
+      "name": "rc6",
+      "ref": "e4844a5304709263a2810332eca5d2a87b069d3d",
+      "results": [
+        {
+          "name": "acknowledged equal-time meaning update",
+          "pass": false
+        },
+        {
+          "name": "newer own offline deletion",
+          "pass": false
+        },
+        {
+          "name": "stale own live replay cannot resurrect tombstone",
+          "pass": true
+        },
+        {
+          "name": "equal-time acknowledged replay cannot resurrect tombstone",
+          "pass": true
+        },
+        {
+          "name": "ambiguous same-time own delete stays pending",
+          "pass": false
+        },
+        {
+          "name": "stale other-device delete rejected",
+          "pass": true
+        },
+        {
+          "name": "new empty payload retains saved meaning",
+          "pass": false
+        },
+        {
+          "name": "exact duplicate is idempotent",
+          "pass": true
+        },
+        {
+          "name": "millisecond normalization preserved",
+          "pass": false
+        }
+      ]
+    },
+    {
+      "name": "raw-pr136",
+      "ref": "f4ce8c7e7abc12b80895a570068fa7aa2f7a2a17",
+      "results": [
+        {
+          "name": "acknowledged equal-time meaning update",
+          "pass": true
+        },
+        {
+          "name": "newer own offline deletion",
+          "pass": true
+        },
+        {
+          "name": "stale own live replay cannot resurrect tombstone",
+          "pass": false
+        },
+        {
+          "name": "equal-time acknowledged replay cannot resurrect tombstone",
+          "pass": false
+        },
+        {
+          "name": "ambiguous same-time own delete stays pending",
+          "pass": false
+        },
+        {
+          "name": "stale other-device delete rejected",
+          "pass": true
+        },
+        {
+          "name": "new empty payload retains saved meaning",
+          "pass": true
+        },
+        {
+          "name": "exact duplicate is idempotent",
+          "pass": true
+        },
+        {
+          "name": "millisecond normalization preserved",
+          "pass": true
+        }
+      ]
+    },
+    {
+      "name": "reviewed",
+      "ref": "WORKTREE",
+      "results": [
+        {
+          "name": "acknowledged equal-time meaning update",
+          "pass": true
+        },
+        {
+          "name": "newer own offline deletion",
+          "pass": true
+        },
+        {
+          "name": "stale own live replay cannot resurrect tombstone",
+          "pass": true
+        },
+        {
+          "name": "equal-time acknowledged replay cannot resurrect tombstone",
+          "pass": true
+        },
+        {
+          "name": "ambiguous same-time own delete stays pending",
+          "pass": true,
+          "code": "learning_sync_refresh_required"
+        },
+        {
+          "name": "stale other-device delete rejected",
+          "pass": true
+        },
+        {
+          "name": "new empty payload retains saved meaning",
+          "pass": true
+        },
+        {
+          "name": "exact duplicate is idempotent",
+          "pass": true
+        },
+        {
+          "name": "millisecond normalization preserved",
+          "pass": true
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,74 @@
+[
+  {
+    "suite": "p07-round3-browser",
+    "script": "qa/p07-round3/browser.mjs",
+    "status": "PASS",
+    "durationMs": 73587
+  },
+  {
+    "suite": "r4a-runtime",
+    "script": ".wrangler/p07-r4a-driver-final-exact-on/runtime-browser.mjs",
+    "status": "PASS",
+    "durationMs": 15401
+  },
+  {
+    "suite": "primary-workspaces",
+    "script": "qa/p07-round3/primary-workspaces.mjs",
+    "status": "PASS",
+    "durationMs": 4640
+  },
+  {
+    "suite": "p4-workspace-behavior",
+    "script": "qa/aeris/p4-behavior-browser.mjs",
+    "status": "PASS",
+    "durationMs": 33682
+  },
+  {
+    "suite": "r5-policy",
+    "script": ".wrangler/p07-r4a-driver-final-exact-on/r5-policy.mjs",
+    "status": "PASS",
+    "durationMs": 13335
+  },
+  {
+    "suite": "r5-browser",
+    "script": ".wrangler/p07-r4a-driver-final-exact-on/r5-browser.mjs",
+    "status": "PASS",
+    "durationMs": 60484
+  },
+  {
+    "suite": "r4c-e",
+    "script": ".wrangler/p07-r4a-driver-final-exact-on/r4c-e.mjs",
+    "status": "PASS",
+    "durationMs": 10218
+  },
+  {
+    "suite": "r4a-pwa",
+    "script": ".wrangler/p07-r4a-driver-final-exact-on/pwa-browser.mjs",
+    "status": "PASS",
+    "durationMs": 2949
+  },
+  {
+    "suite": "r4c-f",
+    "script": ".wrangler/p07-r4a-driver-final-exact-on/r4c-f.mjs",
+    "status": "PASS",
+    "durationMs": 29171
+  },
+  {
+    "suite": "f-closeout",
+    "script": ".wrangler/p07-r4a-driver-final-exact-on/f-closeout.mjs",
+    "status": "PASS",
+    "durationMs": 67258
+  },
+  {
+    "suite": "f-lab",
+    "script": ".wrangler/p07-r4a-driver-final-exact-on/f-lab.mjs",
+    "status": "FAIL",
+    "durationMs": 29925
+  },
+  {
+    "suite": "final-transitions",
+    "script": ".wrangler/p07-r4a-driver-final-exact-on/final-transitions.mjs",
+    "status": "PASS",
+    "durationMs": 79809
+  }
+]

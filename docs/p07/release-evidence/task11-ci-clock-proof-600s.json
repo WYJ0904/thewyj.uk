@@ -1,0 +1,24 @@
+{
+  "kind": "synthetic Miniflare D1; deliberately crossing the actual 600-second feedback quota window",
+  "source_base": "63ad14ee212b7295ecea9e1003fb3c907929ab54",
+  "production_operations": 0,
+  "cases": [
+    {
+      "kind": "original",
+      "exit_code": 1,
+      "expected_exit": 1,
+      "assertion_excerpt": [
+        "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:",
+        "201 !== 429"
+      ]
+    },
+    {
+      "kind": "fixed",
+      "exit_code": 0,
+      "expected_exit": 0,
+      "assertion_excerpt": [
+        "Task 11 Miniflare/D1 checks passed: 10"
+      ]
+    }
+  ]
+}

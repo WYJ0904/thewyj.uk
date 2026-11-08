@@ -1,0 +1,77 @@
+{
+  "target_sha": "cef7db9bc4ffd3e2641df4e190ba5938a1b4ff34",
+  "cases": [
+    {
+      "name": "direct-account",
+      "status": "PASS",
+      "detail": {
+        "route": "/account",
+        "expected": "accountModal",
+        "surfaces": [
+          {
+            "id": "accountModal",
+            "insideMain": true,
+            "inViewport": true,
+            "rect": {
+              "x": 214.5,
+              "y": 63,
+              "width": 1200,
+              "height": 1000
+            }
+          }
+        ],
+        "shellInert": false,
+        "modalOpen": false
+      },
+      "screenshot": "direct-account.png"
+    },
+    {
+      "name": "direct-membership",
+      "status": "PASS",
+      "detail": {
+        "route": "/recharge",
+        "expected": "membershipModal",
+        "surfaces": [
+          {
+            "id": "membershipModal",
+            "insideMain": true,
+            "inViewport": true,
+            "rect": {
+              "x": 214.5,
+              "y": 63,
+              "width": 1200,
+              "height": 976.984375
+            }
+          }
+        ],
+        "shellInert": false,
+        "modalOpen": false
+      },
+      "screenshot": "direct-membership.png"
+    },
+    {
+      "name": "finance-upgrade-membership",
+      "status": "PASS",
+      "detail": {
+        "route": "/recharge",
+        "expected": "membershipModal",
+        "surfaces": [
+          {
+            "id": "membershipModal",
+            "insideMain": true,
+            "inViewport": true,
+            "rect": {
+              "x": 214.5,
+              "y": 63,
+              "width": 1200,
+              "height": 1000
+            }
+          }
+        ],
+        "shellInert": false,
+        "modalOpen": false
+      },
+      "screenshot": "finance-upgrade-membership.png"
+    }
+  ]
+}

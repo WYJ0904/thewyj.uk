@@ -1,0 +1,157 @@
+{
+  "testedSha": "cef7db9bc4ffd3e2641df4e190ba5938a1b4ff34",
+  "files": [
+    {
+      "path": "acceptance-boundaries.json",
+      "sha256": "a926f3ed361ce8fd1ff83861620eda959d392ef9c22353697909cdf9d6c6cc2b"
+    },
+    {
+      "path": "account-main.png",
+      "sha256": "403eaccd5940de18fe0d21a0688dccd44715546aea53ef1eaf0674bd5a39d569"
+    },
+    {
+      "path": "baseline-red.json",
+      "sha256": "8e546bfc5269dbf1eafe1afba960b35239d47e18b798b5d0c5b520d0527ad07a"
+    },
+    {
+      "path": "brand-preservation.json",
+      "sha256": "dec7680e31456cc035e1a01817f7e54710e71230742bac29badb7543f7dd09fa"
+    },
+    {
+      "path": "ci-history.json",
+      "sha256": "60057873b2421962b0de32fe3881dd3d03adb08e8b0642ce82e6b5969d423164"
+    },
+    {
+      "path": "driver-provenance.json",
+      "sha256": "efb92b5a8c929370d58507c43cbc8e0f9b84744a4a6886c74024d4cab6a54d3d"
+    },
+    {
+      "path": "E-admin-1440-dark.png",
+      "sha256": "948546da175b10832ab801738a9297cce988f46599a6f2475c14943d8510692c"
+    },
+    {
+      "path": "E-candidates-390-dark.png",
+      "sha256": "4815d8e27dc4d3ff7930d44c85846e4aede3118e9d347672b9379a8517e6cb34"
+    },
+    {
+      "path": "E-transfer-375-light.png",
+      "sha256": "45211767c7934c367e6950f859bbfb6a77b89779535097fc14457b2bb47e0383"
+    },
+    {
+      "path": "E-workflow-390-dark.png",
+      "sha256": "8403e4f8b424ee78fe93760ea715571a14f9819a14bc84a424e0810aacc33e3d"
+    },
+    {
+      "path": "e-workspaces.json",
+      "sha256": "3a7e8f416f4b9aa507fde634b14577613d344589ffe7640ebde846c907661b51"
+    },
+    {
+      "path": "f-quality-boundaries.json",
+      "sha256": "223cd703ecef2ed0d8851573c0d59235a1f8a02cf37ba39d23c6d50dc279b691"
+    },
+    {
+      "path": "f-unified-preflight.json",
+      "sha256": "fe3f3970f694893f764000b7f7384ad316cf5c166607a1231c600c0eb486475f"
+    },
+    {
+      "path": "frozen-browser.json",
+      "sha256": "a1dc11a4f7885f80069c392db7ff8a3a301a3f253413287998e45c28494004a5"
+    },
+    {
+      "path": "G01-after.png",
+      "sha256": "4774aeb1883c3c34969c171d43724009cb64a6832d7bbbdc364e43ed63945a25"
+    },
+    {
+      "path": "G01-before.png",
+      "sha256": "4774aeb1883c3c34969c171d43724009cb64a6832d7bbbdc364e43ed63945a25"
+    },
+    {
+      "path": "G02-policy-pending.png",
+      "sha256": "06a2a63ec0a8cb864dbf0de3e5e989413ad5f5509591082bc059c87c27376d95"
+    },
+    {
+      "path": "G02-policy-settled.png",
+      "sha256": "cc46390ffba6c1a9121707f6e985b16af28b2d8a5b2d30567e410562ee576879"
+    },
+    {
+      "path": "hosted-joint-c8.json",
+      "sha256": "217bb5ffdd20a0b86d6d0476e2a627fa2aed3053409118918cd9d16f1ea08e50"
+    },
+    {
+      "path": "joint-account.png",
+      "sha256": "a47ac22ca46779a72ec0c8aa198125f4dc327ce124a87c1ba9a4cb47f862c23b"
+    },
+    {
+      "path": "joint-guest-home.png",
+      "sha256": "f964c80b49c6f48e03a5f2f41eb1862ddd5fe41f2830efd26e0ab145ce36cd78"
+    },
+    {
+      "path": "joint-recharge.png",
+      "sha256": "b75cb803078245e94401553e3d88a23a9a94f9640d5a2627cdb2a5480db31843"
+    },
+    {
+      "path": "kill-policy.json",
+      "sha256": "456a8c64e24c8ed4f34563c36c4c29fdf0ac476e871312dcf4168c5ab7906ef5"
+    },
+    {
+      "path": "membership-exclusive.png",
+      "sha256": "b2de1353649a04fbb570e8b6a55938d181920e8c43dd939f6542548249ca16a2"
+    },
+    {
+      "path": "module-identity-regression.json",
+      "sha256": "d6e2c617979845ab20aeb0d759cb48d5ec210f7af32dcba53ec883eaeda7f999"
+    },
+    {
+      "path": "off-policy.json",
+      "sha256": "22874c4b2259a3299a3a8ba23d28ddfbe0f4b37264652cc61c08b43dd6e1ef88"
+    },
+    {
+      "path": "offline-upgraded-shell.png",
+      "sha256": "a1229ca26ddeab06b8d0baf70c79d9ec185fc05499172b91838d1b22a3bce842"
+    },
+    {
+      "path": "p4-results.json",
+      "sha256": "ecd05a5852b51ede1eff8f4048b8d45008e258fe4ea700cf2c860bf67bd7617f"
+    },
+    {
+      "path": "primary-workspaces.json",
+      "sha256": "da4a2f868482454cd5963699fca74214e96381e5e2575ee57fb13b532120d753"
+    },
+    {
+      "path": "pwa-contract.json",
+      "sha256": "49f6fcc81501a0d5a36d70bd90393c3359d83b7c30f47de378f366eaf2af8850"
+    },
+    {
+      "path": "release-equivalence.json",
+      "sha256": "60c541cc3551182011948d85b212541efbafa8c46cbf7c2561eff05ba6edefa7"
+    },
+    {
+      "path": "runtime-green.json",
+      "sha256": "08187377a05c16215ddb1d822f8010f3182a767fcd176e150564753a10d21ad0"
+    },
+    {
+      "path": "runtime-results.json",
+      "sha256": "041558ee216953b2360f150a5c0e2f8990bef6432a73b67fb96d60767ec192fb"
+    },
+    {
+      "path": "tested-source-manifest.json",
+      "sha256": "6fd28348882c1eb241ef2f8c12077096f9e395c224826aa937247f0962629786"
+    },
+    {
+      "path": "upgrade-safety.json",
+      "sha256": "cd822aabdf908549eb5056fdbc80782e37d8c81682b50cd8135e8c88be870fc0"
+    },
+    {
+      "path": "verification-history.json",
+      "sha256": "a7cbb591e9034447af1fbac8de99b6380a8336fc5b7f89f8364d4979b3964c24"
+    },
+    {
+      "path": "warm-upgrade-original-failure.txt",
+      "sha256": "42d3089b732616cd2ded205222d7caede6e88db6cec162913d07d28bf206f895"
+    },
+    {
+      "path": "warm-upgrade.json",
+      "sha256": "a64fc73cb51085beac3a3e5944b4f8fd96364c9f287d3f228e7611e2223de372"
+    }
+  ]
+}

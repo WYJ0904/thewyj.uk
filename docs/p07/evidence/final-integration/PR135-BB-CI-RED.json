@@ -1,0 +1,73 @@
+{
+  "head": "bb6fe72faeb1df28075b39db71539dfd274a92dc",
+  "run": 42442355934,
+  "url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/42442355934",
+  "jobs": [
+    {
+      "id": 128614067905,
+      "name": "Pages build and publish allowlist",
+      "conclusion": "success"
+    },
+    {
+      "id": 128614068089,
+      "name": "Android unit, lint and APK",
+      "conclusion": "success"
+    },
+    {
+      "id": 128614068090,
+      "name": "Python syntax and unittest (ubuntu-latest)",
+      "conclusion": "success"
+    },
+    {
+      "id": 128614068134,
+      "name": "Sensitive files and static naming",
+      "conclusion": "success"
+    },
+    {
+      "id": 128614068137,
+      "name": "JavaScript and static site checks",
+      "conclusion": "success"
+    },
+    {
+      "id": 128614068177,
+      "name": "Python syntax and unittest (windows-latest)",
+      "conclusion": "success"
+    },
+    {
+      "id": 128614069137,
+      "name": "Task 25 cloud credential discovery",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 128614069247,
+      "name": "Task 25 Android runtime contract",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 128614841674,
+      "name": "Browser flow (application)",
+      "conclusion": "failure"
+    },
+    {
+      "id": 128614841714,
+      "name": "Cloud-only browser, canonical session and toolbox",
+      "conclusion": "success"
+    }
+  ],
+  "failure": [
+    "2026-11-08T03:26:46.1809553Z [app-matrix] PASS administrator recharge approval, membership editor and entitlement override (3983 ms)",
+    "2026-11-08T03:26:46.1810741Z [app-matrix] START finance ledger local-first CRUD, budget, reconnect, reload and mobile layout",
+    "2026-11-08T03:26:48.9974513Z [app-matrix] FAIL finance ledger local-first CRUD, budget, reconnect, reload and mobile layout: The expression evaluated to a falsy value:",
+    "2026-11-08T03:26:48.9975281Z ",
+    "2026-11-08T03:26:48.9975748Z   assert.ok(Number(await evaluate(\"financeController.dashboardSummary().pending\")) >= 1)",
+    "2026-11-08T03:26:48.9998719Z ; diagnostic={\"pathname\":\"/finance\",\"loginError\":\"\",\"modulePickerHidden\":true,\"authPanelHidden\":true,\"sessionLength\":43,\"accountCached\":true,\"busy\":false,\"roundActive\":false,\"reviewMode\":\"normal\",\"answerLocked\":false,\"pendingAdvance\":false,\"resultTitle\":\"\",\"resultClass\":\"result-title\",\"answerValidation\":\"\",\"answerValue\":\"\",\"shellInert\":false,\"openLayers\":[],\"interfacePolicy\":\"error\",\"sessionVerification\":\"ready\",\"startDisabled\":true,\"setupActive\":true,\"quizActive\":false,\"wordInput\":\"\",\"rechargeMessage\":\"\",\"syncStatus\":\"\",\"syncDetail\":\"服务器版本 71\",\"wrongCount\":0,\"wrongText\":\"本轮还没有错题\",\"rejudgeStatus\":\"\",\"rejudgeModal\":\"重新判定结果\",\"rejudgeMessage\":\"\",\"currentWrong\":null,\"historyWrong\":null,\"syncWrong\":[],\"rejudgeFetches\":[],\"paymentQrMessage\":\"\",\"paymentQrSrc\":\"\",\"paymentQrWrapHidden\":true,\"membershipModalHidden\":true,\"paymentQrObjectUrl\":\"\",\"paymentOrder\":null,\"financeSummary\":{\"income_minor\":10000,\"expense_minor\":1600,\"refund_minor\":234,\"balance_minor\":8634,\"count\":4,\"pending\":0,\"available\":true,\"last_sync_at\":\"2026-11-08T03:26:48.969Z\"},\"financeSyncStatus\":\"已同步\",\"financeSyncDetail\":\"最近同步：2026/11/8 03:26:48\",\"financeMessage\":\"账目已在本机保存，正在同步。\",\"navigatorOnline\":false,\"activeWrongRejudgeKey\":\"\",\"learningSyncWrongRenderPending\":false}; runtime=[]; http=[{\"status\":404,\"url\":\"http://127.0.0.1:8892/api/changelog\",\"check\":\"finance ledger local-first CRUD, budget, reconnect, reload and mobile layout\",\"expectedSessionInvalidation\":false},{\"status\":404,\"url\":\"http://127.0.0.1:8892/api/messages/pending\",\"check\":\"finance ledger local-first CRUD, budget, reconnect, reload and mobile layout\",\"expectedSessionInvalidation\":false},{\"status\":404,\"url\":\"http://127.0.0.1:8892/api/notification/pending-summary\",\"check\":\"finance ledger local-first CRUD, budget, reconnect, reload and mobile layout\",\"expectedSessionInvalidation\":false},{\"status\":404,\"url\":\"http://127.0.0.1:8892/api/changelog\",\"check\":\"finance ledger local-first CRUD, budget, reconnect, reload and mobile layout\",\"expectedSessionInvalidation\":false},{\"status\":404,\"url\":\"http://127.0.0.1:8892/api/messages/pending\",\"check\":\"finance ledger local-first CRUD, budget, reconnect, reload and mobile layout\",\"expectedSessionInvalidation\":false},{\"status\":404,\"url\":\"http://127.0.0.1:8892/api/notification/pending-summary\",\"check\":\"finance ledger local-first CRUD, budget, reconnect, reload and mobile layout\",\"expectedSessionInvalidation\":false}]",
+    "2026-11-08T03:26:49.0105624Z Error: The expression evaluated to a falsy value:",
+    "2026-11-08T03:26:49.0108016Z ",
+    "2026-11-08T03:26:49.0109805Z   assert.ok(Number(await evaluate(\"financeController.dashboardSummary().pending\")) >= 1)",
+    "2026-11-08T03:26:49.0132946Z ; diagnostic={\"pathname\":\"/finance\",\"loginError\":\"\",\"modulePickerHidden\":true,\"authPanelHidden\":true,\"sessionLength\":43,\"accountCached\":true,\"busy\":false,\"roundActive\":false,\"reviewMode\":\"normal\",\"answerLocked\":false,\"pendingAdvance\":false,\"resultTitle\":\"\",\"resultClass\":\"result-title\",\"answerValidation\":\"\",\"answerValue\":\"\",\"shellInert\":false,\"openLayers\":[],\"interfacePolicy\":\"error\",\"sessionVerification\":\"ready\",\"startDisabled\":true,\"setupActive\":true,\"quizActive\":false,\"wordInput\":\"\",\"rechargeMessage\":\"\",\"syncStatus\":\"\",\"syncDetail\":\"服务器版本 71\",\"wrongCount\":0,\"wrongText\":\"本轮还没有错题\",\"rejudgeStatus\":\"\",\"rejudgeModal\":\"重新判定结果\",\"rejudgeMessage\":\"\",\"currentWrong\":null,\"historyWrong\":null,\"syncWrong\":[],\"rejudgeFetches\":[],\"paymentQrMessage\":\"\",\"paymentQrSrc\":\"\",\"paymentQrWrapHidden\":true,\"membershipModalHidden\":true,\"paymentQrObjectUrl\":\"\",\"paymentOrder\":null,\"financeSummary\":{\"income_minor\":10000,\"expense_minor\":1600,\"refund_minor\":234,\"balance_minor\":8634,\"count\":4,\"pending\":0,\"available\":true,\"last_sync_at\":\"2026-11-08T03:26:48.969Z\"},\"financeSyncStatus\":\"已同步\",\"financeSyncDetail\":\"最近同步：2026/11/8 03:26:48\",\"financeMessage\":\"账目已在本机保存，正在同步。\",\"navigatorOnline\":false,\"activeWrongRejudgeKey\":\"\",\"learningSyncWrongRenderPending\":false}; runtime=[]; http=[{\"status\":404,\"url\":\"http://127.0.0.1:8892/api/changelog\",\"check\":\"finance ledger local-first CRUD, budget, reconnect, reload and mobile layout\",\"expectedSessionInvalidation\":false},{\"status\":404,\"url\":\"http://127.0.0.1:8892/api/messages/pending\",\"check\":\"finance ledger local-first CRUD, budget, reconnect, reload and mobile layout\",\"expectedSessionInvalidation\":false},{\"status\":404,\"url\":\"http://127.0.0.1:8892/api/notification/pending-summary\",\"check\":\"finance ledger local-first CRUD, budget, reconnect, reload and mobile layout\",\"expectedSessionInvalidation\":false},{\"status\":404,\"url\":\"http://127.0.0.1:8892/api/changelog\",\"check\":\"finance ledger local-first CRUD, budget, reconnect, reload and mobile layout\",\"expectedSessionInvalidation\":false},{\"status\":404,\"url\":\"http://127.0.0.1:8892/api/messages/pending\",\"check\":\"finance ledger local-first CRUD, budget, reconnect, reload and mobile layout\",\"expectedSessionInvalidation\":false},{\"status\":404,\"url\":\"http://127.0.0.1:8892/api/notification/pending-summary\",\"check\":\"finance ledger local-first CRUD, budget, reconnect, reload and mobile layout\",\"expectedSessionInvalidation\":false}]",
+    "2026-11-08T03:26:49.0167257Z     at check (file://<repo>/local-backend/test_app_browser.mjs:620:13)",
+    "2026-11-08T03:26:49.0195002Z     at async main (file://<repo>/local-backend/test_app_browser.mjs:2029:5)",
+    "2026-11-08T03:26:49.0306457Z ##[error]Process completed with exit code 1."
+  ],
+  "classification": "In-page finance fixture bypassed network emulation and fabricated offline synchronization. Original pending>=1 and reconnect assertions remain; fixture corrected and no production finance changes."
+}

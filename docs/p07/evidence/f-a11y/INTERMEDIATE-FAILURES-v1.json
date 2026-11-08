@@ -1,0 +1,552 @@
+{
+  "source": "69bb12404758e4af32d4d6fc481d30ff7153bd8e",
+  "selection": "all",
+  "cases": [
+    {
+      "name": "whole-document-axe-and-layout-matrix",
+      "status": "FAIL",
+      "error": "full axe violations: [{\"sample\":\"Membership-375-dark\",\"id\":\"color-contrast\",\"impact\":\"serious\",\"nodes\":2},{\"sample\":\"Membership-1440-dark\",\"id\":\"color-contrast\",\"impact\":\"serious\",\"nodes\":2}]\n\n2 !== 0\n",
+      "detail": {
+        "newViolations": [
+          {
+            "id": "color-contrast",
+            "impact": "serious",
+            "targets": [
+              [
+                ".membership-warning"
+              ],
+              [
+                ".membership-workspace-content > .danger-note"
+              ]
+            ]
+          }
+        ],
+        "name": "Membership-1440-dark"
+      },
+      "state": {
+        "path": "/admin",
+        "policy": "enabled",
+        "p07": "enabled",
+        "boot": "ready",
+        "frameVisible": true,
+        "accountVisible": false,
+        "profile": "wyj",
+        "functionalP07": true,
+        "policyPanelVisible": false,
+        "retryVisible": false,
+        "visibility": "visible"
+      },
+      "screenshot": "FAIL-whole-document-axe-and-layout-matrix.png"
+    },
+    {
+      "name": "visual-typography-remains-equivalent",
+      "status": "FAIL",
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ [\n+   {\n+     after: 176.265625,\n+     before: 174.015625,\n+     field: 'width',\n+     name: 'Account-375-light',\n+     selector: '#accountProfileUsername'\n+   },\n+   {\n+     after: 176.265625,\n+     before: 174.015625,\n+     field: 'width',\n+     name: 'Account-375-dark',\n+     selector: '#accountProfileUsername'\n+   },\n+   {\n+     after: 176.265625,\n+     before: 174.015625,\n+     field: 'width',\n+     name: 'Account-390-light',\n+     selector: '#accountProfileUsername'\n+   },\n+   {\n+     after: 176.265625,\n+     before: 174.015625,\n+     field: 'width',\n+     name: 'Account-390-dark',\n+     selector: '#accountProfileUsername'\n+   },\n+   {\n+     after: 176.265625,\n+     before: 174.015625,\n+     field: 'width',\n+     name: 'Account-768-light',\n+     selector: '#accountProfileUsername'\n+   },\n+   {\n+     after: 176.265625,\n+     before: 174.015625,\n+     field: 'width',\n+     name: 'Account-768-dark',\n+     selector: '#accountProfileUsername'\n+   },\n+   {\n+     after: 176.265625,\n+     before: 174.015625,\n+     field: 'width',\n+     name: 'Account-1024-light',\n+     selector: '#accountProfileUsername'\n+   },\n+   {\n+     after: 176.265625,\n+     before: 174.015625,\n+     field: 'width',\n+     name: 'Account-1024-dark',\n+     selector: '#accountProfileUsername'\n+   },\n+   {\n+     after: 176.265625,\n+     before: 174.015625,\n+     field: 'width',\n+     name: 'Account-1440-light',\n+     selector: '#accountProfileUsername'\n+   },\n+   {\n+     after: 176.265625,\n+     before: 174.015625,\n+     field: 'width',\n+     name: 'Account-1440-dark',\n+     selector: '#accountProfileUsername'\n+   },\n+   {\n+     after: '22.1px',\n+     before: '22.95px',\n+     field: 'lineHeight',\n+     name: 'Workflows-375-light',\n+     selector: '.workflow-sidebar-heading :is(h2,h3)'\n+   },\n+   {\n+     after: '22.1px',\n+     before: '22.95px',\n+     field: 'lineHeight',\n+     name: 'Workflows-375-light',\n+     selector: '.workflow-template-box > :is(h2,h3)'\n+   },\n+   {\n+     after: '26px',\n+     before: '27px',\n+     field: 'lineHeight',\n+     name: 'Workflows-375-light',\n+     selector: '#workflowEmptyState > :is(h2,h3)'\n+   },\n+   {\n+     after: '22.1px',\n+     before: '22.95px',\n+     field: 'lineHeight',\n+     name: 'Workflows-375-dark',\n+     selector: '.workflow-sidebar-heading :is(h2,h3)'\n+   },\n+   {\n+     after: '22.1px',\n+     before: '22.95px',\n+     field: 'lineHeight',\n+     name: 'Workflows-375-dark',\n+     selector: '.workflow-template-box > :is(h2,h3)'\n+   },\n+   {\n+     after: '26px',\n+     before: '27px',\n+     field: 'lineHeight',\n+     name: 'Workflows-375-dark',\n+     selector: '#workflowEmptyState > :is(h2,h3)'\n+   },\n+   {\n+     after: '22.1px',\n+     before: '22.95px',\n+     field: 'lineHeight',\n+     name: 'Workflows-390-light',\n+     selector: '.workflow-sidebar-heading :is(h2,h3)'\n+   },\n+   {\n+     after: '22.1px',\n+     before: '22.95px',\n+     field: 'lineHeight',\n+     name: 'Workflows-390-light',\n+     selector: '.workflow-template-box > :is(h2,h3)'\n+   },\n+   {\n+     after: '26px',\n+     before: '27px',\n+     field: 'lineHeight',\n+     name: 'Workflows-390-light',\n+     selector: '#workflowEmptyState > :is(h2,h3)'\n+   },\n+   {\n+     after: '22.1px',\n+     before: '22.95px',\n+     field: 'lineHeight',\n+     name: 'Workflows-390-dark',\n+     selector: '.workflow-sidebar-heading :is(h2,h3)'\n+   },\n+   {\n+     after: '22.1px',\n+     before: '22.95px',\n+     field: 'lineHeight',\n+     name: 'Workflows-390-dark',\n+     selector: '.workflow-template-box > :is(h2,h3)'\n+   },\n+   {\n+     after: '26px',\n+     before: '27px',\n+     field: 'lineHeight',\n+     name: 'Workflows-390-dark',\n+     selector: '#workflowEmptyState > :is(h2,h3)'\n+   },\n+   {\n+     after: '22.1px',\n+     before: '22.95px',\n+     field: 'lineHeight',\n+     name: 'Workflows-768-light',\n+     selector: '.workflow-sidebar-heading :is(h2,h3)'\n+   },\n+   {\n+     after: '22.1px',\n+     before: '22.95px',\n+     field: 'lineHeight',\n+     name: 'Workflows-768-light',\n+     selector: '.workflow-template-box > :is(h2,h3)'\n+   },\n+   {\n+     after: '26px',\n+     before: '27px',\n+     field: 'lineHeight',\n+     name: 'Workflows-768-light',\n+     selector: '#workflowEmptyState > :is(h2,h3)'\n+   },\n+   {\n+     after: '22.1px',\n+     before: '22.95px',\n+     field: 'lineHeight',\n+     name: 'Workflows-768-dark',\n+     selector: '.workflow-sidebar-heading :is(h2,h3)'\n+   },\n+   {\n+     after: '22.1px',\n+     before: '22.95px',\n+     field: 'lineHeight',\n+     name: 'Workflows-768-dark',\n+     selector: '.workflow-template-box > :is(h2,h3)'\n+   },\n+   {\n+     after: '26px',\n+     before: '27px',\n+     field: 'lineHeight',\n+     name: 'Workflows-768-dark',\n+     selector: '#workflowEmptyState > :is(h2,h3)'\n+   },\n+   {\n+     after: '22.1px',\n+     before: '22.95px',\n+     field: 'lineHeight',\n+     name: 'Workflows-1024-light',\n+     selector: '.workflow-sidebar-heading :is(h2,h3)'\n+   },\n+   {\n+     after: '22.1px',\n+     before: '22.95px',\n+     field: 'lineHeight',\n+     name: 'Workflows-1024-light',\n+     selector: '.workflow-template-box > :is(h2,h3)'\n+   },\n+   {\n+     after: '26px',\n+     before: '27px',\n+     field: 'lineHeight',\n+     name: 'Workflows-1024-light',\n+     selector: '#workflowEmptyState > :is(h2,h3)'\n+   },\n+   {\n+     after: '22.1px',\n+     before: '22.95px',\n+     field: 'lineHeight',\n+     name: 'Workflows-1024-dark',\n+     selector: '.workflow-sidebar-heading :is(h2,h3)'\n+   },\n+   {\n+     after: '22.1px',\n+     before: '22.95px',\n+     field: 'lineHeight',\n+     name: 'Workflows-1024-dark',\n+     selector: '.workflow-template-box > :is(h2,h3)'\n+   },\n+   {\n+     after: '26px',\n+     before: '27px',\n+     field: 'lineHeight',\n+     name: 'Workflows-1024-dark',\n+     selector: '#workflowEmptyState > :is(h2,h3)'\n+   },\n+   {\n+     after: '22.1px',\n+     before: '22.95px',\n+     field: 'lineHeight',\n+     name: 'Workflows-1440-light',\n+     selector: '.workflow-sidebar-heading :is(h2,h3)'\n+   },\n+   {\n+     after: '22.1px',\n+     before: '22.95px',\n+     field: 'lineHeight',\n+     name: 'Workflows-1440-light',\n+     selector: '.workflow-template-box > :is(h2,h3)'\n+   },\n+   {\n+     after: '26px',\n+     before: '27px',\n+     field: 'lineHeight',\n+     name: 'Workflows-1440-light',\n+     selector: '#workflowEmptyState > :is(h2,h3)'\n+   },\n+   {\n+     after: '22.1px',\n+     before: '22.95px',\n+     field: 'lineHeight',\n+     name: 'Workflows-1440-dark',\n+     selector: '.workflow-sidebar-heading :is(h2,h3)'\n+   },\n+   {\n+     after: '22.1px',\n+     before: '22.95px',\n+     field: 'lineHeight',\n+     name: 'Workflows-1440-dark',\n+     selector: '.workflow-template-box > :is(h2,h3)'\n+   },\n+   {\n+     after: '26px',\n+     before: '27px',\n+     field: 'lineHeight',\n+     name: 'Workflows-1440-dark',\n+     selector: '#workflowEmptyState > :is(h2,h3)'\n+   },\n+   {\n+     after: '23.4px',\n+     before: '24.3px',\n+     field: 'lineHeight',\n+     name: 'Admin-375-light',\n+     selector: '.admin-user-identity > :is(h2,h3)'\n+   },\n+   {\n+     after: '23.4px',\n+     before: '24.3px',\n+     field: 'lineHeight',\n+     name: 'Admin-375-dark',\n+     selector: '.admin-user-identity > :is(h2,h3)'\n+   },\n+   {\n+     after: '23.4px',\n+     before: '24.3px',\n+     field: 'lineHeight',\n+     name: 'Admin-390-light',\n+     selector: '.admin-user-identity > :is(h2,h3)'\n+   },\n+   {\n+     after: '23.4px',\n+     before: '24.3px',\n+     field: 'lineHeight',\n+     name: 'Admin-390-dark',\n+     selector: '.admin-user-identity > :is(h2,h3)'\n+   },\n+   {\n+     after: '23.4px',\n+     before: '24.3px',\n+     field: 'lineHeight',\n+     name: 'Admin-768-light',\n+     selector: '.admin-user-identity > :is(h2,h3)'\n+   },\n+   {\n+     after: '23.4px',\n+     before: '24.3px',\n+     field: 'lineHeight',\n+     name: 'Admin-768-dark',\n+     selector: '.admin-user-identity > :is(h2,h3)'\n+   },\n+   {\n+     after: '23.4px',\n+     before: '24.3px',\n+     field: 'lineHeight',\n+     name: 'Admin-1024-light',\n+     selector: '.admin-user-identity > :is(h2,h3)'\n+   },\n+   {\n+     after: 46.78125,\n+     before: 48.59375,\n+     field: 'height',\n+     name: 'Admin-1024-light',\n+     selector: '.admin-user-identity > :is(h2,h3)'\n+   },\n+   {\n+     after: '23.4px',\n+     before: '24.3px',\n+     field: 'lineHeight',\n+     name: 'Admin-1024-dark',\n+     selector: '.admin-user-identity > :is(h2,h3)'\n+   },\n+   {\n+     after: 46.78125,\n+     before: 48.59375,\n+     field: 'height',\n+     name: 'Admin-1024-dark',\n+     selector: '.admin-user-identity > :is(h2,h3)'\n+   },\n+   {\n+     after: '23.4px',\n+     before: '24.3px',\n+     field: 'lineHeight',\n+     name: 'Admin-1440-light',\n+     selector: '.admin-user-identity > :is(h2,h3)'\n+   },\n+   {\n+     after: '23.4px',\n+     before: '24.3px',\n+     field: 'lineHeight',\n+     name: 'Admin-1440-dark',\n+     selector: '.admin-user-identity > :is(h2,h3)'\n+   }\n+ ]\n- []\n",
+      "detail": [
+        {
+          "name": "Account-375-light",
+          "selector": "#accountProfileUsername",
+          "field": "width",
+          "before": 174.015625,
+          "after": 176.265625
+        },
+        {
+          "name": "Account-375-dark",
+          "selector": "#accountProfileUsername",
+          "field": "width",
+          "before": 174.015625,
+          "after": 176.265625
+        },
+        {
+          "name": "Account-390-light",
+          "selector": "#accountProfileUsername",
+          "field": "width",
+          "before": 174.015625,
+          "after": 176.265625
+        },
+        {
+          "name": "Account-390-dark",
+          "selector": "#accountProfileUsername",
+          "field": "width",
+          "before": 174.015625,
+          "after": 176.265625
+        },
+        {
+          "name": "Account-768-light",
+          "selector": "#accountProfileUsername",
+          "field": "width",
+          "before": 174.015625,
+          "after": 176.265625
+        },
+        {
+          "name": "Account-768-dark",
+          "selector": "#accountProfileUsername",
+          "field": "width",
+          "before": 174.015625,
+          "after": 176.265625
+        },
+        {
+          "name": "Account-1024-light",
+          "selector": "#accountProfileUsername",
+          "field": "width",
+          "before": 174.015625,
+          "after": 176.265625
+        },
+        {
+          "name": "Account-1024-dark",
+          "selector": "#accountProfileUsername",
+          "field": "width",
+          "before": 174.015625,
+          "after": 176.265625
+        },
+        {
+          "name": "Account-1440-light",
+          "selector": "#accountProfileUsername",
+          "field": "width",
+          "before": 174.015625,
+          "after": 176.265625
+        },
+        {
+          "name": "Account-1440-dark",
+          "selector": "#accountProfileUsername",
+          "field": "width",
+          "before": 174.015625,
+          "after": 176.265625
+        },
+        {
+          "name": "Workflows-375-light",
+          "selector": ".workflow-sidebar-heading :is(h2,h3)",
+          "field": "lineHeight",
+          "before": "22.95px",
+          "after": "22.1px"
+        },
+        {
+          "name": "Workflows-375-light",
+          "selector": ".workflow-template-box > :is(h2,h3)",
+          "field": "lineHeight",
+          "before": "22.95px",
+          "after": "22.1px"
+        },
+        {
+          "name": "Workflows-375-light",
+          "selector": "#workflowEmptyState > :is(h2,h3)",
+          "field": "lineHeight",
+          "before": "27px",
+          "after": "26px"
+        },
+        {
+          "name": "Workflows-375-dark",
+          "selector": ".workflow-sidebar-heading :is(h2,h3)",
+          "field": "lineHeight",
+          "before": "22.95px",
+          "after": "22.1px"
+        },
+        {
+          "name": "Workflows-375-dark",
+          "selector": ".workflow-template-box > :is(h2,h3)",
+          "field": "lineHeight",
+          "before": "22.95px",
+          "after": "22.1px"
+        },
+        {
+          "name": "Workflows-375-dark",
+          "selector": "#workflowEmptyState > :is(h2,h3)",
+          "field": "lineHeight",
+          "before": "27px",
+          "after": "26px"
+        },
+        {
+          "name": "Workflows-390-light",
+          "selector": ".workflow-sidebar-heading :is(h2,h3)",
+          "field": "lineHeight",
+          "before": "22.95px",
+          "after": "22.1px"
+        },
+        {
+          "name": "Workflows-390-light",
+          "selector": ".workflow-template-box > :is(h2,h3)",
+          "field": "lineHeight",
+          "before": "22.95px",
+          "after": "22.1px"
+        },
+        {
+          "name": "Workflows-390-light",
+          "selector": "#workflowEmptyState > :is(h2,h3)",
+          "field": "lineHeight",
+          "before": "27px",
+          "after": "26px"
+        },
+        {
+          "name": "Workflows-390-dark",
+          "selector": ".workflow-sidebar-heading :is(h2,h3)",
+          "field": "lineHeight",
+          "before": "22.95px",
+          "after": "22.1px"
+        },
+        {
+          "name": "Workflows-390-dark",
+          "selector": ".workflow-template-box > :is(h2,h3)",
+          "field": "lineHeight",
+          "before": "22.95px",
+          "after": "22.1px"
+        },
+        {
+          "name": "Workflows-390-dark",
+          "selector": "#workflowEmptyState > :is(h2,h3)",
+          "field": "lineHeight",
+          "before": "27px",
+          "after": "26px"
+        },
+        {
+          "name": "Workflows-768-light",
+          "selector": ".workflow-sidebar-heading :is(h2,h3)",
+          "field": "lineHeight",
+          "before": "22.95px",
+          "after": "22.1px"
+        },
+        {
+          "name": "Workflows-768-light",
+          "selector": ".workflow-template-box > :is(h2,h3)",
+          "field": "lineHeight",
+          "before": "22.95px",
+          "after": "22.1px"
+        },
+        {
+          "name": "Workflows-768-light",
+          "selector": "#workflowEmptyState > :is(h2,h3)",
+          "field": "lineHeight",
+          "before": "27px",
+          "after": "26px"
+        },
+        {
+          "name": "Workflows-768-dark",
+          "selector": ".workflow-sidebar-heading :is(h2,h3)",
+          "field": "lineHeight",
+          "before": "22.95px",
+          "after": "22.1px"
+        },
+        {
+          "name": "Workflows-768-dark",
+          "selector": ".workflow-template-box > :is(h2,h3)",
+          "field": "lineHeight",
+          "before": "22.95px",
+          "after": "22.1px"
+        },
+        {
+          "name": "Workflows-768-dark",
+          "selector": "#workflowEmptyState > :is(h2,h3)",
+          "field": "lineHeight",
+          "before": "27px",
+          "after": "26px"
+        },
+        {
+          "name": "Workflows-1024-light",
+          "selector": ".workflow-sidebar-heading :is(h2,h3)",
+          "field": "lineHeight",
+          "before": "22.95px",
+          "after": "22.1px"
+        },
+        {
+          "name": "Workflows-1024-light",
+          "selector": ".workflow-template-box > :is(h2,h3)",
+          "field": "lineHeight",
+          "before": "22.95px",
+          "after": "22.1px"
+        },
+        {
+          "name": "Workflows-1024-light",
+          "selector": "#workflowEmptyState > :is(h2,h3)",
+          "field": "lineHeight",
+          "before": "27px",
+          "after": "26px"
+        },
+        {
+          "name": "Workflows-1024-dark",
+          "selector": ".workflow-sidebar-heading :is(h2,h3)",
+          "field": "lineHeight",
+          "before": "22.95px",
+          "after": "22.1px"
+        },
+        {
+          "name": "Workflows-1024-dark",
+          "selector": ".workflow-template-box > :is(h2,h3)",
+          "field": "lineHeight",
+          "before": "22.95px",
+          "after": "22.1px"
+        },
+        {
+          "name": "Workflows-1024-dark",
+          "selector": "#workflowEmptyState > :is(h2,h3)",
+          "field": "lineHeight",
+          "before": "27px",
+          "after": "26px"
+        },
+        {
+          "name": "Workflows-1440-light",
+          "selector": ".workflow-sidebar-heading :is(h2,h3)",
+          "field": "lineHeight",
+          "before": "22.95px",
+          "after": "22.1px"
+        },
+        {
+          "name": "Workflows-1440-light",
+          "selector": ".workflow-template-box > :is(h2,h3)",
+          "field": "lineHeight",
+          "before": "22.95px",
+          "after": "22.1px"
+        },
+        {
+          "name": "Workflows-1440-light",
+          "selector": "#workflowEmptyState > :is(h2,h3)",
+          "field": "lineHeight",
+          "before": "27px",
+          "after": "26px"
+        },
+        {
+          "name": "Workflows-1440-dark",
+          "selector": ".workflow-sidebar-heading :is(h2,h3)",
+          "field": "lineHeight",
+          "before": "22.95px",
+          "after": "22.1px"
+        },
+        {
+          "name": "Workflows-1440-dark",
+          "selector": ".workflow-template-box > :is(h2,h3)",
+          "field": "lineHeight",
+          "before": "22.95px",
+          "after": "22.1px"
+        },
+        {
+          "name": "Workflows-1440-dark",
+          "selector": "#workflowEmptyState > :is(h2,h3)",
+          "field": "lineHeight",
+          "before": "27px",
+          "after": "26px"
+        },
+        {
+          "name": "Admin-375-light",
+          "selector": ".admin-user-identity > :is(h2,h3)",
+          "field": "lineHeight",
+          "before": "24.3px",
+          "after": "23.4px"
+        },
+        {
+          "name": "Admin-375-dark",
+          "selector": ".admin-user-identity > :is(h2,h3)",
+          "field": "lineHeight",
+          "before": "24.3px",
+          "after": "23.4px"
+        },
+        {
+          "name": "Admin-390-light",
+          "selector": ".admin-user-identity > :is(h2,h3)",
+          "field": "lineHeight",
+          "before": "24.3px",
+          "after": "23.4px"
+        },
+        {
+          "name": "Admin-390-dark",
+          "selector": ".admin-user-identity > :is(h2,h3)",
+          "field": "lineHeight",
+          "before": "24.3px",
+          "after": "23.4px"
+        },
+        {
+          "name": "Admin-768-light",
+          "selector": ".admin-user-identity > :is(h2,h3)",
+          "field": "lineHeight",
+          "before": "24.3px",
+          "after": "23.4px"
+        },
+        {
+          "name": "Admin-768-dark",
+          "selector": ".admin-user-identity > :is(h2,h3)",
+          "field": "lineHeight",
+          "before": "24.3px",
+          "after": "23.4px"
+        },
+        {
+          "name": "Admin-1024-light",
+          "selector": ".admin-user-identity > :is(h2,h3)",
+          "field": "lineHeight",
+          "before": "24.3px",
+          "after": "23.4px"
+        },
+        {
+          "name": "Admin-1024-light",
+          "selector": ".admin-user-identity > :is(h2,h3)",
+          "field": "height",
+          "before": 48.59375,
+          "after": 46.78125
+        },
+        {
+          "name": "Admin-1024-dark",
+          "selector": ".admin-user-identity > :is(h2,h3)",
+          "field": "lineHeight",
+          "before": "24.3px",
+          "after": "23.4px"
+        },
+        {
+          "name": "Admin-1024-dark",
+          "selector": ".admin-user-identity > :is(h2,h3)",
+          "field": "height",
+          "before": 48.59375,
+          "after": 46.78125
+        },
+        {
+          "name": "Admin-1440-light",
+          "selector": ".admin-user-identity > :is(h2,h3)",
+          "field": "lineHeight",
+          "before": "24.3px",
+          "after": "23.4px"
+        },
+        {
+          "name": "Admin-1440-dark",
+          "selector": ".admin-user-identity > :is(h2,h3)",
+          "field": "lineHeight",
+          "before": "24.3px",
+          "after": "23.4px"
+        }
+      ],
+      "state": {
+        "path": "/admin",
+        "policy": "enabled",
+        "p07": "enabled",
+        "boot": "ready",
+        "frameVisible": true,
+        "accountVisible": false,
+        "profile": "wyj",
+        "functionalP07": true,
+        "policyPanelVisible": false,
+        "retryVisible": false,
+        "visibility": "visible"
+      },
+      "screenshot": "FAIL-visual-typography-remains-equivalent.png"
+    },
+    {
+      "name": "auth-tabs-have-native-forms-in-associated-panels",
+      "status": "FAIL",
+      "error": "timeout waiting for document.getElementById(\"loginForm\")?.checkVisibility({checkOpacity:true,checkVisibilityCSS:true})",
+      "state": {
+        "path": "/",
+        "policy": "enabled",
+        "p07": "enabled",
+        "boot": "ready",
+        "frameVisible": true,
+        "accountVisible": false,
+        "profile": "wyj",
+        "functionalP07": true,
+        "policyPanelVisible": false,
+        "retryVisible": false,
+        "visibility": "visible"
+      },
+      "screenshot": "FAIL-auth-tabs-have-native-forms-in-associated-panels.png"
+    },
+    {
+      "name": "learning-live-status-and-account-feedback",
+      "status": "PASS",
+      "detail": {
+        "before": {
+          "role": "status",
+          "description": "modelLabel",
+          "live": "polite",
+          "text": "规则模式"
+        },
+        "offline": {
+          "text": "离线模式",
+          "online": false
+        },
+        "account": {
+          "badge": "正常",
+          "description": "已连接云端同步 (Cloudflare D1)"
+        }
+      }
+    },
+    {
+      "name": "keyboard-focus-and-real-workflow-import-execution",
+      "status": "FAIL",
+      "error": "keyboard did not open the native file chooser",
+      "state": {
+        "path": "/tools/workflows",
+        "policy": "enabled",
+        "p07": "enabled",
+        "boot": "ready",
+        "frameVisible": true,
+        "accountVisible": false,
+        "profile": "r5ownerA7ee24869",
+        "functionalP07": true,
+        "policyPanelVisible": false,
+        "retryVisible": false,
+        "visibility": "visible"
+      },
+      "screenshot": "FAIL-keyboard-focus-and-real-workflow-import-execution.png"
+    },
+    {
+      "name": "modal-tab-trap-focus-visible-and-restoration",
+      "status": "PASS",
+      "detail": {
+        "stops": [
+          {
+            "id": "confirmDeleteAccountBtn",
+            "inside": true,
+            "visible": true,
+            "outlineStyle": "solid",
+            "outlineWidth": "2px"
+          },
+          {
+            "id": "deleteSecretInput",
+            "inside": true,
+            "visible": true,
+            "outlineStyle": "solid",
+            "outlineWidth": "2px"
+          },
+          {
+            "id": "",
+            "inside": true,
+            "visible": true,
+            "outlineStyle": "solid",
+            "outlineWidth": "2px"
+          },
+          {
+            "id": "confirmDeleteAccountBtn",
+            "inside": true,
+            "visible": true,
+            "outlineStyle": "solid",
+            "outlineWidth": "2px"
+          },
+          {
+            "id": "deleteSecretInput",
+            "inside": true,
+            "visible": true,
+            "outlineStyle": "solid",
+            "outlineWidth": "2px"
+          },
+          {
+            "id": "",
+            "inside": true,
+            "visible": true,
+            "outlineStyle": "solid",
+            "outlineWidth": "2px"
+          },
+          {
+            "id": "confirmDeleteAccountBtn",
+            "inside": true,
+            "visible": true,
+            "outlineStyle": "solid",
+            "outlineWidth": "2px"
+          },
+          {
+            "id": "deleteSecretInput",
+            "inside": true,
+            "visible": true,
+            "outlineStyle": "solid",
+            "outlineWidth": "2px"
+          }
+        ],
+        "restoredFocus": true,
+        "deletionSubmitted": false
+      }
+    }
+  ],
+  "scope": "actual isolated local APIs + Chrome; no real accounts or paid model"
+}

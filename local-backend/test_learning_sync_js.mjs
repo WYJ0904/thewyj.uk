@@ -89,6 +89,15 @@ assert.equal(mergedWrong.wrong_count, 5);
 assert.deepEqual(mergedWrong.accepted, ["电话", "电话机"]);
 assert.equal(mergedWrong.correct_answer, "电话");
 
+const mergedWrongEmptyRubric = sync.mergePayload(
+  "wrong_book",
+  { wrong_count: 1, accepted: ["网络连接"], correct_answer: "", rubric: { gloss: "", accepted: ["网络连接"] } },
+  { wrong_count: 1, accepted: ["网络连接"], correct_answer: "网络", rubric: { gloss: "网络", accepted: ["网络连接"] } },
+  false,
+);
+assert.equal(mergedWrongEmptyRubric.correct_answer, "网络");
+assert.equal(mergedWrongEmptyRubric.rubric.gloss, "网络");
+
 const storage = new MemoryStorage();
 const online = new OnlineSource(false);
 const statuses = [];
@@ -499,6 +508,45 @@ resumedIdempotentManager.stop(false);
 assert.equal((await resumedIdempotentManager.syncNow()).ok, true);
 assert.equal(Object.keys(resumedIdempotentManager.state.records).length, 1);
 
+let offlineAbortSignal = null;
+let resolveOfflineTransport;
+const offlineOnlineSource = new OnlineSource(true);
+const offlineStatuses = [];
+const offlineAbortManager = new sync.LearningSyncManager({
+  storage: new MemoryStorage(),
+  onlineSource: offlineOnlineSource,
+  crypto: globalThis.crypto,
+  onStatus: (st) => offlineStatuses.push(st),
+  transport: (_payload, options) => {
+    offlineAbortSignal = options.signal;
+    return new Promise((resolve) => { resolveOfflineTransport = resolve; });
+  },
+});
+offlineAbortManager.start({ accountId: "offline-abort-account", clientVersion: "test-client" });
+offlineAbortManager.stop(false);
+const rapidWrongId = sync.makeRecordId("wrong", ["默认", "current", "network"]);
+const firstRapid = offlineAbortManager.upsert({
+  data_type: "wrong_book",
+  record_id: rapidWrongId,
+  payload: { wrong_count: 1, correct_answer: "" },
+}, { schedule: false });
+const secondRapid = offlineAbortManager.upsert({
+  data_type: "wrong_book",
+  record_id: rapidWrongId,
+  payload: { wrong_count: 1, correct_answer: "网络" },
+}, { schedule: false });
+assert.ok(Date.parse(secondRapid.updated_at) > Date.parse(firstRapid.updated_at));
+const inFlightOfflineSync = offlineAbortManager.syncNow();
+await new Promise((resolve) => setTimeout(resolve, 0));
+assert.equal(offlineAbortSignal?.aborted, false);
+offlineOnlineSource.navigator.onLine = false;
+offlineOnlineSource.listeners.get("offline")?.();
+assert.equal(offlineAbortSignal?.aborted, true);
+assert.equal(offlineStatuses.at(-1)?.status, "pending");
+assert.equal(offlineStatuses.at(-1)?.detail, "离线时已保存在本机，联网后自动同步");
+resolveOfflineTransport({ schema_version: sync.SCHEMA_VERSION, results: [], changes: [], next_since_version: 0, has_more: false });
+await inFlightOfflineSync;
+
 manager.destroy();
 staleDevice.destroy();
 inFlightDelete.destroy();
@@ -509,4 +557,5 @@ productionCompatibilityManager.destroy();
 isolatedRemoteManager.destroy();
 idempotentManager.destroy();
 resumedIdempotentManager.destroy();
+offlineAbortManager.destroy();
 console.log("learning sync JS tests passed (local-first, legacy ID migration, quarantine, idempotency, session restore)");

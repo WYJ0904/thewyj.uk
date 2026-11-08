@@ -1,0 +1,62 @@
+{
+  "head": "deaa3b6261db59e4d0df9300fa675ed6c64f9ae3",
+  "run": 42444192221,
+  "url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/42444192221",
+  "jobs": [
+    {
+      "id": 128619569365,
+      "name": "Sensitive files and static naming",
+      "conclusion": "success"
+    },
+    {
+      "id": 128619569501,
+      "name": "JavaScript and static site checks",
+      "conclusion": "success"
+    },
+    {
+      "id": 128619569515,
+      "name": "Python syntax and unittest (ubuntu-latest)",
+      "conclusion": "success"
+    },
+    {
+      "id": 128619569539,
+      "name": "Pages build and publish allowlist",
+      "conclusion": "success"
+    },
+    {
+      "id": 128619569551,
+      "name": "Android unit, lint and APK",
+      "conclusion": "success"
+    },
+    {
+      "id": 128619569565,
+      "name": "Python syntax and unittest (windows-latest)",
+      "conclusion": "success"
+    },
+    {
+      "id": 128619570361,
+      "name": "Task 25 cloud credential discovery",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 128619570546,
+      "name": "Task 25 Android runtime contract",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 128620345367,
+      "name": "Browser flow (application)",
+      "conclusion": "success"
+    },
+    {
+      "id": 128620345484,
+      "name": "Cloud-only browser, canonical session and toolbox",
+      "conclusion": "failure"
+    }
+  ],
+  "failure": [
+    "2026-11-08T03:53:05.0096350Z AssertionError [ERR_ASSERTION]: 360x800: content is still cut off after scrolling to the end ({\"lastBottom\":1667,\"viewportHeight\":800,\"shellPaddingBottom\":\"32px\",\"pagePaddingBottom\":\"32px\",\"scrollY\":0})",
+    "2026-11-08T03:53:05.0115491Z     at main (file://<repo>/local-backend/test_transfer_responsive.mjs:262:14)"
+  ],
+  "limits": "Original CI did not record Splash/boot/overflow state at the failed measurement; do not invent those as observed facts. Responsive test now requires the visible completed workspace and retains all original geometry/scroll assertions."
+}
