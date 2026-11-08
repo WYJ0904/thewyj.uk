@@ -1,0 +1,20 @@
+// Read-only brand/business/asset provenance. No service or database access.
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import {spawnSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
+import {isAllowedPagesFile} from '../../scripts/stage_pages_deploy.mjs';
+const baseline='91f0d466361ee80fbd6475facea0b9620f950661',original='7e938bdbda734d319053f1e23fe4a96703486ae6';
+const git=(...args)=>{const r=spawnSync('git',args,{encoding:'utf8',maxBuffer:30*1024*1024});assert.equal(r.status,0,r.stderr);return args[0]==='show'?r.stdout:r.stdout.trim();};
+const reference=JSON.parse(fs.readFileSync(new URL('../../docs/p07/evidence/f-a11y/PROTECTION.json',import.meta.url)));
+const resources=reference.protectedResources.map(r=>{const actual=git('hash-object','--path',r.file,r.file);assert.equal(actual,r.baseline,r.file);return{file:r.file,blob:actual,unchanged:true};});
+const normalize=s=>s.replaceAll('\r\n','\n').replace(/\d{8}-aeris-[a-z0-9-]+/g,'<release>');
+const oldHtml=git('show',baseline+':index.html'),html=fs.readFileSync('index.html','utf8');
+const cards=['learning','finance','tools'].map(name=>{const expression=new RegExp(`<article\\b[^>]*data-home-widget="${name}"[^>]*>[\\s\\S]*?</article>`),old=oldHtml.match(expression)?.[0],current=html.match(expression)?.[0];assert.ok(old&&current);assert.equal(normalize(current),normalize(old));return{name,sha256:createHash('sha256').update(normalize(current)).digest('hex'),unchanged:true};});
+const official=new Set(resources.map(r=>'/'+r.file));
+const references=s=>[...s.matchAll(/(?:src|href)="([^"?]+)(?:\?[^\"]*)?"/g)].map(m=>m[1]).filter(v=>official.has(v));
+assert.deepEqual(references(html),references(oldHtml),'official HTML brand references changed');
+const core=['sw.js','js/core/api.js','js/core/session.js','js/core/router.js'].map(file=>{assert.equal(normalize(fs.readFileSync(file,'utf8')),normalize(git('show',baseline+':'+file)));return{file,identicalAfterReleaseNormalization:true};});
+const tree=sha=>git('ls-tree','-r',sha).split(/\r?\n/).filter(row=>isAllowedPagesFile(row.split('\t')[1])).join('\n');
+assert.equal(tree(original),tree(baseline),'131 and 132 do not serve identical allowed Pages inputs');
+console.log(JSON.stringify({baseline,original,resources,cards,officialHtmlReferences:references(html),core,old131And132PagesInputsIdentical:true},null,2));

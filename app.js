@@ -9,27 +9,27 @@ import {
   BUSINESS_TIME_ZONE,
   STATUS_RETRY_BASE_DELAYS_MS,
   STATUS_TIMEOUT_MS,
-} from "./js/core/config.js?release=20261107-aeris-p07-f-a11y-rc4";
-import { reconcileKeyedRows } from "./js/core/keyed-list.js?release=20261107-aeris-p07-f-a11y-rc4";
+} from "./js/core/config.js?release=20261108-aeris-p07-final-rc5";
+import { reconcileKeyedRows } from "./js/core/keyed-list.js?release=20261108-aeris-p07-final-rc5";
 import {
   capabilityProblems,
   detectCapabilities,
   randomId,
-} from "./js/core/capabilities.js?release=20261107-aeris-p07-f-a11y-rc4";
+} from "./js/core/capabilities.js?release=20261108-aeris-p07-final-rc5";
 import {
   createApiClient,
   fetchWithTimeout,
   isCanonicalSessionFailure,
   retryDelayWithJitter,
   waitForDelay,
-} from "./js/core/api.js?release=20261107-aeris-p07-f-a11y-rc4";
+} from "./js/core/api.js?release=20261108-aeris-p07-final-rc5";
 import {
   createChangelogSelection,
   loadCloudChangelog,
   mergeChangelogEntries,
   staticChangelogEntries,
-} from "./js/core/changelog.js?release=20261107-aeris-p07-f-a11y-rc4";
-import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation, nativeAppRoute } from "./js/core/router.js?release=20261107-aeris-p07-f-a11y-rc4";
+} from "./js/core/changelog.js?release=20261108-aeris-p07-final-rc5";
+import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation, nativeAppRoute } from "./js/core/router.js?release=20261108-aeris-p07-final-rc5";
 import {
   ACCOUNT_CACHE_KEY,
   isThewyjAndroidApp,
@@ -40,28 +40,28 @@ import {
   requestNativeSessionRefresh,
   restoreAccountSession,
   subscribeAccountSessionChanges,
-} from "./js/core/session.js?release=20261107-aeris-p07-f-a11y-rc4";
-import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?release=20261107-aeris-p07-f-a11y-rc4";
-import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?release=20261107-aeris-p07-f-a11y-rc4";
-import { initDesignSystem, setExperienceMode, setInterfaceEnhancementsEnabled, dialogFocusTargets, focusDialog } from "./js/core/design-system.js?release=20261107-aeris-p07-f-a11y-rc4";
-import { createPublicUiPolicyController } from "./js/core/public-ui-policy.js?release=20261107-aeris-p07-f-a11y-rc4";
-import { completeStartupSplash } from "./js/core/startup.js?release=20261107-aeris-p07-f-a11y-rc4";
-import { installMotionSystem, motionDuration, prefersReducedMotion } from "./js/core/motion.js?release=20261107-aeris-p07-f-a11y-rc4";
-import { initPublicExperience, renderPublicPlanCatalog } from "./js/core/public-experience.js?release=20261107-aeris-p07-f-a11y-rc4";
-import { createAndroidDownloadController } from "./js/core/download.js?release=20261107-aeris-p07-f-a11y-rc4";
-import { createFeatureController } from "./js/core/feature-flags.js?release=20261107-aeris-p07-f-a11y-rc4";
-import { createFeatureConsole } from "./js/core/feature-console.js?release=20261107-aeris-p07-f-a11y-rc4";
-import { createMasteryController } from "./js/language/mastery.js?release=20261107-aeris-p07-f-a11y-rc4";
-import { clearMasteryJournalAccount } from "./js/language/mastery-journal.js?release=20261107-aeris-p07-f-a11y-rc4";
-import { masteryStorageKey } from "./js/language/mastery-state.js?release=20261107-aeris-p07-f-a11y-rc4";
-import { speakText, stopSpeech } from "./js/language/speech.js?release=20261107-aeris-p07-f-a11y-rc4";
+} from "./js/core/session.js?release=20261108-aeris-p07-final-rc5";
+import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?release=20261108-aeris-p07-final-rc5";
+import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?release=20261108-aeris-p07-final-rc5";
+import { initDesignSystem, setExperienceMode, setInterfaceEnhancementsEnabled, dialogFocusTargets, focusDialog } from "./js/core/design-system.js?release=20261108-aeris-p07-final-rc5";
+import { createPublicUiPolicyController } from "./js/core/public-ui-policy.js?release=20261108-aeris-p07-final-rc5";
+import { completeStartupSplash, canPresentWorkspace, waitForPresentation } from "./js/core/startup.js?release=20261108-aeris-p07-final-rc5";
+import { installMotionSystem, motionDuration, prefersReducedMotion } from "./js/core/motion.js?release=20261108-aeris-p07-final-rc5";
+import { initPublicExperience, renderPublicPlanCatalog } from "./js/core/public-experience.js?release=20261108-aeris-p07-final-rc5";
+import { createAndroidDownloadController } from "./js/core/download.js?release=20261108-aeris-p07-final-rc5";
+import { createFeatureController } from "./js/core/feature-flags.js?release=20261108-aeris-p07-final-rc5";
+import { createFeatureConsole } from "./js/core/feature-console.js?release=20261108-aeris-p07-final-rc5";
+import { createMasteryController } from "./js/language/mastery.js?release=20261108-aeris-p07-final-rc5";
+import { clearMasteryJournalAccount } from "./js/language/mastery-journal.js?release=20261108-aeris-p07-final-rc5";
+import { masteryStorageKey } from "./js/language/mastery-state.js?release=20261108-aeris-p07-final-rc5";
+import { speakText, stopSpeech } from "./js/language/speech.js?release=20261108-aeris-p07-final-rc5";
 import {
   loadSpeechRate,
   saveSpeechRate,
-} from "./js/language/speech-rate.js?release=20261107-aeris-p07-f-a11y-rc4";
-import { formatFinanceMoney } from "./js/finance/format.js?release=20261107-aeris-p07-f-a11y-rc4";
-import { createLazyController, installLazyTools, createRetryableImport } from "./js/core/lazy-controller.js?release=20261107-aeris-p07-f-a11y-rc4";
-import { createDashboardView } from "./js/core/dashboard.js?release=20261107-aeris-p07-f-a11y-rc4";
+} from "./js/language/speech-rate.js?release=20261108-aeris-p07-final-rc5";
+import { formatFinanceMoney } from "./js/finance/format.js?release=20261108-aeris-p07-final-rc5";
+import { createLazyController, installLazyTools, createRetryableImport } from "./js/core/lazy-controller.js?release=20261108-aeris-p07-final-rc5";
+import { createDashboardView } from "./js/core/dashboard.js?release=20261108-aeris-p07-final-rc5";
 import {
   INTERACTION_STAGES,
   beginInteraction,
@@ -69,15 +69,15 @@ import {
   interactionTraceApi,
   withInteractionFeedback,
   withInteractionFeedbackQuiet,
-} from "./js/core/perf.js?release=20261107-aeris-p07-f-a11y-rc4";
-import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?release=20261107-aeris-p07-f-a11y-rc4";
+} from "./js/core/perf.js?release=20261108-aeris-p07-final-rc5";
+import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?release=20261108-aeris-p07-final-rc5";
 import {
   calculateStudyStreak,
   formatDuration,
   localDayKey,
   sanitizeStudyRecords,
   studyDaySeries,
-} from "./js/language/history.js?release=20261107-aeris-p07-f-a11y-rc4";
+} from "./js/language/history.js?release=20261108-aeris-p07-final-rc5";
 import {
   DEFAULT_PROFILE,
   LANGUAGE_LABELS,
@@ -114,16 +114,16 @@ import {
   trimRubricCache,
   wordIdentity,
   wordMatchesLanguage,
-} from "./js/language/quiz.js?release=20261107-aeris-p07-f-a11y-rc4";
-import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?release=20261107-aeris-p07-f-a11y-rc4";
-import { createWrongBookPdf } from "./js/language/pdf.js?release=20261107-aeris-p07-f-a11y-rc4";
+} from "./js/language/quiz.js?release=20261108-aeris-p07-final-rc5";
+import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?release=20261108-aeris-p07-final-rc5";
+import { createWrongBookPdf } from "./js/language/pdf.js?release=20261108-aeris-p07-final-rc5";
 import {
   filterWrongBookByLanguage as filterWrongBookByLanguageModel,
   mergeWrongBooks,
   removeLanguageFromWrongBook as removeLanguageFromWrongBookModel,
   sanitizeWrongBook,
   updateWrongEntry as updateWrongEntryModel,
-} from "./js/language/wrong-book.js?release=20261107-aeris-p07-f-a11y-rc4";
+} from "./js/language/wrong-book.js?release=20261108-aeris-p07-final-rc5";
 import {
   accountEntitlements as accountEntitlementsModel,
   accountMembershipSummary as accountMembershipSummaryModel,
@@ -132,7 +132,7 @@ import {
   isAdmin as isAdminModel,
   isSuperAdmin as isSuperAdminModel,
   membershipLabel,
-} from "./js/membership/account.js?release=20261107-aeris-p07-f-a11y-rc4";
+} from "./js/membership/account.js?release=20261108-aeris-p07-final-rc5";
 import {
   MEMBERSHIP_GOALS,
   MEMBERSHIP_PLAN_ORDER,
@@ -140,19 +140,19 @@ import {
   membershipGoalForPlan,
   normalizedMembershipGoal,
   planDetails as planDetailsModel,
-} from "./js/membership/plans.js?release=20261107-aeris-p07-f-a11y-rc4";
+} from "./js/membership/plans.js?release=20261108-aeris-p07-final-rc5";
 import {
   DEFAULT_PAYMENT_METHODS,
   normalizedPaymentMethod as normalizedPaymentMethodModel,
   paymentMethodLabel as paymentMethodLabelModel,
   paymentStatusLabel,
   rechargeStatusLabel,
-} from "./js/membership/recharge.js?release=20261107-aeris-p07-f-a11y-rc4";
+} from "./js/membership/recharge.js?release=20261108-aeris-p07-final-rc5";
 import {
   loginLocationLabel,
   loginReasonLabel,
   membershipDateValue as membershipDateValueModel,
-} from "./js/admin/formatters.js?release=20261107-aeris-p07-f-a11y-rc4";
+} from "./js/admin/formatters.js?release=20261108-aeris-p07-final-rc5";
 
 const localStorage = getSafeStorage("localStorage");
 const sessionStorage = getSafeStorage("sessionStorage");
@@ -311,6 +311,10 @@ let projectRuntimeNeedsRestore = false;
 let backendStatusPromise = null;
 let backendRefreshPromise = null;
 let sessionRestorePending = false;
+const presentationListeners = new Set();
+let startupMounted = false;
+let startupRevealed = false;
+let authTransitionSequence = 0;
 let backendRecoveryTimer = null;
 let achievementFilter = "all";
 let achievementToastTimer = null;
@@ -346,6 +350,7 @@ let learningSyncStatus = {
 };
 
 const restoredSession = restoreAccountSession();
+sessionRestorePending = Boolean(restoredSession);
 const { pushRoute } = createRouter({ onRouteChange: () => { routeGeneration += 1; renderAccountUi(); } });
 const learningSyncAdapter = createLearningSyncAdapter(() => window.WYJLearningSync);
 
@@ -1025,6 +1030,7 @@ function clearSession() {
   state.session = "";
   state.account = null;
   sessionRestorePending = false;
+  document.documentElement.dataset.workspaceMount = 'ready';
   financeController?.resetAccount();
   state.quizSession = "";
   pendingSiteMessages = [];
@@ -1043,6 +1049,7 @@ function clearSession() {
 }
 
 function adoptExternalAccountSession(nextSession) {
+  sessionRestorePending = true;
   stopLearningDataSync();
   releasePaymentQr();
   cancelVocabularySearch();
@@ -3840,9 +3847,53 @@ function showTrial(pushHistory = true, tool = "") {
   renderAccountUi();
 }
 
-function runSplashSequence(revealContent) {
+function presentationState() {
+  return { owner: state.session, sessionPresent: Boolean(state.session),
+    accountId: String(state.account?.id || ''),
+    accountVerified: !sessionRestorePending && Boolean(state.account),
+    policyStatus: document.documentElement.dataset.interfacePolicy || 'pending' };
+}
+
+function waitForCurrentPresentation(owner, strictOwner = false) {
+  return waitForPresentation({ read: presentationState, owner, strictOwner,
+    subscribe: (check) => { presentationListeners.add(check); return () => presentationListeners.delete(check); } });
+}
+
+async function mountVerifiedCurrentRoute(owner, strictOwner = false) {
+  document.documentElement.dataset.workspaceMount = 'pending';
+  for (;;) {
+    await waitForCurrentPresentation(owner, strictOwner);
+    const identity = presentationState();
+    const path = currentRoutePath();
+    const render = routeCurrent(), generation = routeGeneration;
+    await render;
+    const current = presentationState();
+    if (strictOwner && current.owner !== owner) {
+      const error = new Error('账户已切换'); error.name = 'AbortError'; error.code = 'account_changed'; throw error;
+    }
+    if (identity.owner !== current.owner || identity.accountId !== current.accountId
+      || path !== currentRoutePath() || generation !== routeGeneration) continue;
+    if (canPresentWorkspace(current)) {
+      // Startup's finite recovery must not tear down an in-flight destination.
+      // Reveal that same completed mount, rather than re-entering its controller.
+      $('sessionRecovery').classList.add('hidden');
+      $('sessionRecovery').setAttribute('aria-hidden', 'true');
+      renderAccountUi();
+      document.documentElement.dataset.workspaceMount = 'ready';
+      return;
+    }
+  }
+}
+
+function showStartupRecovery(reason) {
+  showSessionRecovery(reason === 'timeout'
+    ? '连接较慢，正在安全恢复页面。你可以等待、重试或返回公开首页。'
+    : '页面尚未准备完成，请重试连接。', { isError: reason === 'error' || !backendAvailable, preserveWorkspaceMount: true });
+}
+
+function runSplashSequence(revealContent, whenReady) {
   return completeStartupSplash({screen:$("entryScreen"),image:$("splashImage"),
-    reveal:revealContent,reducedMotion:prefersReducedMotion(window),setTimer:window.setTimeout.bind(window)});
+    reveal:revealContent,whenReady,reducedMotion:prefersReducedMotion(window),setTimer:window.setTimeout.bind(window)});
 }
 
 function showLanguageGate() {
@@ -3853,6 +3904,9 @@ function hidePrimaryScreens() {
   setExperienceMode("workspace");
   const leavingTrial = Boolean($("trialPage") && !$("trialPage").classList.contains("hidden"));
   ["sessionRecovery", "publicHome", "changelogPage", "downloadPage", "trialPage", "modulePicker", "projectPicker", "projectApp", "toolsPanel", "financePage", "transferPage", "shareViewer", "adminPanel", "membershipModal", "accountModal"].forEach((id) => {
+    // The staged route owns its pages; presentation owns recovery until that
+    // route completes, including when recovery appeared before mounting began.
+    if (id === 'sessionRecovery' && document.documentElement.dataset.workspaceMount === 'pending') return;
     const element = $(id);
     if (!element) return;
     element.classList.add("hidden");
@@ -3977,7 +4031,7 @@ function enterProject(value, pushHistory = true) {
 }
 
 function showSessionRecovery(message = "正在打开你的页面…", options = {}) {
-  hidePrimaryScreens();
+  if (!options.preserveWorkspaceMount) hidePrimaryScreens();
   const recovery = $("sessionRecovery");
   const isError = Boolean(options.isError);
   recovery.dataset.recoveryState = isError ? "error" : "loading";
@@ -4310,6 +4364,10 @@ function routeCurrent() {
 
 async function renderCurrentRoute(path, generation = routeGeneration) {
     if (!isRouteGenerationCurrent(generation)) return;
+    if (state.session && (sessionRestorePending || !state.account)) {
+      showSessionRecovery(pendingAuthMessage || '正在验证登录状态…', { isError: !backendAvailable });
+      return;
+    }
     if (path.startsWith("/share/")) {
       if (!(await showShareRoute(path, generation)) && isRouteGenerationCurrent(generation)) pushRoute(state.session && state.account ? "/select" : "/login", true);
       return;
@@ -4837,14 +4895,14 @@ const { api, apiGet, publicApi, requestJsonGet, uploadApi, uploadBinaryApi } = c
 });
 
 installLazyTools({
-  loadTools: createRetryableImport(new URL("./tools.js?release=20261107-aeris-p07-f-a11y-rc4", import.meta.url)),
-  loadWorkflows: createRetryableImport(new URL("./workflows.js?release=20261107-aeris-p07-f-a11y-rc4", import.meta.url)),
+  loadTools: createRetryableImport(new URL("./tools.js?release=20261108-aeris-p07-final-rc5", import.meta.url)),
+  loadWorkflows: createRetryableImport(new URL("./workflows.js?release=20261108-aeris-p07-final-rc5", import.meta.url)),
   onReady: () => renderDashboard(),
 });
 
-const loadFinanceModule = createRetryableImport(new URL("./js/finance/app.js?release=20261107-aeris-p07-f-a11y-rc4", import.meta.url));
-const loadCandidateModule = createRetryableImport(new URL("./js/finance/candidates.js?release=20261107-aeris-p07-f-a11y-rc4", import.meta.url));
-const loadTransferModule = createRetryableImport(new URL("./js/transfer/app.js?release=20261107-aeris-p07-f-a11y-rc4", import.meta.url));
+const loadFinanceModule = createRetryableImport(new URL("./js/finance/app.js?release=20261108-aeris-p07-final-rc5", import.meta.url));
+const loadCandidateModule = createRetryableImport(new URL("./js/finance/candidates.js?release=20261108-aeris-p07-final-rc5", import.meta.url));
+const loadTransferModule = createRetryableImport(new URL("./js/transfer/app.js?release=20261108-aeris-p07-final-rc5", import.meta.url));
 
 financeController = createLazyController({
   methods: ["syncNow", "verifyTransaction", "render"],
@@ -4929,6 +4987,7 @@ function applyInterfacePolicy() {
     $('retryInterfacePolicyBtn').hidden = decision.status !== 'error';
     $('retryInterfacePolicyBtn').classList.toggle('hidden', decision.status !== 'error');
   }
+  for (const check of [...presentationListeners]) check();
   const loginBtn = $("publicLoginBtn");
   if (loginBtn) {
     loginBtn.textContent = enabled ? (hasAuthenticatedAccount ? "进入空间 →" : "探索 Aeris →") : "账户";
@@ -6785,12 +6844,47 @@ function changeProfile(value, options = {}) {
   if ($("studyView").classList.contains("active")) renderStudyDashboard();
 }
 
+function showAuthTransition(message = "正在验证身份与权限…") {
+  document.documentElement.dataset.workspaceMount = 'pending';
+  document.getElementById('authTransitionScreen')?.remove();
+  const overlay = document.createElement("div");
+    overlay.id = "authTransitionScreen";
+    overlay.className = "entry-screen auth-transition-overlay";
+    overlay.setAttribute("role", "status");
+    overlay.setAttribute("aria-label", message);
+    overlay.setAttribute("aria-hidden", "false");
+    overlay.innerHTML = '<div class="entry-content">' +
+      '<img class="entry-logo" src="/icon-192.png?release=20261108-aeris-p07-final-rc5" width="76" height="76" alt="" />' +
+      '<strong>Aeris</strong>' +
+      '<span class="entry-progress" aria-hidden="true"></span>' +
+      '</div>';
+    document.body.appendChild(overlay);
+  document.body.classList.add('auth-transition-active');
+  $('v3AppFrame').inert = true;
+  return { overlay, sequence: ++authTransitionSequence };
+}
+
+function finishAuthTransition(transition, owner) {
+  if (!transition) return;
+  transition.overlay.remove();
+  if (transition.sequence !== authTransitionSequence) return;
+  document.body.classList.remove('auth-transition-active');
+  const frame = $('v3AppFrame');
+  frame.inert = Boolean(document.querySelector('.modal-layer:not(.hidden)'));
+  if (state.session === owner && !frame.inert) {
+    const target = !$('sessionRecovery').classList.contains('hidden') ? $('retrySessionRecoveryBtn') : $('publicHome')?.querySelector('h1');
+    if (target) { if (!target.matches('button')) target.setAttribute('tabindex', '-1'); target.focus({ preventScroll: true }); }
+  }
+}
+
 async function login(event) {
   event.preventDefault();
   $("loginError").textContent = "";
   const button = $("loginSubmitBtn");
   if (button.disabled) return;
   button.disabled = true;
+  let transition = null;
+  let owner = state.session;
   try {
     if (!backendAvailable) {
       $("loginError").textContent = "正在重新连接服务器…";
@@ -6800,7 +6894,13 @@ async function login(event) {
       username: $("usernameInput").value.trim(),
       secret: $("secretInput").value,
     });
+    if (state.session !== owner) {
+      const error = new Error('账户已切换'); error.code = 'account_changed'; throw error;
+    }
+    transition = showAuthTransition("正在验证身份与权限…");
     state.session = data.session;
+    owner = state.session;
+    sessionRestorePending = false;
     const persisted = persistAccountSession(state.session);
     applyAccount(data.account);
     $("secretInput").value = "";
@@ -6808,17 +6908,24 @@ async function login(event) {
     pendingScreen = "workspace";
     pendingAuthMessage = "";
     $("modelLabel").textContent = data.model || "Cloudflare 云端";
-    showModulePicker(false);
-    pushRoute("/", true);
-    updateStats();
+    const prepared = (async () => {
+      await waitForCurrentPresentation(owner, true);
+      pushRoute('/', true);
+      await mountVerifiedCurrentRoute(owner, true);
+      updateStats();
+    })();
+    await completeStartupSplash({ screen: transition.overlay, whenReady: () => prepared,
+      minimumVisibleMs: 0, reducedMotion: prefersReducedMotion(window), setTimer: window.setTimeout.bind(window),
+      reveal: ({ reason }) => { if (reason !== 'ready' && state.session === owner) showStartupRecovery(reason); } });
     if (!persisted) {
       window.setTimeout(() => alert(
         "已登录，但浏览器无法保存登录状态。当前页面仍可使用；关闭或刷新后可能需要重新登录。请检查隐私模式或站点存储权限。",
       ), 0);
     }
   } catch (error) {
-    $("loginError").textContent = error.message;
+    if (error.code !== 'account_changed' && state.session === owner) $("loginError").textContent = error.message;
   } finally {
+    finishAuthTransition(transition, owner);
     button.disabled = false;
   }
 }
@@ -6871,7 +6978,7 @@ async function performBackendRefresh() {
         $("statusDot").classList.toggle("online", true);
         pendingScreen = "workspace";
         pendingAuthMessage = "";
-        if (restoring) void routeCurrent();
+        if (restoring && startupMounted) void mountVerifiedCurrentRoute(owner, true).catch(() => {});
       }
     } else {
       pendingScreen = "auth";
@@ -7093,6 +7200,7 @@ function auditRuntimeCapabilities() {
 
 async function boot() {
   document.documentElement.dataset.bootState='initializing';
+  document.documentElement.dataset.workspaceMount = 'pending';
   initDesignSystem();
   applyInterfacePolicy();
   void publicUiPolicyController?.refresh();
@@ -7107,7 +7215,7 @@ async function boot() {
   auditRuntimeCapabilities();
   if (state.account?.id) {
     loadAccountLocalState();
-    startLearningDataSync();
+    if (!sessionRestorePending) startLearningDataSync();
   }
   else resetLocalViewState();
   state.quizLanguage = "";
@@ -7595,63 +7703,36 @@ async function boot() {
       }
     }));
   $("exitSessionRecoveryBtn")?.addEventListener("click", () => {
-    if (!state.account) clearSession();
+    if (sessionRestorePending || !state.account) clearSession();
     showPublicHome(true);
   });
-  const backendPromise = initialPath.startsWith("/share/") || initialPath === "/transfer"
+  const backendPromise = !state.session && (initialPath.startsWith("/share/") || initialPath === "/transfer")
     ? Promise.resolve() : refreshBackendState();
   // Determine the existing in-flow notice before revealing the first page.
   // Late insertion would push the richer public hero down after its first paint.
   maybeShowVersionNotice();
   document.documentElement.dataset.bootState='splash';
-  await runSplashSequence(() => {
+
+  const whenContentReady = async () => {
+    await backendPromise;
+    await mountVerifiedCurrentRoute();
+    startupMounted = true;
+    if (startupRevealed) document.documentElement.dataset.bootState = 'ready';
+  };
+
+  await runSplashSequence(({ reason }) => {
+    startupRevealed = true;
     $("appShell").classList.remove("app-shell-pending");
     $("appShell").classList.add("app-shell-ready");
     $("appShell").setAttribute("aria-hidden", "false");
-    if (initialPath.startsWith("/share/")) { void showShareRoute(initialPath); return; }
-    if (initialPath === "/transfer") {
-      hidePrimaryScreens();
-      $("transferPage")?.classList.remove("hidden");
-      $("transferPage")?.setAttribute("aria-hidden", "false");
-      return;
-    }
-    if (state.session) {
-      showSessionRecovery();
-      return;
-    }
-    if (!state.session || !state.account) {
-      if (initialPath === "/") {
-        showPublicHome(false);
-        return;
-      }
-      if (initialPath === "/trial") {
-        showTrial(false);
-        return;
-      }
-      if (initialPath === "/changelog") {
-        showChangelog(false);
-        return;
-      }
-      if (initialPath === "/download") {
-        showDownload(false);
-        return;
-      }
-    }
-    showAuth("", {
-      mode: initialPath === "/register" ? "register" : "login",
-      path: initialPath,
-      skipRoute: true,
-    });
-  });
-  document.documentElement.dataset.bootState='routing';
-  await backendPromise;
-  await routeCurrent();
-  installNativeNavigation();
-  installInteractionTracing();
-  installMotionSystem();
-  installNativeThemeBridge();
-  setupResponsiveDisclosures();
-  document.documentElement.dataset.bootState='ready';
+    if (!startupMounted) showStartupRecovery(reason);
+    installNativeNavigation();
+    installInteractionTracing();
+    installMotionSystem();
+    installNativeThemeBridge();
+    setupResponsiveDisclosures();
+    document.documentElement.dataset.bootState = startupMounted ? 'ready' : 'recovering';
+  }, whenContentReady);
 }
 
 boot().catch(() => {

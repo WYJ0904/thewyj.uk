@@ -1,0 +1,24 @@
+✖ finance browser fixture rejects offline requests before mutating and reconnect acknowledges once (24.9781ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 125.2147
+
+✖ failing tests:
+
+test at qa\p07-final\finance-offline-fixture.test.mjs:6:1
+✖ finance browser fixture rejects offline requests before mutating and reconnect acknowledges once (24.9781ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async TestContext.<anonymous> (file:///<repo>/qa/p07-final/finance-offline-fixture.test.mjs:17:3)
+      at async Test.run (node:internal/test_runner/test:1332:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    operator: 'rejects',
+    diff: 'simple'
+  }

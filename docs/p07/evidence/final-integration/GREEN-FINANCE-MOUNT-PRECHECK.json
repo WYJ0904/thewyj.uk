@@ -1,0 +1,95 @@
+{
+  "source": "811edf17cc4588996778f754ac8f344efdcca0db",
+  "selection": "slow-finance-mount-survives-startup-deadline-on-and-off",
+  "cases": [
+    {
+      "name": "slow-finance-mount-survives-startup-deadline-on-and-off",
+      "status": "PASS",
+      "detail": [
+        {
+          "enabled": true,
+          "sampleCount": 1764,
+          "renderedFrames": 291,
+          "first": {
+            "t": 95.39999999850988,
+            "epoch": 1794107759093.2998,
+            "path": "/finance",
+            "policy": "pending",
+            "splash": true,
+            "overlay": false,
+            "recovery": false,
+            "policyPanel": false,
+            "primary": [],
+            "privateHeader": false,
+            "focus": "",
+            "inert": false
+          },
+          "last": {
+            "t": 7591.79999999702,
+            "epoch": 1794107766589.7,
+            "path": "/finance",
+            "boot": "ready",
+            "mount": "ready",
+            "policy": "enabled",
+            "verification": "ready",
+            "p07": "enabled",
+            "splash": false,
+            "overlay": false,
+            "recovery": false,
+            "policyPanel": false,
+            "primary": [
+              "financePage"
+            ],
+            "privateHeader": true,
+            "focus": "",
+            "inert": false
+          },
+          "recoveryFrames": 1111,
+          "frameDirectory": "continuous-slow-finance-on"
+        },
+        {
+          "enabled": false,
+          "sampleCount": 1758,
+          "renderedFrames": 284,
+          "first": {
+            "t": 82.39999999850988,
+            "epoch": 1794107766950.5,
+            "path": "/finance",
+            "policy": "pending",
+            "splash": true,
+            "overlay": false,
+            "recovery": false,
+            "policyPanel": false,
+            "primary": [],
+            "privateHeader": false,
+            "focus": "",
+            "inert": false
+          },
+          "last": {
+            "t": 7495.30000000447,
+            "epoch": 1794107774363.4001,
+            "path": "/finance",
+            "boot": "ready",
+            "mount": "ready",
+            "policy": "disabled",
+            "verification": "ready",
+            "p07": "disabled",
+            "splash": false,
+            "overlay": false,
+            "recovery": false,
+            "policyPanel": false,
+            "primary": [
+              "financePage"
+            ],
+            "privateHeader": true,
+            "focus": "",
+            "inert": false
+          },
+          "recoveryFrames": 1108,
+          "frameDirectory": "continuous-slow-finance-off"
+        }
+      ]
+    }
+  ],
+  "scope": "actual isolated local APIs + Chrome; no real accounts or paid model"
+}

@@ -175,7 +175,7 @@ class StaticSiteTests(unittest.TestCase):
             self.app,
         )
         self.assertIn(
-            'const backendPromise = initialPath.startsWith("/share/") || initialPath === "/transfer"',
+        'const backendPromise = !state.session && (initialPath.startsWith("/share/") || initialPath === "/transfer")',
             self.app,
         )
         self.assertIn('? Promise.resolve() : refreshBackendState();', self.app)
@@ -629,11 +629,22 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn('$("navGuestActions")?.classList.toggle("hidden", Boolean(account));', self.app)
         self.assertIn('$("accountMenu")?.classList.toggle("hidden", !account);', self.app)
         boot_source = self.app.split("async function boot()", 1)[1]
-        initial_render = boot_source.split("await runSplashSequence(() => {", 1)[1].split("await backendPromise;", 1)[0]
-        self.assertIn("if (state.session) {\n      showSessionRecovery();\n      return;\n    }", initial_render)
-        self.assertLess(initial_render.index("showSessionRecovery();"), initial_render.index('showAuth(""'))
+        initial_render = boot_source.split("await runSplashSequence(({ reason }) => {", 1)[1].split("}, whenContentReady);", 1)[0]
+        self.assertIn("if (!startupMounted) showStartupRecovery(reason);", initial_render)
+        preparation = boot_source.split("const whenContentReady = async () => {", 1)[1].split("await runSplashSequence", 1)[0]
+        self.assertLess(preparation.index("await backendPromise;"), preparation.index("await mountVerifiedCurrentRoute();"))
+        self.assertLess(preparation.index("await mountVerifiedCurrentRoute();"), preparation.index("startupMounted = true;"))
+        route_source = self.app.split("async function renderCurrentRoute", 1)[1]
+        self.assertIn("if (state.session && (sessionRestorePending || !state.account))", route_source)
+        self.assertLess(route_source.index("showSessionRecovery("), route_source.index('if (!state.session || !state.account)'))
+        self.assertIn("sessionRestorePending = Boolean(restoredSession);", self.app)
+        self.assertIn("if (!options.preserveWorkspaceMount) hidePrimaryScreens();", self.app)
+        mount_source = self.app.split("async function mountVerifiedCurrentRoute", 1)[1].split("function showStartupRecovery", 1)[0]
+        self.assertLess(mount_source.index("await render;"), mount_source.index("dataset.workspaceMount = 'ready'"))
+        self.assertIn("generation !== routeGeneration", mount_source)
+        self.assertIn("preserveWorkspaceMount: true", self.app)
         self.assertIn('id="sessionRecovery"', self.html)
-        self.assertNotIn('showAuth(state.session ?', initial_render)
+        self.assertNotIn('showAuth(', initial_render)
         membership_source = self.app.split("async function saveAdminMembership()", 1)[1].split("function updateAdminToolsOverride", 1)[0]
         self.assertLess(membership_source.index("await loadAdminData();"), membership_source.index("会员设置已保存并立即生效"))
         admin_action_source = self.app.split("function adminUserAction(kind)", 1)[1].split("function wordDraftKey", 1)[0]

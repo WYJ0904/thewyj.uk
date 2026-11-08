@@ -2,9 +2,13 @@
 import {assert,fs,path,base,out,fixtures,page,session} from '../p07-r5/harness.mjs';
 const {A}=await fixtures(),samples=[],probe=await fs.readFile(new URL('./preflight-probe.js',import.meta.url),'utf8');
 const contexts=[['public-home','/',null,'publicHome'],['authenticated-home','/',A.session,'publicHome'],['account-workspace','/account',A.session,'accountModal'],['finance-workspace','/finance',A.session,'financePage']];
+let attempted=null;
+async function persist(status,error=null){await fs.writeFile(path.join(out,'f-workspace-lab.json'),JSON.stringify({source:process.env.P07_D_TARGET_HEAD,expectedSampleCount:12,sampleCount:samples.length,repetitionsPerContext:3,samples,attempted,error,fieldINP:{status:'NOT_TESTED',reason:'No real-user field cohort; scripted lab input is not field INP'},status,scope:'No product architecture or cache changes; no measurement retries'},null,2));}
+try{
 for(const [context,route,token,id] of contexts){
   for(let repeat=1;repeat<=3;repeat++){
-    const p=await page();
+    attempted={context,repeat,stage:'opening Chrome CDP connection'};await persist('LAB_IN_PROGRESS');
+    const p=await page();attempted.stage='measuring actual workspace';
     try{
       await p.send('Network.setBypassServiceWorker',{bypass:true});await p.send('Network.setCacheDisabled',{cacheDisabled:true});await p.send('Emulation.setCPUThrottlingRate',{rate:1});
       if(token)await session(p,token,'/account');
@@ -20,8 +24,10 @@ for(const [context,route,token,id] of contexts){
       data.validForPrivateWorkbench=valid&&['account-workspace','finance-workspace'].includes(context)&&data.standardLcpArea!=='public-hero';
       const shot=await p.send('Page.captureScreenshot',{format:'png'}),screenshot=`lab-${context}-${repeat}.png`;await fs.writeFile(path.join(out,screenshot),Buffer.from(shot.data,'base64'));
       samples.push({context,repeat,validForRequestedWorkspace:valid,invalidReason:valid?null:entry?.splash?'LCP belongs to Splash':'LCP attribution does not match requested workspace',conditions:{runtime:'compiled local Pages + Miniflare + real Windows Chrome',CPUThrottle:1,network:'unthrottled loopback',browserCache:'disabled',serviceWorker:'bypassed for this lab only',observationEnds:'first trusted Tab after page ready and fonts',device:'desktop emulation, 1440x960 CSS px, DPR 1'},...data,screenshot});
+      await persist('LAB_IN_PROGRESS');
     }finally{await p.close();}
   }
 }
-const report={source:process.env.P07_D_TARGET_HEAD,sampleCount:samples.length,repetitionsPerContext:3,samples,fieldINP:{status:'NOT_TESTED',reason:'No real-user field cohort; scripted lab input is not field INP'},status:'LAB_VALIDITY_RECORDED',scope:'No architecture, production, policy or cache strategy changes'};
-await fs.writeFile(path.join(out,'f-workspace-lab.json'),JSON.stringify(report,null,2));console.log(JSON.stringify({samples:samples.length,valid:samples.filter(x=>x.validForRequestedWorkspace).length,fieldINP:'NOT_TESTED'}));
+  assert.equal(samples.length,12,'all planned lab samples must be recorded');
+}catch(error){await persist('LAB_PARTIAL',{message:error.message,...attempted});throw error;}
+await persist('LAB_VALIDITY_RECORDED');console.log(JSON.stringify({samples:samples.length,valid:samples.filter(x=>x.validForRequestedWorkspace).length,fieldINP:'NOT_TESTED'}));
