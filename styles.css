@@ -20,6 +20,9 @@
    until the bounded API request settles; never expose a provisional layout. */
 html[data-interface-policy="pending"] #v3AppFrame { display: none; }
 html[data-session-verification="pending"] #v3AppFrame { display: none; }
+/* A recovery surface can coexist with an unfinished mount in the DOM. Only
+   the verified, completed destination may become the visible main canvas. */
+html[data-workspace-mount="pending"] #v3AppFrame { display: none; }
 .interface-policy-state { margin: 24px auto; padding: 20px; max-width: 840px; }
 .interface-policy-state[hidden] { display: none; }
 

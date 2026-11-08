@@ -638,6 +638,11 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("if (state.session && (sessionRestorePending || !state.account))", route_source)
         self.assertLess(route_source.index("showSessionRecovery("), route_source.index('if (!state.session || !state.account)'))
         self.assertIn("sessionRestorePending = Boolean(restoredSession);", self.app)
+        self.assertIn("if (!options.preserveWorkspaceMount) hidePrimaryScreens();", self.app)
+        mount_source = self.app.split("async function mountVerifiedCurrentRoute", 1)[1].split("function showStartupRecovery", 1)[0]
+        self.assertLess(mount_source.index("await render;"), mount_source.index("dataset.workspaceMount = 'ready'"))
+        self.assertIn("generation !== routeGeneration", mount_source)
+        self.assertIn("preserveWorkspaceMount: true", self.app)
         self.assertIn('id="sessionRecovery"', self.html)
         self.assertNotIn('showAuth(', initial_render)
         membership_source = self.app.split("async function saveAdminMembership()", 1)[1].split("function updateAdminToolsOverride", 1)[0]
