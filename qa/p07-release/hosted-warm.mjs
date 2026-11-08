@@ -6,8 +6,8 @@ import {ownedBrowser,openPage,pointer,ready} from './owned-browser.mjs';
 import {connectPreview} from './preview-api.mjs';
 import {isAllowedPagesFile} from '../../scripts/stage_pages_deploy.mjs';
 import {observeRelease,seedUserState,verifyOfflineAndData} from '../p07-r4a/upgrade-safety.mjs';
-const saved=JSON.parse(await readFile('.wrangler/p07-closeout/fixture-secrets.json','utf8')),old=saved.context;
-const ctx=await connectPreview({sha:old.sha,deploymentId:old.deploymentId}),origin=ctx.aliases[0];assert.ok(origin,'audited stable branch alias required');
+const saved=JSON.parse(await readFile('.wrangler/p07-closeout/fixture-secrets.json','utf8')),i=process.argv.indexOf('--old-deployment'),old=i<0?saved.context:{sha:'e4844a5304709263a2810332eca5d2a87b069d3d',deploymentId:process.argv[i+1],branch:'codex/p07-release-upgrade-lab'};
+const ctx=await connectPreview(old),origin=ctx.aliases[0];assert.ok(origin,'audited stable branch alias required');
 const out='docs/migration-evidence/p07-closeout',proof={old_sha:old.sha,origin,kind:'actual stable Hosted alias old->new deployment; owned profile, legal synthetic login',production_operations:0,configuration_mutations:0};
 const browser=await ownedBrowser('hosted-warm'),p=await openPage({cdpUrl:browser.cdpUrl,baseUrl:origin,width:1440,height:960,mobile:false});
 await p.send('Page.addScriptToEvaluateOnNewDocument',{source:'globalThis.__p07UpgradeDoc=performance.timeOrigin+Math.random()'});
@@ -24,6 +24,6 @@ try{
  const path='/js/core/api.js?release=20261108-aeris-p07-release-rc6';const oldBody=await p.evaluate(`fetch(${JSON.stringify(path)}).then(r=>r.arrayBuffer()).then(b=>crypto.subtle.digest('SHA-256',b)).then(b=>[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join(''))`);assert.equal(oldBody,createHash('sha256').update(execFileSync('git',['show',old.sha+':js/core/api.js'])).digest('hex'));proof.old_client_bytes_retained=true;
  // The real logged-in upgrade above is separate from the helper's public
  // offline fallback assertions; explicitly logout only this synthetic session.
- await pointer(p,'#accountMenu > summary');await pointer(p,'#logoutBtn');await ready(p,'publicHome');proof.offline_and_data=await verifyOfflineAndData(p,{out,release,resources:proof.responses});proof.status='PASS';
+ await pointer(p,'#accountMenu > summary');await pointer(p,'#logoutBtn');await ready(p,'authPanel');assert.equal(await p.evaluate("!!localStorage.getItem('wyjAccountSession')"),false);proof.real_logout_completed=true;await p.send('Page.navigate',{url:origin+'/'});await ready(p,'publicHome');proof.offline_and_data=await verifyOfflineAndData(p,{out,release,resources:proof.responses});proof.status='PASS';
 }catch(error){proof.status='FAIL';proof.error=error.message;process.exitCode=1;}
 finally{await writeFile(out+'/hosted-warm-upgrade.json',JSON.stringify(proof,null,2)+'\n');await p.close();await browser.close();console.log(JSON.stringify({status:proof.status,error:proof.error,old_sha:proof.old_sha,new_sha:proof.new_sha,responses:proof.responses?.length}));}
