@@ -1,10 +1,10 @@
-import { randomId as capabilityRandomId } from "../core/capabilities.js?release=20261108-aeris-p07-release-rc7";
-import { createFinanceDisclosure } from "./disclosure.js?release=20261108-aeris-p07-release-rc7";
-import { mergeLocalNotificationLedger } from "./notification-ledger.js?release=20261108-aeris-p07-release-rc7";
-import { reconcileKeyedRows } from "../core/keyed-list.js?release=20261108-aeris-p07-release-rc7";
-import { formatFinanceMoney } from "./format.js?release=20261108-aeris-p07-release-rc7";
-import { createParkedRows } from "../core/parked-rows.js?release=20261108-aeris-p07-release-rc7";
-export { formatFinanceMoney } from "./format.js?release=20261108-aeris-p07-release-rc7";
+import { randomId as capabilityRandomId } from "../core/capabilities.js?release=20261109-aeris-p07-production-r1";
+import { createFinanceDisclosure } from "./disclosure.js?release=20261109-aeris-p07-production-r1";
+import { mergeLocalNotificationLedger } from "./notification-ledger.js?release=20261109-aeris-p07-production-r1";
+import { reconcileKeyedRows } from "../core/keyed-list.js?release=20261109-aeris-p07-production-r1";
+import { formatFinanceMoney } from "./format.js?release=20261109-aeris-p07-production-r1";
+import { createParkedRows } from "../core/parked-rows.js?release=20261109-aeris-p07-production-r1";
+export { formatFinanceMoney } from "./format.js?release=20261109-aeris-p07-production-r1";
 const SCHEMA_VERSION = 1;
 const MAX_LOCAL_TRANSACTIONS = 5000;
 const MAX_PENDING_OPERATIONS = 500;

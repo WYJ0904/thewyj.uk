@@ -1134,6 +1134,11 @@ jobs:
           set -euo pipefail
           node qa/p07-release/rollback-browser.mjs --source '${{ github.event.pull_request.head.sha || github.sha }}' 2>&1 | tee artifacts/p07-safe-rollback.log
 
+      - name: Final website footer and newest changelog browser acceptance
+        run: |
+          set -euo pipefail
+          P07_D_TARGET_HEAD='${{ github.event.pull_request.head.sha || github.sha }}' node qa/p07-release/publication-browser.mjs 2>&1 | tee artifacts/p07-publication.log
+
       - name: Stop Cloudflare-only browser fixtures
         if: always()
         run: |
