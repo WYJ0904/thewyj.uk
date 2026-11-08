@@ -1,0 +1,107 @@
+{
+  "scope": "synthetic local compiled Pages; no remote binding and no AI model calls",
+  "modes": {
+    "on": {
+      "source_sha": "854bac6a86191d916c3c38511c2f041b24ccb639",
+      "suites": [
+        {
+          "suite": "p07-round3-browser",
+          "script": "qa/p07-round3/browser.mjs",
+          "status": "PASS",
+          "durationMs": 74030
+        },
+        {
+          "suite": "r4a-runtime",
+          "script": ".wrangler/p07-r4a-driver-release-preflight-854-on/runtime-browser.mjs",
+          "status": "PASS",
+          "durationMs": 14186
+        },
+        {
+          "suite": "primary-workspaces",
+          "script": "qa/p07-round3/primary-workspaces.mjs",
+          "status": "PASS",
+          "durationMs": 4501
+        },
+        {
+          "suite": "p4-workspace-behavior",
+          "script": "qa/aeris/p4-behavior-browser.mjs",
+          "status": "PASS",
+          "durationMs": 33153
+        },
+        {
+          "suite": "r5-policy",
+          "script": ".wrangler/p07-r4a-driver-release-preflight-854-on/r5-policy.mjs",
+          "status": "PASS",
+          "durationMs": 14552
+        },
+        {
+          "suite": "r5-browser",
+          "script": ".wrangler/p07-r4a-driver-release-preflight-854-on/r5-browser.mjs",
+          "status": "PASS",
+          "durationMs": 64531
+        },
+        {
+          "suite": "r4c-e",
+          "script": ".wrangler/p07-r4a-driver-release-preflight-854-on/r4c-e.mjs",
+          "status": "PASS",
+          "durationMs": 10590
+        },
+        {
+          "suite": "r4a-pwa",
+          "script": ".wrangler/p07-r4a-driver-release-preflight-854-on/pwa-browser.mjs",
+          "status": "PASS",
+          "durationMs": 2972
+        },
+        {
+          "suite": "r4c-f",
+          "script": ".wrangler/p07-r4a-driver-release-preflight-854-on/r4c-f.mjs",
+          "status": "PASS",
+          "durationMs": 30129
+        },
+        {
+          "suite": "f-closeout",
+          "script": ".wrangler/p07-r4a-driver-release-preflight-854-on/f-closeout.mjs",
+          "status": "PASS",
+          "durationMs": 67933
+        },
+        {
+          "suite": "f-lab",
+          "script": ".wrangler/p07-r4a-driver-release-preflight-854-on/f-lab.mjs",
+          "status": "PASS",
+          "durationMs": 35528
+        },
+        {
+          "suite": "final-transitions",
+          "script": ".wrangler/p07-r4a-driver-release-preflight-854-on/final-transitions.mjs",
+          "status": "PASS",
+          "durationMs": 107006
+        }
+      ],
+      "source_manifest": "854bac6a86191d916c3c38511c2f041b24ccb639"
+    },
+    "off": {
+      "source_sha": "854bac6a86191d916c3c38511c2f041b24ccb639",
+      "suites": [
+        {
+          "suite": "p07-round3-browser",
+          "script": "qa/p07-round3/browser.mjs",
+          "status": "PASS",
+          "durationMs": 8736
+        }
+      ],
+      "source_manifest": "854bac6a86191d916c3c38511c2f041b24ccb639"
+    },
+    "kill": {
+      "source_sha": "854bac6a86191d916c3c38511c2f041b24ccb639",
+      "suites": [
+        {
+          "suite": "p07-round3-browser",
+          "script": "qa/p07-round3/browser.mjs",
+          "status": "PASS",
+          "durationMs": 8937
+        }
+      ],
+      "source_manifest": "854bac6a86191d916c3c38511c2f041b24ccb639"
+    }
+  }
+}

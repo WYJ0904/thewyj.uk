@@ -1,0 +1,83 @@
+{
+  "kind": "synthetic_pure_model_probe",
+  "observed_at": "2026-11-08T11:00:48.811Z",
+  "production_calls": 0,
+  "source": "functions/_lib/task11-model.mjs",
+  "versions": [
+    {
+      "label": "main",
+      "sha": "3eb268b748a6e7a1aaa7369059db474810bb59d4",
+      "source_sha256": "19169930e691b47cfecb2f401976fa05a79f5af2354382f54ce5e9ae4c4478c9",
+      "cases": [
+        {
+          "name": "same-client same-timestamp nonempty meaning must survive",
+          "expected": "网络",
+          "actual": "",
+          "pass": false
+        },
+        {
+          "name": "newer same-client offline tombstone with unacknowledged server version",
+          "expected": true,
+          "actual": false,
+          "pass": false
+        },
+        {
+          "name": "stale other-client tombstone remains rejected",
+          "expected": false,
+          "actual": false,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "label": "rc5",
+      "sha": "482580b0855e14a61b3f6b51e9d91ae7855296cb",
+      "source_sha256": "19169930e691b47cfecb2f401976fa05a79f5af2354382f54ce5e9ae4c4478c9",
+      "cases": [
+        {
+          "name": "same-client same-timestamp nonempty meaning must survive",
+          "expected": "网络",
+          "actual": "",
+          "pass": false
+        },
+        {
+          "name": "newer same-client offline tombstone with unacknowledged server version",
+          "expected": true,
+          "actual": false,
+          "pass": false
+        },
+        {
+          "name": "stale other-client tombstone remains rejected",
+          "expected": false,
+          "actual": false,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "label": "pr136",
+      "sha": "f4ce8c7e7abc12b80895a570068fa7aa2f7a2a17",
+      "source_sha256": "4f8d4e61784d2a83890c9a2df34bfdff9474aeaccf163dfe38fc511f7fb1c9b3",
+      "cases": [
+        {
+          "name": "same-client same-timestamp nonempty meaning must survive",
+          "expected": "网络",
+          "actual": "网络",
+          "pass": true
+        },
+        {
+          "name": "newer same-client offline tombstone with unacknowledged server version",
+          "expected": true,
+          "actual": true,
+          "pass": true
+        },
+        {
+          "name": "stale other-client tombstone remains rejected",
+          "expected": false,
+          "actual": false,
+          "pass": true
+        }
+      ]
+    }
+  ]
+}

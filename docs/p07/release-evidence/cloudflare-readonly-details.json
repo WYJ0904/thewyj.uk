@@ -1,0 +1,292 @@
+{
+  "observed_at": "2026-11-08T11:01:32.786Z",
+  "operations": [
+    {
+      "route": "/pages/projects/thewyj-uk/deployments?env=production&per_page=10&page=1",
+      "http_status": 200,
+      "success": true,
+      "error_codes": []
+    },
+    {
+      "route": "/r2/buckets/wyj-cloud-production",
+      "http_status": 200,
+      "success": true,
+      "error_codes": []
+    },
+    {
+      "route": "/r2/buckets/wyj-cloud-preview",
+      "http_status": 200,
+      "success": true,
+      "error_codes": []
+    },
+    {
+      "route": "/d1/database/11c288d8-c584-409f-bb1f-7e7af11793e5/query",
+      "sql": "SELECT flag_key, enabled, COUNT(*) AS count FROM task25_user_flag_overrides GROUP BY flag_key, enabled ORDER BY flag_key, enabled",
+      "http_status": 200,
+      "success": true,
+      "error_codes": []
+    },
+    {
+      "route": "/d1/database/11c288d8-c584-409f-bb1f-7e7af11793e5/query",
+      "sql": "SELECT channel, COUNT(*) AS count FROM task25_release_preferences GROUP BY channel ORDER BY channel",
+      "http_status": 200,
+      "success": true,
+      "error_codes": []
+    },
+    {
+      "route": "/d1/database/11c288d8-c584-409f-bb1f-7e7af11793e5/query",
+      "sql": "SELECT key, value FROM task25_metadata WHERE key='schema_version'",
+      "http_status": 200,
+      "success": true,
+      "error_codes": []
+    },
+    {
+      "route": "/d1/database/11c288d8-c584-409f-bb1f-7e7af11793e5/query",
+      "sql": "SELECT name, sql FROM sqlite_master WHERE type='table' AND name IN ('task11_feedback_audit_logs','finance_candidates','finance_transactions','task26_wrong_review_events','task26_wrong_review_projection') ORDER BY name",
+      "http_status": 200,
+      "success": true,
+      "error_codes": []
+    }
+  ],
+  "mutations": 0,
+  "production_history": [
+    {
+      "id": "0bc5e5bb-6cd3-4e02-8a65-2b8539ae80ba",
+      "environment": "production",
+      "url": "https://0bc5e5bb.thewyj-uk.pages.dev",
+      "created_on": "2026-11-03T09:09:51.536337Z",
+      "status": "success",
+      "trigger": {
+        "type": "github:push",
+        "metadata": {
+          "branch": "main",
+          "commit_hash": "3eb268b748a6e7a1aaa7369059db474810bb59d4",
+          "commit_message": "Merge pull request #110 from WYJ0904/codex/android-accessibility-accounting-hotfix\n\nAndroid: require settlement evidence and recover payment verification safely",
+          "commit_dirty": false
+        }
+      }
+    },
+    {
+      "id": "55b78a0f-8419-4054-b9c2-3ffc26da3f20",
+      "environment": "production",
+      "url": "https://55b78a0f.thewyj-uk.pages.dev",
+      "created_on": "2026-10-29T08:33:03.850454Z",
+      "status": "success",
+      "trigger": {
+        "type": "github:push",
+        "metadata": {
+          "branch": "main",
+          "commit_hash": "c4d63fa2fb8181a368826db034017fbdabd6ce6f",
+          "commit_message": "CI: contain pinned local proxy disconnect and bound failure diagnostics (#116)\n\nCI: isolate the pinned local proxy disconnect from host shutdown",
+          "commit_dirty": false
+        }
+      }
+    },
+    {
+      "id": "e1c33f63-651a-4f1b-b003-7f0a3e71e7ce",
+      "environment": "production",
+      "url": "https://e1c33f63.thewyj-uk.pages.dev",
+      "created_on": "2026-10-29T04:39:49.219767Z",
+      "status": "success",
+      "trigger": {
+        "type": "github:push",
+        "metadata": {
+          "branch": "main",
+          "commit_hash": "63b8c419380a0a4daae06e8bbf97f77d92ce4939",
+          "commit_message": "Merge pull request #114 from WYJ0904/codex/aeris-ci-release-guards\n\nRestore CI, safe Pages publishing and Aeris page identity",
+          "commit_dirty": false
+        }
+      }
+    },
+    {
+      "id": "9d98888f-a4ce-4bf6-b255-aa2947785e36",
+      "environment": "production",
+      "url": "https://9d98888f.thewyj-uk.pages.dev",
+      "created_on": "2026-10-27T13:54:17.678499Z",
+      "status": "success",
+      "trigger": {
+        "type": "github:push",
+        "metadata": {
+          "branch": "main",
+          "commit_hash": "f144956a6962f0a43c7b4fc603e7cf18aabdf068",
+          "commit_message": "Merge pull request #113 from WYJ0904/codex/p07-ui-release\n\nP07 UI: backwards-compatible accessibility slice, default OFF",
+          "commit_dirty": false
+        }
+      }
+    },
+    {
+      "id": "566292b3-3c7f-4ef5-93b5-6977e606c14a",
+      "environment": "production",
+      "url": "https://566292b3.thewyj-uk.pages.dev",
+      "created_on": "2026-10-15T02:53:04.638304Z",
+      "status": "success",
+      "trigger": {
+        "type": "ad_hoc",
+        "metadata": {
+          "branch": "main",
+          "commit_hash": "74eadf589b0a6ffe1e5ab7a9564115891c4ef2dc",
+          "commit_message": "Task26 Stable learning/mastery release notes with explicit owner waivers; unchanged App50",
+          "commit_dirty": false
+        }
+      }
+    },
+    {
+      "id": "9272f12b-db35-463d-8a80-6a2612ee4c10",
+      "environment": "production",
+      "url": "https://9272f12b.thewyj-uk.pages.dev",
+      "created_on": "2026-10-14T12:18:39.282061Z",
+      "status": "idle",
+      "trigger": {
+        "type": "github:push",
+        "metadata": {
+          "branch": "main",
+          "commit_hash": "74eadf589b0a6ffe1e5ab7a9564115891c4ef2dc",
+          "commit_message": "Publish Task26 Stable release notes with explicit owner waivers (#109)\n\nPublish Task26 Stable release notes and owner-waiver checkpoint",
+          "commit_dirty": false
+        }
+      }
+    },
+    {
+      "id": "74c90a72-5b91-472d-97b2-08588256ee9c",
+      "environment": "production",
+      "url": "https://74c90a72.thewyj-uk.pages.dev",
+      "created_on": "2026-10-13T06:49:25.800881Z",
+      "status": "success",
+      "trigger": {
+        "type": "ad_hoc",
+        "metadata": {
+          "branch": "main",
+          "commit_hash": "c1f32485028c9ce9114d21cab4af3bb46961359c",
+          "commit_message": "Task26 due-review and membership corrections: five flags OFF; original App50 retained",
+          "commit_dirty": false
+        }
+      }
+    },
+    {
+      "id": "e4a88216-54cb-4805-9cdd-0427a0f4e41c",
+      "environment": "production",
+      "url": "https://e4a88216.thewyj-uk.pages.dev",
+      "created_on": "2026-10-13T06:20:08.254825Z",
+      "status": "idle",
+      "trigger": {
+        "type": "github:push",
+        "metadata": {
+          "branch": "main",
+          "commit_hash": "c1f32485028c9ce9114d21cab4af3bb46961359c",
+          "commit_message": "Merge pull request #108 from WYJ0904/codex/task26-adaptive-learning-mastery\n\nfix: reopen inactive administrator memberships without source conflicts",
+          "commit_dirty": false
+        }
+      }
+    },
+    {
+      "id": "d044a3ea-8d31-426f-bb85-2e86fd7f169c",
+      "environment": "production",
+      "url": "https://d044a3ea.thewyj-uk.pages.dev",
+      "created_on": "2026-10-13T05:18:14.523256Z",
+      "status": "idle",
+      "trigger": {
+        "type": "github:push",
+        "metadata": {
+          "branch": "main",
+          "commit_hash": "9b8bae8bb569aae32d2b0660a8dab88aad9b5a4b",
+          "commit_message": "Merge pull request #107 from WYJ0904/codex/task26-adaptive-learning-mastery\n\nfix(task26): complete due reviews without repeated score credit",
+          "commit_dirty": false
+        }
+      }
+    },
+    {
+      "id": "e5b4cdac-6992-4562-ad74-1a2fb5d9495e",
+      "environment": "production",
+      "url": "https://e5b4cdac.thewyj-uk.pages.dev",
+      "created_on": "2026-10-12T11:02:10.613599Z",
+      "status": "success",
+      "trigger": {
+        "type": "ad_hoc",
+        "metadata": {
+          "branch": "main",
+          "commit_hash": "cbc308398b34ad6d7d12dfc322261a1f9062c491",
+          "commit_message": "Task26 clipboard correction: five learning flags OFF; original App50 retained",
+          "commit_dirty": false
+        }
+      }
+    }
+  ],
+  "r2_production": {
+    "name": "wyj-cloud-production",
+    "creation_date": "2026-08-14T05:32:38.062Z",
+    "location": "APAC",
+    "storage_class": "Standard",
+    "jurisdiction": "default"
+  },
+  "r2_preview": {
+    "name": "wyj-cloud-preview",
+    "creation_date": "2026-08-14T03:58:02.996Z",
+    "location": "APAC",
+    "storage_class": "Standard",
+    "jurisdiction": "default"
+  },
+  "override_counts": [
+    {
+      "any_enabled_override": false,
+      "any_disabled_override": false,
+      "all_existing_overrides_inherit": true
+    }
+  ],
+  "metadata": [
+    {
+      "results": [
+        {
+          "key": "schema_version",
+          "value": "1"
+        }
+      ],
+      "success": true,
+      "meta": {
+        "served_by": "v3-prod",
+        "served_by_region": "APAC",
+        "served_by_colo": "HKG",
+        "served_by_primary": true,
+        "timings": {
+          "sql_duration_ms": 0.1035
+        },
+        "duration": 0.1035,
+        "changes": 0,
+        "last_row_id": 0,
+        "changed_db": false,
+        "size_after": 4554752,
+        "rows_read": 1,
+        "rows_written": 0,
+        "total_attempts": 1
+      }
+    }
+  ],
+  "table_metadata": [
+    {
+      "results": [
+        {
+          "name": "task11_feedback_audit_logs",
+          "sql": "CREATE TABLE task11_feedback_audit_logs (\r\n    id TEXT PRIMARY KEY CHECK (length(id) BETWEEN 1 AND 64),\r\n    actor_user_id TEXT NOT NULL CHECK (length(actor_user_id) BETWEEN 1 AND 80),\r\n    actor_username TEXT NOT NULL CHECK (length(actor_username) BETWEEN 1 AND 80),\r\n    action TEXT NOT NULL CHECK (action IN (\r\n        'feedback_update', 'feedback_merge', 'feedback_delete_spam', 'feedback_import'\r\n    )),\r\n    feedback_id TEXT NOT NULL CHECK (length(feedback_id) BETWEEN 1 AND 64),\r\n    target_user_id TEXT NOT NULL DEFAULT '' CHECK (length(target_user_id) <= 80),\r\n    before_json TEXT NOT NULL DEFAULT '{}',\r\n    after_json TEXT NOT NULL DEFAULT '{}',\r\n    note TEXT NOT NULL DEFAULT '' CHECK (length(note) <= 1000),\r\n    created_at TEXT NOT NULL\r\n)"
+        }
+      ],
+      "success": true,
+      "meta": {
+        "served_by": "v3-prod",
+        "served_by_region": "APAC",
+        "served_by_colo": "HKG",
+        "served_by_primary": true,
+        "timings": {
+          "sql_duration_ms": 0.267
+        },
+        "duration": 0.267,
+        "changes": 0,
+        "last_row_id": 0,
+        "changed_db": false,
+        "size_after": 4554752,
+        "rows_read": 326,
+        "rows_written": 0,
+        "total_attempts": 1
+      }
+    }
+  ],
+  "privacy_projection": "Production aggregate channel distribution and override counts omitted; raw read-only receipt retained locally"
+}

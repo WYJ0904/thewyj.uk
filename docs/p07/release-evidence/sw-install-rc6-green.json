@@ -1,0 +1,5425 @@
+{
+  "source_sha": "854bac6a86191d916c3c38511c2f041b24ccb639",
+  "release": "20261108-aeris-p07-release-rc6",
+  "sw_sha256": "4256f2a874e4026ce384879f8327e9977c16aa9819f015e10d489286100c16df",
+  "core_count": 81,
+  "fixture": "actual Chrome; HTTP/1 six-connection queue, 900ms response latency; loopback only",
+  "production_operations": 0,
+  "model_calls": 0,
+  "cases": [
+    {
+      "name": "normal",
+      "requests": [
+        {
+          "path": "/favicon.ico",
+          "generation": "candidate",
+          "start_ms": 1794136710441,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710448
+        },
+        {
+          "path": "/",
+          "generation": "candidate",
+          "start_ms": 1794136710460,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710463
+        },
+        {
+          "path": "/index.html",
+          "generation": "candidate",
+          "start_ms": 1794136710461,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710463
+        },
+        {
+          "path": "/styles.css?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710462,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710464
+        },
+        {
+          "path": "/product-ui.css?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710464,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710467
+        },
+        {
+          "path": "/design-system.css?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710466,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710468
+        },
+        {
+          "path": "/public-experience.css?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710468,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710470
+        },
+        {
+          "path": "/workspace-experience.css?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710469,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710472
+        },
+        {
+          "path": "/spatial-experience.css?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710470,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710473
+        },
+        {
+          "path": "/changelog.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710472,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710481
+        },
+        {
+          "path": "/learning-sync.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710473,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710481
+        },
+        {
+          "path": "/app.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710473,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710482
+        },
+        {
+          "path": "/js/core/api.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710483,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710485
+        },
+        {
+          "path": "/js/core/changelog.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710484,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710491
+        },
+        {
+          "path": "/js/core/capabilities.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710484,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710491
+        },
+        {
+          "path": "/js/core/config.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710490,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710492
+        },
+        {
+          "path": "/js/core/router.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710492,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710496
+        },
+        {
+          "path": "/js/core/session.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710492,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710496
+        },
+        {
+          "path": "/js/core/storage.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710493,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710496
+        },
+        {
+          "path": "/js/core/ui.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710497,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710511
+        },
+        {
+          "path": "/js/core/design-system.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710497,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710511
+        },
+        {
+          "path": "/js/core/public-ui-policy.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710498,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710512
+        },
+        {
+          "path": "/js/core/download.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710513,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710527
+        },
+        {
+          "path": "/js/core/perf.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710513,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710527
+        },
+        {
+          "path": "/js/core/motion.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710513,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710527
+        },
+        {
+          "path": "/js/core/keyed-list.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710529,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710543
+        },
+        {
+          "path": "/js/core/public-experience.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710529,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710543
+        },
+        {
+          "path": "/favicon.ico?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710530,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710544
+        },
+        {
+          "path": "/assets/brand/favicon-32.png?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710544,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710559
+        },
+        {
+          "path": "/assets/brand/apple-touch-icon.png?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710545,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710559
+        },
+        {
+          "path": "/assets/brand/aeris-maskable-512.png?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710545,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710560
+        },
+        {
+          "path": "/assets/brand/aeris-lockup.png?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710561,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710574
+        },
+        {
+          "path": "/icon-192.png?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710561,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710575
+        },
+        {
+          "path": "/icon-512.png?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710562,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710575
+        },
+        {
+          "path": "/js/finance/app.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710576,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710590
+        },
+        {
+          "path": "/js/finance/candidates.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710576,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710590
+        },
+        {
+          "path": "/js/finance/disclosure.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710576,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710590
+        },
+        {
+          "path": "/js/finance/notification-ledger.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710591,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710605
+        },
+        {
+          "path": "/js/transfer/app.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710592,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710605
+        },
+        {
+          "path": "/js/transfer/updates.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710592,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710606
+        },
+        {
+          "path": "/js/language/achievements.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710607,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710621
+        },
+        {
+          "path": "/js/language/history.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710607,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710621
+        },
+        {
+          "path": "/js/language/pdf.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710607,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710621
+        },
+        {
+          "path": "/js/language/mastery.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710622,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710637
+        },
+        {
+          "path": "/js/language/mastery-state.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710623,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710637
+        },
+        {
+          "path": "/js/language/mastery-journal.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710623,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710638
+        },
+        {
+          "path": "/js/language/quiz.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710639,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710653
+        },
+        {
+          "path": "/js/language/speech.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710639,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710653
+        },
+        {
+          "path": "/js/language/speech-rate.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710640,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710653
+        },
+        {
+          "path": "/js/language/sync-adapter.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710654,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710668
+        },
+        {
+          "path": "/js/language/wrong-book.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710654,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710668
+        },
+        {
+          "path": "/js/membership/account.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710655,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710668
+        },
+        {
+          "path": "/js/membership/plans.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710669,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710683
+        },
+        {
+          "path": "/js/membership/recharge.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710669,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710684
+        },
+        {
+          "path": "/js/admin/formatters.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710670,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710684
+        },
+        {
+          "path": "/tools.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710685,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710699
+        },
+        {
+          "path": "/js/tools/catalog.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710685,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710699
+        },
+        {
+          "path": "/js/tools/file.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710685,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710699
+        },
+        {
+          "path": "/js/tools/image.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710703,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710714
+        },
+        {
+          "path": "/js/tools/random.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710703,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710714
+        },
+        {
+          "path": "/js/tools/runner.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710703,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710714
+        },
+        {
+          "path": "/js/tools/temporary.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710715,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710729
+        },
+        {
+          "path": "/js/tools/text.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710716,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710729
+        },
+        {
+          "path": "/workflows.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710716,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710730
+        },
+        {
+          "path": "/vendor/qrcode.js?v=2.0.4",
+          "generation": "candidate",
+          "start_ms": 1794136710731,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710745
+        },
+        {
+          "path": "/vendor/opencc-st-characters.txt",
+          "generation": "candidate",
+          "start_ms": 1794136710731,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710745
+        },
+        {
+          "path": "/vendor/opencc-ts-characters.txt",
+          "generation": "candidate",
+          "start_ms": 1794136710731,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710746
+        },
+        {
+          "path": "/manifest.webmanifest?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710747,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710761
+        },
+        {
+          "path": "/icon-192.png",
+          "generation": "candidate",
+          "start_ms": 1794136710747,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710761
+        },
+        {
+          "path": "/icon-512.png",
+          "generation": "candidate",
+          "start_ms": 1794136710747,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710761
+        },
+        {
+          "path": "/js/core/feature-flags.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710763,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710776
+        },
+        {
+          "path": "/js/core/feature-console.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710763,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710777
+        },
+        {
+          "path": "/js/core/startup.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710763,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710777
+        },
+        {
+          "path": "/js/core/home-widget-layout.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710778,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710792
+        },
+        {
+          "path": "/js/core/home-widgets.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710778,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710792
+        },
+        {
+          "path": "/js/core/home-widget-data.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710778,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710792
+        },
+        {
+          "path": "/js/transfer/upload-part.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710793,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710807
+        },
+        {
+          "path": "/js/core/lazy-controller.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710794,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710807
+        },
+        {
+          "path": "/js/core/parked-rows.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710794,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710807
+        },
+        {
+          "path": "/js/core/dashboard.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710808,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710822
+        },
+        {
+          "path": "/js/finance/format.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710808,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710822
+        },
+        {
+          "path": "/js/tools/digest-worker.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136710809,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710822
+        },
+        {
+          "path": "/assets/logo.png",
+          "generation": "candidate",
+          "start_ms": 1794136710825,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136710838
+        }
+      ],
+      "worker_errors": [],
+      "started_at": "2026-11-08T11:18:29.769Z",
+      "first": {
+        "state": "activated",
+        "duration_ms": 466
+      },
+      "after_first": {
+        "keys": [
+          "synthetic-user-cache",
+          "wyj-shell-20261108-aeris-p07-release-rc6-es-modules"
+        ],
+        "missing": [],
+        "currentExists": true,
+        "html": true,
+        "user": "yes",
+        "local": "yes",
+        "idb": "yes"
+      },
+      "final": {
+        "keys": [
+          "synthetic-user-cache",
+          "wyj-shell-20261108-aeris-p07-release-rc6-es-modules"
+        ],
+        "missing": [],
+        "currentExists": true,
+        "html": true,
+        "user": "yes",
+        "local": "yes",
+        "idb": "yes"
+      },
+      "offline_html": true,
+      "status": "PASS",
+      "max_server_active": 3,
+      "ended_at": "2026-11-08T11:18:30.951Z"
+    },
+    {
+      "name": "slow",
+      "requests": [
+        {
+          "path": "/favicon.ico",
+          "generation": "candidate",
+          "start_ms": 1794136711699,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136712600
+        },
+        {
+          "path": "/",
+          "generation": "candidate",
+          "start_ms": 1794136711727,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136712630
+        },
+        {
+          "path": "/index.html",
+          "generation": "candidate",
+          "start_ms": 1794136711730,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136712630
+        },
+        {
+          "path": "/styles.css?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136711730,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136712630
+        },
+        {
+          "path": "/product-ui.css?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136712632,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136713548
+        },
+        {
+          "path": "/design-system.css?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136712633,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136713548
+        },
+        {
+          "path": "/public-experience.css?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136712634,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136713549
+        },
+        {
+          "path": "/workspace-experience.css?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136713550,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136714464
+        },
+        {
+          "path": "/spatial-experience.css?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136713551,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136714464
+        },
+        {
+          "path": "/changelog.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136713551,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136714465
+        },
+        {
+          "path": "/learning-sync.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136714466,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136715366
+        },
+        {
+          "path": "/app.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136714466,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136715368
+        },
+        {
+          "path": "/js/core/api.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136714467,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136715368
+        },
+        {
+          "path": "/js/core/changelog.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136715367,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136716277
+        },
+        {
+          "path": "/js/core/capabilities.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136715372,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136716277
+        },
+        {
+          "path": "/js/core/config.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136715372,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136716277
+        },
+        {
+          "path": "/js/core/router.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136716279,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136717182
+        },
+        {
+          "path": "/js/core/session.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136716279,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136717182
+        },
+        {
+          "path": "/js/core/storage.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136716280,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136717182
+        },
+        {
+          "path": "/js/core/ui.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136717184,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136718087
+        },
+        {
+          "path": "/js/core/design-system.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136717184,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136718087
+        },
+        {
+          "path": "/js/core/public-ui-policy.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136717184,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136718087
+        },
+        {
+          "path": "/js/core/download.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136718089,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136718997
+        },
+        {
+          "path": "/js/core/perf.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136718089,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136718998
+        },
+        {
+          "path": "/js/core/motion.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136718090,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136718998
+        },
+        {
+          "path": "/js/core/keyed-list.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136718999,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136719913
+        },
+        {
+          "path": "/js/core/public-experience.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136718999,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136719914
+        },
+        {
+          "path": "/favicon.ico?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136719000,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136719914
+        },
+        {
+          "path": "/assets/brand/favicon-32.png?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136719915,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136720815
+        },
+        {
+          "path": "/assets/brand/apple-touch-icon.png?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136719915,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136720816
+        },
+        {
+          "path": "/assets/brand/aeris-maskable-512.png?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136719916,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136720817
+        },
+        {
+          "path": "/assets/brand/aeris-lockup.png?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136720817,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136721725
+        },
+        {
+          "path": "/icon-192.png?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136720818,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136721725
+        },
+        {
+          "path": "/icon-512.png?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136720818,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136721725
+        },
+        {
+          "path": "/js/finance/app.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136721727,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136722637
+        },
+        {
+          "path": "/js/finance/candidates.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136721727,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136722637
+        },
+        {
+          "path": "/js/finance/disclosure.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136721728,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136722637
+        },
+        {
+          "path": "/js/finance/notification-ledger.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136722639,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136723551
+        },
+        {
+          "path": "/js/transfer/app.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136722639,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136723551
+        },
+        {
+          "path": "/js/transfer/updates.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136722640,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136723551
+        },
+        {
+          "path": "/js/language/achievements.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136723553,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136724464
+        },
+        {
+          "path": "/js/language/history.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136723553,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136724464
+        },
+        {
+          "path": "/js/language/pdf.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136723554,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136724464
+        },
+        {
+          "path": "/js/language/mastery.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136724465,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136725374
+        },
+        {
+          "path": "/js/language/mastery-state.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136724466,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136725375
+        },
+        {
+          "path": "/js/language/mastery-journal.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136724466,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136725375
+        },
+        {
+          "path": "/js/language/quiz.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136725376,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136726288
+        },
+        {
+          "path": "/js/language/speech.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136725376,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136726288
+        },
+        {
+          "path": "/js/language/speech-rate.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136725377,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136726288
+        },
+        {
+          "path": "/js/language/sync-adapter.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136726290,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136727204
+        },
+        {
+          "path": "/js/language/wrong-book.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136726290,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136727204
+        },
+        {
+          "path": "/js/membership/account.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136726290,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136727204
+        },
+        {
+          "path": "/js/membership/plans.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136727206,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136728110
+        },
+        {
+          "path": "/js/membership/recharge.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136727207,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136728110
+        },
+        {
+          "path": "/js/admin/formatters.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136727207,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136728111
+        },
+        {
+          "path": "/tools.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136728112,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136729017
+        },
+        {
+          "path": "/js/tools/catalog.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136728113,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136729018
+        },
+        {
+          "path": "/js/tools/file.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136728113,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136729018
+        },
+        {
+          "path": "/js/tools/image.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136729020,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136729932
+        },
+        {
+          "path": "/js/tools/random.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136729020,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136729932
+        },
+        {
+          "path": "/js/tools/runner.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136729020,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136729932
+        },
+        {
+          "path": "/js/tools/temporary.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136729934,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136730839
+        },
+        {
+          "path": "/js/tools/text.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136729934,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136730839
+        },
+        {
+          "path": "/workflows.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136729935,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136730839
+        },
+        {
+          "path": "/vendor/qrcode.js?v=2.0.4",
+          "generation": "candidate",
+          "start_ms": 1794136730841,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136731753
+        },
+        {
+          "path": "/vendor/opencc-st-characters.txt",
+          "generation": "candidate",
+          "start_ms": 1794136730842,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136731753
+        },
+        {
+          "path": "/vendor/opencc-ts-characters.txt",
+          "generation": "candidate",
+          "start_ms": 1794136730842,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136731754
+        },
+        {
+          "path": "/manifest.webmanifest?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136731755,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136732668
+        },
+        {
+          "path": "/icon-192.png",
+          "generation": "candidate",
+          "start_ms": 1794136731756,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136732668
+        },
+        {
+          "path": "/icon-512.png",
+          "generation": "candidate",
+          "start_ms": 1794136731756,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136732668
+        },
+        {
+          "path": "/js/core/feature-flags.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136732669,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136733581
+        },
+        {
+          "path": "/js/core/feature-console.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136732669,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136733581
+        },
+        {
+          "path": "/js/core/startup.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136732670,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136733582
+        },
+        {
+          "path": "/js/core/home-widget-layout.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136733583,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136734488
+        },
+        {
+          "path": "/js/core/home-widgets.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136733583,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136734488
+        },
+        {
+          "path": "/js/core/home-widget-data.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136733584,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136734489
+        },
+        {
+          "path": "/js/transfer/upload-part.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136734490,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136735400
+        },
+        {
+          "path": "/js/core/lazy-controller.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136734490,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136735400
+        },
+        {
+          "path": "/js/core/parked-rows.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136734491,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136735400
+        },
+        {
+          "path": "/js/core/dashboard.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136735401,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136736315
+        },
+        {
+          "path": "/js/finance/format.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136735402,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136736315
+        },
+        {
+          "path": "/js/tools/digest-worker.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136735402,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136736315
+        },
+        {
+          "path": "/assets/logo.png",
+          "generation": "candidate",
+          "start_ms": 1794136736319,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136737221
+        }
+      ],
+      "worker_errors": [],
+      "started_at": "2026-11-08T11:18:31.003Z",
+      "first": {
+        "state": "activated",
+        "duration_ms": 25745
+      },
+      "after_first": {
+        "keys": [
+          "synthetic-user-cache",
+          "wyj-shell-20261108-aeris-p07-release-rc6-es-modules"
+        ],
+        "missing": [],
+        "currentExists": true,
+        "html": true,
+        "user": "yes",
+        "local": "yes",
+        "idb": "yes"
+      },
+      "final": {
+        "keys": [
+          "synthetic-user-cache",
+          "wyj-shell-20261108-aeris-p07-release-rc6-es-modules"
+        ],
+        "missing": [],
+        "currentExists": true,
+        "html": true,
+        "user": "yes",
+        "local": "yes",
+        "idb": "yes"
+      },
+      "offline_html": true,
+      "status": "PASS",
+      "max_server_active": 4,
+      "ended_at": "2026-11-08T11:18:57.504Z"
+    },
+    {
+      "name": "failure-retry",
+      "requests": [
+        {
+          "path": "/favicon.ico",
+          "generation": "candidate",
+          "start_ms": 1794136738265,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738270
+        },
+        {
+          "path": "/",
+          "generation": "candidate",
+          "start_ms": 1794136738288,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738290
+        },
+        {
+          "path": "/index.html",
+          "generation": "candidate",
+          "start_ms": 1794136738289,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738292
+        },
+        {
+          "path": "/styles.css?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738290,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738292
+        },
+        {
+          "path": "/product-ui.css?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738291,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738295
+        },
+        {
+          "path": "/design-system.css?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738294,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738297
+        },
+        {
+          "path": "/public-experience.css?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738296,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738299
+        },
+        {
+          "path": "/workspace-experience.css?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738297,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738299
+        },
+        {
+          "path": "/spatial-experience.css?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738299,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738302
+        },
+        {
+          "path": "/changelog.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738301,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738304
+        },
+        {
+          "path": "/learning-sync.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738302,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738304
+        },
+        {
+          "path": "/app.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738303,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738306
+        },
+        {
+          "path": "/js/core/api.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738305,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738307
+        },
+        {
+          "path": "/js/core/changelog.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738306,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738312
+        },
+        {
+          "path": "/js/core/capabilities.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738311,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738314
+        },
+        {
+          "path": "/js/core/config.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738312,
+          "completed": true,
+          "closed_early": false,
+          "status": 503,
+          "closed_ms": 1794136738315
+        },
+        {
+          "path": "/js/core/router.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738314,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738316
+        },
+        {
+          "path": "/js/core/session.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738316,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738327
+        },
+        {
+          "path": "/js/core/storage.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738317,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738327
+        },
+        {
+          "path": "/js/core/ui.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738328,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738342
+        },
+        {
+          "path": "/js/core/design-system.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738329,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738342
+        },
+        {
+          "path": "/js/core/public-ui-policy.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738344,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738358
+        },
+        {
+          "path": "/js/core/download.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738344,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738358
+        },
+        {
+          "path": "/js/core/perf.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738360,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738374
+        },
+        {
+          "path": "/js/core/motion.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738360,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738374
+        },
+        {
+          "path": "/js/core/keyed-list.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738375,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738389
+        },
+        {
+          "path": "/js/core/public-experience.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738376,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738390
+        },
+        {
+          "path": "/favicon.ico?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738376,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738390
+        },
+        {
+          "path": "/assets/brand/favicon-32.png?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738392,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738394
+        },
+        {
+          "path": "/assets/brand/apple-touch-icon.png?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738392,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738394
+        },
+        {
+          "path": "/assets/brand/aeris-maskable-512.png?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738393,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738395
+        },
+        {
+          "path": "/assets/brand/aeris-lockup.png?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738394,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738405
+        },
+        {
+          "path": "/icon-192.png?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738395,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738406
+        },
+        {
+          "path": "/icon-512.png?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738395,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738406
+        },
+        {
+          "path": "/js/finance/app.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738413,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738420
+        },
+        {
+          "path": "/js/finance/candidates.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738413,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738421
+        },
+        {
+          "path": "/js/finance/disclosure.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738414,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738421
+        },
+        {
+          "path": "/js/finance/notification-ledger.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738422,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738424
+        },
+        {
+          "path": "/js/transfer/app.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738422,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738424
+        },
+        {
+          "path": "/js/transfer/updates.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738424,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738426
+        },
+        {
+          "path": "/js/language/achievements.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738425,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738435
+        },
+        {
+          "path": "/js/language/history.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738426,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738435
+        },
+        {
+          "path": "/js/language/pdf.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738427,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738436
+        },
+        {
+          "path": "/js/language/mastery.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738438,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738451
+        },
+        {
+          "path": "/js/language/mastery-state.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738438,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738451
+        },
+        {
+          "path": "/js/language/mastery-journal.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738439,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738451
+        },
+        {
+          "path": "/js/language/quiz.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738452,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738466
+        },
+        {
+          "path": "/js/language/speech.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738453,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738466
+        },
+        {
+          "path": "/js/language/speech-rate.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738454,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738467
+        },
+        {
+          "path": "/js/language/sync-adapter.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738468,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738482
+        },
+        {
+          "path": "/js/language/wrong-book.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738468,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738482
+        },
+        {
+          "path": "/js/membership/account.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738469,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738482
+        },
+        {
+          "path": "/js/membership/plans.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738484,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738486
+        },
+        {
+          "path": "/js/membership/recharge.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738485,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738487
+        },
+        {
+          "path": "/js/admin/formatters.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738486,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738488
+        },
+        {
+          "path": "/tools.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738487,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738489
+        },
+        {
+          "path": "/js/tools/catalog.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738488,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738490
+        },
+        {
+          "path": "/js/tools/file.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738489,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738497
+        },
+        {
+          "path": "/js/tools/image.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738489,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738497
+        },
+        {
+          "path": "/js/tools/random.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738490,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738497
+        },
+        {
+          "path": "/js/tools/runner.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738498,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738500
+        },
+        {
+          "path": "/js/tools/temporary.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738498,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738500
+        },
+        {
+          "path": "/js/tools/text.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738500,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738512
+        },
+        {
+          "path": "/workflows.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738501,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738512
+        },
+        {
+          "path": "/vendor/qrcode.js?v=2.0.4",
+          "generation": "candidate",
+          "start_ms": 1794136738501,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738513
+        },
+        {
+          "path": "/vendor/opencc-st-characters.txt",
+          "generation": "candidate",
+          "start_ms": 1794136738514,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738521
+        },
+        {
+          "path": "/vendor/opencc-ts-characters.txt",
+          "generation": "candidate",
+          "start_ms": 1794136738514,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738521
+        },
+        {
+          "path": "/manifest.webmanifest?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738520,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738522
+        },
+        {
+          "path": "/icon-192.png",
+          "generation": "candidate",
+          "start_ms": 1794136738522,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738528
+        },
+        {
+          "path": "/icon-512.png",
+          "generation": "candidate",
+          "start_ms": 1794136738523,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738528
+        },
+        {
+          "path": "/js/core/feature-flags.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738523,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738528
+        },
+        {
+          "path": "/js/core/feature-console.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738529,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738531
+        },
+        {
+          "path": "/js/core/startup.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738529,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738531
+        },
+        {
+          "path": "/js/core/home-widget-layout.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738530,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738543
+        },
+        {
+          "path": "/js/core/home-widgets.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738532,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738543
+        },
+        {
+          "path": "/js/core/home-widget-data.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738532,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738543
+        },
+        {
+          "path": "/js/transfer/upload-part.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738544,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738546
+        },
+        {
+          "path": "/js/core/lazy-controller.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738545,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738547
+        },
+        {
+          "path": "/js/core/parked-rows.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738546,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738548
+        },
+        {
+          "path": "/js/core/dashboard.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738547,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738549
+        },
+        {
+          "path": "/js/finance/format.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738548,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738559
+        },
+        {
+          "path": "/js/tools/digest-worker.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738549,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738559
+        },
+        {
+          "path": "/",
+          "generation": "candidate",
+          "start_ms": 1794136738633,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738637
+        },
+        {
+          "path": "/index.html",
+          "generation": "candidate",
+          "start_ms": 1794136738633,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738637
+        },
+        {
+          "path": "/styles.css?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738633,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738637
+        },
+        {
+          "path": "/product-ui.css?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738639,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738641
+        },
+        {
+          "path": "/design-system.css?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738639,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738642
+        },
+        {
+          "path": "/public-experience.css?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738640,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738645
+        },
+        {
+          "path": "/workspace-experience.css?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738644,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738646
+        },
+        {
+          "path": "/spatial-experience.css?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738645,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738648
+        },
+        {
+          "path": "/changelog.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738646,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738648
+        },
+        {
+          "path": "/learning-sync.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738647,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738650
+        },
+        {
+          "path": "/app.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738649,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738652
+        },
+        {
+          "path": "/js/core/api.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738650,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738652
+        },
+        {
+          "path": "/js/core/changelog.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738651,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738656
+        },
+        {
+          "path": "/js/core/capabilities.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738655,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738658
+        },
+        {
+          "path": "/js/core/config.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738656,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738658
+        },
+        {
+          "path": "/js/core/router.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738657,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738659
+        },
+        {
+          "path": "/js/core/session.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738659,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738668
+        },
+        {
+          "path": "/js/core/storage.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738659,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738668
+        },
+        {
+          "path": "/js/core/ui.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738660,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738668
+        },
+        {
+          "path": "/js/core/design-system.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738669,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738683
+        },
+        {
+          "path": "/js/core/public-ui-policy.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738670,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738683
+        },
+        {
+          "path": "/js/core/download.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738670,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738683
+        },
+        {
+          "path": "/js/core/perf.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738685,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738698
+        },
+        {
+          "path": "/js/core/motion.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738686,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738698
+        },
+        {
+          "path": "/js/core/keyed-list.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738686,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738698
+        },
+        {
+          "path": "/js/core/public-experience.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738700,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738714
+        },
+        {
+          "path": "/favicon.ico?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738700,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738714
+        },
+        {
+          "path": "/assets/brand/favicon-32.png?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738700,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738714
+        },
+        {
+          "path": "/assets/brand/apple-touch-icon.png?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738716,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738729
+        },
+        {
+          "path": "/assets/brand/aeris-maskable-512.png?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738716,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738729
+        },
+        {
+          "path": "/assets/brand/aeris-lockup.png?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738716,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738730
+        },
+        {
+          "path": "/icon-192.png?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738732,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738744
+        },
+        {
+          "path": "/icon-512.png?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738732,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738744
+        },
+        {
+          "path": "/js/finance/app.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738732,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738745
+        },
+        {
+          "path": "/js/finance/candidates.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738746,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738759
+        },
+        {
+          "path": "/js/finance/disclosure.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738746,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738760
+        },
+        {
+          "path": "/js/finance/notification-ledger.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738747,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738760
+        },
+        {
+          "path": "/js/transfer/app.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738761,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738775
+        },
+        {
+          "path": "/js/transfer/updates.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738761,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738776
+        },
+        {
+          "path": "/js/language/achievements.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738762,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738776
+        },
+        {
+          "path": "/js/language/history.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738778,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738790
+        },
+        {
+          "path": "/js/language/pdf.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738778,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738791
+        },
+        {
+          "path": "/js/language/mastery.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738778,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738791
+        },
+        {
+          "path": "/js/language/mastery-state.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738792,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738806
+        },
+        {
+          "path": "/js/language/mastery-journal.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738792,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738806
+        },
+        {
+          "path": "/js/language/quiz.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738793,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738806
+        },
+        {
+          "path": "/js/language/speech.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738808,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738821
+        },
+        {
+          "path": "/js/language/speech-rate.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738809,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738822
+        },
+        {
+          "path": "/js/language/sync-adapter.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738809,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738822
+        },
+        {
+          "path": "/js/language/wrong-book.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738823,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738826
+        },
+        {
+          "path": "/js/membership/account.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738825,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738827
+        },
+        {
+          "path": "/js/membership/plans.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738826,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738829
+        },
+        {
+          "path": "/js/membership/recharge.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738827,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738829
+        },
+        {
+          "path": "/js/admin/formatters.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738829,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738831
+        },
+        {
+          "path": "/tools.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738830,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738832
+        },
+        {
+          "path": "/js/tools/catalog.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738831,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738833
+        },
+        {
+          "path": "/js/tools/file.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738831,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738834
+        },
+        {
+          "path": "/js/tools/image.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738832,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738834
+        },
+        {
+          "path": "/js/tools/random.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738834,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738838
+        },
+        {
+          "path": "/js/tools/runner.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738835,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738838
+        },
+        {
+          "path": "/js/tools/temporary.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738835,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738838
+        },
+        {
+          "path": "/js/tools/text.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738839,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738853
+        },
+        {
+          "path": "/workflows.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738840,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738854
+        },
+        {
+          "path": "/vendor/qrcode.js?v=2.0.4",
+          "generation": "candidate",
+          "start_ms": 1794136738840,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738854
+        },
+        {
+          "path": "/vendor/opencc-st-characters.txt",
+          "generation": "candidate",
+          "start_ms": 1794136738855,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738868
+        },
+        {
+          "path": "/vendor/opencc-ts-characters.txt",
+          "generation": "candidate",
+          "start_ms": 1794136738855,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738869
+        },
+        {
+          "path": "/manifest.webmanifest?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738856,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738869
+        },
+        {
+          "path": "/icon-192.png",
+          "generation": "candidate",
+          "start_ms": 1794136738870,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738883
+        },
+        {
+          "path": "/icon-512.png",
+          "generation": "candidate",
+          "start_ms": 1794136738870,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738885
+        },
+        {
+          "path": "/js/core/feature-flags.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738871,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738886
+        },
+        {
+          "path": "/js/core/feature-console.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738887,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738889
+        },
+        {
+          "path": "/js/core/startup.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738888,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738890
+        },
+        {
+          "path": "/js/core/home-widget-layout.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738888,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738890
+        },
+        {
+          "path": "/js/core/home-widgets.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738890,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738892
+        },
+        {
+          "path": "/js/core/home-widget-data.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738892,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738899
+        },
+        {
+          "path": "/js/transfer/upload-part.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738892,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738899
+        },
+        {
+          "path": "/js/core/lazy-controller.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738893,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738899
+        },
+        {
+          "path": "/js/core/parked-rows.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738900,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738913
+        },
+        {
+          "path": "/js/core/dashboard.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738901,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738914
+        },
+        {
+          "path": "/js/finance/format.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738901,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738914
+        },
+        {
+          "path": "/js/tools/digest-worker.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136738915,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738929
+        },
+        {
+          "path": "/assets/logo.png",
+          "generation": "candidate",
+          "start_ms": 1794136738931,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136738944
+        }
+      ],
+      "worker_errors": [
+        {
+          "errorMessage": "Failed to register a ServiceWorker for scope ('http://127.0.0.1:1645/') with script ('http://127.0.0.1:1645/sw.js?v=20261108-aeris-p07-release-rc6'): ServiceWorker failed to install: ServiceWorker failed to handle event (event.waitUntil Promise rejected)",
+          "registrationId": "1",
+          "versionId": "1",
+          "sourceURL": "",
+          "lineNumber": -1,
+          "columnNumber": -1
+        },
+        {
+          "errorMessage": "Uncaught (in promise) Error: Release shell is incomplete",
+          "registrationId": "1",
+          "versionId": "1",
+          "sourceURL": "http://127.0.0.1:1645/sw.js?v=20261108-aeris-p07-release-rc6",
+          "lineNumber": 127,
+          "columnNumber": -1
+        }
+      ],
+      "started_at": "2026-11-08T11:18:57.588Z",
+      "first": {
+        "state": "redundant",
+        "duration_ms": 351
+      },
+      "after_first": {
+        "keys": [
+          "synthetic-user-cache"
+        ],
+        "missing": [],
+        "currentExists": false,
+        "html": false,
+        "user": "yes",
+        "local": "yes",
+        "idb": "yes"
+      },
+      "retry": {
+        "state": "activated",
+        "duration_ms": 443
+      },
+      "final": {
+        "keys": [
+          "synthetic-user-cache",
+          "wyj-shell-20261108-aeris-p07-release-rc6-es-modules"
+        ],
+        "missing": [],
+        "currentExists": true,
+        "html": true,
+        "user": "yes",
+        "local": "yes",
+        "idb": "yes"
+      },
+      "offline_html": true,
+      "status": "PASS",
+      "max_server_active": 3,
+      "ended_at": "2026-11-08T11:18:59.090Z"
+    },
+    {
+      "name": "body-timeout",
+      "requests": [
+        {
+          "path": "/favicon.ico",
+          "generation": "candidate",
+          "start_ms": 1794136739980,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136739982
+        },
+        {
+          "path": "/",
+          "generation": "candidate",
+          "start_ms": 1794136740007,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740012
+        },
+        {
+          "path": "/index.html",
+          "generation": "candidate",
+          "start_ms": 1794136740010,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740018
+        },
+        {
+          "path": "/styles.css?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740010,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740018
+        },
+        {
+          "path": "/product-ui.css?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740021,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740023
+        },
+        {
+          "path": "/design-system.css?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740022,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740026
+        },
+        {
+          "path": "/public-experience.css?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740023,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740026
+        },
+        {
+          "path": "/workspace-experience.css?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740025,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740027
+        },
+        {
+          "path": "/spatial-experience.css?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740028,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740036
+        },
+        {
+          "path": "/changelog.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740028,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740036
+        },
+        {
+          "path": "/learning-sync.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740029,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740036
+        },
+        {
+          "path": "/app.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740038,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740040
+        },
+        {
+          "path": "/js/core/api.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740039,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740052
+        },
+        {
+          "path": "/js/core/changelog.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740039,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740052
+        },
+        {
+          "path": "/js/core/capabilities.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740054,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740067
+        },
+        {
+          "path": "/js/core/config.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740055,
+          "completed": false,
+          "closed_early": true,
+          "status": 200,
+          "closed_ms": 1794136750051
+        },
+        {
+          "path": "/js/core/router.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740055,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740068
+        },
+        {
+          "path": "/js/core/session.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740069,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740084
+        },
+        {
+          "path": "/js/core/storage.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740070,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740084
+        },
+        {
+          "path": "/js/core/ui.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740086,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740101
+        },
+        {
+          "path": "/js/core/design-system.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740086,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740102
+        },
+        {
+          "path": "/js/core/public-ui-policy.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740103,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740114
+        },
+        {
+          "path": "/js/core/download.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740104,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740115
+        },
+        {
+          "path": "/js/core/perf.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740116,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740129
+        },
+        {
+          "path": "/js/core/motion.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740117,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740130
+        },
+        {
+          "path": "/js/core/keyed-list.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740131,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740146
+        },
+        {
+          "path": "/js/core/public-experience.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740132,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740146
+        },
+        {
+          "path": "/favicon.ico?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740147,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740161
+        },
+        {
+          "path": "/assets/brand/favicon-32.png?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740148,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740161
+        },
+        {
+          "path": "/assets/brand/apple-touch-icon.png?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740164,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740176
+        },
+        {
+          "path": "/assets/brand/aeris-maskable-512.png?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740164,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740176
+        },
+        {
+          "path": "/assets/brand/aeris-lockup.png?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740177,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740191
+        },
+        {
+          "path": "/icon-192.png?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740177,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740191
+        },
+        {
+          "path": "/icon-512.png?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740193,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740207
+        },
+        {
+          "path": "/js/finance/app.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740193,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740207
+        },
+        {
+          "path": "/js/finance/candidates.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740209,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740222
+        },
+        {
+          "path": "/js/finance/disclosure.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740209,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740222
+        },
+        {
+          "path": "/js/finance/notification-ledger.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740224,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740237
+        },
+        {
+          "path": "/js/transfer/app.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740224,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740237
+        },
+        {
+          "path": "/js/transfer/updates.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740239,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740253
+        },
+        {
+          "path": "/js/language/achievements.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740239,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740253
+        },
+        {
+          "path": "/js/language/history.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740254,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740268
+        },
+        {
+          "path": "/js/language/pdf.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740255,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740268
+        },
+        {
+          "path": "/js/language/mastery.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740269,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740284
+        },
+        {
+          "path": "/js/language/mastery-state.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740270,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740284
+        },
+        {
+          "path": "/js/language/mastery-journal.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740286,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740298
+        },
+        {
+          "path": "/js/language/quiz.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740286,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740299
+        },
+        {
+          "path": "/js/language/speech.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740300,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740314
+        },
+        {
+          "path": "/js/language/speech-rate.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740300,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740314
+        },
+        {
+          "path": "/js/language/sync-adapter.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740315,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740330
+        },
+        {
+          "path": "/js/language/wrong-book.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740316,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740330
+        },
+        {
+          "path": "/js/membership/account.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740331,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740346
+        },
+        {
+          "path": "/js/membership/plans.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740332,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740346
+        },
+        {
+          "path": "/js/membership/recharge.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740347,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740362
+        },
+        {
+          "path": "/js/admin/formatters.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740347,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740362
+        },
+        {
+          "path": "/tools.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740364,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740376
+        },
+        {
+          "path": "/js/tools/catalog.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740365,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740377
+        },
+        {
+          "path": "/js/tools/file.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740378,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740391
+        },
+        {
+          "path": "/js/tools/image.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740378,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740392
+        },
+        {
+          "path": "/js/tools/random.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740393,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740407
+        },
+        {
+          "path": "/js/tools/runner.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740393,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740408
+        },
+        {
+          "path": "/js/tools/temporary.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740409,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740422
+        },
+        {
+          "path": "/js/tools/text.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740409,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740422
+        },
+        {
+          "path": "/workflows.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740423,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740437
+        },
+        {
+          "path": "/vendor/qrcode.js?v=2.0.4",
+          "generation": "candidate",
+          "start_ms": 1794136740424,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740437
+        },
+        {
+          "path": "/vendor/opencc-st-characters.txt",
+          "generation": "candidate",
+          "start_ms": 1794136740438,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740452
+        },
+        {
+          "path": "/vendor/opencc-ts-characters.txt",
+          "generation": "candidate",
+          "start_ms": 1794136740439,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740453
+        },
+        {
+          "path": "/manifest.webmanifest?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740454,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740468
+        },
+        {
+          "path": "/icon-192.png",
+          "generation": "candidate",
+          "start_ms": 1794136740454,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740468
+        },
+        {
+          "path": "/icon-512.png",
+          "generation": "candidate",
+          "start_ms": 1794136740469,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740483
+        },
+        {
+          "path": "/js/core/feature-flags.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740470,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740483
+        },
+        {
+          "path": "/js/core/feature-console.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740485,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740498
+        },
+        {
+          "path": "/js/core/startup.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740485,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740498
+        },
+        {
+          "path": "/js/core/home-widget-layout.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740499,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740514
+        },
+        {
+          "path": "/js/core/home-widgets.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740500,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740514
+        },
+        {
+          "path": "/js/core/home-widget-data.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740516,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740529
+        },
+        {
+          "path": "/js/transfer/upload-part.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740516,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740529
+        },
+        {
+          "path": "/js/core/lazy-controller.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740531,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740545
+        },
+        {
+          "path": "/js/core/parked-rows.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740531,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740545
+        },
+        {
+          "path": "/js/core/dashboard.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740546,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740560
+        },
+        {
+          "path": "/js/finance/format.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740547,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740560
+        },
+        {
+          "path": "/js/tools/digest-worker.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136740562,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136740576
+        }
+      ],
+      "worker_errors": [
+        {
+          "errorMessage": "Failed to register a ServiceWorker for scope ('http://127.0.0.1:13503/') with script ('http://127.0.0.1:13503/sw.js?v=20261108-aeris-p07-release-rc6'): ServiceWorker failed to install: ServiceWorker failed to handle event (event.waitUntil Promise rejected)",
+          "registrationId": "1",
+          "versionId": "1",
+          "sourceURL": "",
+          "lineNumber": -1,
+          "columnNumber": -1
+        },
+        {
+          "errorMessage": "Uncaught (in promise) Error: Release shell is incomplete",
+          "registrationId": "1",
+          "versionId": "1",
+          "sourceURL": "http://127.0.0.1:13503/sw.js?v=20261108-aeris-p07-release-rc6",
+          "lineNumber": 127,
+          "columnNumber": -1
+        }
+      ],
+      "started_at": "2026-11-08T11:18:59.150Z",
+      "first": {
+        "state": "redundant",
+        "duration_ms": 10108
+      },
+      "after_first": {
+        "keys": [
+          "synthetic-user-cache"
+        ],
+        "missing": [],
+        "currentExists": false,
+        "html": false,
+        "user": "yes",
+        "local": "yes",
+        "idb": "yes"
+      },
+      "final": {
+        "keys": [
+          "synthetic-user-cache"
+        ],
+        "missing": [],
+        "currentExists": false,
+        "html": false,
+        "user": "yes",
+        "local": "yes",
+        "idb": "yes"
+      },
+      "status": "PASS",
+      "max_server_active": 3,
+      "ended_at": "2026-11-08T11:19:10.105Z"
+    },
+    {
+      "name": "warm",
+      "requests": [
+        {
+          "path": "/favicon.ico",
+          "generation": "old",
+          "start_ms": 1794136750953,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136750955
+        },
+        {
+          "path": "/",
+          "generation": "old",
+          "start_ms": 1794136750976,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136750978
+        },
+        {
+          "path": "/index.html",
+          "generation": "old",
+          "start_ms": 1794136750978,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136750982
+        },
+        {
+          "path": "/styles.css?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136750979,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136750983
+        },
+        {
+          "path": "/product-ui.css?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136750982,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136750985
+        },
+        {
+          "path": "/design-system.css?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136750985,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136750987
+        },
+        {
+          "path": "/public-experience.css?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136750986,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136750989
+        },
+        {
+          "path": "/workspace-experience.css?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136750986,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136750989
+        },
+        {
+          "path": "/spatial-experience.css?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136750988,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751002
+        },
+        {
+          "path": "/changelog.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136750990,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751002
+        },
+        {
+          "path": "/learning-sync.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136750990,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751003
+        },
+        {
+          "path": "/app.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751005,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751017
+        },
+        {
+          "path": "/js/core/api.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751006,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751017
+        },
+        {
+          "path": "/js/core/changelog.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751006,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751018
+        },
+        {
+          "path": "/js/core/capabilities.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751020,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751033
+        },
+        {
+          "path": "/js/core/config.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751020,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751033
+        },
+        {
+          "path": "/js/core/router.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751020,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751033
+        },
+        {
+          "path": "/js/core/session.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751034,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751048
+        },
+        {
+          "path": "/js/core/storage.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751035,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751048
+        },
+        {
+          "path": "/js/core/ui.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751035,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751048
+        },
+        {
+          "path": "/js/core/design-system.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751049,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751063
+        },
+        {
+          "path": "/js/core/public-ui-policy.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751050,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751063
+        },
+        {
+          "path": "/js/core/download.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751050,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751064
+        },
+        {
+          "path": "/js/core/perf.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751064,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751079
+        },
+        {
+          "path": "/js/core/motion.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751065,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751079
+        },
+        {
+          "path": "/js/core/keyed-list.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751065,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751079
+        },
+        {
+          "path": "/js/core/public-experience.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751081,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751095
+        },
+        {
+          "path": "/favicon.ico?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751081,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751095
+        },
+        {
+          "path": "/assets/brand/favicon-32.png?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751081,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751095
+        },
+        {
+          "path": "/assets/brand/apple-touch-icon.png?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751096,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751110
+        },
+        {
+          "path": "/assets/brand/aeris-maskable-512.png?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751096,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751110
+        },
+        {
+          "path": "/assets/brand/aeris-lockup.png?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751096,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751110
+        },
+        {
+          "path": "/icon-192.png?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751111,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751125
+        },
+        {
+          "path": "/icon-512.png?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751112,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751125
+        },
+        {
+          "path": "/js/finance/app.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751112,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751126
+        },
+        {
+          "path": "/js/finance/candidates.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751127,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751141
+        },
+        {
+          "path": "/js/finance/disclosure.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751127,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751141
+        },
+        {
+          "path": "/js/finance/notification-ledger.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751127,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751141
+        },
+        {
+          "path": "/js/transfer/app.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751142,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751155
+        },
+        {
+          "path": "/js/transfer/updates.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751142,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751156
+        },
+        {
+          "path": "/js/language/achievements.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751143,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751156
+        },
+        {
+          "path": "/js/language/history.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751157,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751171
+        },
+        {
+          "path": "/js/language/pdf.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751157,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751171
+        },
+        {
+          "path": "/js/language/mastery.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751157,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751171
+        },
+        {
+          "path": "/js/language/mastery-state.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751172,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751186
+        },
+        {
+          "path": "/js/language/mastery-journal.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751173,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751187
+        },
+        {
+          "path": "/js/language/quiz.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751173,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751187
+        },
+        {
+          "path": "/js/language/speech.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751188,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751202
+        },
+        {
+          "path": "/js/language/speech-rate.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751188,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751202
+        },
+        {
+          "path": "/js/language/sync-adapter.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751188,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751202
+        },
+        {
+          "path": "/js/language/wrong-book.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751205,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751217
+        },
+        {
+          "path": "/js/membership/account.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751206,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751217
+        },
+        {
+          "path": "/js/membership/plans.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751206,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751217
+        },
+        {
+          "path": "/js/membership/recharge.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751218,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751232
+        },
+        {
+          "path": "/js/admin/formatters.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751218,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751232
+        },
+        {
+          "path": "/tools.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751218,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751232
+        },
+        {
+          "path": "/js/tools/catalog.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751233,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751247
+        },
+        {
+          "path": "/js/tools/file.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751234,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751247
+        },
+        {
+          "path": "/js/tools/image.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751234,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751247
+        },
+        {
+          "path": "/js/tools/random.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751249,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751262
+        },
+        {
+          "path": "/js/tools/runner.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751249,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751263
+        },
+        {
+          "path": "/js/tools/temporary.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751249,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751263
+        },
+        {
+          "path": "/js/tools/text.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751264,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751278
+        },
+        {
+          "path": "/workflows.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751264,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751278
+        },
+        {
+          "path": "/vendor/qrcode.js?v=2.0.4",
+          "generation": "old",
+          "start_ms": 1794136751264,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751278
+        },
+        {
+          "path": "/vendor/opencc-st-characters.txt",
+          "generation": "old",
+          "start_ms": 1794136751279,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751294
+        },
+        {
+          "path": "/vendor/opencc-ts-characters.txt",
+          "generation": "old",
+          "start_ms": 1794136751280,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751294
+        },
+        {
+          "path": "/manifest.webmanifest?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751280,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751294
+        },
+        {
+          "path": "/icon-192.png",
+          "generation": "old",
+          "start_ms": 1794136751295,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751309
+        },
+        {
+          "path": "/icon-512.png",
+          "generation": "old",
+          "start_ms": 1794136751295,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751310
+        },
+        {
+          "path": "/js/core/feature-flags.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751296,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751310
+        },
+        {
+          "path": "/js/core/feature-console.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751311,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751325
+        },
+        {
+          "path": "/js/core/startup.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751311,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751325
+        },
+        {
+          "path": "/js/core/home-widget-layout.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751311,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751325
+        },
+        {
+          "path": "/js/core/home-widgets.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751326,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751340
+        },
+        {
+          "path": "/js/core/home-widget-data.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751326,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751340
+        },
+        {
+          "path": "/js/transfer/upload-part.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751326,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751340
+        },
+        {
+          "path": "/js/core/lazy-controller.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751341,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751355
+        },
+        {
+          "path": "/js/core/parked-rows.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751342,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751356
+        },
+        {
+          "path": "/js/core/dashboard.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751342,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751356
+        },
+        {
+          "path": "/js/finance/format.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751357,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751372
+        },
+        {
+          "path": "/js/tools/digest-worker.js?release=20261108-aeris-p07-final-rc5",
+          "generation": "old",
+          "start_ms": 1794136751357,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751372
+        },
+        {
+          "path": "/assets/logo.png",
+          "generation": "old",
+          "start_ms": 1794136751375,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751387
+        },
+        {
+          "path": "/",
+          "generation": "candidate",
+          "start_ms": 1794136751527,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751543
+        },
+        {
+          "path": "/index.html",
+          "generation": "candidate",
+          "start_ms": 1794136751527,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751544
+        },
+        {
+          "path": "/styles.css?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751528,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751544
+        },
+        {
+          "path": "/product-ui.css?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751545,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751559
+        },
+        {
+          "path": "/design-system.css?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751546,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751559
+        },
+        {
+          "path": "/public-experience.css?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751546,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751559
+        },
+        {
+          "path": "/workspace-experience.css?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751561,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751575
+        },
+        {
+          "path": "/spatial-experience.css?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751561,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751575
+        },
+        {
+          "path": "/changelog.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751562,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751575
+        },
+        {
+          "path": "/learning-sync.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751576,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751591
+        },
+        {
+          "path": "/app.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751576,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751591
+        },
+        {
+          "path": "/js/core/api.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751576,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751591
+        },
+        {
+          "path": "/js/core/changelog.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751593,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751606
+        },
+        {
+          "path": "/js/core/capabilities.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751593,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751606
+        },
+        {
+          "path": "/js/core/config.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751593,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751606
+        },
+        {
+          "path": "/js/core/router.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751607,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751621
+        },
+        {
+          "path": "/js/core/session.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751608,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751622
+        },
+        {
+          "path": "/js/core/storage.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751608,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751622
+        },
+        {
+          "path": "/js/core/ui.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751623,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751637
+        },
+        {
+          "path": "/js/core/design-system.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751623,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751637
+        },
+        {
+          "path": "/js/core/public-ui-policy.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751623,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751637
+        },
+        {
+          "path": "/js/core/download.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751638,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751653
+        },
+        {
+          "path": "/js/core/perf.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751639,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751653
+        },
+        {
+          "path": "/js/core/motion.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751639,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751653
+        },
+        {
+          "path": "/js/core/keyed-list.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751655,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751668
+        },
+        {
+          "path": "/js/core/public-experience.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751655,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751668
+        },
+        {
+          "path": "/favicon.ico?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751655,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751668
+        },
+        {
+          "path": "/assets/brand/favicon-32.png?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751669,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751683
+        },
+        {
+          "path": "/assets/brand/apple-touch-icon.png?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751670,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751683
+        },
+        {
+          "path": "/assets/brand/aeris-maskable-512.png?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751670,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751684
+        },
+        {
+          "path": "/assets/brand/aeris-lockup.png?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751685,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751699
+        },
+        {
+          "path": "/icon-192.png?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751685,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751699
+        },
+        {
+          "path": "/icon-512.png?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751685,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751700
+        },
+        {
+          "path": "/js/finance/app.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751701,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751715
+        },
+        {
+          "path": "/js/finance/candidates.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751701,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751715
+        },
+        {
+          "path": "/js/finance/disclosure.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751701,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751715
+        },
+        {
+          "path": "/js/finance/notification-ledger.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751716,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751730
+        },
+        {
+          "path": "/js/transfer/app.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751717,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751730
+        },
+        {
+          "path": "/js/transfer/updates.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751717,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751731
+        },
+        {
+          "path": "/js/language/achievements.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751732,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751745
+        },
+        {
+          "path": "/js/language/history.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751732,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751745
+        },
+        {
+          "path": "/js/language/pdf.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751733,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751746
+        },
+        {
+          "path": "/js/language/mastery.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751747,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751761
+        },
+        {
+          "path": "/js/language/mastery-state.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751748,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751761
+        },
+        {
+          "path": "/js/language/mastery-journal.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751748,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751762
+        },
+        {
+          "path": "/js/language/quiz.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751764,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751777
+        },
+        {
+          "path": "/js/language/speech.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751764,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751777
+        },
+        {
+          "path": "/js/language/speech-rate.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751764,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751777
+        },
+        {
+          "path": "/js/language/sync-adapter.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751778,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751793
+        },
+        {
+          "path": "/js/language/wrong-book.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751778,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751793
+        },
+        {
+          "path": "/js/membership/account.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751778,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751793
+        },
+        {
+          "path": "/js/membership/plans.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751794,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751808
+        },
+        {
+          "path": "/js/membership/recharge.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751794,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751808
+        },
+        {
+          "path": "/js/admin/formatters.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751794,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751809
+        },
+        {
+          "path": "/tools.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751810,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751824
+        },
+        {
+          "path": "/js/tools/catalog.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751810,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751824
+        },
+        {
+          "path": "/js/tools/file.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751810,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751825
+        },
+        {
+          "path": "/js/tools/image.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751826,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751840
+        },
+        {
+          "path": "/js/tools/random.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751826,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751841
+        },
+        {
+          "path": "/js/tools/runner.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751826,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751841
+        },
+        {
+          "path": "/js/tools/temporary.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751844,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751856
+        },
+        {
+          "path": "/js/tools/text.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751845,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751856
+        },
+        {
+          "path": "/workflows.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751845,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751856
+        },
+        {
+          "path": "/vendor/qrcode.js?v=2.0.4",
+          "generation": "candidate",
+          "start_ms": 1794136751860,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751872
+        },
+        {
+          "path": "/vendor/opencc-st-characters.txt",
+          "generation": "candidate",
+          "start_ms": 1794136751860,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751872
+        },
+        {
+          "path": "/vendor/opencc-ts-characters.txt",
+          "generation": "candidate",
+          "start_ms": 1794136751860,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751873
+        },
+        {
+          "path": "/manifest.webmanifest?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751874,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751887
+        },
+        {
+          "path": "/icon-192.png",
+          "generation": "candidate",
+          "start_ms": 1794136751875,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751887
+        },
+        {
+          "path": "/icon-512.png",
+          "generation": "candidate",
+          "start_ms": 1794136751875,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751887
+        },
+        {
+          "path": "/js/core/feature-flags.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751889,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751901
+        },
+        {
+          "path": "/js/core/feature-console.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751889,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751902
+        },
+        {
+          "path": "/js/core/startup.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751889,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751902
+        },
+        {
+          "path": "/js/core/home-widget-layout.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751903,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751917
+        },
+        {
+          "path": "/js/core/home-widgets.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751904,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751918
+        },
+        {
+          "path": "/js/core/home-widget-data.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751904,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751918
+        },
+        {
+          "path": "/js/transfer/upload-part.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751921,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751923
+        },
+        {
+          "path": "/js/core/lazy-controller.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751923,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751933
+        },
+        {
+          "path": "/js/core/parked-rows.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751923,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751933
+        },
+        {
+          "path": "/js/core/dashboard.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751924,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751933
+        },
+        {
+          "path": "/js/finance/format.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751935,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751948
+        },
+        {
+          "path": "/js/tools/digest-worker.js?release=20261108-aeris-p07-release-rc6",
+          "generation": "candidate",
+          "start_ms": 1794136751935,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751948
+        },
+        {
+          "path": "/assets/logo.png",
+          "generation": "candidate",
+          "start_ms": 1794136751951,
+          "completed": true,
+          "closed_early": false,
+          "status": 200,
+          "closed_ms": 1794136751963
+        }
+      ],
+      "worker_errors": [],
+      "started_at": "2026-11-08T11:19:10.187Z",
+      "first": {
+        "state": "activated",
+        "duration_ms": 555
+      },
+      "after_first": {
+        "keys": [
+          "synthetic-user-cache",
+          "wyj-shell-20261108-aeris-p07-final-rc5-es-modules"
+        ],
+        "missing": [],
+        "currentExists": false,
+        "html": false,
+        "user": "yes",
+        "local": "yes",
+        "idb": "yes"
+      },
+      "upgrade": {
+        "state": "redundant",
+        "duration_ms": 528
+      },
+      "status": "FAIL",
+      "error": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'redundant'\n- 'activated'\n",
+      "max_server_active": 3,
+      "ended_at": "2026-11-08T11:19:12.046Z"
+    }
+  ]
+}

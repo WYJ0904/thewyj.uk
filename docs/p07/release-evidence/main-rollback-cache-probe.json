@@ -1,0 +1,13 @@
+{
+  "source_sha": "3eb268b748a6e7a1aaa7369059db474810bb59d4",
+  "kind": "pure VM activation with synthetic cache names; no browser/user storage",
+  "deleted": [
+    "synthetic-user-cache",
+    "wyj-shell-20261108-aeris-p07-release-rc6-es-modules"
+  ],
+  "retained": [
+    "wyj-shell-20261027-aeris-p07-ui-r1-es-modules"
+  ],
+  "unrelated_user_cache_preserved": false,
+  "production_operations": 0
+}
