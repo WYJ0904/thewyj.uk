@@ -358,6 +358,7 @@ jobs:
           set -euo pipefail
           node local-backend/test_core_js.mjs 2>&1 | tee artifacts/javascript-core.log
           node --test qa/p07-phase1/public-ui-policy.test.mjs qa/p07-r4a/policy-state.test.mjs qa/p07-r4c/startup.test.mjs qa/p07-r4c/sw-release.test.mjs qa/p07-r5/session-response.test.mjs qa/p07-final/startup.test.mjs qa/p07-final/background-policy.test.mjs qa/p07-final/finance-offline-fixture.test.mjs 2>&1 | tee artifacts/p07-runtime-state.log
+          node --test qa/p07-release/sw-install.test.mjs 2>&1 | tee artifacts/p07-sw-install-unit.log
           node local-backend/test_capabilities_js.mjs 2>&1 | tee artifacts/javascript-capabilities.log
           node local-backend/test_home_widgets_js.mjs 2>&1 | tee artifacts/home-widgets-unit.log
           node local-backend/test_aeris_p5_js.mjs 2>&1 | tee artifacts/aeris-p5-ownership-unit.log
@@ -1032,6 +1033,13 @@ jobs:
         run: |
           set -euo pipefail
           node local-backend/test_transfer_browser_e2e.mjs 2>&1 | tee artifacts/transfer-browser-e2e.log
+
+      - name: New Chrome profile Service Worker installation and retention
+        run: |
+          set -euo pipefail
+          candidate_sha='${{ github.event.pull_request.head.sha || github.sha }}'
+          git fetch --no-tags --depth=1 origin 482580b0855e14a61b3f6b51e9d91ae7855296cb "$candidate_sha"
+          node qa/p07-release/sw-install-browser.mjs --source "$candidate_sha" --label ci --out artifacts/p07-sw-install 2>&1 | tee artifacts/p07-sw-install-browser.log
 
       - name: Transfer responsive layout with isolated member data
         run: |

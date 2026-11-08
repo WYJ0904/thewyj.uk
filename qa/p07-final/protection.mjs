@@ -14,7 +14,13 @@ const cards=['learning','finance','tools'].map(name=>{const expression=new RegEx
 const official=new Set(resources.map(r=>'/'+r.file));
 const references=s=>[...s.matchAll(/(?:src|href)="([^"?]+)(?:\?[^\"]*)?"/g)].map(m=>m[1]).filter(v=>official.has(v));
 assert.deepEqual(references(html),references(oldHtml),'official HTML brand references changed');
-const core=['sw.js','js/core/api.js','js/core/session.js','js/core/router.js'].map(file=>{assert.equal(normalize(fs.readFileSync(file,'utf8')),normalize(git('show',baseline+':'+file)));return{file,identicalAfterReleaseNormalization:true};});
+const core=['js/core/api.js','js/core/session.js','js/core/router.js'].map(file=>{assert.equal(normalize(fs.readFileSync(file,'utf8')),normalize(git('show',baseline+':'+file)));return{file,identicalAfterReleaseNormalization:true};});
+// The reviewed install fix changes bounded fetching only. Freeze activation,
+// old/future release selection, navigation, offline fallback and API exclusion.
+const currentSw=normalize(fs.readFileSync('sw.js','utf8')),previousSw=normalize(git('show',baseline+':sw.js'));
+const activate='self.addEventListener("activate"';
+assert.equal(currentSw.slice(currentSw.indexOf(activate)),previousSw.slice(previousSw.indexOf(activate)));
+core.push({file:'sw.js',activationFetchAndOfflineUnchanged:true,installRequiredSetVerifiedBy:'qa/p07-release/sw-install.test.mjs'});
 const tree=sha=>git('ls-tree','-r',sha).split(/\r?\n/).filter(row=>isAllowedPagesFile(row.split('\t')[1])).join('\n');
 assert.equal(tree(original),tree(baseline),'131 and 132 do not serve identical allowed Pages inputs');
 console.log(JSON.stringify({baseline,original,resources,cards,officialHtmlReferences:references(html),core,old131And132PagesInputsIdentical:true},null,2));

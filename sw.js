@@ -1,94 +1,96 @@
-const CACHE = "wyj-shell-20261108-aeris-p07-final-rc5-es-modules";
-const RELEASE = "20261108-aeris-p07-final-rc5";
+const CACHE = "wyj-shell-20261108-aeris-p07-release-rc6-es-modules";
+const RELEASE = "20261108-aeris-p07-release-rc6";
 const OWNED_PREFIX = "wyj-shell-";
 const observedShellReleases = new Set();
 const NAVIGATION_TIMEOUT_MS = 5000;
 const ASSET_TIMEOUT_MS = 10000;
+// Do not spend every resource's deadline waiting in the browser connection queue.
+const INSTALL_CONCURRENCY = 6;
 const CORE_SHELL = [
   "/",
   "/index.html",
-  "/styles.css?release=20261108-aeris-p07-final-rc5",
-  "/product-ui.css?release=20261108-aeris-p07-final-rc5",
-  "/design-system.css?release=20261108-aeris-p07-final-rc5",
-  "/public-experience.css?release=20261108-aeris-p07-final-rc5",
-  "/workspace-experience.css?release=20261108-aeris-p07-final-rc5",
-  "/spatial-experience.css?release=20261108-aeris-p07-final-rc5",
-  "/changelog.js?release=20261108-aeris-p07-final-rc5",
-  "/learning-sync.js?release=20261108-aeris-p07-final-rc5",
-  "/app.js?release=20261108-aeris-p07-final-rc5",
-  "/js/core/api.js?release=20261108-aeris-p07-final-rc5",
-  "/js/core/changelog.js?release=20261108-aeris-p07-final-rc5",
-  "/js/core/capabilities.js?release=20261108-aeris-p07-final-rc5",
-  "/js/core/config.js?release=20261108-aeris-p07-final-rc5",
-  "/js/core/router.js?release=20261108-aeris-p07-final-rc5",
-  "/js/core/session.js?release=20261108-aeris-p07-final-rc5",
-  "/js/core/storage.js?release=20261108-aeris-p07-final-rc5",
-  "/js/core/ui.js?release=20261108-aeris-p07-final-rc5",
-  "/js/core/design-system.js?release=20261108-aeris-p07-final-rc5",
-  "/js/core/public-ui-policy.js?release=20261108-aeris-p07-final-rc5",
-  "/js/core/download.js?release=20261108-aeris-p07-final-rc5",
-  "/js/core/perf.js?release=20261108-aeris-p07-final-rc5",
-  "/js/core/motion.js?release=20261108-aeris-p07-final-rc5",
-  "/js/core/keyed-list.js?release=20261108-aeris-p07-final-rc5",
-  "/js/core/public-experience.js?release=20261108-aeris-p07-final-rc5",
-  "/favicon.ico?release=20261108-aeris-p07-final-rc5",
-  "/assets/brand/favicon-32.png?release=20261108-aeris-p07-final-rc5",
-  "/assets/brand/apple-touch-icon.png?release=20261108-aeris-p07-final-rc5",
-  "/assets/brand/aeris-maskable-512.png?release=20261108-aeris-p07-final-rc5",
-  "/assets/brand/aeris-lockup.png?release=20261108-aeris-p07-final-rc5",
-  "/icon-192.png?release=20261108-aeris-p07-final-rc5",
-  "/icon-512.png?release=20261108-aeris-p07-final-rc5",
-  "/js/finance/app.js?release=20261108-aeris-p07-final-rc5",
-  "/js/finance/candidates.js?release=20261108-aeris-p07-final-rc5",
-  "/js/finance/disclosure.js?release=20261108-aeris-p07-final-rc5",
-  "/js/finance/notification-ledger.js?release=20261108-aeris-p07-final-rc5",
-  "/js/transfer/app.js?release=20261108-aeris-p07-final-rc5",
-  "/js/transfer/updates.js?release=20261108-aeris-p07-final-rc5",
-  "/js/language/achievements.js?release=20261108-aeris-p07-final-rc5",
-  "/js/language/history.js?release=20261108-aeris-p07-final-rc5",
-  "/js/language/pdf.js?release=20261108-aeris-p07-final-rc5",
-  "/js/language/mastery.js?release=20261108-aeris-p07-final-rc5",
-  "/js/language/mastery-state.js?release=20261108-aeris-p07-final-rc5",
-  "/js/language/mastery-journal.js?release=20261108-aeris-p07-final-rc5",
-  "/js/language/quiz.js?release=20261108-aeris-p07-final-rc5",
-  "/js/language/speech.js?release=20261108-aeris-p07-final-rc5",
-  "/js/language/speech-rate.js?release=20261108-aeris-p07-final-rc5",
-  "/js/language/sync-adapter.js?release=20261108-aeris-p07-final-rc5",
-  "/js/language/wrong-book.js?release=20261108-aeris-p07-final-rc5",
-  "/js/membership/account.js?release=20261108-aeris-p07-final-rc5",
-  "/js/membership/plans.js?release=20261108-aeris-p07-final-rc5",
-  "/js/membership/recharge.js?release=20261108-aeris-p07-final-rc5",
-  "/js/admin/formatters.js?release=20261108-aeris-p07-final-rc5",
-  "/tools.js?release=20261108-aeris-p07-final-rc5",
-  "/js/tools/catalog.js?release=20261108-aeris-p07-final-rc5",
-  "/js/tools/file.js?release=20261108-aeris-p07-final-rc5",
-  "/js/tools/image.js?release=20261108-aeris-p07-final-rc5",
-  "/js/tools/random.js?release=20261108-aeris-p07-final-rc5",
-  "/js/tools/runner.js?release=20261108-aeris-p07-final-rc5",
-  "/js/tools/temporary.js?release=20261108-aeris-p07-final-rc5",
-  "/js/tools/text.js?release=20261108-aeris-p07-final-rc5",
-  "/workflows.js?release=20261108-aeris-p07-final-rc5",
+  "/styles.css?release=20261108-aeris-p07-release-rc6",
+  "/product-ui.css?release=20261108-aeris-p07-release-rc6",
+  "/design-system.css?release=20261108-aeris-p07-release-rc6",
+  "/public-experience.css?release=20261108-aeris-p07-release-rc6",
+  "/workspace-experience.css?release=20261108-aeris-p07-release-rc6",
+  "/spatial-experience.css?release=20261108-aeris-p07-release-rc6",
+  "/changelog.js?release=20261108-aeris-p07-release-rc6",
+  "/learning-sync.js?release=20261108-aeris-p07-release-rc6",
+  "/app.js?release=20261108-aeris-p07-release-rc6",
+  "/js/core/api.js?release=20261108-aeris-p07-release-rc6",
+  "/js/core/changelog.js?release=20261108-aeris-p07-release-rc6",
+  "/js/core/capabilities.js?release=20261108-aeris-p07-release-rc6",
+  "/js/core/config.js?release=20261108-aeris-p07-release-rc6",
+  "/js/core/router.js?release=20261108-aeris-p07-release-rc6",
+  "/js/core/session.js?release=20261108-aeris-p07-release-rc6",
+  "/js/core/storage.js?release=20261108-aeris-p07-release-rc6",
+  "/js/core/ui.js?release=20261108-aeris-p07-release-rc6",
+  "/js/core/design-system.js?release=20261108-aeris-p07-release-rc6",
+  "/js/core/public-ui-policy.js?release=20261108-aeris-p07-release-rc6",
+  "/js/core/download.js?release=20261108-aeris-p07-release-rc6",
+  "/js/core/perf.js?release=20261108-aeris-p07-release-rc6",
+  "/js/core/motion.js?release=20261108-aeris-p07-release-rc6",
+  "/js/core/keyed-list.js?release=20261108-aeris-p07-release-rc6",
+  "/js/core/public-experience.js?release=20261108-aeris-p07-release-rc6",
+  "/favicon.ico?release=20261108-aeris-p07-release-rc6",
+  "/assets/brand/favicon-32.png?release=20261108-aeris-p07-release-rc6",
+  "/assets/brand/apple-touch-icon.png?release=20261108-aeris-p07-release-rc6",
+  "/assets/brand/aeris-maskable-512.png?release=20261108-aeris-p07-release-rc6",
+  "/assets/brand/aeris-lockup.png?release=20261108-aeris-p07-release-rc6",
+  "/icon-192.png?release=20261108-aeris-p07-release-rc6",
+  "/icon-512.png?release=20261108-aeris-p07-release-rc6",
+  "/js/finance/app.js?release=20261108-aeris-p07-release-rc6",
+  "/js/finance/candidates.js?release=20261108-aeris-p07-release-rc6",
+  "/js/finance/disclosure.js?release=20261108-aeris-p07-release-rc6",
+  "/js/finance/notification-ledger.js?release=20261108-aeris-p07-release-rc6",
+  "/js/transfer/app.js?release=20261108-aeris-p07-release-rc6",
+  "/js/transfer/updates.js?release=20261108-aeris-p07-release-rc6",
+  "/js/language/achievements.js?release=20261108-aeris-p07-release-rc6",
+  "/js/language/history.js?release=20261108-aeris-p07-release-rc6",
+  "/js/language/pdf.js?release=20261108-aeris-p07-release-rc6",
+  "/js/language/mastery.js?release=20261108-aeris-p07-release-rc6",
+  "/js/language/mastery-state.js?release=20261108-aeris-p07-release-rc6",
+  "/js/language/mastery-journal.js?release=20261108-aeris-p07-release-rc6",
+  "/js/language/quiz.js?release=20261108-aeris-p07-release-rc6",
+  "/js/language/speech.js?release=20261108-aeris-p07-release-rc6",
+  "/js/language/speech-rate.js?release=20261108-aeris-p07-release-rc6",
+  "/js/language/sync-adapter.js?release=20261108-aeris-p07-release-rc6",
+  "/js/language/wrong-book.js?release=20261108-aeris-p07-release-rc6",
+  "/js/membership/account.js?release=20261108-aeris-p07-release-rc6",
+  "/js/membership/plans.js?release=20261108-aeris-p07-release-rc6",
+  "/js/membership/recharge.js?release=20261108-aeris-p07-release-rc6",
+  "/js/admin/formatters.js?release=20261108-aeris-p07-release-rc6",
+  "/tools.js?release=20261108-aeris-p07-release-rc6",
+  "/js/tools/catalog.js?release=20261108-aeris-p07-release-rc6",
+  "/js/tools/file.js?release=20261108-aeris-p07-release-rc6",
+  "/js/tools/image.js?release=20261108-aeris-p07-release-rc6",
+  "/js/tools/random.js?release=20261108-aeris-p07-release-rc6",
+  "/js/tools/runner.js?release=20261108-aeris-p07-release-rc6",
+  "/js/tools/temporary.js?release=20261108-aeris-p07-release-rc6",
+  "/js/tools/text.js?release=20261108-aeris-p07-release-rc6",
+  "/workflows.js?release=20261108-aeris-p07-release-rc6",
   "/vendor/qrcode.js?v=2.0.4",
   "/vendor/opencc-st-characters.txt",
   "/vendor/opencc-ts-characters.txt",
-  "/manifest.webmanifest?release=20261108-aeris-p07-final-rc5",
+  "/manifest.webmanifest?release=20261108-aeris-p07-release-rc6",
   "/icon-192.png",
   "/icon-512.png"
 ];
-CORE_SHELL.push("/js/core/feature-flags.js?release=20261108-aeris-p07-final-rc5", "/js/core/feature-console.js?release=20261108-aeris-p07-final-rc5");
+CORE_SHELL.push("/js/core/feature-flags.js?release=20261108-aeris-p07-release-rc6", "/js/core/feature-console.js?release=20261108-aeris-p07-release-rc6");
 const OPTIONAL_BRAND_ASSETS = ["/assets/logo.png"];
-CORE_SHELL.push("/js/core/startup.js?release=20261108-aeris-p07-final-rc5");
-CORE_SHELL.push("/js/core/home-widget-layout.js?release=20261108-aeris-p07-final-rc5");
-CORE_SHELL.push("/js/core/home-widgets.js?release=20261108-aeris-p07-final-rc5", "/js/core/home-widget-data.js?release=20261108-aeris-p07-final-rc5");
-CORE_SHELL.push("/js/transfer/upload-part.js?release=20261108-aeris-p07-final-rc5");
-CORE_SHELL.push("/js/core/lazy-controller.js?release=20261108-aeris-p07-final-rc5", "/js/core/parked-rows.js?release=20261108-aeris-p07-final-rc5", "/js/core/dashboard.js?release=20261108-aeris-p07-final-rc5", "/js/finance/format.js?release=20261108-aeris-p07-final-rc5", "/js/tools/digest-worker.js?release=20261108-aeris-p07-final-rc5");
+CORE_SHELL.push("/js/core/startup.js?release=20261108-aeris-p07-release-rc6");
+CORE_SHELL.push("/js/core/home-widget-layout.js?release=20261108-aeris-p07-release-rc6");
+CORE_SHELL.push("/js/core/home-widgets.js?release=20261108-aeris-p07-release-rc6", "/js/core/home-widget-data.js?release=20261108-aeris-p07-release-rc6");
+CORE_SHELL.push("/js/transfer/upload-part.js?release=20261108-aeris-p07-release-rc6");
+CORE_SHELL.push("/js/core/lazy-controller.js?release=20261108-aeris-p07-release-rc6", "/js/core/parked-rows.js?release=20261108-aeris-p07-release-rc6", "/js/core/dashboard.js?release=20261108-aeris-p07-release-rc6", "/js/finance/format.js?release=20261108-aeris-p07-release-rc6", "/js/tools/digest-worker.js?release=20261108-aeris-p07-release-rc6");
 
-async function fetchWithDeadline(input, timeoutMs, options = {}) {
-  if (typeof AbortController === "undefined") return fetch(input, options);
+async function fetchWithDeadline(input, timeoutMs, options = {}, consume = response => response) {
+  if (typeof AbortController === "undefined") return consume(await fetch(input, options));
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await fetch(input, { ...options, signal: controller.signal });
+    return await consume(await fetch(input, { ...options, signal: controller.signal }));
   } finally {
     clearTimeout(timeout);
   }
@@ -99,7 +101,7 @@ async function cacheAssetSafely(cache, asset) {
     const response = await fetchWithDeadline(asset, ASSET_TIMEOUT_MS);
     if (response.ok) await cache.put(asset, response);
   } catch (_) {
-    // A partial shell is still useful; one unavailable asset must not block SW installation.
+    // Only optional brand artwork may fail without rejecting the complete core shell.
   }
 }
 
@@ -109,12 +111,19 @@ self.addEventListener("install", (event) => {
       const stagingName = CACHE + '-installing';
       const staging = await caches.open(stagingName);
       try {
-        const results = await Promise.allSettled(CORE_SHELL.map(async asset => {
-          const response = await fetchWithDeadline(asset, ASSET_TIMEOUT_MS, { cache: 'no-store' });
-          if (!response.ok) throw new Error('Incomplete release asset: ' + asset);
-          if (asset === '/index.html' && !await htmlMatchesRelease(response)) throw new Error('Release changed during installation');
-          await staging.put(asset, response);
-        }));
+        let next = 0;
+        const results = await Promise.allSettled(Array.from(
+          { length: Math.min(INSTALL_CONCURRENCY, CORE_SHELL.length) }, async () => {
+            while (next < CORE_SHELL.length) {
+              const asset = CORE_SHELL[next++];
+              // Keep the deadline active until the response body is cached too.
+              await fetchWithDeadline(asset, ASSET_TIMEOUT_MS, { cache: 'no-store' }, async response => {
+                if (!response.ok) throw new Error('Incomplete release asset: ' + asset);
+                if (asset === '/index.html' && !await htmlMatchesRelease(response)) throw new Error('Release changed during installation');
+                await staging.put(asset, response);
+              });
+            }
+          }));
         if (results.some(result => result.status === 'rejected')) throw new Error('Release shell is incomplete');
         await Promise.allSettled(OPTIONAL_BRAND_ASSETS.map(asset => cacheAssetSafely(staging, asset)));
         const cache = await caches.open(CACHE);
