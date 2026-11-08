@@ -54,9 +54,20 @@ class CdpClient {
     this.nextId = 1;
     this.pending = new Map();
     this.events = [];
+    this.transferPending = new Map();
+    this.transferCompleted = [];
     this.socket.addEventListener("message", (event) => {
       const message = JSON.parse(String(event.data));
       if (!message.id) {
+        const p = message.params || {};
+        if (message.method === 'Network.requestWillBeSent' && String(p.request?.url || '').includes('/api/transfer/')) {
+          this.transferPending.set(p.requestId, {path:new URL(p.request.url).pathname,status:null});
+        } else if (message.method === 'Network.responseReceived' && this.transferPending.has(p.requestId)) {
+          this.transferPending.get(p.requestId).status = p.response.status;
+        } else if (['Network.loadingFinished','Network.loadingFailed'].includes(message.method) && this.transferPending.has(p.requestId)) {
+          this.transferCompleted.push({...this.transferPending.get(p.requestId),failed:message.method==='Network.loadingFailed'});
+          this.transferPending.delete(p.requestId);
+        }
         if (message.method === "Runtime.exceptionThrown" || message.method === "Log.entryAdded") {
           this.events.push(message);
           if (this.events.length > 40) this.events.shift();
@@ -136,6 +147,9 @@ const MEASURE = `(() => {
     config: rectOf(".transfer-config"),
     message: rectOf("#transferMessage"),
     viewportHeight: window.innerHeight,
+    scrollY: window.scrollY,
+    documentHeight: root.scrollHeight,
+    bodyHeight: document.body.scrollHeight,
   };
 })()`;
 
@@ -151,7 +165,7 @@ async function main() {
   const attached = await client.send("Target.attachToTarget", { targetId: target.targetId, flatten: true });
   const sessionId = attached.sessionId;
   const send = (method, params = {}) => client.send(method, params, sessionId);
-  await Promise.all([send("Page.enable"), send("DOM.enable"), send("Runtime.enable")]);
+  await Promise.all([send("Page.enable"), send("DOM.enable"), send("Runtime.enable"), send('Network.enable')]);
 
   const evaluate = async (expression) => {
     const response = await send("Runtime.evaluate", { expression, returnByValue: true, awaitPromise: true, userGesture: true });
@@ -209,10 +223,11 @@ async function main() {
     await waitFor("document.documentElement.dataset.bootState === 'ready' && !document.getElementById('entryScreen') && document.getElementById('toolsPanel').checkVisibility({checkOpacity:true,checkVisibilityCSS:true})",
       Math.max(1, toolboxDeadline - Date.now()), 'visible toolbox after startup cleanup');
     readiness.beforeUserNavigation = await evaluate(readyState);
+    const transferDeadline = Date.now() + 25_000;
     await evaluate("window.WYJTools.openTool('file-transfer', false); true");
     await waitFor(
       "location.pathname === '/transfer' && !document.getElementById('entryScreen') && document.querySelector('#transferPage')?.checkVisibility({checkOpacity:true,checkVisibilityCSS:true})",
-      25_000,
+      Math.max(1, transferDeadline-Date.now()),
       "transfer page",
     ).catch(async (error) => {
       const diagnostic = await evaluate(`({
@@ -223,6 +238,16 @@ async function main() {
       })`).catch(() => ({}));
       throw new Error(`${error.message} :: ${JSON.stringify(diagnostic)}`);
     });
+    const initialPaths=['/api/transfer/capabilities','/api/transfer/shares','/api/transfer/uploads'];
+    readiness.beforeInitialTransferData = await evaluate(`({documentHeight:document.documentElement.scrollHeight,bodyHeight:document.body.scrollHeight,messageTop:document.getElementById('transferMessage').getBoundingClientRect().top,sharesChildren:document.getElementById('transferMyShares').children.length,unfinishedChildren:document.getElementById('transferUnfinishedSessions').children.length})`);
+    const initialComplete=()=>initialPaths.every(path=>client.transferCompleted.some(r=>r.path===path&&r.status===200&&!r.failed))&&client.transferPending.size===0;
+    while(!initialComplete()&&Date.now()<transferDeadline) await delay(100);
+    readiness.initialTransferData={completed:client.transferCompleted,pending:[...client.transferPending.values()]};
+    assert.ok(initialComplete(),'initial transfer data did not finish within the original 25s budget: '+JSON.stringify(readiness.initialTransferData));
+    await evaluate('new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))');
+    readiness.afterInitialTransferData = await evaluate(`({documentHeight:document.documentElement.scrollHeight,bodyHeight:document.body.scrollHeight,messageTop:document.getElementById('transferMessage').getBoundingClientRect().top,sharesChildren:document.getElementById('transferMyShares').children.length,unfinishedChildren:document.getElementById('transferUnfinishedSessions').children.length})`);
+    // Initial list placeholders can otherwise arrive after scrolling and grow
+    // the page beneath the measurement. Wait on real responses, not a sleep.
 
     for (const viewport of VIEWPORTS) {
       await send("Emulation.setDeviceMetricsOverride", {
@@ -237,6 +262,7 @@ async function main() {
         `transfer page at ${viewport.name}`,
       );
       await evaluate("new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+      await evaluate("Promise.allSettled(document.getAnimations().filter(a=>a.playState==='running'&&Number.isFinite(a.effect.getComputedTiming().endTime)).map(a=>a.finished))");
       const layout = await evaluate(MEASURE);
       report.push({ viewport: viewport.name, ...layout });
 
@@ -257,6 +283,7 @@ async function main() {
       // still fully visible (the shell reserves safe-area/bottom padding for the
       // native bottom navigation instead of letting it cover content).
       const bottomGuard = await evaluate(`(async () => {
+        const before={scrollY,documentHeight:document.documentElement.scrollHeight,bodyHeight:document.body.scrollHeight};
         window.scrollTo({top:document.body.scrollHeight,behavior:'instant'});
         await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
         const page = document.querySelector("#transferPage");
@@ -274,6 +301,13 @@ async function main() {
           boot: document.documentElement.dataset.bootState,
           htmlOverflow: getComputedStyle(document.documentElement).overflow,
           bodyOverflow: getComputedStyle(document.body).overflow,
+          before,
+          documentHeight: document.documentElement.scrollHeight,
+          bodyHeight: document.body.scrollHeight,
+          clientHeight: document.documentElement.clientHeight,
+          visualHeight: window.visualViewport?.height,
+          pageTransform: pageStyle.transform,
+          shellTransform: shellStyle.transform,
         };
       })()`);
       report.at(-1).bottomGuard = bottomGuard;
