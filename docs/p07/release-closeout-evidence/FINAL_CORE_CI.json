@@ -1,0 +1,160 @@
+{
+  "source_sha": "a72ec8a3186a0e91e28b6b2e286b89e21fa98ec8",
+  "run_id": 42498090215,
+  "url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/42498090215",
+  "status": "completed",
+  "conclusion": "success",
+  "run_attempt": 1,
+  "started_at": "2026-11-08T16:05:24Z",
+  "completed_at": "2026-11-08T16:19:01Z",
+  "required_success": 8,
+  "conditional_skipped": 2,
+  "skipped_counted_as_pass": false,
+  "jobs": [
+    {
+      "id": 128784673906,
+      "name": "JavaScript and static site checks",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 128784674042,
+      "name": "Pages build and publish allowlist",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 128784674072,
+      "name": "Python syntax and unittest (ubuntu-latest)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 128784674107,
+      "name": "Python syntax and unittest (windows-latest)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 128784674126,
+      "name": "Android unit, lint and APK",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 128784674280,
+      "name": "Sensitive files and static naming",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 128784675300,
+      "name": "Task 25 Android runtime contract",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 128784675568,
+      "name": "Task 25 cloud credential discovery",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 128785753722,
+      "name": "Browser flow (application)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 128785753767,
+      "name": "Cloud-only browser, canonical session and toolbox",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "sw_profile_cases": [
+    {
+      "case": "normal",
+      "status": "PASS",
+      "first": {
+        "state": "activated",
+        "duration_ms": 429
+      },
+      "max_server_active": 3
+    },
+    {
+      "case": "slow",
+      "status": "PASS",
+      "first": {
+        "state": "activated",
+        "duration_ms": 25424
+      },
+      "max_server_active": 4
+    },
+    {
+      "case": "failure-retry",
+      "status": "PASS",
+      "first": {
+        "state": "redundant",
+        "duration_ms": 248
+      },
+      "max_server_active": 3
+    },
+    {
+      "case": "body-timeout",
+      "status": "PASS",
+      "first": {
+        "state": "redundant",
+        "duration_ms": 10073
+      },
+      "max_server_active": 3
+    },
+    {
+      "case": "warm",
+      "status": "PASS",
+      "first": {
+        "state": "activated",
+        "duration_ms": 331
+      },
+      "max_server_active": 3
+    }
+  ],
+  "rollback_browser_cases": [
+    {
+      "name": "forward real login and completed original shell",
+      "status": "PASS"
+    },
+    {
+      "name": "rollback ordinary reload preserves verified identity, old cache and all user stores with server policy ON",
+      "status": "PASS"
+    },
+    {
+      "name": "old open client keeps exact lazy-module bytes while offline",
+      "status": "PASS"
+    },
+    {
+      "name": "rollback offline authenticated reload is finite and fail-closed, then real retry restores account",
+      "status": "PASS"
+    },
+    {
+      "name": "rollback slow recovery never displays cached other-account data",
+      "status": "PASS"
+    },
+    {
+      "name": "roll forward preserves rollback cache, login and all user data without clearing storage",
+      "status": "PASS"
+    },
+    {
+      "name": "fresh rollback profile has base UI, three cards and normal real login/logout",
+      "status": "PASS"
+    }
+  ],
+  "b1_real_api_supported": 15,
+  "b1_python_model_supported": 9,
+  "build_fingerprint": "98943f0badc0d6d41b5b9114b47a1f84227920faf4d73da97d2f6947f15b43a1",
+  "build_artifact": "https://github.com/WYJ0904/thewyj.uk/actions/runs/42498090215/artifacts/13623963906",
+  "cloud_browser_artifact": "https://github.com/WYJ0904/thewyj.uk/actions/runs/42498090215/artifacts/13624681647",
+  "ci_merge_sha": "4cf05ff081e1c0947fba8e33f5b37bbecdb00128",
+  "ci_merge_tree": "9ebb833e13580243bbd394d0ebfd0fcc3144de93",
+  "candidate_tree_identical": true
+}

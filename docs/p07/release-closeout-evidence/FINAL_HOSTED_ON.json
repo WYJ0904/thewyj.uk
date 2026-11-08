@@ -1,0 +1,386 @@
+{
+  "source_sha": "a72ec8a3186a0e91e28b6b2e286b89e21fa98ec8",
+  "deployment_id": "00ccfcce-7429-4c2a-9c32-250e957bd9b3",
+  "origin": "https://00ccfcce.thewyj-uk.pages.dev",
+  "d1_id": "a3e6253b-689f-49f3-998b-7c5828ea255a",
+  "scope": "real isolated Preview + owned new Chrome profile + only task-owned synthetic accounts",
+  "production_mutations": 0,
+  "ai_model_calls": 0,
+  "cases": [
+    {
+      "name": "exact-published-bytes",
+      "status": "PASS",
+      "detail": [
+        {
+          "file": "index.html",
+          "sha256": "ba344b44bd62b8309187a9a29523bf35f4894a4094a329bae391748b2f3289db"
+        },
+        {
+          "file": "app.js",
+          "sha256": "b441d13c2e3b7e1342a1f3b53a45708c79e7b68a19ef2976980b9fdca78d5072"
+        },
+        {
+          "file": "learning-sync.js",
+          "sha256": "49bcaee5e6df5bb3ee362be0b9ee7a4230301c61ffc5feae8971670f47fa763c"
+        },
+        {
+          "file": "sw.js",
+          "sha256": "9e96928ee2ec781382118c25fb7e54735265d2ca0d7c9ab2b25714e140a42f7c"
+        },
+        {
+          "file": "js/core/design-system.js",
+          "sha256": "8d8d34c4545f56088683e959eea8af7a3f4741ef80e325522d93b631f973fb05"
+        }
+      ]
+    },
+    {
+      "name": "cold-public-on-cards-and-keyboard",
+      "status": "PASS",
+      "detail": {
+        "cards": [
+          {
+            "id": "learning",
+            "width": 206.53448486328125,
+            "height": 254.759033203125
+          },
+          {
+            "id": "finance",
+            "width": 212.770751953125,
+            "height": 259.62506103515625
+          },
+          {
+            "id": "tools",
+            "width": 210.7080078125,
+            "height": 258.02264404296875
+          }
+        ],
+        "axe": {
+          "label": "public ON",
+          "violations": [],
+          "incomplete": [
+            {
+              "id": "color-contrast",
+              "nodes": 28
+            }
+          ],
+          "phase": {
+            "transition": false,
+            "inert": false,
+            "mount": "ready"
+          }
+        }
+      }
+    },
+    {
+      "name": "real-login-and-account-permissions",
+      "status": "PASS",
+      "detail": {
+        "paid_admin_denied": true,
+        "basic_finance_denied": true,
+        "paid_finance_allowed": true
+      }
+    },
+    {
+      "name": "reviewed-task11-real-hosted-data-contract",
+      "status": "PASS",
+      "detail": {
+        "same_time_meaning_preserved": true,
+        "ambiguous_delete_409": true,
+        "newer_lost_ack_delete_accepted": true,
+        "tombstone_replay_rejected": true,
+        "tenant_isolation": true,
+        "only_owned_synthetic_record": true
+      }
+    },
+    {
+      "name": "account-membership-finance-and-workspace-routes",
+      "status": "PASS",
+      "detail": [
+        "/account",
+        "/recharge",
+        "/finance",
+        "/language",
+        "/tools/workflows",
+        "/transfer",
+        "/"
+      ]
+    },
+    {
+      "name": "slow-identity-finite-recovery-and-normal-refresh",
+      "status": "PASS",
+      "detail": {
+        "frames": 1741,
+        "unverified_private_frames": 0
+      }
+    },
+    {
+      "name": "external-account-switch-and-revocation",
+      "status": "PASS",
+      "detail": {
+        "switched_owner_verified": true,
+        "revoked_session_denied": true
+      }
+    },
+    {
+      "name": "legitimate-off-kill-and-business-rights-preserved",
+      "status": "PASS",
+      "detail": [
+        {
+          "revision": 27,
+          "enabled": false,
+          "kill": false,
+          "paid_finance_still_200": true,
+          "basic_finance_still_403": true
+        },
+        {
+          "revision": 28,
+          "enabled": true,
+          "kill": true,
+          "paid_finance_still_200": true,
+          "basic_finance_still_403": true
+        }
+      ]
+    },
+    {
+      "name": "account-override-cannot-bypass-global-kill",
+      "status": "PASS",
+      "detail": {
+        "override_cannot_bypass_kill": true,
+        "override_returned_to_inherit": true
+      }
+    },
+    {
+      "name": "beta-canary-and-public-fail-closed",
+      "status": "PASS",
+      "detail": {
+        "canary_revision": 34,
+        "beta_sample_enabled": true,
+        "public_stayed_off": true
+      }
+    },
+    {
+      "name": "final-on-mobile-login-axe-and-sw",
+      "status": "PASS",
+      "detail": {
+        "login_axe": {
+          "label": "mobile login ON",
+          "violations": [],
+          "incomplete": [],
+          "phase": {
+            "transition": false,
+            "inert": false,
+            "mount": "ready"
+          }
+        },
+        "release": "20261108-aeris-p07-release-rc7",
+        "home_axe": {
+          "label": "mobile authenticated home ON",
+          "violations": [],
+          "incomplete": [
+            {
+              "id": "aria-valid-attr-value",
+              "nodes": 1
+            },
+            {
+              "id": "color-contrast",
+              "nodes": 20
+            }
+          ],
+          "phase": {
+            "transition": false,
+            "inert": false,
+            "mount": "ready"
+          }
+        }
+      }
+    }
+  ],
+  "flag_history": [
+    {
+      "flag_key": "p07_accessibility",
+      "description": "Isolated P07 closeout acceptance only",
+      "enabled": true,
+      "kill_switch": false,
+      "channels": [
+        "stable",
+        "beta",
+        "experimental"
+      ],
+      "rollout_percentage": 100,
+      "revision": 26,
+      "updated_at": "2026-11-08T16:22:55.727Z"
+    },
+    {
+      "flag_key": "p07_accessibility",
+      "description": "Isolated P07 closeout acceptance only",
+      "enabled": false,
+      "kill_switch": false,
+      "channels": [
+        "stable",
+        "beta",
+        "experimental"
+      ],
+      "rollout_percentage": 100,
+      "revision": 27,
+      "updated_at": "2026-11-08T16:24:10.718Z"
+    },
+    {
+      "flag_key": "p07_accessibility",
+      "description": "Isolated P07 closeout acceptance only",
+      "enabled": true,
+      "kill_switch": true,
+      "channels": [
+        "stable",
+        "beta",
+        "experimental"
+      ],
+      "rollout_percentage": 100,
+      "revision": 28,
+      "updated_at": "2026-11-08T16:24:19.299Z"
+    },
+    {
+      "flag_key": "p07_accessibility",
+      "description": "Isolated P07 closeout acceptance only",
+      "enabled": true,
+      "kill_switch": false,
+      "channels": [
+        "stable",
+        "beta",
+        "experimental"
+      ],
+      "rollout_percentage": 100,
+      "revision": 29,
+      "updated_at": "2026-11-08T16:24:27.559Z"
+    },
+    {
+      "flag_key": "p07_accessibility",
+      "description": "Isolated P07 closeout acceptance only",
+      "enabled": true,
+      "kill_switch": true,
+      "channels": [
+        "stable",
+        "beta",
+        "experimental"
+      ],
+      "rollout_percentage": 100,
+      "revision": 31,
+      "updated_at": "2026-11-08T16:24:35.921Z"
+    },
+    {
+      "flag_key": "p07_accessibility",
+      "description": "Isolated P07 closeout acceptance only",
+      "enabled": true,
+      "kill_switch": false,
+      "channels": [
+        "stable",
+        "beta",
+        "experimental"
+      ],
+      "rollout_percentage": 100,
+      "revision": 33,
+      "updated_at": "2026-11-08T16:24:42.058Z"
+    },
+    {
+      "flag_key": "p07_accessibility",
+      "description": "Isolated P07 closeout acceptance only",
+      "enabled": true,
+      "kill_switch": false,
+      "channels": [
+        "beta"
+      ],
+      "rollout_percentage": 5,
+      "revision": 34,
+      "updated_at": "2026-11-08T16:24:46.628Z"
+    },
+    {
+      "flag_key": "p07_accessibility",
+      "description": "Isolated P07 closeout acceptance only",
+      "enabled": true,
+      "kill_switch": false,
+      "channels": [
+        "stable",
+        "beta",
+        "experimental"
+      ],
+      "rollout_percentage": 100,
+      "revision": 35,
+      "updated_at": "2026-11-08T16:24:51.876Z"
+    },
+    {
+      "flag_key": "p07_accessibility",
+      "description": "Isolated P07 closeout acceptance only",
+      "enabled": true,
+      "kill_switch": false,
+      "channels": [
+        "stable",
+        "beta",
+        "experimental"
+      ],
+      "rollout_percentage": 100,
+      "revision": 36,
+      "updated_at": "2026-11-08T16:25:06.091Z"
+    }
+  ],
+  "axe_scans": [
+    {
+      "label": "public ON",
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "nodes": 28
+        }
+      ],
+      "phase": {
+        "transition": false,
+        "inert": false,
+        "mount": "ready"
+      }
+    },
+    {
+      "label": "mobile login ON",
+      "violations": [],
+      "incomplete": [],
+      "phase": {
+        "transition": false,
+        "inert": false,
+        "mount": "ready"
+      }
+    },
+    {
+      "label": "mobile authenticated home ON",
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-valid-attr-value",
+          "nodes": 1
+        },
+        {
+          "id": "color-contrast",
+          "nodes": 20
+        }
+      ],
+      "phase": {
+        "transition": false,
+        "inert": false,
+        "mount": "ready"
+      }
+    }
+  ],
+  "uncaught_runtime_errors": [],
+  "final_flag": {
+    "flag_key": "p07_accessibility",
+    "description": "Isolated P07 closeout acceptance only",
+    "enabled": true,
+    "kill_switch": false,
+    "channels": [
+      "stable",
+      "beta",
+      "experimental"
+    ],
+    "rollout_percentage": 100,
+    "revision": 36,
+    "updated_at": "2026-11-08T16:25:06.091Z"
+  },
+  "status": "PASS"
+}

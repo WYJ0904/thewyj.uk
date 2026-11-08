@@ -1,0 +1,49 @@
+{
+  "observed_at": "2026-11-08T16:35:07.196Z",
+  "main_ref": "3eb268b748a6e7a1aaa7369059db474810bb59d4",
+  "canonical_deployment": "0bc5e5bb-6cd3-4e02-8a65-2b8539ae80ba",
+  "canonical_sha": "3eb268b748a6e7a1aaa7369059db474810bb59d4",
+  "canonical_unchanged": true,
+  "production_auto_deploy": true,
+  "production_branch": "main",
+  "production_bindings": {
+    "d1": {
+      "WYJ_DB": {
+        "id": "11c288d8-c584-409f-bb1f-7e7af11793e5"
+      }
+    },
+    "r2": {
+      "WYJ_STORAGE": {
+        "name": "wyj-cloud-production"
+      }
+    }
+  },
+  "p07_flag_read": {
+    "sql": "SELECT flag_key, enabled, kill_switch, channels_json, rollout_basis_points, revision FROM task25_feature_flags WHERE flag_key='p07_accessibility'",
+    "success": true,
+    "result": [
+      {
+        "results": [],
+        "success": true,
+        "meta": {
+          "served_by": "v3-prod",
+          "served_by_region": "APAC",
+          "served_by_colo": "HKG",
+          "served_by_primary": true,
+          "timings": {
+            "sql_duration_ms": 0.3333
+          },
+          "duration": 0.3333,
+          "changes": 0,
+          "last_row_id": 0,
+          "changed_db": false,
+          "size_after": 4562944,
+          "rows_read": 0,
+          "rows_written": 0,
+          "total_attempts": 1
+        }
+      }
+    ]
+  },
+  "production_mutations": 0
+}

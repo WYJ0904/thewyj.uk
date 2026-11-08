@@ -1,0 +1,323 @@
+{
+  "final_status": "PRODUCTION_RELEASE_READY_FOR_OWNER_APPROVAL",
+  "generated_at": "2026-11-08T16:40:26.619Z",
+  "release_candidate_sha": "a72ec8a3186a0e91e28b6b2e286b89e21fa98ec8",
+  "asset_release": "20261108-aeris-p07-release-rc7",
+  "main_original_sha": "3eb268b748a6e7a1aaa7369059db474810bb59d4",
+  "rc6_source_sha": "e4844a5304709263a2810332eca5d2a87b069d3d",
+  "accepted_ui_sha": "482580b0855e14a61b3f6b51e9d91ae7855296cb",
+  "draft_pr": "https://github.com/WYJ0904/thewyj.uk/pull/137",
+  "branch": "codex/p07-production-release-preflight",
+  "base": "main",
+  "draft": true,
+  "merged": false,
+  "blockers": {
+    "B1": "CLOSED_BY_REVIEWED_MINIMAL_COMPATIBILITY_FIX_AND_RED_GREEN",
+    "B2": "CLOSED_BY_ISOLATED_ON_OFF_KILL_GRAY_AND_REAL_HOSTED_WARM_PROOF",
+    "B3": "CLOSED_BY_CANONICAL_SAFE_ROLLBACK_ASSET_AND_EXACT_SHA_CI_BROWSER_TESTS"
+  },
+  "core_ci": {
+    "source_sha": "a72ec8a3186a0e91e28b6b2e286b89e21fa98ec8",
+    "run_id": 42498090215,
+    "url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/42498090215",
+    "status": "completed",
+    "conclusion": "success",
+    "run_attempt": 1,
+    "started_at": "2026-11-08T16:05:24Z",
+    "completed_at": "2026-11-08T16:19:01Z",
+    "required_success": 8,
+    "conditional_skipped": 2,
+    "skipped_counted_as_pass": false,
+    "jobs": [
+      {
+        "id": 128784673906,
+        "name": "JavaScript and static site checks",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 128784674042,
+        "name": "Pages build and publish allowlist",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 128784674072,
+        "name": "Python syntax and unittest (ubuntu-latest)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 128784674107,
+        "name": "Python syntax and unittest (windows-latest)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 128784674126,
+        "name": "Android unit, lint and APK",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 128784674280,
+        "name": "Sensitive files and static naming",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 128784675300,
+        "name": "Task 25 Android runtime contract",
+        "status": "completed",
+        "conclusion": "skipped"
+      },
+      {
+        "id": 128784675568,
+        "name": "Task 25 cloud credential discovery",
+        "status": "completed",
+        "conclusion": "skipped"
+      },
+      {
+        "id": 128785753722,
+        "name": "Browser flow (application)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 128785753767,
+        "name": "Cloud-only browser, canonical session and toolbox",
+        "status": "completed",
+        "conclusion": "success"
+      }
+    ],
+    "sw_profile_cases": [
+      {
+        "case": "normal",
+        "status": "PASS",
+        "first": {
+          "state": "activated",
+          "duration_ms": 429
+        },
+        "max_server_active": 3
+      },
+      {
+        "case": "slow",
+        "status": "PASS",
+        "first": {
+          "state": "activated",
+          "duration_ms": 25424
+        },
+        "max_server_active": 4
+      },
+      {
+        "case": "failure-retry",
+        "status": "PASS",
+        "first": {
+          "state": "redundant",
+          "duration_ms": 248
+        },
+        "max_server_active": 3
+      },
+      {
+        "case": "body-timeout",
+        "status": "PASS",
+        "first": {
+          "state": "redundant",
+          "duration_ms": 10073
+        },
+        "max_server_active": 3
+      },
+      {
+        "case": "warm",
+        "status": "PASS",
+        "first": {
+          "state": "activated",
+          "duration_ms": 331
+        },
+        "max_server_active": 3
+      }
+    ],
+    "rollback_browser_cases": [
+      {
+        "name": "forward real login and completed original shell",
+        "status": "PASS"
+      },
+      {
+        "name": "rollback ordinary reload preserves verified identity, old cache and all user stores with server policy ON",
+        "status": "PASS"
+      },
+      {
+        "name": "old open client keeps exact lazy-module bytes while offline",
+        "status": "PASS"
+      },
+      {
+        "name": "rollback offline authenticated reload is finite and fail-closed, then real retry restores account",
+        "status": "PASS"
+      },
+      {
+        "name": "rollback slow recovery never displays cached other-account data",
+        "status": "PASS"
+      },
+      {
+        "name": "roll forward preserves rollback cache, login and all user data without clearing storage",
+        "status": "PASS"
+      },
+      {
+        "name": "fresh rollback profile has base UI, three cards and normal real login/logout",
+        "status": "PASS"
+      }
+    ],
+    "b1_real_api_supported": 15,
+    "b1_python_model_supported": 9,
+    "build_fingerprint": "98943f0badc0d6d41b5b9114b47a1f84227920faf4d73da97d2f6947f15b43a1",
+    "build_artifact": "https://github.com/WYJ0904/thewyj.uk/actions/runs/42498090215/artifacts/13623963906",
+    "cloud_browser_artifact": "https://github.com/WYJ0904/thewyj.uk/actions/runs/42498090215/artifacts/13624681647",
+    "ci_merge_sha": "4cf05ff081e1c0947fba8e33f5b37bbecdb00128",
+    "ci_merge_tree": "9ebb833e13580243bbd394d0ebfd0fcc3144de93",
+    "candidate_tree_identical": true
+  },
+  "publish_manifest": {
+    "files": 148,
+    "bytes": 5891895,
+    "sha256": "98943f0badc0d6d41b5b9114b47a1f84227920faf4d73da97d2f6947f15b43a1",
+    "output": ".wrangler/final-release-git-input-a72/.wrangler/pages-output",
+    "product_inputs_identical_to": "c8e3ae1c30fb905bc9823602d0035d10b92f9d31"
+  },
+  "hosted": {
+    "url": "https://00ccfcce.thewyj-uk.pages.dev",
+    "deployment_id": "00ccfcce-7429-4c2a-9c32-250e957bd9b3",
+    "source_sha": "a72ec8a3186a0e91e28b6b2e286b89e21fa98ec8",
+    "tests_passed": 11,
+    "flag": {
+      "flag_key": "p07_accessibility",
+      "description": "Isolated P07 closeout acceptance only",
+      "enabled": true,
+      "kill_switch": false,
+      "channels": [
+        "stable",
+        "beta",
+        "experimental"
+      ],
+      "rollout_percentage": 100,
+      "revision": 36,
+      "updated_at": "2026-11-08T16:25:06.091Z"
+    },
+    "d1_id": "a3e6253b-689f-49f3-998b-7c5828ea255a",
+    "normal_business_rights_preserved": true,
+    "models_called": 0
+  },
+  "warm_upgrade": {
+    "old_sha": "e4844a5304709263a2810332eca5d2a87b069d3d",
+    "new_sha": "a72ec8a3186a0e91e28b6b2e286b89e21fa98ec8",
+    "origin": "https://codex-p07-release-upgrade-la.thewyj-uk.pages.dev",
+    "deployment_id": "30127368-0ccf-43d4-bf67-a16409a691f6",
+    "status": "PASS",
+    "old_cached_bodies_match": 81,
+    "new_actual_module_style_responses_match": 49,
+    "account_session_preserved": true,
+    "old_client_bytes_retained": true,
+    "real_logout_completed": true,
+    "offline_user_data_retained": true,
+    "temporary_preview_branch": "codex/p07-release-upgrade-lab",
+    "additional_release_pr_created": false
+  },
+  "safe_rollback": {
+    "source_sha": "a72ec8a3186a0e91e28b6b2e286b89e21fa98ec8",
+    "release": "20261108-aeris-p07-safe-rollback-rc1",
+    "files": 148,
+    "sha256": "eba1ab774ed66311199587614b16cec4dc86c80e81f52dee87f1a9c358f8082b",
+    "output": ".wrangler/p07-safe-rollback/a72ec8a3186a0e91e28b6b2e286b89e21fa98ec8/.wrangler/pages-output",
+    "ci_cases": 7,
+    "ci_cases_passed": 7,
+    "server_policy_on_during_legacy_presentation": true,
+    "user_cache_localstorage_indexeddb_preserved": true,
+    "no_old_main_blanket_delete_worker": true,
+    "no_database_or_business_write_undo": true,
+    "requires_explicit_production_approval": true
+  },
+  "rc6_sw_implementation_preserved_after_release_normalization": true,
+  "production_end_readonly": {
+    "observed_at": "2026-11-08T16:35:07.196Z",
+    "main_ref": "3eb268b748a6e7a1aaa7369059db474810bb59d4",
+    "canonical_deployment": "0bc5e5bb-6cd3-4e02-8a65-2b8539ae80ba",
+    "canonical_sha": "3eb268b748a6e7a1aaa7369059db474810bb59d4",
+    "canonical_unchanged": true,
+    "production_auto_deploy": true,
+    "production_branch": "main",
+    "production_bindings": {
+      "d1": {
+        "WYJ_DB": {
+          "id": "11c288d8-c584-409f-bb1f-7e7af11793e5"
+        }
+      },
+      "r2": {
+        "WYJ_STORAGE": {
+          "name": "wyj-cloud-production"
+        }
+      }
+    },
+    "p07_flag_read": {
+      "sql": "SELECT flag_key, enabled, kill_switch, channels_json, rollout_basis_points, revision FROM task25_feature_flags WHERE flag_key='p07_accessibility'",
+      "success": true,
+      "result": [
+        {
+          "results": [],
+          "success": true,
+          "meta": {
+            "served_by": "v3-prod",
+            "served_by_region": "APAC",
+            "served_by_colo": "HKG",
+            "served_by_primary": true,
+            "timings": {
+              "sql_duration_ms": 0.3333
+            },
+            "duration": 0.3333,
+            "changes": 0,
+            "last_row_id": 0,
+            "changed_db": false,
+            "size_after": 4562944,
+            "rows_read": 0,
+            "rows_written": 0,
+            "total_attempts": 1
+          }
+        }
+      ]
+    },
+    "production_mutations": 0
+  },
+  "production_flag_plan": "FINAL_PRODUCTION_FLAG_GRAY_PLAN.json",
+  "new_production_migrations": 0,
+  "production_mutations": 0,
+  "production_deployments_executed": 0,
+  "main_pushes_or_merges": 0,
+  "real_payments": 0,
+  "android_signing_stable_phone_changes": 0,
+  "remaining_risks": [
+    {
+      "id": "R1",
+      "risk": "An old same-device equal-timestamp pending delete may require one normal refresh; its local tombstone stays queued and the refreshed client completes it."
+    },
+    {
+      "id": "R2",
+      "risk": "Task11 backend changes apply with the entire Functions deployment; P07 UI gray rollout does not isolate the backend. The safe rollback retains this fix and does not undo committed business writes."
+    },
+    {
+      "id": "R3",
+      "risk": "Production, real accounts/payments, phones and screen-reader acceptance were not exercised; only authorized isolated and synthetic evidence is claimed. Existing Task26 waivers remain waivers."
+    },
+    {
+      "id": "R4",
+      "risk": "Axe incomplete gradient/attribute checks retain manual-review boundaries and are not counted as automatic PASS."
+    }
+  ],
+  "owner_approval_required": [
+    "Exact candidate SHA main merge and its automatic Production deployment",
+    "Production P07 staged Flag writes, each with fresh revision CAS and separate owner approval",
+    "Use of the verified safe rollback asset and preserving existing production bindings/secrets injection"
+  ],
+  "evidence_notes": [
+    "Final companion evidence is delivered locally and in the final Draft PR body, with no source push after the tested SHA.",
+    "Old RC6, raw PR136, failed peer/readiness experiments, the initial owner-fixture rejection, TLS interruption and orchestration timeout remain separate evidence, never relabeled PASS.",
+    "Only one formal release PR exists; the additional branch is a non-production old-to-new Preview test fixture."
+  ]
+}
