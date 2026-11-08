@@ -1,0 +1,68 @@
+{
+  "source_sha": "f9a866794a8f339575b099bce5f36d72556bed54",
+  "scope": "canonical generated rollback assets + real isolated compiled D1 APIs; only owned browser/test data",
+  "production_operations": 0,
+  "cases": [
+    {
+      "name": "forward real login and completed original shell",
+      "status": "PASS"
+    },
+    {
+      "name": "rollback ordinary reload preserves verified identity, old cache and all user stores with server policy ON",
+      "status": "PASS"
+    },
+    {
+      "name": "old open client keeps exact lazy-module bytes while offline",
+      "status": "PASS"
+    },
+    {
+      "name": "rollback offline authenticated reload is finite and fail-closed, then real retry restores account",
+      "status": "PASS"
+    },
+    {
+      "name": "rollback slow recovery never displays cached other-account data",
+      "status": "PASS"
+    },
+    {
+      "name": "roll forward preserves rollback cache, login and all user data without clearing storage",
+      "status": "PASS"
+    },
+    {
+      "name": "fresh rollback profile has base UI, three cards and normal real login/logout",
+      "status": "PASS"
+    }
+  ],
+  "policy_on_revision": 2,
+  "rollback_manifest": {
+    "release": "20261108-aeris-p07-safe-rollback-rc1",
+    "sha256": "eba1ab774ed66311199587614b16cec4dc86c80e81f52dee87f1a9c358f8082b",
+    "files": 148,
+    "source_sha": "f9a866794a8f339575b099bce5f36d72556bed54"
+  },
+  "old_peer_initial_state": {
+    "visibility": "hidden"
+  },
+  "old_peer_document": {
+    "app": "http://127.0.0.1:14468/app.js?release=20261108-aeris-p07-release-rc7",
+    "ready": "ready",
+    "account": true
+  },
+  "rollback_state": {
+    "local": "preserve",
+    "foreign": "preserve",
+    "ledger": {
+      "currency": "CNY",
+      "balance": -9001000,
+      "synthetic": true
+    },
+    "caches": [
+      "wyj-shell-20261108-aeris-p07-release-rc7-es-modules",
+      "r4a-unrelated-user-cache",
+      "wyj-shell-20261108-aeris-p07-safe-rollback-rc1-es-modules"
+    ],
+    "p07": "disabled",
+    "policy": "enabled"
+  },
+  "old_client_hash": "466cdca1263c9bb8d64135ea1afc7b8fb68f5cc3830bbaf418819750318e1f0e",
+  "status": "PASS"
+}

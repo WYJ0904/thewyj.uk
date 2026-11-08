@@ -1,0 +1,290 @@
+{
+  "kind": "old/new Web sync library x actual old/new authenticated Task11 API + Miniflare D1; rate limits enabled",
+  "old_sha": "e4844a5304709263a2810332eca5d2a87b069d3d",
+  "production_operations": 0,
+  "cases": [
+    {
+      "label": "old-web/old-server",
+      "kind": "meaning",
+      "old_web": true,
+      "old_server": true,
+      "legacy_seconds": false,
+      "status": "FAIL",
+      "error": "Expected values to be strictly equal:\n\n'' !== '网络'\n",
+      "result": {
+        "local_meaning": "",
+        "server_meaning": "",
+        "pending": 0
+      },
+      "calls": 2
+    },
+    {
+      "label": "old-web/old-server",
+      "kind": "offline-delete",
+      "old_web": true,
+      "old_server": true,
+      "legacy_seconds": false,
+      "status": "FAIL",
+      "error": "Expected values to be strictly equal:\n\nfalse !== true\n",
+      "result": {
+        "offline_local_deleted": true,
+        "local_deleted": false,
+        "server_deleted": false,
+        "pending": 0
+      },
+      "calls": 3
+    },
+    {
+      "label": "old-web/old-server",
+      "kind": "equal-time-delete",
+      "old_web": true,
+      "old_server": true,
+      "legacy_seconds": false,
+      "status": "FAIL",
+      "error": "Expected values to be strictly equal:\n\nfalse !== true\n",
+      "result": {
+        "offline_local_deleted": true,
+        "local_deleted": false,
+        "server_deleted": false,
+        "pending": 0
+      },
+      "calls": 3
+    },
+    {
+      "label": "old-web/old-server",
+      "kind": "duplicate",
+      "old_web": true,
+      "old_server": true,
+      "legacy_seconds": false,
+      "status": "PASS",
+      "result": {
+        "before_version": 1,
+        "after_version": 1
+      },
+      "calls": 2
+    },
+    {
+      "label": "old-web/old-server",
+      "kind": "backup-isolation",
+      "old_web": true,
+      "old_server": true,
+      "legacy_seconds": false,
+      "status": "PASS",
+      "result": {
+        "cross_account_backup_rejected": true,
+        "authenticated_tenant_isolation": true
+      },
+      "calls": 2
+    },
+    {
+      "label": "old-web/new-server",
+      "kind": "meaning",
+      "old_web": true,
+      "old_server": false,
+      "legacy_seconds": false,
+      "status": "PASS",
+      "result": {
+        "local_meaning": "网络",
+        "server_meaning": "网络",
+        "pending": 0
+      },
+      "calls": 2
+    },
+    {
+      "label": "old-web/new-server",
+      "kind": "offline-delete",
+      "old_web": true,
+      "old_server": false,
+      "legacy_seconds": false,
+      "status": "PASS",
+      "result": {
+        "offline_local_deleted": true,
+        "local_deleted": true,
+        "server_deleted": true,
+        "pending": 0
+      },
+      "calls": 3
+    },
+    {
+      "label": "old-web/new-server",
+      "kind": "equal-time-delete",
+      "old_web": true,
+      "old_server": false,
+      "legacy_seconds": false,
+      "status": "PASS",
+      "result": {
+        "legacy_queued_without_resurrection": true,
+        "refreshed_deleted": true,
+        "server_deleted": true,
+        "pending": 0
+      },
+      "calls": 4
+    },
+    {
+      "label": "old-web/new-server",
+      "kind": "duplicate",
+      "old_web": true,
+      "old_server": false,
+      "legacy_seconds": false,
+      "status": "PASS",
+      "result": {
+        "before_version": 1,
+        "after_version": 1
+      },
+      "calls": 2
+    },
+    {
+      "label": "old-web/new-server",
+      "kind": "backup-isolation",
+      "old_web": true,
+      "old_server": false,
+      "legacy_seconds": false,
+      "status": "PASS",
+      "result": {
+        "cross_account_backup_rejected": true,
+        "authenticated_tenant_isolation": true
+      },
+      "calls": 2
+    },
+    {
+      "label": "new-web/old-server",
+      "kind": "meaning",
+      "old_web": false,
+      "old_server": true,
+      "legacy_seconds": false,
+      "status": "PASS",
+      "result": {
+        "local_meaning": "网络",
+        "server_meaning": "网络",
+        "pending": 0
+      },
+      "calls": 2
+    },
+    {
+      "label": "new-web/old-server",
+      "kind": "offline-delete",
+      "old_web": false,
+      "old_server": true,
+      "legacy_seconds": false,
+      "status": "PASS",
+      "result": {
+        "offline_local_deleted": true,
+        "local_deleted": true,
+        "server_deleted": true,
+        "pending": 0
+      },
+      "calls": 4
+    },
+    {
+      "label": "new-web/old-server",
+      "kind": "equal-time-delete",
+      "old_web": false,
+      "old_server": true,
+      "legacy_seconds": false,
+      "status": "PASS",
+      "result": {
+        "offline_local_deleted": true,
+        "local_deleted": true,
+        "server_deleted": true,
+        "pending": 0
+      },
+      "calls": 4
+    },
+    {
+      "label": "new-web/old-server",
+      "kind": "duplicate",
+      "old_web": false,
+      "old_server": true,
+      "legacy_seconds": false,
+      "status": "PASS",
+      "result": {
+        "before_version": 1,
+        "after_version": 1
+      },
+      "calls": 2
+    },
+    {
+      "label": "new-web/old-server",
+      "kind": "backup-isolation",
+      "old_web": false,
+      "old_server": true,
+      "legacy_seconds": false,
+      "status": "PASS",
+      "result": {
+        "cross_account_backup_rejected": true,
+        "authenticated_tenant_isolation": true
+      },
+      "calls": 2
+    },
+    {
+      "label": "new-web/new-server",
+      "kind": "meaning",
+      "old_web": false,
+      "old_server": false,
+      "legacy_seconds": false,
+      "status": "PASS",
+      "result": {
+        "local_meaning": "网络",
+        "server_meaning": "网络",
+        "pending": 0
+      },
+      "calls": 2
+    },
+    {
+      "label": "new-web/new-server",
+      "kind": "offline-delete",
+      "old_web": false,
+      "old_server": false,
+      "legacy_seconds": false,
+      "status": "PASS",
+      "result": {
+        "offline_local_deleted": true,
+        "local_deleted": true,
+        "server_deleted": true,
+        "pending": 0
+      },
+      "calls": 3
+    },
+    {
+      "label": "new-web/new-server",
+      "kind": "equal-time-delete",
+      "old_web": false,
+      "old_server": false,
+      "legacy_seconds": false,
+      "status": "PASS",
+      "result": {
+        "offline_local_deleted": true,
+        "local_deleted": true,
+        "server_deleted": true,
+        "pending": 0
+      },
+      "calls": 3
+    },
+    {
+      "label": "new-web/new-server",
+      "kind": "duplicate",
+      "old_web": false,
+      "old_server": false,
+      "legacy_seconds": false,
+      "status": "PASS",
+      "result": {
+        "before_version": 1,
+        "after_version": 1
+      },
+      "calls": 2
+    },
+    {
+      "label": "new-web/new-server",
+      "kind": "backup-isolation",
+      "old_web": false,
+      "old_server": false,
+      "legacy_seconds": false,
+      "status": "PASS",
+      "result": {
+        "cross_account_backup_rejected": true,
+        "authenticated_tenant_isolation": true
+      },
+      "calls": 2
+    }
+  ]
+}

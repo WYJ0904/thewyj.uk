@@ -3,8 +3,8 @@ import http from 'node:http';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import {execFileSync} from 'node:child_process';
-import {createHash} from 'node:crypto';
-import {fixtures,api,base} from '../p07-r5/harness.mjs';
+import {createHash,randomBytes} from 'node:crypto';
+import {api,base} from '../p07-r5/harness.mjs';
 import {ownedBrowser,openPage,pointer,ready} from './owned-browser.mjs';
 import {buildRollback} from './rollback-artifact.mjs';
 import {isAllowedPagesFile} from '../../scripts/stage_pages_deploy.mjs';
@@ -12,6 +12,8 @@ import {seedUserState} from '../p07-r4a/upgrade-safety.mjs';
 const index=process.argv.indexOf('--source'),sha=index>=0?process.argv[index+1]:process.env.P07_D_TARGET_HEAD||execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
 const output=path.resolve(process.env.P07_D_EVIDENCE||'artifacts/p07-rollback');await fs.mkdir(output,{recursive:true});
 const proof={source_sha:sha,scope:'canonical generated rollback assets + real isolated compiled D1 APIs; only owned browser/test data',production_operations:0,cases:[]};
+async function fixtureRequest(route,body,session=''){for(let attempt=0;attempt<2;attempt++){const r=await fetch(base+route,{method:'POST',headers:{'Content-Type':'application/json',...(session?{'X-Session-Token':session}:{})},body:JSON.stringify(body)}),data=await r.json();if(r.status!==429)return{status:r.status,data};const seconds=Number(r.headers.get('Retry-After'));assert.ok(Number.isInteger(seconds)&&seconds>0&&seconds<=600,'explicit bounded Retry-After required');(proof.fixture_quota_waits||=[]).push({route,status:429,seconds});await new Promise(resolve=>setTimeout(resolve,seconds*1000));}throw Error('fixture quota remained unavailable after its explicit Retry-After');}
+async function fixtures(){const login=await fixtureRequest('/api/login',{username:'wyj',secret:process.env.WYJ_TEST_ADMIN_SECRET});assert.equal(login.status,200);const users=[];for(const alias of ['a','b']){const username='rollback_'+alias+'_'+randomBytes(4).toString('hex'),secret=randomBytes(24).toString('base64url');assert.equal((await fixtureRequest('/api/register',{username,secret,confirm_secret:secret})).status,201);const r=await fixtureRequest('/api/login',{username,secret});assert.equal(r.status,200);assert.equal((await fixtureRequest('/api/admin/membership/manage',{user_id:r.data.account.id,action:'grant',plan_code:'all_access_lifetime',note:'isolated rollback acceptance fixture'},login.data.session)).status,200);users.push({...r.data,username,secret});}return{admin:login.data,A:users[0],B:users[1]};}
 const {admin,A,B}=await fixtures();const readFlags=await api('/api/admin/feature-flags',null,admin.session);assert.equal(readFlags.status,200);const before=readFlags.data.flags.find(f=>f.flag_key==='p07_accessibility');
 const on=await api('/api/admin/feature-flags',{flag_key:'p07_accessibility',description:before?.description||'isolated rollback acceptance',enabled:true,kill_switch:false,channels:['stable','beta','experimental'],rollout_percentage:100,expected_revision:before?.revision||0},admin.session);assert.equal(on.status,200);proof.policy_on_revision=on.data.flag.revision;
 const git=(...a)=>execFileSync('git',a,{maxBuffer:30000000,windowsHide:true}),files=git('ls-tree','-r','--name-only',sha).toString().trim().split(/\r?\n/).filter(f=>isAllowedPagesFile(f)&&!f.startsWith('functions/')&&f!=='_headers');

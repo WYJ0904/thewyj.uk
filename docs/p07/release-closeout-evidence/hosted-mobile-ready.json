@@ -1,0 +1,124 @@
+{
+  "source_sha": "e4844a5304709263a2810332eca5d2a87b069d3d",
+  "deployment_id": "583ab281-a601-4559-8ec5-88f296672b07",
+  "origin": "https://583ab281.thewyj-uk.pages.dev",
+  "d1_id": "a3e6253b-689f-49f3-998b-7c5828ea255a",
+  "scope": "real isolated Preview + owned new Chrome profile + only task-owned synthetic accounts",
+  "production_mutations": 0,
+  "ai_model_calls": 0,
+  "cases": [
+    {
+      "name": "final-on-mobile-login-axe-and-sw",
+      "status": "PASS",
+      "detail": {
+        "login_axe": {
+          "label": "mobile login ON",
+          "violations": [],
+          "incomplete": [],
+          "phase": {
+            "transition": false,
+            "inert": false,
+            "mount": "ready"
+          }
+        },
+        "release": "20261108-aeris-p07-release-rc6",
+        "home_axe": {
+          "label": "mobile authenticated home ON",
+          "violations": [],
+          "incomplete": [
+            {
+              "id": "aria-valid-attr-value",
+              "nodes": 1
+            },
+            {
+              "id": "color-contrast",
+              "nodes": 20
+            }
+          ],
+          "phase": {
+            "transition": false,
+            "inert": false,
+            "mount": "ready"
+          }
+        }
+      }
+    }
+  ],
+  "flag_history": [
+    {
+      "flag_key": "p07_accessibility",
+      "description": "Isolated P07 closeout acceptance only",
+      "enabled": true,
+      "kill_switch": false,
+      "channels": [
+        "stable",
+        "beta",
+        "experimental"
+      ],
+      "rollout_percentage": 100,
+      "revision": 23,
+      "updated_at": "2026-11-08T15:43:24.856Z"
+    },
+    {
+      "flag_key": "p07_accessibility",
+      "description": "Isolated P07 closeout acceptance only",
+      "enabled": true,
+      "kill_switch": false,
+      "channels": [
+        "stable",
+        "beta",
+        "experimental"
+      ],
+      "rollout_percentage": 100,
+      "revision": 24,
+      "updated_at": "2026-11-08T15:44:05.723Z"
+    }
+  ],
+  "axe_scans": [
+    {
+      "label": "mobile login ON",
+      "violations": [],
+      "incomplete": [],
+      "phase": {
+        "transition": false,
+        "inert": false,
+        "mount": "ready"
+      }
+    },
+    {
+      "label": "mobile authenticated home ON",
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-valid-attr-value",
+          "nodes": 1
+        },
+        {
+          "id": "color-contrast",
+          "nodes": 20
+        }
+      ],
+      "phase": {
+        "transition": false,
+        "inert": false,
+        "mount": "ready"
+      }
+    }
+  ],
+  "uncaught_runtime_errors": [],
+  "final_flag": {
+    "flag_key": "p07_accessibility",
+    "description": "Isolated P07 closeout acceptance only",
+    "enabled": true,
+    "kill_switch": false,
+    "channels": [
+      "stable",
+      "beta",
+      "experimental"
+    ],
+    "rollout_percentage": 100,
+    "revision": 24,
+    "updated_at": "2026-11-08T15:44:05.723Z"
+  },
+  "status": "PASS"
+}

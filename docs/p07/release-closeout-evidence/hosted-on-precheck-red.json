@@ -1,0 +1,246 @@
+{
+  "source_sha": "e4844a5304709263a2810332eca5d2a87b069d3d",
+  "deployment_id": "583ab281-a601-4559-8ec5-88f296672b07",
+  "origin": "https://583ab281.thewyj-uk.pages.dev",
+  "d1_id": "a3e6253b-689f-49f3-998b-7c5828ea255a",
+  "scope": "real isolated Preview + owned new Chrome profile + only task-owned synthetic accounts",
+  "production_mutations": 0,
+  "ai_model_calls": 0,
+  "cases": [
+    {
+      "name": "exact-published-bytes",
+      "status": "PASS",
+      "detail": [
+        {
+          "file": "index.html",
+          "sha256": "c39bb86e63ca200c5f75a14769613eafd45e0c2bb5aca70c6e329dfce2d35a56"
+        },
+        {
+          "file": "app.js",
+          "sha256": "fe86eabf6ba23addf045ba85806c8fc89e04d28b2ffd05b93f71d4e39fedde9e"
+        },
+        {
+          "file": "learning-sync.js",
+          "sha256": "3b78445250837b43c7644f16d2f48d6c8ce7a5b9ceab36adcd2d9d8c34a52241"
+        },
+        {
+          "file": "sw.js",
+          "sha256": "4256f2a874e4026ce384879f8327e9977c16aa9819f015e10d489286100c16df"
+        },
+        {
+          "file": "js/core/design-system.js",
+          "sha256": "0dc860d26fe5c4610f40b04cc9778ba6ad13a352577f574a03c6375d7779bbec"
+        }
+      ]
+    },
+    {
+      "name": "cold-public-on-cards-and-keyboard",
+      "status": "PASS",
+      "detail": {
+        "cards": [
+          {
+            "id": "learning",
+            "width": 206.53448486328125,
+            "height": 254.759033203125
+          },
+          {
+            "id": "finance",
+            "width": 212.770751953125,
+            "height": 259.62506103515625
+          },
+          {
+            "id": "tools",
+            "width": 210.7080078125,
+            "height": 258.02264404296875
+          }
+        ],
+        "axe": {
+          "label": "public ON",
+          "violations": [],
+          "incomplete": [
+            {
+              "id": "color-contrast",
+              "nodes": 28
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "real-login-and-account-permissions",
+      "status": "PASS",
+      "detail": {
+        "paid_admin_denied": true,
+        "basic_finance_denied": true,
+        "paid_finance_allowed": true
+      }
+    },
+    {
+      "name": "account-membership-finance-and-workspace-routes",
+      "status": "PASS",
+      "detail": [
+        "/account",
+        "/recharge",
+        "/finance",
+        "/language",
+        "/tools/workflows",
+        "/transfer",
+        "/"
+      ]
+    },
+    {
+      "name": "slow-identity-finite-recovery-and-normal-refresh",
+      "status": "PASS",
+      "detail": {
+        "frames": 1800,
+        "unverified_private_frames": 0
+      }
+    },
+    {
+      "name": "external-account-switch-and-revocation",
+      "status": "FAIL",
+      "error": "timeout waiting for real new account verified"
+    },
+    {
+      "name": "legitimate-off-kill-and-business-rights-preserved",
+      "status": "FAIL",
+      "error": "timeout waiting for actual ready authPanel"
+    },
+    {
+      "name": "account-override-cannot-bypass-global-kill",
+      "status": "PASS",
+      "detail": {
+        "override_cannot_bypass_kill": true,
+        "override_returned_to_inherit": true
+      }
+    },
+    {
+      "name": "beta-canary-and-public-fail-closed",
+      "status": "PASS",
+      "detail": {
+        "canary_revision": 8,
+        "beta_sample_enabled": true,
+        "public_stayed_off": true
+      }
+    },
+    {
+      "name": "final-on-mobile-login-axe-and-sw",
+      "status": "FAIL",
+      "error": "timeout waiting for actual ready authPanel"
+    }
+  ],
+  "flag_history": [
+    {
+      "flag_key": "p07_accessibility",
+      "description": "Isolated P07 closeout acceptance only",
+      "enabled": true,
+      "kill_switch": false,
+      "channels": [
+        "stable",
+        "beta",
+        "experimental"
+      ],
+      "rollout_percentage": 100,
+      "revision": 2,
+      "updated_at": "2026-11-08T15:15:57.202Z"
+    },
+    {
+      "flag_key": "p07_accessibility",
+      "description": "Isolated P07 closeout acceptance only",
+      "enabled": false,
+      "kill_switch": false,
+      "channels": [
+        "stable",
+        "beta",
+        "experimental"
+      ],
+      "rollout_percentage": 100,
+      "revision": 3,
+      "updated_at": "2026-11-08T15:17:31.068Z"
+    },
+    {
+      "flag_key": "p07_accessibility",
+      "description": "Isolated P07 closeout acceptance only",
+      "enabled": true,
+      "kill_switch": true,
+      "channels": [
+        "stable",
+        "beta",
+        "experimental"
+      ],
+      "rollout_percentage": 100,
+      "revision": 5,
+      "updated_at": "2026-11-08T15:18:08.228Z"
+    },
+    {
+      "flag_key": "p07_accessibility",
+      "description": "Isolated P07 closeout acceptance only",
+      "enabled": true,
+      "kill_switch": false,
+      "channels": [
+        "stable",
+        "beta",
+        "experimental"
+      ],
+      "rollout_percentage": 100,
+      "revision": 7,
+      "updated_at": "2026-11-08T15:18:16.225Z"
+    },
+    {
+      "flag_key": "p07_accessibility",
+      "description": "Isolated P07 closeout acceptance only",
+      "enabled": true,
+      "kill_switch": false,
+      "channels": [
+        "beta"
+      ],
+      "rollout_percentage": 5,
+      "revision": 8,
+      "updated_at": "2026-11-08T15:18:20.641Z"
+    },
+    {
+      "flag_key": "p07_accessibility",
+      "description": "Isolated P07 closeout acceptance only",
+      "enabled": true,
+      "kill_switch": false,
+      "channels": [
+        "stable",
+        "beta",
+        "experimental"
+      ],
+      "rollout_percentage": 100,
+      "revision": 9,
+      "updated_at": "2026-11-08T15:18:25.513Z"
+    },
+    {
+      "flag_key": "p07_accessibility",
+      "description": "Isolated P07 closeout acceptance only",
+      "enabled": true,
+      "kill_switch": false,
+      "channels": [
+        "stable",
+        "beta",
+        "experimental"
+      ],
+      "rollout_percentage": 100,
+      "revision": 10,
+      "updated_at": "2026-11-08T15:19:12.333Z"
+    }
+  ],
+  "uncaught_runtime_errors": [],
+  "final_flag": {
+    "flag_key": "p07_accessibility",
+    "description": "Isolated P07 closeout acceptance only",
+    "enabled": true,
+    "kill_switch": false,
+    "channels": [
+      "stable",
+      "beta",
+      "experimental"
+    ],
+    "rollout_percentage": 100,
+    "revision": 10,
+    "updated_at": "2026-11-08T15:19:12.333Z"
+  },
+  "status": "FAIL"
+}
