@@ -10,6 +10,8 @@
 
 第二次冻结 `bb6fe72faeb1df28075b39db71539dfd274a92dc` 也不能作为最终版本：两阶段慢网络补测仍出现空白，application CI 还暴露离线财务替身没有阻断虚构同步的问题。RC5 修复前者的呈现生命周期，并增强后者的测试真实性；真实财务同步语义不变。最后只认最终收据的新 SHA 和对应全部门禁。
 
+`deaa3b6261db59e4d0df9300fa675ed6c64f9ae3` 的产品本地门禁通过，但 CI 传输测量仍提前按旧就绪条件执行。最后增加的是更严格的测试就绪/可见/滚动断言和采集，不改变 RC5 的产品发布字节。部署仍只使用最终收据 SHA，不能以这三个中间候选替代。
+
 仅可在已证实隔离的 `thewyj-p07-ui-rc` 项目与专用绑定部署，AI/OCR OFF。不要操作 Production、正式 D1/R2、用户权限、Stable 或 Android。公开 V3 Flag 由合法环境配置提供，前端不硬编码 ON；公开与账户策略必须分别验证。若公开 API 返回 missing/OFF，记录环境问题，不能擅改 fail-closed 语义。
 
 交付 Hosted URL、Cloudflare deployment ID、完整 commit SHA、资源版本、公开 `/api/ui/features` 的非敏感结果、隔离绑定证明。账户测试凭据走安全渠道，不写 Git、报告或评论。

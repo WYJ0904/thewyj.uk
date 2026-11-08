@@ -49,6 +49,11 @@ errors immediately; it never reconnects or repeats a failed measurement.
 The application CI finance stub now rejects offline transport before mutating its
 fake server; the original outbox/reconnect assertions remain. Its focused VM test
 is RED against the frozen old fixture and GREEN after this fixture-only correction.
+`P07_FINAL_TRANSFER_ONLY=1` runs the original responsive matrix with its missing
+visible/ready precondition restored. It retains all five widths and original
+geometry/scroll limits, removes the arbitrary 350ms sleep, and additionally rejects
+zero-size controls or leftover scroll locks. It records both the old DOM-only
+condition and the actual ready state, rather than guessing what CI rendered.
 
 Test corrections are recorded in the report, retaining original failures:
 the navigation log starts after authoritative ON and then allows **no** pending/OFF

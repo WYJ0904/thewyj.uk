@@ -69,6 +69,12 @@
 
 记录预算现为有界 4800 个 DOM/合成帧，覆盖 240Hz 下原有测试等待范围；采样预算耗尽会标记 partial/fail，不静默截断后声称连续帧通过。没有提高任何页面、网络或业务测试超时。上述两个旧冻结 SHA 的失败均保留，不按后来的成功重新标记。
 
+第三次冻结 `deaa3b6261db59e4d0df9300fa675ed6c64f9ae3` 的 [全部 12 组本地门禁](evidence/final-integration/PR135-DEAA-SUITES.json)、[15 项运行/帧检查](evidence/final-integration/PR135-DEAA-TRANSITIONS.json)、[12 个有效 Lab 样本](evidence/final-integration/PR135-DEAA-LAB-VALID.json) 通过。其 [Core CI 42444192221](https://github.com/WYJ0904/thewyj.uk/actions/runs/42444192221) application 通过；Cloud-only 的旧传输响应式测试在 360px 下记录 scrollY=0、lastBottom=1667，原错误仍保留于 [CI 记录](evidence/final-integration/PR135-DEAA-CI-RED.json)。
+
+该测试原本以控制器已加载、页面 class 非 hidden 作为就绪，之后固定等 350ms；这允许它在工作区尚未真正可见或 Splash 尚未清理时推进，并没有遵守新启动生命周期。源码 Splash 阶段明确锁定根文档滚动，但原 CI 没有记录当时的 Splash/boot/overflow 状态，**不能倒填为已经观察到的根因帧**。一次本地原脚本诊断在 D1 迁移 internal error 阶段中止，[记录为环境失败、浏览器断言 0 次](evidence/final-integration/TRANSFER-DIAGNOSTIC-ENV-FAIL.json)，不冒充 UI 复现。
+
+现在保留原 40 秒总启动预算、五个视口、所有原横向/控件/底部可达与 safe-area 断言；补上实际可见且启动清理完成的前提，移除固定 350ms，等待真实布局帧；另外断言控件有正宽高、Splash 不存在、滚动锁没有遗留。原条件刚满足与真正可交互两时刻、完整几何和滚动状态写入 `transfer-responsive.json`，最终同 SHA 的真实结果提供判断依据。此处只修改测试，没有为了通过而延长产品动画或修改传输/滚动 CSS。实际产品若在清理后仍锁滚动或裁切，强化后的测试依然失败。
+
 - [原运行失败](evidence/final-integration/INTERMEDIATE-RUNTIME-FAILURE.json)：导航日志包含首次未决初始化。现先确认 authoritative ON，再记录往返；之后**所有**变更必须保持 ON，原来忽略 pending 的过滤也已去掉。首次加载仍由独立帧测试严格验收。
 - [原 R5 失败](evidence/final-integration/INTERMEDIATE-R5-FAILURE.json)：隐藏冷启动没有先前有效租约，原测试强制要求 ready。现要求有限退出、pending/OFF、没有私有画面、可见恢复操作；保留前台恢复、375px 滚动、确认框、焦点和 Escape 断言。
 - 登录期间 B 恢复后 `/login` 合法规范化至 `/`。原“必须留在 /login”假设已改为检查跳转前当前身份/策略，以及真实 B 工作区；另增加 A 登录响应被延迟、B 已验证后的反向竞态。
