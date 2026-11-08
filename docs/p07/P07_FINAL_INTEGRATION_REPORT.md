@@ -63,6 +63,12 @@
 
 该次本地门禁中固定/扩展 axe、120 个布局、R5、连续帧 13 项等均通过；Lab 在打开后续 Chrome CDP 连接时发生 WebSocket error，终止前有 10 张截图，但旧采集器未写出对应性能数据。[这次失败单独保留](evidence/final-integration/PR135-254-LAB-PARTIAL.json)，不能从截图伪造 LCP 或将它改称通过。现在每个完成样本、下一次尝试位置及终止错误都会立即保存；没有自动重连、测量重试或超时上调。连接故障根因仍 NOT_DETERMINED，最终 SHA 的新测量与此次失败分开记录。
 
+第二次冻结 `bb6fe72faeb1df28075b39db71539dfd274a92dc` 的 [12 组本地门禁](evidence/final-integration/PR135-BB-SUITES.json) 当次均通过，[独立新 Lab 12/12 有效](evidence/final-integration/PR135-BB-LAB-VALID.json)。但随后增加的两阶段慢网络检查仍抓到另一种顺序：[健康检查与 bootstrap 各延迟 3200ms，出现空白帧](evidence/final-integration/PR135-BB-COMBINED-DELAY-RED.json)。原因是恢复页已先出现，目标挂载开始时通用主页面清理又提前隐藏恢复页，而目标仍受挂载 pending 约束。现由中央呈现生命周期独立持有恢复页，目标页面的清理不能提前关闭它；挂载完成同时绑定会话、账户 ID、路由和 generation。[RC5 预检 15 项通过](evidence/final-integration/GREEN-RC5-TRANSITIONS-PRECHECK.json)，包含两种超时顺序和挂载中换账户。最终测试还明确等待 B 的实际账户 ID，并在旧 A 挂载完成、新 B bootstrap 仍被持有时检查主画布尚未释放。
+
+该次 [Core CI 42442355934](https://github.com/WYJ0904/thewyj.uk/actions/runs/42442355934) 的 Cloud-only 成功，application 则暴露了独立夹具缺陷：[原 CI 失败](evidence/final-integration/PR135-BB-CI-RED.json) 的 navigatorOnline=false，但财务模拟服务器仍同步成功并把 pending 清为零。内页 `window.fetch` 替身绕过 CDP 网络层，未模拟离线拒绝；先前是否通过取决于此前同步 drain 的时序。产品 `syncNow()` 把真实网络回答视为权威的语义保持不变。仅修正替身在实际离线时、任何模拟服务器 mutation/ack 前返回网络错误；原 `pending >= 1`、重连清零等断言保留，并增加离线服务器版本不变断言。[新单元 RED](evidence/final-integration/FINANCE-OFFLINE-FIXTURE-RED.txt) 为 Missing expected rejection，[修正后 GREEN](evidence/final-integration/FINANCE-OFFLINE-FIXTURE-GREEN.txt)。未修改财务账本、同步或计费产品模块来迎合测试。
+
+记录预算现为有界 4800 个 DOM/合成帧，覆盖 240Hz 下原有测试等待范围；采样预算耗尽会标记 partial/fail，不静默截断后声称连续帧通过。没有提高任何页面、网络或业务测试超时。上述两个旧冻结 SHA 的失败均保留，不按后来的成功重新标记。
+
 - [原运行失败](evidence/final-integration/INTERMEDIATE-RUNTIME-FAILURE.json)：导航日志包含首次未决初始化。现先确认 authoritative ON，再记录往返；之后**所有**变更必须保持 ON，原来忽略 pending 的过滤也已去掉。首次加载仍由独立帧测试严格验收。
 - [原 R5 失败](evidence/final-integration/INTERMEDIATE-R5-FAILURE.json)：隐藏冷启动没有先前有效租约，原测试强制要求 ready。现要求有限退出、pending/OFF、没有私有画面、可见恢复操作；保留前台恢复、375px 滚动、确认框、焦点和 Escape 断言。
 - 登录期间 B 恢复后 `/login` 合法规范化至 `/`。原“必须留在 /login”假设已改为检查跳转前当前身份/策略，以及真实 B 工作区；另增加 A 登录响应被延迟、B 已验证后的反向竞态。
@@ -98,13 +104,13 @@
 | --- | --- | --- |
 | 冻结 25、主工作区 3、P4、策略 5、P07-E 32、PWA | PASS | `1c10584652ad43b5052520b448c6baf8b421e00b` |
 | 更新后的运行 7、R5 浏览器 13 | PASS | `aef7902bea49d5b507cdab704c02e7110296462b` |
-| 启动/身份/策略单元 | 60 条通过 | 原 52 + 本轮 8；Core CI 纳入新增测试 |
+| 启动/身份/策略单元 | 60 条通过，另补 1 条离线夹具回归 | 原 52 + 本轮 8 + 夹具 1；最终 Core CI 共 61 条 |
 | Task25 | 原 31 并发、30/1、恢复/计数/审计合同通过；19 向量通过 | 本地固定原合同，未更改后端 |
 | Python | 186 条通过，其中静态 31 | 本地 Python 3.15；CI 另跑固定版本 |
 | 首帧登录文字 | PASS，4 次扫描 | `6b8116267458a6fb57ded0a6db8f20f21e4bab0a` |
 | 最终完整提交 | 必须冻结后执行完整 ON、OFF、Kill、暖升级和 Core CI | 以 Draft PR 最终同 SHA 收据为准 |
 
-最终资源版本为 **`20261108-aeris-p07-final-rc4`**，由现有 `update_asset_release.mjs` 生成。HTML、JS 模块、CSS 引用和 SW 同源版本统一。`sw.js`、API、会话和路由核心相对 #132 仅版本串改变；功能性变更局限于本任务启动/身份呈现和 #133 的合法隐藏租约续租。服务端、计费、财务账目、套餐、权限/API 合同未修改。
+最终资源版本为 **`20261108-aeris-p07-final-rc5`**，由现有 `update_asset_release.mjs` 生成。HTML、JS 模块、CSS 引用和 SW 同源版本统一。`sw.js`、API、会话和路由核心相对 #132 仅版本串改变；功能性变更局限于本任务启动/身份呈现和 #133 的合法隐藏租约续租。服务端、计费、财务账目、套餐、权限/API 合同未修改。
 
 保护脚本确认 #131 与 #132 的 allowlisted Pages 输入完全相同，因此从精确 #132 暖缓存升级同时覆盖这两者的旧客户端资源字节。最终暖升级必须继续验证普通刷新、实际 JS/CSS 哈希、离线、localStorage、IndexedDB 及独立用户缓存保留；不得清理用户缓存来通过。
 

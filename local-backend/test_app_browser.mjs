@@ -2045,6 +2045,10 @@ async function main() {
         window.fetch = (input, init = {}) => {
           const url = new URL(typeof input === 'string' ? input : input.url, location.origin);
           if (!url.pathname.startsWith('/api/finance/')) return window.__financeTestOriginalFetch(input, init);
+          // This in-page transport bypasses CDP's network stack. Honor its
+          // real offline signal before the fake server can consume an outbox
+          // operation; a synthetic 200 would make this safety assertion race.
+          if (navigator.onLine === false) return Promise.reject(new TypeError('Failed to fetch (isolated offline finance fixture)'));
           const server = window.__financeBrowserServer;
           if (url.pathname === '/api/finance/bootstrap') return json({
             schema_version: 1, server_version: server.version, finance_access: true,
@@ -2236,8 +2240,12 @@ async function main() {
 
       await send("Network.emulateNetworkConditions", { offline: true, latency: 0, downloadThroughput: 0, uploadThroughput: 0 });
       await evaluate("window.dispatchEvent(new Event('offline')); true");
+      await waitFor("navigator.onLine === false", 4_000, "actual offline transport state");
+      const offlineServerVersion = await evaluate("window.__financeBrowserServer.version");
       await addTransaction({ direction: "expense", amount: "1.00", merchant: "离线账目" });
       assert.ok(Number(await evaluate("financeController.dashboardSummary().pending")) >= 1);
+      assert.equal(await evaluate("window.__financeBrowserServer.version"), offlineServerVersion,
+        "offline fixture must not fabricate a server write or acknowledgement");
       await send("Network.emulateNetworkConditions", { offline: false, latency: 80, downloadThroughput: 1_500_000, uploadThroughput: 750_000 });
       await evaluate("window.dispatchEvent(new Event('online')); true");
       await waitFor("financeController.dashboardSummary().pending === 0", 8_000, "finance reconnect sync");

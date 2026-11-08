@@ -37,9 +37,18 @@ login checks effective ancestor opacity, whole-document axe, both themes and mot
 The delayed-finance case also holds the destination bootstrap after identity and
 policy: an ON/OFF workspace already mounting must survive the finite startup
 recovery without controller teardown. It fails on the retained `25406b3` candidate.
+The reverse ordering also delays health by 3.2s before mounting: existing recovery
+must remain visible until the destination completes. The retained `bb6fe72` fails
+this case. A separate in-flight mount switches to canonical account B while its
+bootstrap is held; account A's completion must not release B's unfinished canvas.
+Recorders have a bounded 4800-frame budget, covering the unchanged wait budgets
+at 240Hz. Exhaustion is partial/fail, never a silent continuous-frame PASS.
 `P07_FINAL_FEEDBACK_ONLY=1` runs the original CI interaction audit unchanged against
 the same isolated compiled runtime. Lab writes completed samples and terminal
 errors immediately; it never reconnects or repeats a failed measurement.
+The application CI finance stub now rejects offline transport before mutating its
+fake server; the original outbox/reconnect assertions remain. Its focused VM test
+is RED against the frozen old fixture and GREEN after this fixture-only correction.
 
 Test corrections are recorded in the report, retaining original failures:
 the navigation log starts after authoritative ON and then allows **no** pending/OFF
