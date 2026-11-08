@@ -132,6 +132,65 @@ function request(changes) {
 }
 
 {
+  const sameSecond = "2026-08-20T08:00:00Z";
+  const existingNoRubric = {
+    data_type: "wrong_book",
+    record_id: "wrong|english|network",
+    payload_json: JSON.stringify({
+      wrong_count: 1,
+      correct_answer: "",
+      accepted: ["网络连接"],
+      rubric: { gloss: "", accepted: ["网络连接"] },
+    }),
+    updated_at: sameSecond,
+    deleted: 0,
+    client_id: "client-same-2026",
+    client_version: "test-1",
+    server_version: 11,
+    created_at: sameSecond,
+    server_updated_at: sameSecond,
+  };
+  const sameClientRestored = mergeLearningRecord(existingNoRubric, {
+    ...change({
+      data_type: "wrong_book",
+      record_id: "wrong|english|network",
+      payload: {
+        wrong_count: 1,
+        correct_answer: "网络",
+        accepted: ["网络连接"],
+        rubric: { gloss: "网络", accepted: ["网络连接"] },
+      },
+      base_server_version: 11,
+      client_id: "client-same-2026",
+      client_version: "test-1",
+      updated_at: sameSecond,
+    }),
+  });
+  assert.equal(sameClientRestored.canonical.payload.correct_answer, "网络");
+  assert.equal(sameClientRestored.canonical.payload.rubric.gloss, "网络");
+
+  const sameClientOfflineDelete = mergeLearningRecord({
+    ...existingNoRubric,
+    payload_json: JSON.stringify(sameClientRestored.canonical.payload),
+    server_version: 13,
+  }, {
+    ...change({
+      data_type: "wrong_book",
+      record_id: "wrong|english|network",
+      payload: {},
+      deleted: true,
+      base_server_version: 11,
+      client_id: "client-same-2026",
+      client_version: "test-1",
+      updated_at: "2026-08-20T08:00:01Z",
+    }),
+  });
+  assert.equal(sameClientOfflineDelete.canonical.deleted, true);
+  assert.equal(sameClientOfflineDelete.changed, true);
+  completed += 1;
+}
+
+{
   const tombstone = {
     data_type: "test_history",
     record_id: "history|one",

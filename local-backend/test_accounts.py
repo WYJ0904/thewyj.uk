@@ -1418,6 +1418,41 @@ class AccountStoreTests(unittest.TestCase):
         })
         self.assertTrue(stale_restore["results"][0]["deleted"])
 
+        same_sec_id = "v1|wrong|cHJvZmls|Y3VycmVudA|bmV0d29yaw"
+        t_ms_1 = "2026-04-06T09:11:36.120Z"
+        t_ms_2 = "2026-04-06T09:11:36.480Z"
+        no_rubric = self.store.sync_learning_data(user, {
+            "schema_version": 1,
+            "client_id": "client-same-sec",
+            "client_version": "test-same-sec",
+            "since_version": 0,
+            "changes": [{
+                "data_type": "wrong_book",
+                "record_id": same_sec_id,
+                "payload": {"wrong_count": 1, "correct_answer": "", "rubric": {"gloss": ""}},
+                "updated_at": t_ms_1,
+                "deleted": False,
+                "base_server_version": 0,
+            }],
+        })
+        no_rubric_ver = no_rubric["results"][0]["server_version"]
+        with_rubric = self.store.sync_learning_data(user, {
+            "schema_version": 1,
+            "client_id": "client-same-sec",
+            "client_version": "test-same-sec",
+            "since_version": no_rubric_ver,
+            "changes": [{
+                "data_type": "wrong_book",
+                "record_id": same_sec_id,
+                "payload": {"wrong_count": 1, "correct_answer": "网络", "rubric": {"gloss": "网络"}},
+                "updated_at": t_ms_2,
+                "deleted": False,
+                "base_server_version": no_rubric_ver,
+            }],
+        })
+        self.assertEqual(with_rubric["results"][0]["payload"]["correct_answer"], "网络")
+        self.assertEqual(with_rubric["results"][0]["payload"]["rubric"]["gloss"], "网络")
+
     def test_learning_sync_achievement_history_latest_and_user_isolation(self):
         first_user = self.register("sync-first")
         second_user = self.register("sync-second")

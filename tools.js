@@ -7,10 +7,10 @@ import {
   TOOLS,
   iconSvg,
   searchTools,
-} from "./js/tools/catalog.js?release=20261108-aeris-p07-release-rc6";
-import { randomToolResult } from "./js/tools/random.js?release=20261108-aeris-p07-release-rc6";
-import { buildVcardPayload, buildWifiPayload } from "./js/tools/temporary.js?release=20261108-aeris-p07-release-rc6";
-import { getOpenCcSource, loadOpenCcMaps, runTextOperation } from "./js/tools/text.js?release=20261108-aeris-p07-release-rc6";
+} from "./js/tools/catalog.js?release=20261108-aeris-p07-release-rc7";
+import { randomToolResult } from "./js/tools/random.js?release=20261108-aeris-p07-release-rc7";
+import { buildVcardPayload, buildWifiPayload } from "./js/tools/temporary.js?release=20261108-aeris-p07-release-rc7";
+import { getOpenCcSource, loadOpenCcMaps, runTextOperation } from "./js/tools/text.js?release=20261108-aeris-p07-release-rc7";
 import {
   csvString,
   decodeLocalText,
@@ -19,17 +19,17 @@ import {
   parseCsv,
   validateCsvTable,
   zipBlob,
-} from "./js/tools/file.js?release=20261108-aeris-p07-release-rc6";
+} from "./js/tools/file.js?release=20261108-aeris-p07-release-rc7";
 import {
   exifSummary,
   parseColorValue,
   rgbToHex,
   rgbToHsl,
   stripJpegMetadata,
-} from "./js/tools/image.js?release=20261108-aeris-p07-release-rc6";
-import { runToolRenderer } from "./js/tools/runner.js?release=20261108-aeris-p07-release-rc6";
-import { reconcileKeyedRows } from "./js/core/keyed-list.js?release=20261108-aeris-p07-release-rc6";
-import { createParkedRows } from "./js/core/parked-rows.js?release=20261108-aeris-p07-release-rc6";
+} from "./js/tools/image.js?release=20261108-aeris-p07-release-rc7";
+import { runToolRenderer } from "./js/tools/runner.js?release=20261108-aeris-p07-release-rc7";
+import { reconcileKeyedRows } from "./js/core/keyed-list.js?release=20261108-aeris-p07-release-rc7";
+import { createParkedRows } from "./js/core/parked-rows.js?release=20261108-aeris-p07-release-rc7";
 (() => {
   "use strict";
   const boundToolRoots = new WeakSet();

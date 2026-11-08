@@ -359,6 +359,11 @@ jobs:
           node local-backend/test_core_js.mjs 2>&1 | tee artifacts/javascript-core.log
           node --test qa/p07-phase1/public-ui-policy.test.mjs qa/p07-r4a/policy-state.test.mjs qa/p07-r4c/startup.test.mjs qa/p07-r4c/sw-release.test.mjs qa/p07-r5/session-response.test.mjs qa/p07-final/startup.test.mjs qa/p07-final/background-policy.test.mjs qa/p07-final/finance-offline-fixture.test.mjs 2>&1 | tee artifacts/p07-runtime-state.log
           node --test qa/p07-release/sw-install.test.mjs 2>&1 | tee artifacts/p07-sw-install-unit.log
+          git fetch --no-tags --depth=1 origin e4844a5304709263a2810332eca5d2a87b069d3d f4ce8c7e7abc12b80895a570068fa7aa2f7a2a17
+          P07_B1_REVIEW_OUT=artifacts/p07-b1-server-review.json node qa/p07-release/b1-server-review.mjs 2>&1 | tee artifacts/p07-b1-server-review.log
+          node qa/p07-release/b1-compatibility.mjs --d1 --out artifacts/p07-b1-api-matrix.json 2>&1 | tee artifacts/p07-b1-api-matrix.log
+          python qa/p07-release/b1-python-review.py artifacts/p07-b1-python-review.json 2>&1 | tee artifacts/p07-b1-python-review.log
+          node --test qa/p07-release/b3-presentation.test.mjs 2>&1 | tee artifacts/p07-rollback-presentation.log
           node local-backend/test_capabilities_js.mjs 2>&1 | tee artifacts/javascript-capabilities.log
           node local-backend/test_home_widgets_js.mjs 2>&1 | tee artifacts/home-widgets-unit.log
           node local-backend/test_aeris_p5_js.mjs 2>&1 | tee artifacts/aeris-p5-ownership-unit.log
@@ -1123,6 +1128,11 @@ jobs:
         run: |
           set -euo pipefail
           node qa/task26/learning-browser.mjs 2>&1 | tee artifacts/task26-browser.log
+
+      - name: Safe presentation rollback and roll-forward without clearing user storage
+        run: |
+          set -euo pipefail
+          node qa/p07-release/rollback-browser.mjs --source '${{ github.event.pull_request.head.sha || github.sha }}' 2>&1 | tee artifacts/p07-safe-rollback.log
 
       - name: Stop Cloudflare-only browser fixtures
         if: always()

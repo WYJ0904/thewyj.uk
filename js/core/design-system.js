@@ -11,11 +11,15 @@ let syncThemeMeta = () => {};
 
 /** Validated Task25 UI policy (account or guest) is the only activation source. */
 export function setInterfaceEnhancementsEnabled(enabled) {
-  interfaceEnhancementsEnabled = enabled === true;
+  // A reviewed fallback build may restrict presentation, never grant rights.
+  // Task25/account policy remains the sole source that can enable the UI.
+  const legacyBuild = document.querySelector?.('meta[name="aeris-p07-presentation"]')?.content === 'legacy';
+  interfaceEnhancementsEnabled = enabled === true && !legacyBuild;
   document.documentElement.dataset.p07Ui = interfaceEnhancementsEnabled ? "enabled" : "disabled";
   if (!interfaceEnhancementsEnabled) resetFormFeedback();
   refreshContentPolicy();
   syncThemeMeta();
+  return interfaceEnhancementsEnabled;
 }
 
 function setupOverlayViewport() {
