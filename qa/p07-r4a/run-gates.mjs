@@ -13,7 +13,7 @@ assert.equal(git(qa,'status','--porcelain','--untracked-files=no'),'','do not al
 const head=git(root,'rev-parse','HEAD'),sha=process.env.P07_R4C_SOURCE_SHA||head;assert.match(sha,/^[0-9a-f]{40}$/);
 assert.ok(sha===head||sha==='0c87169aa4b75db4d00fe76a66bd32a62ead9e4a'||
   (['p07-r5','p07-f-closeout'].includes(process.env.P07_QA_ROUND)&&['40842d138087de15a8c17f1ec9b310dd137e6412','9387340df75b8703a2fed39a7458fc2ddf8acbf7','72940bede5cff2aacd3bc3c66af5b16be40b243e'].includes(sha))||
-  (process.env.P07_QA_ROUND==='p07-final'&&['c19f2907f43eb636891cfadc3c9716e9573c8ef8','91f0d466361ee80fbd6475facea0b9620f950661','25406b3414b227bc277f6436286c77fed10b48a4'].includes(sha)),
+  (process.env.P07_QA_ROUND==='p07-final'&&['c19f2907f43eb636891cfadc3c9716e9573c8ef8','91f0d466361ee80fbd6475facea0b9620f950661','25406b3414b227bc277f6436286c77fed10b48a4','bb6fe72faeb1df28075b39db71539dfd274a92dc'].includes(sha)),
   'only fixed historical RED sources may override current inputs');
 if(sha!==head)assert.equal(git(root,'rev-parse',sha+':wrangler.jsonc'),git(root,'rev-parse',head+':wrangler.jsonc'),'snapshot config must match');
 assert.equal(git(root,'status','--porcelain','--untracked-files=no'),'','commit product inputs before exact-SHA validation');
