@@ -265,11 +265,41 @@ export function normalizeRawEvent(value = {}, {currencyPolicyVersion=1,defaultCu
   const exact = currencyPolicyVersion >= 2 ? rawCurrencyMoney({...value,source_type:sourceType},notificationCashText(text)??'',defaultCurrency) : null;
   if (exact) {
     currency=exact.currency;
-    const rejected = classification.classification==='rejected' && classification.reason!=='amount_missing';
-    classification={...classification,amount_minor:exact.amount_minor,
-      ...(exact.review_reason ? {classification:rejected?'rejected':'pending',reason:exact.review_reason} :
-        classification.reason==='amount_missing' ? (includesAny(text,STRONG_COMPLETION_TERMS)?
-          {classification:'accepted',reason:'transaction_completed'}:{classification:'pending',reason:'completion_unproven'}) : {})};
+    if (classification.reason === 'non_cash_voucher' || classification.reason === 'legacy_lifecycle_requires_review') {
+      classification = {
+        ...classification,
+        amount_minor: exact.amount_minor,
+      };
+    } else if (exact.admission_decision) {
+      if (exact.admission_decision === 'AUTO') {
+        classification = {
+          classification: 'accepted',
+          reason: 'transaction_completed',
+          direction: exact.direction,
+          amount_minor: exact.amount_minor,
+        };
+      } else if (exact.admission_decision === 'NON_FINANCIAL') {
+        classification = {
+          classification: 'rejected',
+          reason: exact.review_reason || 'amount_missing',
+          direction: 'unknown',
+          amount_minor: 0,
+        };
+      } else {
+        classification = {
+          classification: 'pending',
+          reason: exact.review_reason || 'completion_unproven',
+          direction: exact.direction || 'unknown',
+          amount_minor: 0,
+        };
+      }
+    } else {
+      const rejected = classification.classification==='rejected' && classification.reason!=='amount_missing';
+      classification={...classification,amount_minor:exact.amount_minor,
+        ...(exact.review_reason ? {classification:rejected?'rejected':'pending',reason:exact.review_reason} :
+          classification.reason==='amount_missing' ? (includesAny(text,STRONG_COMPLETION_TERMS)?
+            {classification:'accepted',reason:'transaction_completed'}:{classification:'pending',reason:'completion_unproven'}) : {})};
+    }
   }
   const accountLast4 = String(value.account_last4 || "").trim();
   if (accountLast4 && !LAST4_PATTERN.test(accountLast4)) {
