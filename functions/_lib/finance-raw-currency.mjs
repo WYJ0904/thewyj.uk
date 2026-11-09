@@ -27,9 +27,13 @@ const patterns=[
 
 const AUXILIARY_PREFIX = /(?:(?:账户|卡内|可用|当前|卡)?(?:余额|餘額)|(?:可用|剩余|剩餘|授信)?(?:额度|額度)|优惠|優惠|立减|立減|折扣|积分|積分|红包|紅包|订单号|訂單號|交易号|交易號|流水号|流水號|卡号|卡號|尾号|尾號)\s*[:：=＝]?\s*$/i;
 const FEE_INCLUDED = /(?:含|包含|内含|包括)\s*(?:手续费|手續費|服务费|服務費)\s*[:：=＝]?\s*$/i;
-const FEE_ESTIMATED = /(?:预计|預計|预估|預估|待扣|待付|未扣|未付)\s*(?:手续费|手續費|服务费|服務費)\s*[:：=＝]?\s*$/i;
-const FEE_PREFIX = /(?:手续费|手續費|服务费|服務費|佣金|规费)\s*[:：=＝]?\s*$/i;
-const DEDUCTION_FEE = /(?:已扣款|已扣费|已扣費|扣款成功|扣费成功|扣費成功|已扣除|扣除|已扣收|扣收|收取)\s*[:：，, ]*\s*(?:手续费|手續費|服务费|服務費)\s*[:：=＝]?\s*$/i;
+const FEE_SEPARATE_PREFIX = /(?:另扣|另收|另外扣|另外收|另外扣除|另外收取|额外扣|额外收|额外扣除|额外收取|外加|另付|另加|另外支付)\s*(?:手续费|手續費|服务费|服務費)?\s*[:：=＝]?\s*$/i;
+const FEE_ESTIMATED_PREFIX = /(?:预计|預計|预估|預估|待|未|拟|擬|计划|計劃|暂未|暫未)\s*(?:扣除|扣收|扣款|扣费|收取|支付|付)?\s*(?:手续费|手續費|服务费|服務費)\s*[:：=＝]?\s*$/i;
+const FEE_GENERIC_PREFIX = /(?:手续费|手續費|服务费|服務費|佣金|规费)\s*[:：=＝]?\s*$/i;
+const FEE_DEDUCTED_PREFIX = /(?:已扣款|已扣费|已扣費|扣款成功|扣费成功|扣費成功|已扣除|已扣收)\s*[:：，, ]*\s*(?:手续费|手續費|服务费|服務費)\s*[:：=＝]?\s*$/i;
+const TX_PROJECTED_PREFIX = /(?:预计|預計|预估|預估|待|未|拟|擬|计划|計劃|暂未|暫未|应|應)\s*(?:扣除|扣收|扣款|扣费|收取|支付|付款|转账|轉賬|转出|轉出|支出|收款|充值)\s*[:：=＝]?\s*$/i;
+const UNCOMPLETED_SUFFIX = /^\s*(?:元|圓|块|塊|円)?\s*(?:手续费|手續費|服务费|服務費)?\s*(?:待扣|待收|待付|未扣|未收|待支付|待付款|待扣款|未支付|未付款|未扣除|待确认|待確認|待结算|待結算|\(?(?:预计|預計|预估|預估)\)?)/i;
+const AUXILIARY_SUFFIX = /^\s*(?:元|圓|块|塊|円)?\s*(?:(?:的)?(?:优惠|優惠|券|立减|立減|折扣|积分|積分|红包|紅包)|起|每月|\/月)/i;
 
 function detectAmountRole(text, start, rawNumber, totalOccurrences) {
   let before = text.slice(Math.max(0, start - 30), start);
@@ -37,20 +41,35 @@ function detectAmountRole(text, start, rawNumber, totalOccurrences) {
   before = before.replace(/[:：=＝\s]+$/, '');
 
   const after = text.slice(start + rawNumber.length, Math.min(text.length, start + rawNumber.length + 20));
-  if (/^\s*(?:元|圓|块|塊|円)?\s*(?:(?:的)?(?:优惠|優惠|券|立减|立減|折扣|积分|積分|红包|紅包)|起|每月|\/月)/i.test(after)) {
+  if (AUXILIARY_SUFFIX.test(after)) {
     return 'auxiliary';
+  }
+
+  if (UNCOMPLETED_SUFFIX.test(after)) {
+    if (FEE_GENERIC_PREFIX.test(before) || /(?:手续费|手續費|服务费|服務費|佣金|规费)/.test(before)) {
+      return 'fee_estimated';
+    }
+    return 'projected_transaction';
   }
 
   if (AUXILIARY_PREFIX.test(before)) return 'auxiliary';
   if (FEE_INCLUDED.test(before)) return 'fee_included';
-  if (FEE_ESTIMATED.test(before)) return 'fee_estimated';
-  if (DEDUCTION_FEE.test(before)) return 'fee_deducted';
-  if (FEE_PREFIX.test(before)) {
-    if (/(?:预计|預計|预估|預估|待扣|待付|未扣|未付)/.test(before) || /^\s*(?:待扣|待付|未扣|未付)/.test(after)) {
+  if (FEE_SEPARATE_PREFIX.test(before)) return 'fee_separate';
+  if (FEE_ESTIMATED_PREFIX.test(before)) return 'fee_estimated';
+  if (TX_PROJECTED_PREFIX.test(before)) return 'projected_transaction';
+  if (FEE_DEDUCTED_PREFIX.test(before)) {
+    if (totalOccurrences <= 1) return 'fee_deducted';
+    return 'fee_separate';
+  }
+  if (FEE_GENERIC_PREFIX.test(before)) {
+    if (/(?:预计|預計|预估|預估|待|未|拟|擬|计划|計劃)/.test(before)) {
       return 'fee_estimated';
     }
-    if (totalOccurrences <= 1 && /(?:已扣款|已扣费|已扣費|扣款成功|扣费成功|扣費成功|已扣除|扣收)/.test(text)) {
+    if (totalOccurrences <= 1 && /(?:已扣款|已扣费|已扣費|扣款成功|扣费成功|扣費成功|已扣除|已扣收)/.test(text) && !/(?:预计|預計|预估|預估|待|未|拟|擬)/.test(text)) {
       return 'fee_deducted';
+    }
+    if (totalOccurrences > 1) {
+      return 'fee_separate';
     }
     return 'fee_unproven';
   }
@@ -109,13 +128,21 @@ export function rawCurrencyMoney(value,text,defaultCurrency=null){
       return pending('amount_missing');
     }
 
+    if(hasAmbiguous && (codes.size > 0 || occurrences.length > 1)){
+      return pending('currency_review_required');
+    }
+
     if(transactionOccurrences.length > 1){
       if(hasAmbiguous || codes.size > 1) return pending('currency_review_required');
       return pending('amount_ambiguous');
     }
 
-    if(hasAmbiguous && (codes.size > 0 || occurrences.length > 1)){
-      return pending('currency_review_required');
+    if(occurrences.some(occ => occ.role === 'fee_separate' || occ.role === 'fee_unproven' || occ.role === 'fee_estimated')){
+      return pending('fee_review_required');
+    }
+
+    if(occurrences.some(occ => occ.role === 'projected_transaction')){
+      return pending('amount_ambiguous');
     }
 
     try{amount=parseMoney(transactionOccurrences[0].raw,currency)}catch(error){return pending(error.code||'amount_invalid')}

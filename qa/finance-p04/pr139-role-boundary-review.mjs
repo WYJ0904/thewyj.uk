@@ -1,9 +1,12 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { writeFile } from 'node:fs/promises';
 import { fixture } from './fixture.mjs';
 import { outUrl } from './output.mjs';
 import { syncFinance } from '../../functions/_lib/task16-service.mjs';
 import { currencyPreferences } from '../../functions/_lib/finance-fx.mjs';
+
+const reviewedSha = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 
 // Synthetic data, real local product ingestion.
 // 1. Balance/limit amounts cannot masquerade as transaction payment amounts.
@@ -69,7 +72,7 @@ try {
   const ledgerCount = (await f.db.prepare('SELECT COUNT(*) n FROM task16_finance_transactions').first()).n;
   const totals = { PASS: rows.filter(r => r.status === 'PASS').length, FAIL: rows.filter(r => r.status === 'FAIL').length };
   await writeFile(new URL('role-boundary.json', outUrl), JSON.stringify({ synthetic_only: true,
-    reviewed_sha: 'c24cd89e976d7b104184045d0f030bd41fc6e434', real_isolated_D1: true,
+    reviewed_sha: reviewedSha, real_isolated_D1: true,
     rows, ledger_count: ledgerCount, ...totals }, null, 2) + '\n', { flag: 'wx' });
   console.log(JSON.stringify({ ...totals, ledger_count: ledgerCount }));
   if (totals.FAIL) process.exitCode = 1;
