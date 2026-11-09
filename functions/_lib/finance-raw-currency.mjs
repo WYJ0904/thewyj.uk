@@ -11,13 +11,15 @@ const words={
   JPY:/日元|日圓|円|JP[¥￥]/i,
   CAD:/加元|加拿大元|CA\$/i,
   AUD:/澳元|澳大利亚元|澳大利亞元|AU\$/i,
+  NZD:/新西兰元|紐西蘭元|NZ\$/i,
+  SGD:/新加坡元|(?:SG|(?<![A-Za-z])S)\$/i,
 };
 
 const patterns=[
-  /(?:(?:(?:CNY|USD|EUR|HKD|GBP|JPY|CAD|AUD|RMB)\s*)?(?:US\$|HK\$|CA\$|AU\$|JP[¥￥]|[￥¥$€£])|CNY|USD|EUR|HKD|GBP|JPY|CAD|AUD|人民币|人民幣|RMB)\s*([0-9]+(?:\.[0-9]+)?)(?![\d.])/gi,
-  /(?<![\d.\-])([0-9]+(?:\.[0-9]+)?)\s*(?:CNY|USD|EUR|HKD|GBP|JPY|CAD|AUD|元|圓|块|塊|円|日元|日圓|美元|美金|港币|港幣|港元|欧元|歐元|英镑|英鎊)(?!\s*(?:额度|額度|优惠|優惠|券|起|每月))/gi,
-  /(?:交易金额|交易金額|付款金额|付款金額|收款金额|收款金額|扣款金额|扣款金額|退款金额|退款金額)[:：]?\s*(?:(?:(?:CNY|USD|EUR|HKD|GBP|JPY|CAD|AUD|RMB)\s*)?(?:US\$|HK\$|CA\$|AU\$|JP[¥￥]|[￥¥$€£])\s*)?([0-9]+(?:\.[0-9]+)?)(?![\d.])/gi,
-  /(?:支付成功|付款成功|扣款成功|扣费成功|收款成功|退款成功|已扣款|已扣费|已收款|已付款)\s*[:：]?\s*(?:(?:(?:CNY|USD|EUR|HKD|GBP|JPY|CAD|AUD|RMB)\s*)?(?:US\$|HK\$|CA\$|AU\$|JP[¥￥]|[￥¥$€£])\s*)?([0-9]+(?:\.[0-9]+)?)(?![\d.])/gi,
+  /(?:(?:(?:CNY|USD|EUR|HKD|GBP|JPY|CAD|AUD|NZD|SGD|RMB)\s*)?(?:US\$|HK\$|CA\$|AU\$|NZ\$|(?:SG|(?<![A-Za-z])S)\$|JP[¥￥]|[￥¥$€£])|CNY|USD|EUR|HKD|GBP|JPY|CAD|AUD|NZD|SGD|人民币|人民幣|RMB)\s*([0-9]+(?:\.[0-9]+)?)(?![\d.])/gi,
+  /(?<![\d.\-])([0-9]+(?:\.[0-9]+)?)\s*(?:CNY|USD|EUR|HKD|GBP|JPY|CAD|AUD|NZD|SGD|元|圓|块|塊|円|日元|日圓|美元|美金|港币|港幣|港元|欧元|歐元|英镑|英鎊)(?!\s*(?:额度|額度|优惠|優惠|券|起|每月))/gi,
+  /(?:交易金额|交易金額|付款金额|付款金額|收款金额|收款金額|扣款金额|扣款金額|退款金额|退款金額)[:：]?\s*(?:(?:(?:CNY|USD|EUR|HKD|GBP|JPY|CAD|AUD|NZD|SGD|RMB)\s*)?(?:US\$|HK\$|CA\$|AU\$|NZ\$|(?:SG|(?<![A-Za-z])S)\$|JP[¥￥]|[￥¥$€£])\s*)?([0-9]+(?:\.[0-9]+)?)(?![\d.])/gi,
+  /(?:支付成功|付款成功|扣款成功|扣费成功|收款成功|退款成功|已扣款|已扣费|已收款|已付款)\s*[:：]?\s*(?:(?:(?:CNY|USD|EUR|HKD|GBP|JPY|CAD|AUD|NZD|SGD|RMB)\s*)?(?:US\$|HK\$|CA\$|AU\$|NZ\$|(?:SG|(?<![A-Za-z])S)\$|JP[¥￥]|[￥¥$€£])\s*)?([0-9]+(?:\.[0-9]+)?)(?![\d.])/gi,
 ];
 
 export function rawCurrencyMoney(value,text,defaultCurrency=null){

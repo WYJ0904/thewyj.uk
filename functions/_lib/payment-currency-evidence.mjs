@@ -10,11 +10,13 @@ export function hasAmbiguousCurrencySymbol(text) {
   for (const match of dollarMatches) {
     const idx = match.index;
     const prefix2 = str.slice(Math.max(0, idx - 2), idx).toUpperCase();
-    if (['US', 'HK', 'CA', 'AU', 'NZ', 'SG'].includes(prefix2)) continue;
+    const prefix1 = str.slice(Math.max(0, idx - 1), idx).toUpperCase();
+    const beforePrefix1 = idx >= 2 ? str.slice(idx - 2, idx - 1) : '';
+    if (['US', 'HK', 'CA', 'AU', 'NZ', 'SG'].includes(prefix2) || (prefix1 === 'S' && !/[A-Za-z]/.test(beforePrefix1))) continue;
     const before = str.slice(Math.max(0, idx - 12), idx);
-    if (/(?:USD|HKD|CAD|AUD|美元|美金|港币|港幣|港元)\s*[:：]?\s*$/i.test(before)) continue;
+    if (/(?:USD|HKD|CAD|AUD|NZD|SGD|美元|美金|港币|港幣|港元|加元|加拿大元|澳元|澳大利亚元|澳大利亞元|新西兰元|紐西蘭元|新加坡元)\s*[:：]?\s*$/i.test(before)) continue;
     const after = str.slice(idx + 1);
-    if (/^\s*\d+[\d.,]*\s*(?:USD|HKD|CAD|AUD|美元|美金|港币|港幣|港元)(?![A-Za-z])/i.test(after)) continue;
+    if (/^\s*\d+[\d.,]*\s*(?:USD|HKD|CAD|AUD|NZD|SGD|美元|美金|港币|港幣|港元|加元|加拿大元|澳元|澳大利亚元|澳大利亞元|新西兰元|紐西蘭元|新加坡元)(?![A-Za-z])/i.test(after)) continue;
     return true;
   }
 
@@ -51,5 +53,7 @@ export function explicitCurrencyCodes(text) {
   if (/JP[¥￥]|日元|日圓|円/i.test(str)) codes.add('JPY');
   if (/CA\$|加元|加拿大元/i.test(str)) codes.add('CAD');
   if (/AU\$|澳元|澳大利亚元|澳大利亞元/i.test(str)) codes.add('AUD');
+  if (/NZ\$|新西兰元|紐西蘭元/i.test(str)) codes.add('NZD');
+  if (/(?:SG|(?<![A-Za-z])S)\$|新加坡元/i.test(str)) codes.add('SGD');
   return [...codes];
 }
