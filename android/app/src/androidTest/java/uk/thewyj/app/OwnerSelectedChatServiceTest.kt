@@ -63,6 +63,7 @@ class OwnerSelectedChatServiceTest {
         assertTrue(outcome.ticketId.isNotBlank())
         val enriched = AtomicInteger()
         val gateway = object : PaymentAccessibilityGateway {
+            override fun reserveScan(accountId: String, ticketId: String, nowMs: Long) = uk.thewyj.app.task21.payment.PaymentPersistedScanBudget.reserve(store,accountId,ticketId,nowMs)
             override fun financeAccountId() = account
             override fun activePackages(accountId: String, nowMs: Long) = setOf("com.tencent.mm")
             override fun activeTicket(accountId: String, sourcePackage: String) = store.activeTicketForPackage(accountId, sourcePackage)
