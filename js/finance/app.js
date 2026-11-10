@@ -600,8 +600,14 @@ export function createFinanceController({
     if (element('financeDisplayCurrency')) element('financeDisplayCurrency').value = currency;
     if (element('financeAccountCurrency')) element('financeAccountCurrency').value = store.currency_preferences.account_currency;
     if (element('financeDefaultCurrency')) element('financeDefaultCurrency').value = store.currency_preferences.default_currency || '';
+    const reasons = [];
+    if (summary.unconverted?.some(u => u.reason === 'fx_rate_expired')) reasons.push('汇率已过期');
+    if (summary.unconverted?.some(u => u.reason === 'missing_historical_rate')) reasons.push('缺少可用汇率');
+    if (summary.unconverted?.some(u => u.reason === 'currency_unit_review_required')) reasons.push('金额单位待核实');
+    if (summary.unconverted?.some(u => u.reason === 'currency_unsupported')) reasons.push('币种待核实');
+    const reasonText = reasons.length ? `（${reasons.join('、')}）` : '';
     if (element('financeCurrencyStatus')) element('financeCurrencyStatus').textContent = summary.unconverted?.length
-      ? `${summary.unconverted.length} 笔待换算或单位待核实；上方仅汇总已核实部分。原币金额保留。${store.currency_error || ''}`
+      ? `${summary.unconverted.length} 笔待换算或单位待核实${reasonText}；上方仅汇总已核实部分。原币金额保留。${store.currency_error || ''}`
       : `展示币种 ${currency}${summary.reference_only ? ' · 市场参考折算，不是实际成交金额' : ''}${store.currency_error ? ' · ' + store.currency_error : ''}`;
     if (store.currency_cache_warning && element('financeCurrencyStatus')) element('financeCurrencyStatus').textContent += ' · ' + store.currency_cache_warning;
     if (store.currency_preferences_conflict && element('financeCurrencyStatus')) element('financeCurrencyStatus').textContent += ' · 其他端已更新币种设置；本机原选择已保留，请核对后重新选择。';
@@ -653,7 +659,12 @@ export function createFinanceController({
       const reference = referenceValue(item, store.currency_preferences.display_currency, { snapshots: store.fx_snapshots });
       const referenceLabel = reference.status === 'reference'
         ? `参考折算 ${formatFinanceMoney(reference.amount_minor, reference.currency)} · ${reference.snapshot.rate_timestamp || reference.snapshot.date} · ${reference.snapshot.source || '历史快照'}`
-        : reference.status === 'same_currency' ? '' : reference.status === 'currency_unit_review_required' ? '原金额单位待核实，未纳入汇总' : '缺少可用历史汇率 · 保留原币，待换算';
+        : reference.status === 'same_currency' ? ''
+        : reference.status === 'currency_unit_review_required' ? '原金额单位待核实，未纳入汇总'
+        : reference.status === 'fx_rate_expired' ? '历史汇率已过期 · 保留原币，待换算'
+        : reference.status === 'missing_historical_rate' ? '缺少可用历史汇率 · 保留原币，待换算'
+        : reference.status === 'currency_unsupported' ? '币种待核实，未纳入汇总'
+        : '缺少可用历史汇率 · 保留原币，待换算';
       const sign = control ? "" : item.direction === "expense" ? "-" : "+";
       const directionLabel = control ? "预授权控制 · 不计收支" : { income: "收入", expense: "支出", refund: "退款" }[item.direction];
       const roleLabel = (item.currency_role_evidence || []).slice(0, 3).map(evidence => {
@@ -1276,7 +1287,7 @@ export function createFinanceController({
     if (!SUPPORTED_CURRENCIES.includes(currency)) return invalidField(element('financeBudgetCurrency'), '请选择预算币种');
     const amountMinor = amountTextToMinor(element("financeBudgetAmount").value, currency);
     if (!bounds) return invalidField(element("financeBudgetMonth"), "请选择有效月份");
-    if (!amountMinor) return invalidField(element("financeBudgetAmount"), "请输入大于 0 且最多两位小数的预算金额");
+    if (!amountMinor) return invalidField(element("financeBudgetAmount"), `请输入大于 0 且最多 ${currencyDigits(currency)} 位小数的 ${currency} 预算金额`);
     const categoryId = element("financeBudgetCategory").value;
     const matching = activeValues("budgets").find((item) => item.category_id === categoryId
       && item.starts_on === bounds.startDate && item.ends_on === bounds.endDate);

@@ -1,0 +1,24 @@
+{
+  "date_hong_kong": "2026-11-09",
+  "status": "STOPPED_AFTER_OWNER_HANDOFF_REQUEST",
+  "reviewed_sha": "b394525a848d415027cdefdbc2858418de59e59a",
+  "branch": "codex/p04-pr138-independent-review",
+  "candidate_sha_unchanged": "9ab3a5667b6230560b64531764720a754922b4c7",
+  "p04": "PARTIAL",
+  "release": "HELD",
+  "product_fixes": 0,
+  "integration_performed": false,
+  "original_suite": {"pass": 20, "fail": 0, "exit_code": 0},
+  "independent_red": {"tests": 21, "pass": 8, "fail": 13, "exit_code": 1},
+  "d1_scope": "First mixed-symbol ingest returned a transaction ID; assertion failed before replay and remaining samples",
+  "evidence_directory": "docs/migration-evidence/finance-p04/pr138-review",
+  "logs": [
+    {"name": "independent-red.log", "bytes": 16644, "sha256": "a3759b5b1556ce2a0126e2e931871d75b5474aefcbde63efe3e5327edf79c6d3"},
+    {"name": "npm-ci.log", "bytes": 27, "sha256": "65aff1ec075ef8f7ab33e7e4ab4ce6672a657d7501ac7973d417370a44164bb3"},
+    {"name": "original-suite.log", "bytes": 2633, "sha256": "52be7d79f5f0d0d41ec895c7e848e1b0c6ae7f95ffd552983009f8efe152b0c6"}
+  ],
+  "large_regressions": "NOT_RUN",
+  "ci_for_handoff": "NOT_REQUESTED",
+  "production_actions": "NONE",
+  "worktree_retained": true
+}

@@ -126,7 +126,7 @@ function escapeHtml(value) {
     .replaceAll("'", "&#39;");
 }
 
-function formatMinor(minor, currency = 'CNY') { return formatFinanceMoney(minor, currency); }
+function formatMinor(minor, currency) { return formatFinanceMoney(minor, currency); }
 
 function evidenceExplanation(candidate, presentation) {
   const reasons = Array.isArray(candidate?.recognition_reasons) ? candidate.recognition_reasons : [];
