@@ -78,7 +78,7 @@ const CORE_SHELL = [
   "/icon-512.png"
 ];
 CORE_SHELL.push("/js/core/feature-flags.js?release=20261109-aeris-p07-production-r2", "/js/core/feature-console.js?release=20261109-aeris-p07-production-r2");
-const OPTIONAL_BRAND_ASSETS = ["/assets/logo.png"];
+const OPTIONAL_BRAND_ASSETS = ["/assets/logo.png", "/js/finance/money.js?release=20261109-aeris-p07-production-r2"];
 CORE_SHELL.push("/js/core/startup.js?release=20261109-aeris-p07-production-r2");
 CORE_SHELL.push("/js/core/home-widget-layout.js?release=20261109-aeris-p07-production-r2");
 CORE_SHELL.push("/js/core/home-widgets.js?release=20261109-aeris-p07-production-r2", "/js/core/home-widget-data.js?release=20261109-aeris-p07-production-r2");
