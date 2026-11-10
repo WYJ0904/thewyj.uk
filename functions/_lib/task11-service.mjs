@@ -18,7 +18,6 @@ import {
   validateLearningSyncRequest,
   validateTelemetryInput,
 } from "./task11-model.mjs";
-import { isAdminAccount } from "./task12-model.mjs";
 
 const FEEDBACK_TYPES = new Set([
   "feature_suggestion", "tool_error", "page_issue",
@@ -237,27 +236,17 @@ export async function listAdminFeedback(db, searchParams) {
     ORDER BY item.updated_at DESC, item.id DESC
     LIMIT ?
   `, bindings);
-  const audit = await readFeedbackAudit(db);
-  return {
-    feedback: rows.map((row) => feedbackPayload(row, { includeAdmin: true })),
-    task11_audit: audit,
-  };
-}
-
-async function readFeedbackAudit(db) {
-  return all(requireDatabase(db), `
+  const audit = await all(db, `
     SELECT id, actor_user_id, actor_username, action, feedback_id,
            target_user_id, note, created_at
     FROM task11_feedback_audit_logs
     ORDER BY created_at DESC, id DESC
     LIMIT ?1
   `, [100]);
-}
-
-/** Compact existing audit metadata only; no feedback text or before/after body. */
-export async function listFeedbackAudit(db, actor) {
-  if (!isAdminAccount(actor)) throw new Task11Error("无管理员权限", 403, "forbidden");
-  return (await readFeedbackAudit(db)).map((row) => ({ ...row, target_id: row.feedback_id }));
+  return {
+    feedback: rows.map((row) => feedbackPayload(row, { includeAdmin: true })),
+    task11_audit: audit,
+  };
 }
 
 async function insertFeedbackAudit(db, actor, action, row, before, after, note, statements = null) {

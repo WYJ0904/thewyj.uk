@@ -84,6 +84,7 @@ CORE_SHELL.push("/js/core/home-widget-layout.js?release=20261109-aeris-p07-produ
 CORE_SHELL.push("/js/core/home-widgets.js?release=20261109-aeris-p07-production-r2", "/js/core/home-widget-data.js?release=20261109-aeris-p07-production-r2");
 CORE_SHELL.push("/js/transfer/upload-part.js?release=20261109-aeris-p07-production-r2");
 CORE_SHELL.push("/js/core/lazy-controller.js?release=20261109-aeris-p07-production-r2", "/js/core/parked-rows.js?release=20261109-aeris-p07-production-r2", "/js/core/dashboard.js?release=20261109-aeris-p07-production-r2", "/js/finance/format.js?release=20261109-aeris-p07-production-r2", "/js/tools/digest-worker.js?release=20261109-aeris-p07-production-r2");
+CORE_SHELL.push("/js/finance/money.js?release=20261109-aeris-p07-production-r2", "/js/finance/ai-assistance.js?release=20261109-aeris-p07-production-r2");
 
 async function fetchWithDeadline(input, timeoutMs, options = {}, consume = response => response) {
   if (typeof AbortController === "undefined") return consume(await fetch(input, options));
