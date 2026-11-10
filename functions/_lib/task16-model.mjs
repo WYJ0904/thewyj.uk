@@ -44,10 +44,10 @@ const STRONG_COMPLETION_TERMS = [
   "扣費成功", "已扣費", "退款到賬", "已到賬", "已入賬", "轉賬成功", "交易成功",
 ];
 const AMOUNT_PATTERNS = [
-  /(?:人民币|人民幣|RMB|CNY|￥|¥)\s*([0-9]+(?:\.[0-9]{1,2})?)/i,
-  /([0-9]+(?:\.[0-9]{1,2})?)\s*(?:元|圓|块|塊)(?!\s*(?:额度|額度|优惠|優惠|券|起|每月))/,
+  /(?<!(?:余额|餘額|额度|額度|积分|積分|红包|紅包|优惠|優惠|立减|立減|折扣|订单号|訂單號|流水号|流水號|卡号|卡號|尾号|尾號|预计|預計|预估|預估|待扣|待付|未扣|未付|待支付|待付款|拟|擬)\s*[:：=＝]?\s*)(?:人民币|人民幣|RMB|CNY|￥|¥)\s*([0-9]+(?:\.[0-9]{1,2})?)/i,
+  /(?<!(?:余额|餘額|额度|額度|积分|積分|红包|紅包|优惠|優惠|立减|立減|折扣|订单号|訂單號|流水号|流水號|卡号|卡號|尾号|尾號|预计|預計|预估|預估|待扣|待付|未扣|未付|待支付|待付款|拟|擬)\s*[:：=＝]?\s*)([0-9]+(?:\.[0-9]{1,2})?)\s*(?:元|圓|块|塊)(?!\s*(?:额度|額度|优惠|優惠|券|起|每月))/i,
   /(?:交易金额|交易金額|付款金额|付款金額|收款金额|收款金額|扣款金额|扣款金額|退款金额|退款金額)[:：]?\s*([0-9]+(?:\.[0-9]{1,2})?)/,
-  /(?:支付成功|付款成功|扣款成功|扣费成功|收款成功|退款成功|已扣款|已扣费|已收款|已付款).{0,16}?([0-9]+\.[0-9]{1,2})/,
+  /(?:支付成功|付款成功|扣款成功|扣费成功|收款成功|退款成功|已扣款|已扣费|已收款|已付款)(?:(?!余额|餘額|额度|額度|积分|積分|红包|紅包|优惠|優惠|立减|立減|订单号|訂單號|流水号|流水號|预计|預計|预估|預估|待|未|拟|擬).){0,16}?([0-9]+\.[0-9]{1,2})/,
 ];
 
 export class Task16Error extends Error {
@@ -265,11 +265,41 @@ export function normalizeRawEvent(value = {}, {currencyPolicyVersion=1,defaultCu
   const exact = currencyPolicyVersion >= 2 ? rawCurrencyMoney({...value,source_type:sourceType},notificationCashText(text)??'',defaultCurrency) : null;
   if (exact) {
     currency=exact.currency;
-    const rejected = classification.classification==='rejected' && classification.reason!=='amount_missing';
-    classification={...classification,amount_minor:exact.amount_minor,
-      ...(exact.review_reason ? {classification:rejected?'rejected':'pending',reason:exact.review_reason} :
-        classification.reason==='amount_missing' ? (includesAny(text,STRONG_COMPLETION_TERMS)?
-          {classification:'accepted',reason:'transaction_completed'}:{classification:'pending',reason:'completion_unproven'}) : {})};
+    if (classification.reason === 'non_cash_voucher' || classification.reason === 'legacy_lifecycle_requires_review') {
+      classification = {
+        ...classification,
+        amount_minor: exact.amount_minor,
+      };
+    } else if (exact.admission_decision) {
+      if (exact.admission_decision === 'AUTO') {
+        classification = {
+          classification: 'accepted',
+          reason: 'transaction_completed',
+          direction: exact.direction,
+          amount_minor: exact.amount_minor,
+        };
+      } else if (exact.admission_decision === 'NON_FINANCIAL') {
+        classification = {
+          classification: 'rejected',
+          reason: exact.review_reason || 'amount_missing',
+          direction: 'unknown',
+          amount_minor: 0,
+        };
+      } else {
+        classification = {
+          classification: 'pending',
+          reason: exact.review_reason || 'completion_unproven',
+          direction: exact.direction || 'unknown',
+          amount_minor: 0,
+        };
+      }
+    } else {
+      const rejected = classification.classification==='rejected' && classification.reason!=='amount_missing';
+      classification={...classification,amount_minor:exact.amount_minor,
+        ...(exact.review_reason ? {classification:rejected?'rejected':'pending',reason:exact.review_reason} :
+          classification.reason==='amount_missing' ? (includesAny(text,STRONG_COMPLETION_TERMS)?
+            {classification:'accepted',reason:'transaction_completed'}:{classification:'pending',reason:'completion_unproven'}) : {})};
+    }
   }
   const accountLast4 = String(value.account_last4 || "").trim();
   if (accountLast4 && !LAST4_PATTERN.test(accountLast4)) {
