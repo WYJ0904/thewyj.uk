@@ -87,5 +87,47 @@ Task16=5 / Task21=9 / FX=1，且只写空目标。它不构成产品恢复 API�
 
 ## 交付结果
 
-本节在最终提交和定向回归完成后记录实际结果；本工具不改变任何真实环境
-恢复门禁、Hotfix Closure 或 Task26 的所有者豁免状态。
+2026-11-10，基准 #140 / staging 远端 HEAD 在开始前及交付前均为
+`0239018b74b1fb9d143cb4747657cbfd795d644c`。独立分支为
+`codex/p04-recovery-rollback-gate`，PR 目标为 `codex/p04-convergence-staging`。
+
+实际执行命令：`npm run test:p04-recovery -- --run-id gate-final`。
+执行代码完整 SHA：`5ce96f6c8bdb4282376dd50fb5a29152832df11f`，当时工作树
+**clean=true**；最终总状态 **PASS / exit 0**，9 个步骤均成功，无跳过。
+其后提交只补充本报告，执行代码、测试和数据集与上述提交相同。
+
+| 定向验收 | 实际结果 |
+| --- | --- |
+| 新恢复/回滚验收 | 15 PASS / 0 FAIL |
+| 新工具保护自测 | 5 PASS / 0 FAIL / 0 SKIP；缺失/重复/失败/阻断用例及子进程失败均不能产生 PASS |
+| Task16 D1 | 原 11 checks PASS |
+| Task16 Python migrator | 原 9 tests PASS |
+| Task17 D1 | 原整套 PASS |
+| 既有 P04 migrations / review migrations | 12 PASS / 8 PASS |
+| 既有模拟 FX | 22 PASS；真实 provider 调用 0 |
+| 输出防覆盖控制 | 重用既有 run-id 实际返回 BLOCKED / Node exit 2，原结果 hash 不变 |
+
+快照恢复前后完全一致：13 笔交易（12 active、1 已确认删除）、7 条 raw event、
+7 条关系、1 个导入来源、1 条批次回执、6 条逐记录回执、8 条财务同步回执及
+2 条通知回执。恢复差异 `[]`，外键违规 0、孤立关系/回执 0。人工 EUR 23456
+修正及 revision 2、默认 GBP、已删账和候选拒绝决定均保留；原 USD 10000
+来源事实未改。跨账户恢复/伪造 owner 拒绝、读取为空、两种修改拒绝，原账户
+改变行数 0。三次批次/operation 重试不增加账目，变更 payload 拒绝。
+
+| 输入/执行证据 | SHA-256 |
+| --- | --- |
+| 合成数据集文件 | `60c13a76cd6114c028e36685040e355bb0a4d3228ad2cd1235ee9674cc6f80b2` |
+| 15 项校验清单 | `f4888ae449eebc04a7f17aa8a4b7696a67e5de0f2fd7658d52548d6241e01f79` |
+| 实际执行源码清单 | `bb871210a9342869b98af839e9fc95d992e974d808303a5916d568369355c71a` |
+| 本次恢复前/后快照，两者相同 | `ef59260f89cacbfd246751744a942a3e3db5908a6a44a2391d3e20a7bb69ff90` |
+
+完整输出保留于忽略目录
+`docs/migration-evidence/finance-p04/gate-final/result.json`，逐项结果和快照位于
+同目录 `p04-recovery-safety/`，各历史回归有独立日志和 hash；最初比较器 FAIL
+和开发阶段 PASS 继续保留。快照包含服务生成的合成 ID/时间，重跑无需得到
+相同快照 hash，但同一次恢复前后必须相同。
+
+固定 Hotfix 工作区及其未提交文件未写入；Flash 工作区、财务前端、#112/#140
+分支、迁移 SQL、Android Stable 与 Production 均未修改，未合并或部署。
+本工具不改变任何真实环境恢复门禁、Hotfix Closure 或 Task26 的所有者豁免
+状态；上述人工真实恢复步骤仍为 NOT_TESTED / RELEASE_HELD。
