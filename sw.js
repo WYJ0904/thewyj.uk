@@ -78,6 +78,7 @@ const CORE_SHELL = [
   "/icon-512.png"
 ];
 CORE_SHELL.push("/js/core/feature-flags.js?release=20261109-aeris-p07-production-r2", "/js/core/feature-console.js?release=20261109-aeris-p07-production-r2");
+CORE_SHELL.push("/js/language/wrong-review.js?release=20261109-aeris-p07-production-r2", "/js/language/wrong-review-sync.js?release=20261109-aeris-p07-production-r2");
 const OPTIONAL_BRAND_ASSETS = ["/assets/logo.png"];
 CORE_SHELL.push("/js/core/startup.js?release=20261109-aeris-p07-production-r2");
 CORE_SHELL.push("/js/core/home-widget-layout.js?release=20261109-aeris-p07-production-r2");

@@ -685,23 +685,6 @@
             <button id="studyViewTab" type="button" role="tab" aria-controls="studyView" data-view="studyView">统计</button>
           </nav>
 
-          <section class="panel mastery-section hidden" id="masterySection" aria-labelledby="masteryTitle">
-            <div class="mastery-heading"><div><p class="eyebrow">按你的进度学习</p><h3 id="masteryTitle">掌握度与智能复习</h3></div><button id="masteryRetryBtn" type="button" class="secondary">刷新 / 重试同步</button></div>
-            <p id="masteryOverview">从第一道题开始积累掌握度</p>
-            <p class="muted" id="masteryCounts">既有测验、错题和历史保留；新的掌握度从有效答题开始。</p>
-            <p class="muted" id="masterySyncStatus" role="status">尚未读取学习进度</p>
-            <p id="masteryStatus" role="status" aria-live="polite"></p>
-            <div class="mastery-actions"><button id="masteryStartBtn" type="button">开始自适应学习</button><button id="masteryWeakBtn" type="button" class="secondary">练习弱项</button><button id="masteryReviewBtn" type="button" class="secondary">开始到期复习</button></div>
-            <div class="mastery-quiz hidden" id="masteryQuiz">
-              <p class="muted" id="masteryQuestionReason"></p><h4 id="masteryPrompt"></h4><p id="masteryInstruction"></p>
-              <form id="masteryAnswerForm"><label class="field-label"><span>你的答案</span><input id="masteryAnswerInput" maxlength="240" autocomplete="off" autocapitalize="off" spellcheck="false" aria-describedby="masteryInstruction" /></label><div class="mastery-actions"><button id="masterySubmitBtn" type="submit">提交答案</button><button id="masterySkipBtn" type="button" class="secondary">跳过</button><button id="masteryNextBtn" type="button" class="secondary">下一题</button></div></form>
-              <div id="masteryResult" class="mastery-result hidden" aria-live="polite"><h4 id="masteryResultTitle"></h4><p class="muted" id="masteryDelta"></p><p id="masteryCorrectAnswer"></p><p class="muted" id="masteryReviewAt"></p><p id="masteryCourseExplanation"></p><p id="masteryExample"></p><p id="masteryConfusion"></p><button id="masteryAiBtn" type="button" class="secondary">查看错因解析</button><p id="masteryAiExplanation"></p></div>
-              <p class="muted" id="masteryRoundSummary"></p>
-            </div>
-            <div class="mastery-columns"><details class="ds-collapse" open><summary>薄弱知识点</summary><div id="masteryWeakList" class="mastery-point-list"></div></details><details class="ds-collapse" id="masteryReviewArea" open><summary>今日待复习</summary><div id="masteryReviewList" class="mastery-point-list"></div></details></div>
-            <section id="masteryDetail" class="mastery-detail hidden" aria-label="知识点学习状态"></section>
-          </section>
-
           <section class="view active" id="setupView" role="tabpanel" aria-labelledby="setupViewTab">
             <div class="panel">
               <div class="settings-grid">
@@ -840,6 +823,8 @@
                 <button id="historyWrongTab" type="button">历史</button>
               </div>
               <p class="meta-line" id="wrongScopeLabel"></p>
+              <p class="meta-line" id="wrongReviewStatus" role="status"></p>
+              <button id="legacyRecoveryBtn" class="secondary hidden" type="button">恢复旧版未完成答题</button>
               <label class="wrong-search" for="wrongSearchInput"><span class="visually-hidden">搜索错题</span><input id="wrongSearchInput" type="search" maxlength="120" autocomplete="off" placeholder="搜索单词、答案或释义" /></label>
               <div class="action-row">
                 <button class="primary" id="reviewBtn">复习本轮</button>
@@ -890,6 +875,7 @@
                 <div>
                   <h2>学习统计</h2>
                   <p class="meta-line" id="studySummary">完成一轮测试后开始记录</p>
+                  <p class="meta-line" id="studyWrongReviewSummary"></p>
                 </div>
                 <label class="study-goal-field" for="studyGoalInput">
                   <span>每日目标</span>
@@ -902,7 +888,7 @@
               </div>
               <div class="study-metrics">
                 <div><strong id="studyTotalRounds">0</strong><span>完成轮次</span></div>
-                <div><strong id="studyTotalWords">0</strong><span>累计题数</span></div>
+                <div><strong id="studyTotalWords">0</strong><span>实际作答（不含跳过）</span></div>
                 <div><strong id="studyWeekAccuracy">--</strong><span>近 7 天正确率</span></div>
                 <div><strong id="studyStreak">0</strong><span>连续学习天数</span></div>
               </div>
