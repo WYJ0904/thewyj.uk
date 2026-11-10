@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "scope": "synthetic-only",
+  "account_id": "synthetic-p04-owner",
+  "other_account_id": "synthetic-p04-other",
+  "occurred_at_ms": 1792400000000,
+  "currencies": [
+    { "currency": "CNY", "amount_minor": 1, "amount_exponent": 2 },
+    { "currency": "USD", "amount_minor": 12345, "amount_exponent": 2 },
+    { "currency": "EUR", "amount_minor": 999999, "amount_exponent": 2 },
+    { "currency": "HKD", "amount_minor": 1000001, "amount_exponent": 2 },
+    { "currency": "GBP", "amount_minor": 10000000000000, "amount_exponent": 2 },
+    { "currency": "JPY", "amount_minor": 3725, "amount_exponent": 0 }
+  ],
+  "manual_decision": { "currency": "EUR", "amount_minor": 23456, "default_currency": "GBP" },
+  "fx": { "date": "2026-10-19", "now": 1792584000000, "old_rate": "7.000000000000000001", "new_rate": "8.123456789012345678" },
+  "checks": [
+    "legacy-upgrade-every-original-column-and-receipt",
+    "restore-all-tables-IDs-revisions-receipts-and-relations",
+    "six-currencies-preserve-minor-units-and-exponents-after-restore",
+    "confirmed-human-correction-default-decision-and-delete-survive-replay",
+    "stale-snapshot-cannot-overwrite-new-human-decisions",
+    "historical-FX-keeps-original-rate-after-restored-cache-refresh",
+    "same-import-batch-and-sync-operation-retry-remain-idempotent-after-restore",
+    "cross-account-restore-read-modify-and-transaction-restore-rejected",
+    "bad-hash-missing-component-and-unsupported-schema-rejected-before-write",
+    "restore-constraint-failure-is-atomic-and-preserves-the-backup",
+    "failed-import-first-record-rollback-keeps-audit-without-active-prefix-or-orphan-receipts",
+    "failed-import-second-record-rollback-keeps-audit-without-active-prefix-or-orphan-receipts",
+    "failed-import-third-record-rollback-keeps-audit-without-active-prefix-or-orphan-receipts",
+    "failed-import-batch-receipt-rollback-keeps-audit-without-active-prefix-or-orphan-receipts",
+    "rollback-refuses-to-erase-later-human-corrections"
+  ]
+}
