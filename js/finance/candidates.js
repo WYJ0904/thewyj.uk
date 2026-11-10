@@ -55,11 +55,14 @@ const REASON_LABELS = Object.freeze({
 export function candidateNeedsEditor(candidate) {
   const amountMissing = !Number(candidate?.amount_minor);
   const directionMissing = !VALID_DIRECTIONS.has(String(candidate?.direction || "").trim().toLowerCase());
-  const rawCurrency = String(candidate?.currency || "").trim().toUpperCase();
-  const currencyMissing = !SUPPORTED_CURRENCIES.includes(rawCurrency) || candidate?.currency_review_required === true;
-  const jpyUnitMissing = rawCurrency === "JPY" && candidate?.money_unit_status === "review_required";
+  const rawCurrency = candidate?.currency !== undefined && candidate?.currency !== null
+    ? String(candidate.currency).trim().toUpperCase()
+    : "";
+  const currencyNeedsReview = candidate?.currency_review_required === true ||
+    (rawCurrency !== "" && (!SUPPORTED_CURRENCIES.includes(rawCurrency) || rawCurrency === "XXX")) ||
+    (rawCurrency === "JPY" && candidate?.money_unit_status === "review_required");
   const isAuth = isCandidateAuthorization(candidate);
-  return amountMissing || directionMissing || currencyMissing || jpyUnitMissing || isAuth || candidate?.local_evidence?.conflict === true;
+  return amountMissing || directionMissing || currencyNeedsReview || isAuth || candidate?.local_evidence?.conflict === true;
 }
 
 export function candidatePresentation(candidate) {
@@ -68,9 +71,13 @@ export function candidatePresentation(candidate) {
   const localEvidencePending = candidate?.local_evidence?.pending_sync === true;
   const amountMinor = Number(candidate?.amount_minor) || (!evidenceConflict ? Number(candidate?.local_evidence?.amount_minor) : 0) || 0;
   const amountUnknown = !amountMinor;
-  const rawCurrency = String(candidate?.currency || "").trim().toUpperCase();
-  const currency = SUPPORTED_CURRENCIES.includes(rawCurrency) ? rawCurrency : (rawCurrency || "XXX");
-  const currencyNeedsReview = candidate?.currency_review_required === true || currency === "XXX" || !SUPPORTED_CURRENCIES.includes(currency) || (currency === "JPY" && candidate?.money_unit_status === "review_required");
+  const rawCurrency = candidate?.currency !== undefined && candidate?.currency !== null
+    ? String(candidate.currency).trim().toUpperCase()
+    : "";
+  const currency = rawCurrency ? (SUPPORTED_CURRENCIES.includes(rawCurrency) ? rawCurrency : rawCurrency) : "CNY";
+  const currencyNeedsReview = candidate?.currency_review_required === true ||
+    (rawCurrency !== "" && (!SUPPORTED_CURRENCIES.includes(rawCurrency) || rawCurrency === "XXX")) ||
+    (currency === "JPY" && candidate?.money_unit_status === "review_required");
   const rawDirection = String(candidate?.direction || "").trim().toLowerCase();
   const direction = VALID_DIRECTIONS.has(rawDirection) ? rawDirection : "unknown";
   const merchant = String(candidate?.merchant || candidate?.counterparty || "").trim();
@@ -109,8 +116,13 @@ export function canonicalPendingCandidates(summary) {
   return pending.map((row) => {
     const hint = row.kind === "hint";
     const rawCurrency = String(row.currency || "").trim().toUpperCase();
-    const currency = SUPPORTED_CURRENCIES.includes(rawCurrency) ? rawCurrency : (rawCurrency || "XXX");
-    const currencyReviewRequired = row.currency_review_required === true || row.currency_review_required === 1 || currency === "XXX";
+    const currency = SUPPORTED_CURRENCIES.includes(rawCurrency)
+      ? rawCurrency
+      : (rawCurrency || (row.currency_review_required ? "XXX" : "CNY"));
+    const currencyReviewRequired = row.currency_review_required === true ||
+      row.currency_review_required === 1 ||
+      currency === "XXX" ||
+      (rawCurrency !== "" && !SUPPORTED_CURRENCIES.includes(rawCurrency));
     return {
       id: String(row.id || ""), hint, canonical_id: `${row.kind}:${String(row.id || "")}`,
       event_id: String(row.event_id || ""),
@@ -291,7 +303,9 @@ export function createFinanceCandidatesController({
       const evidenceCount = Math.max(evidence.length, Number(candidate.evidence_count) || 1);
       const editedCount = Number(candidate.correction_count) || 0;
       const missingLabel = presentation.missing.length ? `需补：${presentation.missing.join("、")}` : "信息完整，可直接确认";
-      const amountValue = !Number(candidate.amount_minor) ? "" : moneyText(candidate.amount_minor, currency);
+      const amountValue = !Number(candidate.amount_minor)
+        ? ""
+        : (SUPPORTED_CURRENCIES.includes(currency) ? moneyText(candidate.amount_minor, currency) : (Number(candidate.amount_minor) / 100).toFixed(2));
       const evidenceReason = evidenceExplanation(candidate, presentation);
       return `<article class="finance-candidate" data-finance-candidate="${escapeHtml(id)}" data-canonical-identity="${escapeHtml(candidate.canonical_id || "")}">
         <div class="finance-candidate-main">
