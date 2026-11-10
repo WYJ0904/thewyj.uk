@@ -5,18 +5,42 @@ import { explicitCurrencyCodes, hasAmbiguousCurrencySymbol } from './payment-cur
 
 export const SUPPORTED_CURRENCIES = new Set(['CNY', 'USD', 'EUR', 'HKD', 'GBP', 'JPY']);
 
-const words = {
-  CNY: /人民币|人民幣|\bRMB\b/i,
-  USD: /美元|美金|US\$/i,
-  EUR: /欧元|歐元|€/i,
-  HKD: /港币|港幣|港元|HK\$/i,
-  GBP: /英镑|英鎊|£/i,
-  JPY: /日元|日圓|円|JP[¥￥]/i,
-  CAD: /加元|加拿大元|CA\$/i,
-  AUD: /澳元|澳大利亚元|澳大利亞元|AU\$/i,
-  NZD: /新西兰元|紐西蘭元|NZ\$/i,
-  SGD: /新加坡元|(?:SG|(?<![A-Za-z])S)\$/i,
-};
+const QUALIFIED_SYMBOLS = [
+  { str: 'US$', code: 'USD' },
+  { str: 'HK$', code: 'HKD' },
+  { str: 'CA$', code: 'CAD' },
+  { str: 'AU$', code: 'AUD' },
+  { str: 'NZ$', code: 'NZD' },
+  { str: 'SG$', code: 'SGD' },
+  { str: 'JP¥', code: 'JPY' },
+  { str: 'JP￥', code: 'JPY' },
+];
+
+const CURRENCY_WORDS_LIST = [
+  { str: '澳大利亚元', code: 'AUD' },
+  { str: '澳大利亞元', code: 'AUD' },
+  { str: '加拿大元', code: 'CAD' },
+  { str: '新西兰元', code: 'NZD' },
+  { str: '紐西蘭元', code: 'NZD' },
+  { str: '新加坡元', code: 'SGD' },
+  { str: '人民币', code: 'CNY' },
+  { str: '人民幣', code: 'CNY' },
+  { str: '港币', code: 'HKD' },
+  { str: '港幣', code: 'HKD' },
+  { str: '港元', code: 'HKD' },
+  { str: '美元', code: 'USD' },
+  { str: '美金', code: 'USD' },
+  { str: '欧元', code: 'EUR' },
+  { str: '歐元', code: 'EUR' },
+  { str: '英镑', code: 'GBP' },
+  { str: '英鎊', code: 'GBP' },
+  { str: '日元', code: 'JPY' },
+  { str: '日圓', code: 'JPY' },
+  { str: '加元', code: 'CAD' },
+  { str: '澳元', code: 'AUD' },
+];
+
+const ISO_CODES = ['CNY', 'USD', 'EUR', 'HKD', 'GBP', 'JPY', 'CAD', 'AUD', 'NZD', 'SGD', 'RMB'];
 
 const CURRENCY_WORDS = 'CNY|USD|EUR|HKD|GBP|JPY|CAD|AUD|NZD|SGD|RMB|人民币|人民幣|日元|日圓|美元|美金|港币|港幣|港元|欧元|歐元|英镑|英鎊|加元|加拿大元|澳元|澳大利亚元|澳大利亞元|新西兰元|紐西蘭元|新加坡元';
 const SYMBOLS = 'US\\$|HK\\$|CA\\$|AU\\$|NZ\\$|(?:SG|(?<![A-Za-z])S)\\$|JP[¥￥]|[￥¥$€£]';
@@ -51,28 +75,40 @@ const SUFFIX_PAID_COMPLETE = /^\s*(?:元|圓|块|塊|円)?\s*(?:支付成功|付
 const SUFFIX_RECEIVED_COMPLETE = /^\s*(?:元|圓|块|塊|円)?\s*(?:收款成功|已到账|已入账)/i;
 const SUFFIX_REFUND_COMPLETE = /^\s*(?:元|圓|块|塊|円)?\s*(?:退款成功|退款到账)/i;
 
-const ORDER_MARKER_REGEX = /(?:(?:订单|訂單)[A-Za-z0-9_-]+|另一订单|另一訂單|本单|本單)/g;
+const OPERATION_MARKER_REGEX = /(?:(?:订单|訂單)[A-Za-z0-9_-]+|上一笔|上一筆|上笔|上筆|上一单|上一單|上一次|下一笔|下一筆|下笔|下筆|下一单|下一單|下一次|另一笔|另一筆|另笔|另筆|另一次|其他订单|其他訂單|其他交易|另一订单|另一訂單|本单|本單|本次|本笔|本筆|当前交易|當前交易)/gi;
 const CLAUSE_DELIMITER_REGEX = /[；;\n\r。]/;
 
-const STRONG_COMPLETION_TERMS = [
-  "支付成功", "付款成功", "扣款成功", "扣费成功", "已扣款", "已扣费", "退款成功", "退款到账",
-  "收款成功", "已到账", "已入账", "转账成功", "支付已完成", "交易成功", "消费成功", "消費成功",
-  "扣費成功", "已扣費", "退款到賬", "已到賬", "已入賬", "轉賬成功",
+const PAYMENT_COMPLETION_PREDICATES = [
+  "支付成功", "付款成功", "扣款成功", "扣费成功", "扣費成功",
+  "已扣款", "已扣费", "已扣費", "已付款",
+  "消费成功", "消費成功", "转账成功", "轉賬成功",
+  "支付已完成", "交易成功", "实付", "實際付款",
 ];
 
-function findOrderScopes(text) {
-  const matches = [...text.matchAll(ORDER_MARKER_REGEX)];
+const RECEIPT_COMPLETION_PREDICATES = [
+  "收款成功", "收到付款", "收到转账", "收到轉賬",
+  "已到账", "已到賬", "已入账", "已入賬", "已收款", "成功收款",
+  "实收", "實際收款",
+];
+
+const REFUND_COMPLETION_PREDICATES = [
+  "退款成功", "退款到账", "退款到賬", "已退款", "已退",
+  "实际退款", "實際退款", "撤销交易", "撤銷交易",
+];
+
+function findOperationScopes(text) {
+  const matches = [...text.matchAll(OPERATION_MARKER_REGEX)];
   if (matches.length === 0) {
-    return [{ order_id: null, start: 0, end: text.length }];
+    return [{ marker: null, start: 0, end: text.length }];
   }
   const scopes = [];
   if (matches[0].index > 0) {
-    scopes.push({ order_id: null, start: 0, end: matches[0].index });
+    scopes.push({ marker: null, start: 0, end: matches[0].index });
   }
   for (let i = 0; i < matches.length; i++) {
     const start = matches[i].index;
     const end = i + 1 < matches.length ? matches[i + 1].index : text.length;
-    scopes.push({ order_id: matches[i][0], start, end });
+    scopes.push({ marker: matches[i][0], start, end });
   }
   return scopes;
 }
@@ -92,64 +128,258 @@ function findClauses(text) {
   return clauses;
 }
 
-function detectCurrencyForAmount(text, start, rawNumber, globalCodes, declaredCurrency, defaultCurrency) {
-  const localBefore = text.slice(Math.max(0, start - 20), start);
-  const localAfter = text.slice(start + rawNumber.length, Math.min(text.length, start + rawNumber.length + 20));
+function findCurrencyWordEndingAt(text, p) {
+  for (const { str, code } of QUALIFIED_SYMBOLS) {
+    if (p >= str.length && text.slice(p - str.length, p).toUpperCase() === str.toUpperCase()) {
+      return { code, start: p - str.length, end: p, text: text.slice(p - str.length, p) };
+    }
+  }
+  if (p >= 2 && text.slice(p - 2, p).toUpperCase() === 'S$' && (p === 2 || !/[A-Za-z]/.test(text[p - 3]))) {
+    return { code: 'SGD', start: p - 2, end: p, text: text.slice(p - 2, p) };
+  }
+  for (const { str, code } of CURRENCY_WORDS_LIST) {
+    if (p >= str.length && text.slice(p - str.length, p) === str) {
+      return { code, start: p - str.length, end: p, text: str };
+    }
+  }
+  if (p >= 3) {
+    const candidate = text.slice(p - 3, p).toUpperCase();
+    if (ISO_CODES.includes(candidate) && (p === 3 || !/[A-Za-z0-9]/.test(text[p - 4]))) {
+      return { code: candidate === 'RMB' ? 'CNY' : candidate, start: p - 3, end: p, text: text.slice(p - 3, p) };
+    }
+  }
+  return null;
+}
 
-  // Check explicit currency hints immediately attached to amount
-  for (const [code, pattern] of Object.entries(words)) {
-    if (pattern.test(localBefore) || pattern.test(localAfter)) {
-      return { currency: code, isExplicit: true, isBareSymbol: false };
+function findCurrencyWordStartingAt(text, q) {
+  for (const { str, code } of QUALIFIED_SYMBOLS) {
+    if (q + str.length <= text.length && text.slice(q, q + str.length).toUpperCase() === str.toUpperCase()) {
+      return { code, start: q, end: q + str.length, text: text.slice(q, q + str.length), isBareSymbol: false };
+    }
+  }
+  if (q + 2 <= text.length && text.slice(q, q + 2).toUpperCase() === 'S$' && (q + 2 === text.length || !/[A-Za-z]/.test(text[q + 2]))) {
+    return { code: 'SGD', start: q, end: q + 2, text: text.slice(q, q + 2), isBareSymbol: false };
+  }
+  if (q < text.length && text[q] === '円') {
+    return { code: 'JPY', start: q, end: q + 1, text: '円', isBareSymbol: false };
+  }
+  if (q < text.length && ['元', '圆', '块', '塊'].includes(text[q])) {
+    const rest = text.slice(q + 1);
+    if (!/^\s*(?:的)?(?:优惠|優惠|券|立减|立減|折扣|积分|積分|红包|紅包|起|每月|\/月|额度|額度)/.test(rest)) {
+      return { code: 'CNY', start: q, end: q + 1, text: text[q], isBareSymbol: false };
+    }
+  }
+  if (q < text.length && text[q] === '€') {
+    return { code: 'EUR', start: q, end: q + 1, text: '€', isBareSymbol: false };
+  }
+  if (q < text.length && text[q] === '£') {
+    return { code: 'GBP', start: q, end: q + 1, text: '£', isBareSymbol: false };
+  }
+  if (q < text.length && text[q] === '$') {
+    return { code: 'USD', start: q, end: q + 1, text: '$', isBareSymbol: true };
+  }
+  if (q < text.length && (text[q] === '¥' || text[q] === '￥')) {
+    return { code: 'CNY', start: q, end: q + 1, text: text[q], isBareSymbol: true };
+  }
+  for (const { str, code } of CURRENCY_WORDS_LIST) {
+    if (q + str.length <= text.length && text.slice(q, q + str.length) === str) {
+      return { code, start: q, end: q + str.length, text: str, isBareSymbol: false };
+    }
+  }
+  if (q + 3 <= text.length) {
+    const candidate = text.slice(q, q + 3).toUpperCase();
+    if (ISO_CODES.includes(candidate) && (q + 3 === text.length || !/[A-Za-z0-9]/.test(text[q + 3]))) {
+      return { code: candidate === 'RMB' ? 'CNY' : candidate, start: q, end: q + 3, text: text.slice(q, q + 3), isBareSymbol: false };
+    }
+  }
+  return null;
+}
+
+function detectAttachedCurrency(text, start, end, { declaredCurrency, defaultCurrency }) {
+  // 1. Prefix attached immediately before start
+  let p = start;
+  while (p > 0 && /[:：\s]/.test(text[p - 1])) p--;
+
+  let prefixCode = null;
+  let prefixSpan = null;
+  let prefixText = null;
+  let isPrefixBareSymbol = false;
+
+  const wordHit = findCurrencyWordEndingAt(text, p);
+  if (wordHit) {
+    prefixCode = wordHit.code;
+    prefixSpan = { start: wordHit.start, end: p };
+    prefixText = wordHit.text;
+    isPrefixBareSymbol = false;
+  } else if (p > 0 && /[$¥￥€£]/.test(text[p - 1])) {
+    const ch = text[p - 1];
+    prefixSpan = { start: p - 1, end: p };
+    prefixText = ch;
+    if (ch === '€') {
+      prefixCode = 'EUR';
+      isPrefixBareSymbol = false;
+    } else if (ch === '£') {
+      prefixCode = 'GBP';
+      isPrefixBareSymbol = false;
+    } else if (ch === '$') {
+      prefixCode = 'USD';
+      isPrefixBareSymbol = true;
+    } else {
+      prefixCode = 'CNY';
+      isPrefixBareSymbol = true;
+    }
+
+    // Bare symbol preceded by ISO code or Chinese word (e.g. "USD $", "人民币 ¥")
+    let pPre = prefixSpan.start;
+    while (pPre > 0 && /[:：\s]/.test(text[pPre - 1])) pPre--;
+    const preWordHit = findCurrencyWordEndingAt(text, pPre);
+    if (preWordHit) {
+      prefixCode = preWordHit.code;
+      prefixSpan = { start: preWordHit.start, end: p };
+      prefixText = text.slice(preWordHit.start, p);
+      isPrefixBareSymbol = false;
     }
   }
 
-  // Bare symbols
-  if (/[$]/.test(localBefore)) {
-    const isBare = !/(?:US|HK|CA|AU|NZ|SG)\$$/i.test(localBefore.trim());
-    if (isBare) {
-      if (globalCodes.length === 1 && ['USD', 'HKD'].includes(globalCodes[0])) {
-        return { currency: globalCodes[0], isExplicit: false, isBareSymbol: true };
+  // 2. Suffix attached immediately after end
+  let q = end;
+  while (q < text.length && /[:：\s]/.test(text[q])) q++;
+
+  let suffixCode = null;
+  let suffixSpan = null;
+  let suffixText = null;
+  let isSuffixBareSymbol = false;
+
+  const wordStartHit = findCurrencyWordStartingAt(text, q);
+  if (wordStartHit) {
+    suffixCode = wordStartHit.code;
+    suffixSpan = { start: q, end: wordStartHit.end };
+    suffixText = wordStartHit.text;
+    isSuffixBareSymbol = wordStartHit.isBareSymbol;
+  }
+
+  // 3. Resolve attached cues
+  let code = null;
+  let isExplicit = false;
+  let isBareSymbol = false;
+  let fromDefault = false;
+  let unverified = false;
+  let evidenceSpan = null;
+  let evidence = null;
+
+  if (prefixCode && suffixCode) {
+    if (isPrefixBareSymbol && !isSuffixBareSymbol) {
+      code = suffixCode;
+      isExplicit = true;
+      evidenceSpan = { start: prefixSpan.start, end: suffixSpan.end };
+      evidence = text.slice(prefixSpan.start, suffixSpan.end);
+    } else if (!isPrefixBareSymbol && isSuffixBareSymbol) {
+      code = prefixCode;
+      isExplicit = true;
+      evidenceSpan = { start: prefixSpan.start, end: suffixSpan.end };
+      evidence = text.slice(prefixSpan.start, suffixSpan.end);
+    } else if (prefixCode === suffixCode) {
+      code = prefixCode;
+      isExplicit = !isPrefixBareSymbol;
+      isBareSymbol = isPrefixBareSymbol;
+      evidenceSpan = { start: prefixSpan.start, end: suffixSpan.end };
+      evidence = text.slice(prefixSpan.start, suffixSpan.end);
+    } else {
+      code = 'XXX';
+      unverified = true;
+      evidenceSpan = { start: prefixSpan.start, end: suffixSpan.end };
+      evidence = text.slice(prefixSpan.start, suffixSpan.end);
+    }
+  } else if (prefixCode) {
+    code = prefixCode;
+    isExplicit = !isPrefixBareSymbol;
+    isBareSymbol = isPrefixBareSymbol;
+    evidenceSpan = prefixSpan;
+    evidence = prefixText;
+  } else if (suffixCode) {
+    code = suffixCode;
+    isExplicit = !isSuffixBareSymbol;
+    isBareSymbol = isSuffixBareSymbol;
+    evidenceSpan = suffixSpan;
+    evidence = suffixText;
+  }
+
+  // 4. Bare symbol resolution
+  if (isBareSymbol) {
+    const sym = prefixText || suffixText;
+    if (sym.includes('$')) {
+      if (declaredCurrency && ['USD', 'HKD'].includes(declaredCurrency)) {
+        code = declaredCurrency;
+        isExplicit = true;
+        isBareSymbol = false;
+      } else if (defaultCurrency && ['USD', 'HKD'].includes(defaultCurrency)) {
+        code = defaultCurrency;
+        fromDefault = true;
+        isExplicit = false;
+      } else {
+        code = 'XXX';
+        unverified = true;
+        isExplicit = false;
       }
-      if (defaultCurrency && ['USD', 'HKD'].includes(defaultCurrency)) {
-        return { currency: defaultCurrency, isExplicit: false, isBareSymbol: true, fromDefault: true };
+    } else if (sym.includes('¥') || sym.includes('￥')) {
+      if (declaredCurrency && ['CNY', 'JPY'].includes(declaredCurrency)) {
+        code = declaredCurrency;
+        isExplicit = true;
+        isBareSymbol = false;
+      } else if (defaultCurrency && ['CNY', 'JPY'].includes(defaultCurrency)) {
+        code = defaultCurrency;
+        fromDefault = true;
+        isExplicit = false;
+      } else {
+        code = 'XXX';
+        unverified = true;
+        isExplicit = false;
       }
-      return { currency: 'XXX', isExplicit: false, isBareSymbol: true, unverified: true };
     }
   }
 
-  if (/[¥￥]/.test(localBefore)) {
-    const isBare = !/JP[¥￥]$/i.test(localBefore.trim());
-    if (isBare) {
-      if (globalCodes.length === 1 && ['CNY', 'JPY'].includes(globalCodes[0])) {
-        return { currency: globalCodes[0], isExplicit: false, isBareSymbol: true };
-      }
-      if (defaultCurrency && ['CNY', 'JPY'].includes(defaultCurrency)) {
-        return { currency: defaultCurrency, isExplicit: false, isBareSymbol: true, fromDefault: true };
-      }
-      return { currency: 'XXX', isExplicit: false, isBareSymbol: true, unverified: true };
+  // 5. If no attached currency cue
+  if (!code) {
+    if (declaredCurrency) {
+      code = declaredCurrency;
+      isExplicit = true;
+      fromDefault = false;
+    } else if (defaultCurrency) {
+      code = defaultCurrency;
+      isExplicit = false;
+      fromDefault = true;
+    } else {
+      code = 'XXX';
+      isExplicit = false;
+      unverified = true;
     }
   }
 
-  if (globalCodes.length === 1) {
-    return { currency: globalCodes[0], isExplicit: true, isBareSymbol: false };
-  }
-  if (declaredCurrency) {
-    return { currency: declaredCurrency, isExplicit: true, isBareSymbol: false };
-  }
-  if (defaultCurrency) {
-    return { currency: defaultCurrency, isExplicit: false, isBareSymbol: false, fromDefault: true };
-  }
-  return { currency: 'XXX', isExplicit: false, isBareSymbol: false, unverified: true };
+  return {
+    currency: code,
+    isExplicit,
+    isBareSymbol,
+    fromDefault,
+    unverified,
+    evidenceSpan,
+    evidence,
+  };
 }
 
 export function parseAmountFacts(text, { declaredCurrency = null, defaultCurrency = null } = {}) {
   const normText = String(text || '').trim();
-  const orderScopes = findOrderScopes(normText);
+  const operationScopes = findOperationScopes(normText);
   const clauses = findClauses(normText);
 
   const globalCodes = new Set(explicitCurrencyCodes(normText));
-  for (const [code, pattern] of Object.entries(words)) {
-    if (pattern.test(normText)) globalCodes.add(code);
+  for (const { code } of CURRENCY_WORDS_LIST) {
+    // Check if the currency word appears in normText
+  }
+  for (const { str, code } of QUALIFIED_SYMBOLS) {
+    if (normText.toUpperCase().includes(str.toUpperCase())) globalCodes.add(code);
+  }
+  for (const { str, code } of CURRENCY_WORDS_LIST) {
+    if (normText.includes(str)) globalCodes.add(code);
   }
   const globalCodeList = [...globalCodes];
 
@@ -177,11 +407,11 @@ export function parseAmountFacts(text, { declaredCurrency = null, defaultCurrenc
   for (const occ of rawOccurrences) {
     const { start, end, raw } = occ;
 
-    // Locate order scope
-    const orderScope = orderScopes.find(s => start >= s.start && start < s.end) || orderScopes[0];
+    // Locate operation scope
+    const opScope = operationScopes.find(s => start >= s.start && start < s.end) || operationScopes[0];
     // Locate clause
     const clauseIndex = clauses.findIndex(c => start >= c.start && start <= c.end);
-    const clause = clauses[clauseIndex] || { text: normText };
+    const clause = clauses[clauseIndex] || { text: normText, start: 0, end: normText.length };
 
     // Clean context before & after - strip all attached currency cues and spaces
     let before = normText.slice(Math.max(0, start - 30), start);
@@ -193,8 +423,11 @@ export function parseAmountFacts(text, { declaredCurrency = null, defaultCurrenc
 
     const after = normText.slice(end, Math.min(normText.length, end + 25));
 
-    // Currency
-    const curInfo = detectCurrencyForAmount(normText, start, raw, globalCodeList, declaredCurrency, defaultCurrency);
+    // Currency strictly attached to this amount occurrence
+    const curInfo = detectAttachedCurrency(normText, start, end, {
+      declaredCurrency,
+      defaultCurrency,
+    });
     const currency = curInfo.currency;
 
     // Role & direction
@@ -278,6 +511,11 @@ export function parseAmountFacts(text, { declaredCurrency = null, defaultCurrenc
         feeRelation = 'deducted';
         completionStatus = 'complete';
         completionEvidence = 'fee_deducted';
+        const hit = PAYMENT_COMPLETION_PREDICATES.find(t => before.includes(t));
+        if (hit) {
+          const bIdx = normText.lastIndexOf(hit, start);
+          if (bIdx >= 0) completionEvidenceSpan = { start: bIdx, end: bIdx + hit.length };
+        }
       } else {
         role = 'fee_separate';
         direction = 'expense';
@@ -324,31 +562,63 @@ export function parseAmountFacts(text, { declaredCurrency = null, defaultCurrenc
       role = 'paid';
       direction = 'expense';
       completionStatus = 'complete';
-      completionEvidence = 'prefix_paid';
+      const hit = PAYMENT_COMPLETION_PREDICATES.find(t => before.includes(t));
+      completionEvidence = hit || 'prefix_paid';
+      if (hit) {
+        const bIdx = normText.lastIndexOf(hit, start);
+        if (bIdx >= 0) completionEvidenceSpan = { start: bIdx, end: bIdx + hit.length };
+      }
     } else if (PREFIX_RECEIVED.test(before)) {
       role = 'received';
       direction = 'income';
       completionStatus = 'complete';
-      completionEvidence = 'prefix_received';
+      const hit = RECEIPT_COMPLETION_PREDICATES.find(t => before.includes(t));
+      completionEvidence = hit || 'prefix_received';
+      if (hit) {
+        const bIdx = normText.lastIndexOf(hit, start);
+        if (bIdx >= 0) completionEvidenceSpan = { start: bIdx, end: bIdx + hit.length };
+      }
     } else if (PREFIX_REFUND.test(before)) {
       role = 'refund';
       direction = 'refund';
       completionStatus = 'complete';
-      completionEvidence = 'prefix_refund';
+      const hit = REFUND_COMPLETION_PREDICATES.find(t => before.includes(t));
+      completionEvidence = hit || 'prefix_refund';
+      if (hit) {
+        const bIdx = normText.lastIndexOf(hit, start);
+        if (bIdx >= 0) completionEvidenceSpan = { start: bIdx, end: bIdx + hit.length };
+      }
     }
 
-    // Secondary completion check within the local scope if role was identified as a label
+    // Secondary completion check within the SAME operation scope AND matching predicate category
     if (['paid_label', 'received_label', 'refund_label'].includes(role)) {
-      // Look strictly within the SAME order scope AND the SAME clause for completion terms
-      const localText = normText.slice(Math.max(orderScope.start, clause.start), Math.min(orderScope.end, clause.end));
-      for (const term of STRONG_COMPLETION_TERMS) {
-        if (localText.includes(term)) {
-          completionStatus = 'complete';
-          completionEvidence = term;
-          if (role === 'paid_label') role = 'paid';
-          if (role === 'received_label') role = 'received';
-          if (role === 'refund_label') role = 'refund';
-          break;
+      let allowedPredicates = [];
+      if (role === 'paid_label') allowedPredicates = PAYMENT_COMPLETION_PREDICATES;
+      else if (role === 'received_label') allowedPredicates = RECEIPT_COMPLETION_PREDICATES;
+      else if (role === 'refund_label') allowedPredicates = REFUND_COMPLETION_PREDICATES;
+
+      // Look strictly within the SAME operation scope
+      const scopeStart = Math.max(opScope.start, clause.start);
+      const scopeEnd = Math.min(opScope.end, clause.end);
+      const localText = normText.slice(scopeStart, scopeEnd);
+
+      for (const term of allowedPredicates) {
+        const termPos = localText.indexOf(term);
+        if (termPos !== -1) {
+          const absTermStart = scopeStart + termPos;
+          const absTermEnd = absTermStart + term.length;
+
+          // Ensure no operation boundary marker intervenes between amount and predicate
+          const between = absTermStart > end ? normText.slice(end, absTermStart) : normText.slice(absTermEnd, start);
+          if (!OPERATION_MARKER_REGEX.test(between)) {
+            completionStatus = 'complete';
+            completionEvidence = term;
+            completionEvidenceSpan = { start: absTermStart, end: absTermEnd };
+            if (role === 'paid_label') role = 'paid';
+            if (role === 'received_label') role = 'received';
+            if (role === 'refund_label') role = 'refund';
+            break;
+          }
         }
       }
     }
@@ -374,9 +644,9 @@ export function parseAmountFacts(text, { declaredCurrency = null, defaultCurrenc
       role,
       direction,
       scope: {
-        order_id: orderScope.order_id,
-        order_start: orderScope.start,
-        order_end: orderScope.end,
+        order_id: opScope.marker,
+        order_start: opScope.start,
+        order_end: opScope.end,
         clause_index: clauseIndex,
       },
       completion: {
@@ -391,6 +661,8 @@ export function parseAmountFacts(text, { declaredCurrency = null, defaultCurrenc
       from_default: Boolean(curInfo.fromDefault),
       is_bare_symbol: Boolean(curInfo.isBareSymbol),
       unverified_currency: Boolean(curInfo.unverified),
+      currency_span: curInfo.evidenceSpan || null,
+      currency_evidence: curInfo.evidence || null,
     });
   }
 
@@ -398,16 +670,16 @@ export function parseAmountFacts(text, { declaredCurrency = null, defaultCurrenc
   const admission = evaluateAdmission({
     text: normText,
     facts,
-    orderScopes,
+    operationScopes,
     globalCodeList,
     defaultCurrency,
     declaredCurrency,
   });
 
-  return { facts, orderScopes, clauses, admission };
+  return { facts, orderScopes: operationScopes, clauses, admission };
 }
 
-function evaluateAdmission({ text, facts, orderScopes, globalCodeList, defaultCurrency, declaredCurrency }) {
+function evaluateAdmission({ text, facts, operationScopes, globalCodeList, defaultCurrency, declaredCurrency }) {
   // Currency gate
   const unsupportedCodes = globalCodeList.filter(c => !SUPPORTED_CURRENCIES.has(c));
   if (unsupportedCodes.length > 0) {
@@ -433,7 +705,7 @@ function evaluateAdmission({ text, facts, orderScopes, globalCodeList, defaultCu
     }
   }
 
-  if (facts.some(f => f.unverified_currency)) {
+  if (facts.some(f => f.unverified_currency || f.currency === 'XXX')) {
     return { decision: 'REVIEW', reason: 'currency_review_required', currency: 'XXX', amount_minor: 0, direction: 'unknown' };
   }
 
@@ -457,18 +729,25 @@ function evaluateAdmission({ text, facts, orderScopes, globalCodeList, defaultCu
     return { decision: 'REVIEW', reason: 'amount_ambiguous', currency: facts[0]?.currency || 'XXX', amount_minor: 0, direction: 'unknown' };
   }
 
-  // Distinct order boundary check
-  const distinctOrders = new Set(orderScopes.filter(s => s.order_id).map(s => s.order_id));
-  if (distinctOrders.size > 1) {
-    // Multiple distinct orders mentioned in single event cannot be auto-booked
-    const hasCompletedInAnyOrder = facts.some(f => ['paid', 'received', 'refund', 'fee_deducted'].includes(f.role) && f.completion.status === 'complete');
+  // Distinct operation markers check
+  const distinctOperations = new Set(operationScopes.filter(s => s.marker).map(s => s.marker));
+  if (distinctOperations.size > 1) {
+    const hasCompletedInAnyOperation = facts.some(f => ['paid', 'received', 'refund', 'fee_deducted'].includes(f.role) && f.completion.status === 'complete');
     return {
       decision: 'REVIEW',
-      reason: hasCompletedInAnyOrder ? 'amount_ambiguous' : 'completion_unproven',
+      reason: hasCompletedInAnyOperation ? 'amount_ambiguous' : 'completion_unproven',
       currency: facts[0]?.currency || 'XXX',
       amount_minor: 0,
       direction: 'unknown',
     };
+  }
+
+  // Declared currency conflict with explicit facts
+  if (declaredCurrency) {
+    const explicitFacts = facts.filter(f => !f.from_default && f.currency !== 'XXX');
+    if (explicitFacts.some(f => f.currency !== declaredCurrency)) {
+      return { decision: 'REVIEW', reason: 'currency_review_required', currency: declaredCurrency, amount_minor: 0, direction: 'unknown' };
+    }
   }
 
   // Candidates for formal booking
@@ -479,6 +758,12 @@ function evaluateAdmission({ text, facts, orderScopes, globalCodeList, defaultCu
 
   if (candidates.length === 1) {
     const candidate = candidates[0];
+
+    // If candidate relies on default currency, but text has explicit conflicting currency in globalCodeList:
+    if (candidate.from_default && globalCodeList.some(code => code !== candidate.currency)) {
+      return { decision: 'REVIEW', reason: 'currency_review_required', currency: candidate.currency, amount_minor: 0, direction: 'unknown' };
+    }
+
     // Check if there are other unproven transaction labels that conflict
     if (facts.some(f => ['paid_label', 'received_label', 'refund_label'].includes(f.role))) {
       return { decision: 'REVIEW', reason: 'amount_ambiguous', currency: candidate.currency, amount_minor: 0, direction: 'unknown' };
@@ -514,13 +799,15 @@ function evaluateAdmission({ text, facts, orderScopes, globalCodeList, defaultCu
 
   const allAuxiliary = facts.every(f => f.role === 'auxiliary');
   if (allAuxiliary) {
-    // If the text contains completion terms like 已扣款/支付成功, but the only amount is a balance/limit/discount,
-    // then the payment amount is missing and needs human review.
-    const hasCompletionTerm = STRONG_COMPLETION_TERMS.some(term => text.includes(term));
+    const allCompletionPredicates = [
+      ...PAYMENT_COMPLETION_PREDICATES,
+      ...RECEIPT_COMPLETION_PREDICATES,
+      ...REFUND_COMPLETION_PREDICATES,
+    ];
+    const hasCompletionTerm = allCompletionPredicates.some(term => text.includes(term));
     if (hasCompletionTerm) {
       return { decision: 'REVIEW', reason: 'amount_missing', currency: facts[0].currency, amount_minor: 0, direction: 'unknown' };
     }
-    // If no transaction completion terms exist, it's a non-financial status notification
     return { decision: 'NON_FINANCIAL', reason: 'amount_missing', currency: facts[0].currency, amount_minor: 0, direction: 'unknown' };
   }
 
