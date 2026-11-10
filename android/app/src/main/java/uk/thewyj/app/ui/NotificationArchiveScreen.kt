@@ -474,4 +474,4 @@ private fun directionLabel(direction: String): String = when (direction) {
 }
 
 private fun money(minor: Long, currency: String): String =
-    String.format(Locale.CHINA, "%.2f %s", minor / 100.0, currency)
+    uk.thewyj.app.finance.CurrencyMoney.format(minor, currency)
