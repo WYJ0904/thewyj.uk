@@ -3,7 +3,11 @@ import {DatabaseSync} from 'node:sqlite';
 const quote=s=>'"'+s.replaceAll('"','""')+'"';
 export async function dumpD1(db) {
   const schema=(await db.prepare("SELECT type,name,sql FROM sqlite_master WHERE sql IS NOT NULL AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%' ORDER BY type,name").all()).results;
-  const tables={};for(const r of schema.filter(r=>r.type==='table'))tables[r.name]=(await db.prepare('SELECT * FROM '+quote(r.name)).all()).results;
+  // Read the same rows in one D1 batch instead of one host round trip per table.
+  // This is still the existing logical transport, not a native/Production backup.
+  const names=schema.filter(r=>r.type==='table').map(r=>r.name);
+  const results=names.length?await db.batch(names.map(name=>db.prepare('SELECT * FROM '+quote(name)))):[];
+  const tables=Object.fromEntries(names.map((name,index)=>[name,results[index].results]));
   let sequence=[];try{sequence=(await db.prepare('SELECT name,seq FROM sqlite_sequence').all()).results}catch{}
   return {schema,tables,sequence,scope:'synthetic logical D1 snapshot; not native D1 binary backup'};
 }
