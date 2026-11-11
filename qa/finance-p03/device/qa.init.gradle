@@ -1,0 +1,36 @@
+def qa = new File(System.getProperty('finance.device.source'))
+def out = new File(System.getProperty('finance.device.output'))
+allprojects { p ->
+ if(p.path==':app') {
+  p.layout.buildDirectory.set(new File(out,'build/app'))
+  p.plugins.withId('com.android.application') {
+   p.dependencies.add('debugImplementation','androidx.test:core:1.7.0')
+   p.android.sourceSets.getByName('main').java.setSrcDirs([new File(out,'build-sources/main')])
+   p.android.sourceSets.getByName('main').kotlin.directories.clear()
+   p.android.sourceSets.getByName('main').kotlin.directories.add(new File(out,'build-sources/main').absolutePath)
+   p.androidComponents.finalizeDsl { d ->
+    d.defaultConfig.testApplicationId='uk.thewyj.app.debug.p03acceptance'
+    d.defaultConfig.testInstrumentationRunner='uk.thewyj.app.qa.finance.FinanceDeviceRunner'
+    d.sourceSets.getByName('main').java.setSrcDirs([new File(out,'build-sources/main')])
+    d.sourceSets.getByName('main').kotlin.directories.clear()
+    d.sourceSets.getByName('main').kotlin.directories.add(new File(out,'build-sources/main').absolutePath)
+    d.sourceSets.getByName('debug').java.setSrcDirs([new File(qa,'src')])
+    d.sourceSets.getByName('debug').kotlin.directories.clear()
+    d.sourceSets.getByName('debug').kotlin.directories.add(new File(qa,'src').absolutePath)
+    d.sourceSets.getByName('debug').res.srcDir(new File(qa,'res'))
+    d.sourceSets.getByName('debug').res.srcDir(new File(out,'generated-res'))
+    d.sourceSets.getByName('debug').manifest.srcFile(new File(qa,'AndroidManifest.xml'))
+    d.sourceSets.getByName('androidTest').java.setSrcDirs([new File(qa,'test')])
+    d.sourceSets.getByName('androidTest').kotlin.directories.clear()
+    d.sourceSets.getByName('androidTest').kotlin.directories.add(new File(qa,'test').absolutePath)
+    d.sourceSets.getByName('androidTest').manifest.srcFile(new File(qa,'TestManifest.xml'))
+    d.sourceSets.getByName('androidTest').assets.setSrcDirs([new File(qa,'assets')])
+   }
+  }
+  p.afterEvaluate { p.extensions.findByName('ksp')?.arg('room.schemaLocation',new File(out,'generated-schemas').absolutePath) }
+  p.tasks.configureEach { task ->
+   if(task.name=='compileDebugKotlin')task.setSource(p.files(p.fileTree(new File(out,'build-sources/main')){include '**/*.kt'},p.fileTree(new File(qa,'src')){include '**/*.kt'},p.fileTree(new File(out,'build/app/generated/ksp/debug/kotlin')){include '**/*.kt'}))
+   if(task.name=='compileDebugAndroidTestKotlin')task.setSource(p.fileTree(new File(qa,'test')){include '**/*.kt'})
+  }
+ }
+}
