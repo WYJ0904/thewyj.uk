@@ -95,9 +95,18 @@ for(const width of widths){
     assert.equal(await page.evaluate("document.getElementById('wordText').textContent"),'听写');await answer();await finish();checks.push('flags_off_base_dictation_works');
     await flags(true);await seed('japanese','dictation');await page.click('#reviewHistoryBtn');await page.waitFor('state.roundActive');await answer();await finish();checks.push('japanese_dictation_original_form');
     await seed('japanese');await page.click('#reviewBtn');await page.waitFor('state.roundActive');
+    if(width===390)await page.waitFor("Boolean(navigator.serviceWorker.controller)&&caches.keys().then(keys=>keys.some(key=>key.includes('-task26-')&&!key.endsWith('-installing')))",20000);
     intentionallyOffline=true;
     await page.send('Network.emulateNetworkConditions',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});await answer();
     assert.ok(await page.evaluate("document.getElementById('wrongReviewStatus').textContent.includes('本机')||document.getElementById('wrongReviewStatus').textContent.includes('本地')"));
+    if(width===390){
+      const saved=await page.evaluate('({roundId:state.roundId,index:state.index,score:state.score,eventId:state.reviewAnswers[state.index].event.id,timeOrigin:performance.timeOrigin})');
+      await page.send('Page.reload',{ignoreCache:true});
+      await page.waitFor(`typeof state!=='undefined'&&performance.timeOrigin!==${saved.timeOrigin}&&state.roundActive&&state.roundId===${JSON.stringify(saved.roundId)}&&Boolean(state.reviewAnswers[${saved.index}])`,30000);
+      assert.equal(await page.evaluate(`state.reviewAnswers[${saved.index}].event.id`),saved.eventId,'offline cold reload must restore the original attempt');
+      assert.equal(await page.evaluate('state.score'),saved.score,'offline cold reload must not count the answer again');
+      checks.push('offline_cold_reload_complete_task26_graph_original_attempt');
+    }
     await page.send('Network.emulateNetworkConditions',{offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1});
     await page.evaluate('new Promise(resolve=>setTimeout(resolve,100))');intentionallyOffline=false;
     await finish();checks.push('offline_answer_durable_local_not_synced');
