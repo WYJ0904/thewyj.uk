@@ -107,3 +107,12 @@ test('reinstalling a committed publication is immutable and needs no network',as
  await again.install();assert.equal(again.skipped(),1);
  assert.equal(await (await (await again.caches.open(meta.publication)).match('/index.html')).text(),html);
 });
+test('observed future HTML cannot be covered by an older cache reusing its release',async()=>{
+ const future='20261201-aeris-next',path=`/app.js?release=${future}`;
+ const w=worker(async asset=>typeof asset==='string'?response(asset):assetPath(asset)==='/'?new Response(`<script src="/app.js?release=${future}"></script>`):new Response('fresh future bytes'));
+ await w.install();
+ await (await w.caches.open(`wyj-shell-${future}-es-modules`)).put(path,new Response('stale reused-release bytes'));
+ await w.fetch('/','navigate');
+ assert.equal(await (await w.fetch(path)).text(),'fresh future bytes');
+ assert.equal(await (await (await w.caches.open(meta.publication)).match('/index.html')).text(),html);
+});

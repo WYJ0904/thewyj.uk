@@ -225,6 +225,10 @@ async function shellRelease(response) {
 async function matchingAsset(request, url) {
   const version = url.searchParams.get('release') || url.searchParams.get('v');
   const versioned = /^\d{8}-aeris-/.test(version || '');
+  // A newly observed document is authoritative for its not-yet-active release,
+  // even when a rollback artifact reuses a previously cached release token.
+  if (versioned && version !== RELEASE && observedShellReleases.has(version) && /\.(?:m?js|css)$/.test(url.pathname))
+    return fetchWithDeadline(request, ASSET_TIMEOUT_MS, { cache: 'no-store' });
   const current = !versioned || version === RELEASE;
   const selected = current ? PUBLICATION_CACHE : `${OWNED_PREFIX}${version}-es-modules`;
   const keys = await caches.keys();
@@ -239,8 +243,6 @@ async function matchingAsset(request, url) {
     // A newer HTML document may be served before its worker activates. Its
     // observed release can use network assets; do not cache an incomplete
     // future shell. Unobserved old cache misses still fail closed.
-    if (observedShellReleases.has(version))
-      return fetchWithDeadline(request, ASSET_TIMEOUT_MS, { cache: 'no-store' });
     return new Response('This release is no longer available; reload the page.', { status: 503 });
   }
   // Runtime requests never mutate a committed static publication. In-flight
