@@ -183,7 +183,11 @@ self.addEventListener("install", (event) => {
         // Never rewrite an existing legacy release. A fresh profile gets a
         // complete compatibility snapshot, including both Task26 imports, so
         // a legacy-worker rollback cannot strand a half-populated graph.
-        if (!self.registration?.active && !(await caches.keys()).includes(CACHE)) {
+        const previous = self.registration?.active;
+        const previousURL = previous?.scriptURL ? new URL(previous.scriptURL, self.location.origin) : null;
+        const previousRelease = previousURL && (previousURL.searchParams.get('release') || previousURL.searchParams.get('v'));
+        const separateLegacyWriter = /^\d{8}-aeris-[a-z0-9-]+$/.test(previousRelease || '') && previousRelease !== RELEASE;
+        if ((!previous || separateLegacyWriter) && !(await caches.keys()).includes(CACHE)) {
           createdCompatibility = true;
           await publishShell(staging, await caches.open(CACHE));
         }
