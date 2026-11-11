@@ -363,7 +363,7 @@ function mergeTextList(current, incoming, maximum) {
 }
 
 export function mergeReviewEvidence(left, right) {
-  if (!left || !right || left.review_id !== right.review_id) return null;
+  if (!left || !right || !left.review_id || left.review_id !== right.review_id) return null;
   const events = new Map();
   for (const event of [...(Array.isArray(left.review?.events)?left.review.events:[]), ...(Array.isArray(right.review?.events)?right.review.events:[])]) {
     if (!event || typeof event.id !== 'string' || typeof event.at !== 'string') continue;

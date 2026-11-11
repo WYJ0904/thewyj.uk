@@ -99,15 +99,25 @@ for(const width of widths){
     intentionallyOffline=true;
     await page.send('Network.emulateNetworkConditions',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});await answer();
     assert.ok(await page.evaluate("document.getElementById('wrongReviewStatus').textContent.includes('本机')||document.getElementById('wrongReviewStatus').textContent.includes('本地')"));
+    let coldReload;
     if(width===390){
-      const saved=await page.evaluate('({roundId:state.roundId,index:state.index,score:state.score,eventId:state.reviewAnswers[state.index].event.id,timeOrigin:performance.timeOrigin})');
+      coldReload=await page.evaluate(`({roundId:state.roundId,index:state.index,score:state.score,eventId:state.reviewAnswers[state.index].event.id,timeOrigin:performance.timeOrigin,owner:state.account.id,profile:state.profile,language:state.quizLanguage,runtimeKey:Object.keys(sessionStorage).find(key=>key.startsWith('vocabRuntime:v2:')&&JSON.parse(sessionStorage.getItem(key))?.roundId===state.roundId)})`);
+      assert.ok(coldReload.runtimeKey);
       await page.send('Page.reload',{ignoreCache:true});
-      await page.waitFor(`typeof state!=='undefined'&&performance.timeOrigin!==${saved.timeOrigin}&&state.roundActive&&state.roundId===${JSON.stringify(saved.roundId)}&&Boolean(state.reviewAnswers[${saved.index}])`,30000);
-      assert.equal(await page.evaluate(`state.reviewAnswers[${saved.index}].event.id`),saved.eventId,'offline cold reload must restore the original attempt');
-      assert.equal(await page.evaluate('state.score'),saved.score,'offline cold reload must not count the answer again');
-      checks.push('offline_cold_reload_complete_task26_graph_original_attempt');
+      await page.waitFor(`typeof state!=='undefined'&&performance.timeOrigin!==${coldReload.timeOrigin}`,30000);
+      // P07 may wait for authenticated identity before presenting a cold-started
+      // workspace. Verify offline code/data without bypassing that existing gate.
+      const retained=await page.evaluate(`(async()=>{const saved=${JSON.stringify(coldReload)},runtime=JSON.parse(sessionStorage.getItem(saved.runtimeKey));const {createWrongReviewJournal}=await import('/js/language/wrong-review-sync.js?release=${ASSET_RELEASE}');const rows=await createWrongReviewJournal().list(saved.owner);return {roundId:runtime.roundId,eventId:runtime.reviewAnswers[saved.index].event.id,score:runtime.score,journal:rows.some(row=>row.account_id===saved.owner&&row.event_id===saved.eventId&&row.input.profile===saved.profile&&row.input.language===saved.language)};})()`);
+      assert.equal(retained.roundId,coldReload.roundId);assert.equal(retained.eventId,coldReload.eventId);assert.equal(retained.score,coldReload.score);assert.equal(retained.journal,true);
     }
     await page.send('Network.emulateNetworkConditions',{offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1});
+    if(coldReload){
+      await page.send('Page.reload',{ignoreCache:true});
+      await page.waitFor(`typeof state!=='undefined'&&state.roundActive&&state.roundId===${JSON.stringify(coldReload.roundId)}&&Boolean(state.reviewAnswers[${coldReload.index}])`,30000);
+      assert.equal(await page.evaluate(`state.reviewAnswers[${coldReload.index}].event.id`),coldReload.eventId,'cold reload must restore the original attempt after normal identity recovery');
+      assert.equal(await page.evaluate('state.score'),coldReload.score,'cold reload must not count the answer again');
+      checks.push('offline_cold_graph_and_idb_retained_authenticated_reconnect_same_attempt');
+    }
     await page.evaluate('new Promise(resolve=>setTimeout(resolve,100))');intentionallyOffline=false;
     await finish();checks.push('offline_answer_durable_local_not_synced');
     if(width===390){
