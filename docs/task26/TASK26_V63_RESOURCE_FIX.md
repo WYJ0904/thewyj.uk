@@ -78,3 +78,23 @@ PWA静态浏览器受测SHA为上述f816bbf；之后仅追加授权的Task11保�
 Task11保护。#141/#143、Android、财务模块、Production及正式配置不动，
 没有新功能、数据库迁移或测试框架。原 `CLOSED_WITH_OWNER_WAIVER` 不变，
 未测的Samsung真机项目继续不标PASS。
+
+## 后续完整CI与回滚验证
+
+已推送的 `12de11c4305a30db2625a3dc8651fc16f9db1cfd` 对应
+[Core CI 42967901326](https://github.com/WYJ0904/thewyj.uk/actions/runs/42967901326)：
+原失败步骤及JavaScript job成功；完整run仍为8 SUCCESS / 2 FAIL。
+application失败于旧断言“离线答对一次应删除错题”；Cloud-only失败于PWA
+旧单层缓存清单未包含已验证的新发布缓存。未将这次run标PASS。
+
+随后资源侧继续补齐：派生rollback重命名后重算内容校验、刚观察到的版本不被
+重用token的旧缓存覆盖、不同release切换时保留完整兼容缓存。本地提交
+`99af438981c78c46d9ad64dbaf95790b551ec7d9`、
+`7a7def6d63540443387267adf35fcc8daf42aca9` 已完成：缓存/派生回滚18项PASS，
+现有完整rollback-browser的回滚、离线旧客户端、身份恢复、再前滚和三卡7项
+全部PASS；该浏览器测试的原断言未改。
+
+两处旧浏览器断言的合同对齐已向所有者单独请求授权，尚未实施。原81项和
+SHA断言保持原样，学习逻辑未改；后续提交暂不推送，以免在已知未对齐的
+测试上反复启动同一失败CI。待授权后严格验证发布marker/83项，并核对答对
+后原错题、原事件和分数保留，再运行完整浏览器与精确SHA远端CI。
