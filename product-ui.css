@@ -4898,3 +4898,6 @@ progress {
 .mastery-section input { width: 100%; max-width: 100%; }
 .mastery-section .muted { color: var(--muted); font-size: .9rem; }
 @media (max-width: 600px) { .mastery-columns { grid-template-columns: minmax(0, 1fr); } .mastery-actions button { flex: 1 1 120px; } }
+
+/* Existing wrong-review and recovery controls share the P07 touch targets. */
+#wrongView button { min-height: 44px; height: auto; white-space: normal; }

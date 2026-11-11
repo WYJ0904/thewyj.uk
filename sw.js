@@ -85,6 +85,55 @@ CORE_SHELL.push("/js/core/home-widgets.js?release=20261109-aeris-p07-production-
 CORE_SHELL.push("/js/transfer/upload-part.js?release=20261109-aeris-p07-production-r2");
 CORE_SHELL.push("/js/core/lazy-controller.js?release=20261109-aeris-p07-production-r2", "/js/core/parked-rows.js?release=20261109-aeris-p07-production-r2", "/js/core/dashboard.js?release=20261109-aeris-p07-production-r2", "/js/finance/format.js?release=20261109-aeris-p07-production-r2", "/js/tools/digest-worker.js?release=20261109-aeris-p07-production-r2");
 
+// Keep the independently fingerprinted 81-resource RC5 shell intact. Task26
+// extends its required graph; these imports are never best-effort artwork.
+const TASK26_SHELL = [
+  "/js/language/wrong-review.js?release=20261109-aeris-p07-production-r2",
+  "/js/language/wrong-review-sync.js?release=20261109-aeris-p07-production-r2",
+];
+const REQUIRED_SHELL = [...CORE_SHELL, ...TASK26_SHELL];
+// Canonical UTF-8 text (CRLF -> LF) binds the changed Task26 graph, not only its
+// public P07 URL token. The publication name changes with these source hashes.
+const TASK26_INTEGRITY = Object.freeze({
+  "/": "58400cb089e7d453905fe664f3c3b1a024b7f144473311408df9488df68a3463",
+  "/index.html": "58400cb089e7d453905fe664f3c3b1a024b7f144473311408df9488df68a3463",
+  "/app.js?release=20261109-aeris-p07-production-r2": "eff3903e3e2f82647e6be53577dced7cf1a000928075c509030adf41bf782eaa",
+  "/learning-sync.js?release=20261109-aeris-p07-production-r2": "74ced24b8dab7c8ad16dc6b4b68ff81a89e968d18a607bbba6b066a8bee7727d",
+  "/product-ui.css?release=20261109-aeris-p07-production-r2": "2afdb61afc1770198569bad4a2afa1c4fe131a5201a688c4e3af40cb96a1e5b8",
+  "/js/language/mastery.js?release=20261109-aeris-p07-production-r2": "65b55adb1e66d075d9c899481a17020a0241fb388ff2e71925214190dd9b4797",
+  "/js/language/quiz.js?release=20261109-aeris-p07-production-r2": "cd4546dc7e48876bac503c49e259267bde99b79ab0cf5565cb917c1ed031e3b0",
+  "/js/language/wrong-book.js?release=20261109-aeris-p07-production-r2": "a1b452848f7d332f4add1d6c7b55feb00d7ba6f80045c352b9ce32fbade724eb",
+  "/js/language/wrong-review.js?release=20261109-aeris-p07-production-r2": "d77ec0816756cf4a65a7c4f804ea80d6c17aee4757524bcee7ba2aca558c3a25",
+  "/js/language/wrong-review-sync.js?release=20261109-aeris-p07-production-r2": "231cb66e91aa6909157253d064b0241fe9cf3e6c841b95c1b41a2ba0657f5997"
+});
+const PUBLICATION_HASH = "efeb501ab7ab59b008ab7cc978fc448414a2ec69e44772ffd1f10e549920f4f3";
+const PUBLICATION_CACHE = `${CACHE}-task26-${PUBLICATION_HASH.slice(0, 16)}`;
+const PUBLICATION_MARKER = "/__aeris/task26-publication";
+
+async function matchesPublicationAsset(asset, response) {
+  const expected = TASK26_INTEGRITY[asset];
+  if (!expected) return true;
+  const text = (await response.clone().text()).replace(/\r\n?/g, "\n");
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, "0")).join("") === expected;
+}
+
+async function publicationCache() {
+  if (!(await caches.keys()).includes(PUBLICATION_CACHE)) return null;
+  const cache = await caches.open(PUBLICATION_CACHE);
+  const marker = await cache.match(PUBLICATION_MARKER);
+  return marker && await marker.text() === PUBLICATION_HASH ? cache : null;
+}
+
+async function publishShell(staging, cache) {
+  const requests = await staging.keys();
+  // Publish HTML last, after its complete static import graph is stored.
+  for (const request of requests.filter(r => !['/', '/index.html'].includes(new URL(r.url).pathname)))
+    await cache.put(request, await staging.match(request));
+  for (const request of requests.filter(r => ['/', '/index.html'].includes(new URL(r.url).pathname)))
+    await cache.put(request, await staging.match(request));
+}
+
 async function fetchWithDeadline(input, timeoutMs, options = {}, consume = response => response) {
   if (typeof AbortController === "undefined") return consume(await fetch(input, options));
   const controller = new AbortController();
@@ -108,32 +157,49 @@ async function cacheAssetSafely(cache, asset) {
 self.addEventListener("install", (event) => {
   event.waitUntil(
     (async () => {
-      const stagingName = CACHE + '-installing';
+      // A previous worker can finish asynchronous requests after activation.
+      // Its legacy CACHE writes must never reach this immutable publication.
+      if (await publicationCache()) { await self.skipWaiting(); return; }
+      const stagingName = PUBLICATION_CACHE + '-installing';
       const staging = await caches.open(stagingName);
+      let createdPublication = false, createdCompatibility = false;
       try {
         let next = 0;
         const results = await Promise.allSettled(Array.from(
-          { length: Math.min(INSTALL_CONCURRENCY, CORE_SHELL.length) }, async () => {
-            while (next < CORE_SHELL.length) {
-              const asset = CORE_SHELL[next++];
+          { length: Math.min(INSTALL_CONCURRENCY, REQUIRED_SHELL.length) }, async () => {
+            while (next < REQUIRED_SHELL.length) {
+              const asset = REQUIRED_SHELL[next++];
               // Keep the deadline active until the response body is cached too.
               await fetchWithDeadline(asset, ASSET_TIMEOUT_MS, { cache: 'no-store' }, async response => {
                 if (!response.ok) throw new Error('Incomplete release asset: ' + asset);
                 if (asset === '/index.html' && !await htmlMatchesRelease(response)) throw new Error('Release changed during installation');
+                if (!await matchesPublicationAsset(asset, response)) throw new Error('Publication integrity mismatch: ' + asset);
                 await staging.put(asset, response);
               });
             }
           }));
         if (results.some(result => result.status === 'rejected')) throw new Error('Release shell is incomplete');
         await Promise.allSettled(OPTIONAL_BRAND_ASSETS.map(asset => cacheAssetSafely(staging, asset)));
-        const cache = await caches.open(CACHE);
-        const requests = await staging.keys();
-        // Publish the offline HTML only after all of its release assets exist.
-        for (const request of requests.filter(r => !['/', '/index.html'].includes(new URL(r.url).pathname)))
-          await cache.put(request, await staging.match(request));
-        for (const request of requests.filter(r => ['/', '/index.html'].includes(new URL(r.url).pathname)))
-          await cache.put(request, await staging.match(request));
+        // Never rewrite an existing legacy release. A fresh profile gets a
+        // complete compatibility snapshot, including both Task26 imports, so
+        // a legacy-worker rollback cannot strand a half-populated graph.
+        const previous = self.registration?.active;
+        const previousURL = previous?.scriptURL ? new URL(previous.scriptURL, self.location.origin) : null;
+        const previousRelease = previousURL && (previousURL.searchParams.get('release') || previousURL.searchParams.get('v'));
+        const separateLegacyWriter = /^\d{8}-aeris-[a-z0-9-]+$/.test(previousRelease || '') && previousRelease !== RELEASE;
+        if ((!previous || separateLegacyWriter) && !(await caches.keys()).includes(CACHE)) {
+          createdCompatibility = true;
+          await publishShell(staging, await caches.open(CACHE));
+        }
+        createdPublication = true;
+        const cache = await caches.open(PUBLICATION_CACHE);
+        await publishShell(staging, cache);
+        await cache.put(PUBLICATION_MARKER, new Response(PUBLICATION_HASH));
         await self.skipWaiting();
+      } catch (error) {
+        if (createdPublication) await caches.delete(PUBLICATION_CACHE);
+        if (createdCompatibility) await caches.delete(CACHE);
+        throw error;
       } finally { await caches.delete(stagingName); }
     })(),
   );
@@ -148,7 +214,7 @@ self.addEventListener("activate", (event) => {
 });
 
 async function htmlMatchesRelease(response) {
-  return await shellRelease(response) === RELEASE;
+  return await shellRelease(response) === RELEASE && await matchesPublicationAsset('/index.html', response);
 }
 
 async function shellRelease(response) {
@@ -163,23 +229,29 @@ async function shellRelease(response) {
 async function matchingAsset(request, url) {
   const version = url.searchParams.get('release') || url.searchParams.get('v');
   const versioned = /^\d{8}-aeris-/.test(version || '');
-  const selected = versioned ? `${OWNED_PREFIX}${version}-es-modules` : CACHE;
+  // A newly observed document is authoritative for its not-yet-active release,
+  // even when a rollback artifact reuses a previously cached release token.
+  if (versioned && version !== RELEASE && observedShellReleases.has(version) && /\.(?:m?js|css)$/.test(url.pathname))
+    return fetchWithDeadline(request, ASSET_TIMEOUT_MS, { cache: 'no-store' });
+  const current = !versioned || version === RELEASE;
+  const selected = current ? PUBLICATION_CACHE : `${OWNED_PREFIX}${version}-es-modules`;
   const keys = await caches.keys();
   if (keys.includes(selected)) {
-    const cached = await (await caches.open(selected)).match(request);
+    const cache = current ? await publicationCache() : await caches.open(selected);
+    const cached = cache && await cache.match(request);
     if (cached) return cached;
   }
+  if (current && REQUIRED_SHELL.includes(url.pathname + url.search))
+    return new Response('The complete publication is unavailable; reconnect and reload.', { status: 503 });
   if (versioned && version !== RELEASE && /\.(?:m?js|css)$/.test(url.pathname)) {
     // A newer HTML document may be served before its worker activates. Its
     // observed release can use network assets; do not cache an incomplete
     // future shell. Unobserved old cache misses still fail closed.
-    if (observedShellReleases.has(version))
-      return fetchWithDeadline(request, ASSET_TIMEOUT_MS, { cache: 'no-store' });
     return new Response('This release is no longer available; reload the page.', { status: 503 });
   }
-  const response = await fetchWithDeadline(request, ASSET_TIMEOUT_MS);
-  if (response.ok) await (await caches.open(CACHE)).put(request, response.clone());
-  return response;
+  // Runtime requests never mutate a committed static publication. In-flight
+  // old/future requests therefore cannot replace its verified source bytes.
+  return fetchWithDeadline(request, ASSET_TIMEOUT_MS, { cache: 'no-store' });
 }
 
 self.addEventListener("fetch", (event) => {
@@ -198,12 +270,12 @@ self.addEventListener("fetch", (event) => {
           const release = await shellRelease(response);
           if (release) observedShellReleases.add(release);
           if (release === RELEASE) {
-            const cache = await caches.open(CACHE);
-            await cache.put("/index.html", response.clone());
+            if (!await htmlMatchesRelease(response)) throw new Error('Stale publication HTML');
           }
           return response;
         } catch (_) {
-          return (await (await caches.open(CACHE)).match("/index.html")) || new Response("网络暂时不可用，请联网后刷新。", {
+          const cache = await publicationCache();
+          return (cache && await cache.match("/index.html")) || new Response("网络暂时不可用，请联网后刷新。", {
             status: 503,
             headers: { "Content-Type": "text/plain; charset=utf-8" },
           });
