@@ -98,3 +98,20 @@ application失败于旧断言“离线答对一次应删除错题”；Cloud-onl
 SHA断言保持原样，学习逻辑未改；后续提交暂不推送，以免在已知未对齐的
 测试上反复启动同一失败CI。待授权后严格验证发布marker/83项，并核对答对
 后原错题、原事件和分数保留，再运行完整浏览器与精确SHA远端CI。
+
+## 追加授权后的测试合同对齐
+
+所有者随后明确授权对齐这两处旧测试，不改变学习逻辑或原81/SHA断言：
+
+- application改为核对首次正确后的原review_id、错误次数、唯一原事件在重连
+  同步后完整保留；同一有效正确只计一次、score20、mastered=false。没有恢复
+  自动删除，也没有删掉该场景。完整 `test_app_browser.mjs` 本地24项PASS。
+- P5 PWA精确核对兼容缓存、新发布缓存及两份保留fixture，共四个指定缓存，
+  不容许任意额外/未完成缓存；另核对提交marker、83项均在、Task26内容hash
+  正确、无未知发布条目及API响应缓存。离线访客壳和在线恢复均PASS，原旧
+  客户端/user cache字节保留断言继续执行。
+
+本地application使用仓库原有ci_ollama_stub和全新SQLite/二维码fixture，
+仅localhost，无外部模型或真实支付；PWA使用原隔离Pages/D1。首次服务未
+就绪的FAIL_ENV记录保留，服务正常后原场景完整通过。接下来以包含这些
+修订的最终SHA运行远端CI；最终状态以PR Checks与交付回执为准。

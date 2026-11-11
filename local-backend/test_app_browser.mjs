@@ -1549,6 +1549,9 @@ async function main() {
       await evaluate("window.dispatchEvent(new Event('offline')); true");
       await waitFor("backendAvailable === false", 3_000, "review transport actually offline");
       const reviewRequestCount = await evaluate("window.__rejudgeFetches.length");
+      const reviewBefore = await evaluate("({id:state.currentWrongBook.network.review_id,count:state.currentWrongBook.network.wrong_count,events:state.currentWrongBook.network.review.events.map(e=>e.id)})");
+      assert.equal(reviewBefore.events.length,0,'imported legacy wrong_count must not fabricate successful review evidence');
+      let offlineReview;
       try {
       await click("#reviewBtn");
       // A saved preceding QA round can still be active. Follow the real replace
@@ -1566,14 +1569,21 @@ async function main() {
       await click("#roundSetupBtn");
       assert.equal(await evaluate("window.__rejudgeFetches.length"), reviewRequestCount, "offline review cannot rely on the remote quiz/judge fixture");
       assert.equal(await evaluate("localStorage.getItem('wyjAccountSession')"), userSession);
+      offlineReview = await evaluate("({id:state.currentWrongBook.network.review_id,count:state.currentWrongBook.network.wrong_count,events:state.currentWrongBook.network.review.events.map(e=>({id:e.id,correct:e.correct,kind:e.kind}))})");
+      assert.equal(offlineReview.id,reviewBefore.id);assert.equal(offlineReview.count,reviewBefore.count);
+      assert.equal(offlineReview.events.length,1);assert.equal(offlineReview.events[0].correct,true);assert.equal(offlineReview.events[0].kind,'answer');
       } finally {
         await send("Network.emulateNetworkConditions", { offline: false, latency: 80, downloadThroughput: 1_500_000, uploadThroughput: 750_000 });
         await evaluate("window.dispatchEvent(new Event('online')); true");
         await waitFor("backendAvailable === true", 20_000, "review transport restored");
       }
       await evaluate("learningSyncManager.syncNow()");
-      await waitFor("learningSyncManager.dirtyRecords().length === 0", 5_000, "offline review deletion synced after reconnect");
-      assert.equal(await evaluate("Boolean(state.currentWrongBook?.network)"), false, "offline review deletion must persist after online sync");
+      await waitFor("learningSyncManager.dirtyRecords().length === 0", 5_000, "offline review evidence synced after reconnect");
+      assert.equal(await evaluate("Boolean(state.currentWrongBook?.network)"), true, "one correct review must retain the original wrong record after sync");
+      const syncedReview=await evaluate("({id:state.currentWrongBook.network.review_id,count:state.currentWrongBook.network.wrong_count,events:state.currentWrongBook.network.review.events.map(e=>({id:e.id,correct:e.correct,kind:e.kind}))})");
+      assert.deepEqual(syncedReview,offlineReview,'sync must retain the original event exactly once without changing error history');
+      const reviewState=await evaluate(`import('/js/language/wrong-review.js?release=${ASSET_RELEASE}').then(m=>m.wrongReviewView(state.currentWrongBook.network))`);
+      assert.equal(reviewState.mastered,false);assert.equal(reviewState.effective,1);assert.equal(reviewState.score,20);
       assert.equal(await evaluate("state.historyWrongBook?.network?.correct_answer || ''"), "网络", "history wrong book rubric must remain intact after sync");
     });
 
