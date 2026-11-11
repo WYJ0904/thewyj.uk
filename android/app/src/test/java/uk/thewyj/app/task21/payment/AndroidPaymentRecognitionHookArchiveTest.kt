@@ -263,7 +263,7 @@ class AndroidPaymentRecognitionHookArchiveTest {
             postTime = 1_000L,
             title = "老周横眉",
             text = "",
-            textLines = listOf("已支付¥100"),
+            textLines = listOf("已支付100元"),
         )
 
         val outcome = hook.outcomeFor(input)
@@ -279,7 +279,39 @@ class AndroidPaymentRecognitionHookArchiveTest {
      * turn ordinary chat lines into money. A friend talking about a transfer, a
      * group message and a marketing line all stay without an amount.
      */
-    @Test fun messagingStyleChatLinesNeverInventAnAmount() {
+    /**
+     * Dual-track safety contract: unqualified Yen symbol in MessagingStyle line
+     * without explicit account currency context must fail closed into review
+     * instead of auto-confirming.
+     */
+    @Test fun messagingStyleLinesWithAmbiguousYenRequiresReviewWithoutAutoBooking() {
+        val hook = AndroidPaymentRecognitionHook(
+            RuntimeEnvironment.getApplication(),
+            archiveSink = sink(),
+            recognitionStore = uk.thewyj.app.task21.store.RoomPaymentRecognitionStore(database),
+            testing = true,
+        )
+        val input = uk.thewyj.app.task21.NotificationCaptureInput(
+            sourcePackage = "com.tencent.mm",
+            sourceType = "notification",
+            notificationKey = "0|com.tencent.mm|1|null|100",
+            notificationId = 1,
+            postTime = 1_000L,
+            title = "老周横眉",
+            text = "",
+            textLines = listOf("已支付¥100"),
+        )
+
+        val outcome = hook.outcomeFor(input)
+
+        assertNotNull(outcome)
+        assertEquals(0L, outcome!!.amountMinor)
+        assertFalse("ambiguous Yen without account currency context must not auto-confirm", outcome.confirmed)
+        assertEquals("currency_review_required", outcome.identityReviewReason)
+        assertTrue(outcome.missingFields.contains("currency"))
+    }
+
+        @Test fun messagingStyleChatLinesNeverInventAnAmount() {
         val hook = AndroidPaymentRecognitionHook(
             RuntimeEnvironment.getApplication(),
             archiveSink = sink(),
@@ -335,7 +367,8 @@ class AndroidPaymentRecognitionHookArchiveTest {
         assertNotNull(outcome)
         assertEquals("bank-notification-4", outcome!!.parserVersion)
         assertEquals(listOf("bank_notification_without_amount"), outcome.reasons)
-        assertEquals(setOf("amount", "direction"), outcome.missingFields)
-        assertFalse(outcome.reasons.joinToString().contains("交易提醒"))
+        assertEquals(setOf("amount", "direction", "currency"), outcome.missingFields)
+
+assertFalse(outcome.reasons.joinToString().contains("交易提醒"))
     }
 }

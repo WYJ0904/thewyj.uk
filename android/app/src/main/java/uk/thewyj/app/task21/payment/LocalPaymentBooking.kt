@@ -40,4 +40,5 @@ data class LocalPaymentBooking(
     val providerReference: String,
     val syncState: String = "pending",
     val createdAtMs: Long,
+    val amountExponent: Int? = null,
 )
