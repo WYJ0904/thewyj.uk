@@ -25,13 +25,17 @@ class AndroidPaymentNotificationLifecycleRegistry(
 
     override fun eventId(accountId: String, input: NotificationCaptureInput, payment: uk.thewyj.app.task21.PaymentIngestOutcome?): String = synchronized(LOCK) {
         val proof = paymentLifecycleProof(input, payment)
-        val primary = paymentNotificationSlot(input)?.let { preferenceKey(accountId, it) }
-        val fallback = fallbackSlot(input)?.let { preferenceKey(accountId, it) }
-        val reference = proof.referenceHash.takeIf(String::isNotBlank)
-            ?.let { preferenceKey(accountId, "reference:$it") }
-        val message = proof.messageHash.takeIf(String::isNotBlank)
-            ?.let { preferenceKey(accountId, "message:$it") }
-        val keys = listOfNotNull(reference, message, primary, fallback).distinct()
+        fun aliases(slot: String?): List<String> = slot?.let { value ->
+            (listOfNotNull(input.sourceUid?.let { preferenceKey(accountId, "$value|uid:$it") }) + preferenceKey(accountId, value)).distinct()
+        }.orEmpty()
+        val primary = aliases(paymentNotificationSlot(input))
+        val fallback = aliases(fallbackSlot(input))
+        val reference = aliases(proof.referenceHash.takeIf(String::isNotBlank)?.let { "reference:$it" })
+        val message = aliases(proof.messageHash.takeIf(String::isNotBlank)?.let { "message:$it" }) +
+            if (input.sourceUid != null && input.messageIdentity.isNotBlank()) aliases("message:${input.messageIdentity}") else emptyList()
+        val review = if (payment?.identityReviewReason == "message_identity_ambiguous")
+            preferenceKey(accountId, "review:${proof.messageHash}:${input.sourceUid}:${payment.financialPhase}") else null
+        val keys = if (review != null) listOf(review) else (reference + message + primary + fallback).distinct()
         if (keys.isEmpty()) return@synchronized idFactory()
         val now = now()
         val incompleteEvidence = payment?.let {
@@ -41,11 +45,13 @@ class AndroidPaymentNotificationLifecycleRegistry(
         }.orEmpty()
         val existing = keys.firstNotNullOfOrNull { key ->
             parse(preferences.getString(key, null))?.takeIf { old ->
-                val prior = old.proof()
+                if (old.sourceUid != null && input.sourceUid != null && old.sourceUid != input.sourceUid) return@takeIf false
+                val prior = old.proof().let { p -> if (old.sourceUid == null && p.messageHash == input.messageIdentity)
+                    p.copy(messageHash = proof.messageHash) else p }
                 val compatible = proof.compatible(prior)
-                val sameReference = reference == key && proof.referenceHash.isNotBlank() &&
+                val sameReference = key in reference && proof.referenceHash.isNotBlank() &&
                     proof.referenceHash == prior.referenceHash
-                val sameMessage = message == key && proof.messageHash.isNotBlank() &&
+                val sameMessage = key in message && proof.messageHash.isNotBlank() &&
                     proof.messageHash == prior.messageHash
                 val conflict = proof.conflictingReference(prior) ||
                     (!sameReference && proof.conflictingMessage(prior))
@@ -57,13 +63,14 @@ class AndroidPaymentNotificationLifecycleRegistry(
                     prior.channelHash.isNotBlank() && proof.channelHash.isNotBlank() &&
                     (prior.amountHash.isBlank() || prior.direction.isBlank())
                 when {
+                    key == review -> compatible
                     sameReference && compatible -> true
                     sameMessage && compatible && !proof.conflictingReference(prior) -> true
-                    key == primary && !conflict && old.removedAt == 0L ->
+                    key in primary && !conflict && compatible && old.removedAt == 0L ->
                         old.evidence == proof.evidence || promotion || activeIncompleteContinuation
-                    key == primary && !conflict && now - old.removedAt in 0L..REPOST_GRACE_MS ->
+                    key in primary && !conflict && compatible && now - old.removedAt in 0L..REPOST_GRACE_MS ->
                         (old.postTime > 0L && old.postTime == input.postTime && old.evidence == proof.evidence) || promotion
-                    key == fallback && !conflict && now - old.seenAt in 0L..REPOST_GRACE_MS -> promotion
+                    key in fallback && !conflict && now - old.seenAt in 0L..REPOST_GRACE_MS -> promotion
                     else -> false
                 }
             }
@@ -75,7 +82,7 @@ class AndroidPaymentNotificationLifecycleRegistry(
             proof.direction.ifBlank { prior?.direction.orEmpty() },
             proof.channelHash.ifBlank { prior?.channelHash.orEmpty() },
             proof.referenceHash.ifBlank { prior?.referenceHash.orEmpty() },
-            proof.messageHash.ifBlank { prior?.messageHash.orEmpty() }, input.postTime)
+            proof.messageHash.ifBlank { prior?.messageHash.orEmpty() }, input.postTime, input.sourceUid ?: existing?.sourceUid)
         val editor = preferences.edit()
         if (existing != null) {
             preferences.all.forEach { (aliasKey, value) ->
@@ -93,8 +100,9 @@ class AndroidPaymentNotificationLifecycleRegistry(
     override fun markRemoved(accountId: String, input: NotificationCaptureInput) {
         val slot = paymentNotificationSlot(input) ?: return
         synchronized(LOCK) {
-            val key = preferenceKey(accountId, slot)
-            val existing = parse(preferences.getString(key, null)) ?: return@synchronized
+            val keys = listOfNotNull(input.sourceUid?.let { preferenceKey(accountId, "$slot|uid:$it") }) + preferenceKey(accountId, slot)
+            val existing = keys.firstNotNullOfOrNull { parse(preferences.getString(it, null))?.takeIf { e ->
+                input.sourceUid == null || e.sourceUid == null || input.sourceUid == e.sourceUid } } ?: return@synchronized
             val removed = now()
             val editor = preferences.edit()
             preferences.all.forEach { (aliasKey, value) ->
@@ -119,18 +127,19 @@ class AndroidPaymentNotificationLifecycleRegistry(
         val eventId: String, val seenAt: Long, val evidence: String, val removedAt: Long,
         val amountHash: String = "", val direction: String = "", val channelHash: String = "",
         val referenceHash: String = "", val messageHash: String = "", val postTime: Long = 0L,
+        val sourceUid: Int? = null,
     ) {
         fun proof() = PaymentLifecycleProof(evidence, amountHash, direction, channelHash, referenceHash, messageHash)
     }
 
     private fun encode(entry: Entry): String =
         listOf(entry.eventId, entry.seenAt, entry.evidence, entry.removedAt, entry.amountHash,
-            entry.direction, entry.channelHash, entry.referenceHash, entry.messageHash, entry.postTime)
+            entry.direction, entry.channelHash, entry.referenceHash, entry.messageHash, entry.postTime, entry.sourceUid ?: -1)
             .joinToString(SEPARATOR)
 
     private fun parse(value: String?): Entry? {
         if (value.isNullOrBlank()) return null
-        val pieces = value.split(SEPARATOR, limit = 10)
+        val pieces = value.split(SEPARATOR, limit = 11)
         val eventId = pieces.firstOrNull().orEmpty()
         val seenAt = pieces.getOrNull(1)?.toLongOrNull() ?: 0L
         val evidence = pieces.getOrNull(2).orEmpty()
@@ -139,7 +148,7 @@ class AndroidPaymentNotificationLifecycleRegistry(
             Entry(it, seenAt, evidence, removedAt, pieces.getOrNull(4).orEmpty(),
                 pieces.getOrNull(5).orEmpty(), pieces.getOrNull(6).orEmpty(),
                 pieces.getOrNull(7).orEmpty(), pieces.getOrNull(8).orEmpty(),
-                pieces.getOrNull(9)?.toLongOrNull() ?: 0L)
+                pieces.getOrNull(9)?.toLongOrNull() ?: 0L, pieces.getOrNull(10)?.toIntOrNull()?.takeIf { uid -> uid >= 0 })
         }
     }
 
