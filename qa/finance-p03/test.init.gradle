@@ -1,0 +1,13 @@
+def qa = new File(System.getProperty('finance.p03.root'))
+def output = new File(System.getProperty('finance.p03.output'))
+allprojects { p ->
+    if (p.path == ':app') {
+        p.plugins.withId('com.android.application') {
+            p.androidComponents.finalizeDsl { dsl -> dsl.sourceSets.getByName('test').java.srcDir(new File(qa, 'kotlin')) }
+        }
+        p.tasks.configureEach { task ->
+            if (task.name == 'compileDebugUnitTestKotlin') task.source(p.fileTree(new File(qa, 'kotlin')) { include '**/*.kt' })
+            if (task instanceof org.gradle.api.tasks.testing.Test) task.systemProperty('finance.p03.output', output.absolutePath)
+        }
+    }
+}

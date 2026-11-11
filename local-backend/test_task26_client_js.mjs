@@ -39,6 +39,7 @@ controller.update();await new Promise(r=>setTimeout(r,10));assert.equal(submitte
 actor={id:'two'};controller.update();released(receipt);await new Promise(r=>setTimeout(r,20));
 assert.equal(JSON.parse(storage.getItem(masteryStorageKey(owner))).outbox.length,1);assert.equal(seen[0],eid);
 console.log(`PASS ${++passed}: account switch rejects a delayed response and retains original account's outbox`);
-enabled=false;actor={id:owner};controller.update();await new Promise(r=>setTimeout(r,10));assert.equal(submitted,1);
-console.log(`PASS ${++passed}: OFF or unavailable flags do not submit queued learning events`);
+enabled=false;actor={id:owner};controller.update();await new Promise(r=>setTimeout(r,10));assert.equal(submitted,2);
+assert.equal(seen[1],eid,'Retirement recovery must replay its original event, never issue another catalog question');
+console.log(`PASS ${++passed}: OFF flags permit only recovery of previously issued tickets with their original IDs`);
 console.log(`Task26 client: ${passed} acceptance groups passed`);

@@ -2,6 +2,7 @@
 <html lang="zh-CN" data-interface-policy="pending">
   <head>
     <meta charset="utf-8" />
+    <meta name="aeris-task26-publication" content="required-v1" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#f4f6f9" />
     <title>Aeris — 学习、工具、账本与文件</title>
@@ -416,6 +417,7 @@
 
           <section class="finance-summary-section" aria-labelledby="financeSummaryTitle">
             <div class="finance-section-heading"><div><h2 id="financeSummaryTitle">收支概览</h2><p id="financeSummaryPeriod">本月</p></div><button class="primary" id="financeAddTransactionBtn" type="button">新增账目</button></div>
+            <div class="finance-form-grid"><label><span>展示币种</span><select id="financeDisplayCurrency"><option value="CNY">CNY</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="HKD">HKD</option><option value="GBP">GBP</option><option value="JPY">JPY</option></select></label><label><span>账户基准币种</span><select id="financeAccountCurrency"><option value="CNY">CNY</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="HKD">HKD</option><option value="GBP">GBP</option><option value="JPY">JPY</option></select></label><label><span>未标明币种时</span><select id="financeDefaultCurrency"><option value="">保持待核实</option><option value="CNY">CNY</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="HKD">HKD</option><option value="GBP">GBP</option><option value="JPY">JPY</option></select></label></div><p id="financeCurrencyStatus" class="muted" role="status"></p><p id="financeCurrencyGroups" class="muted"></p>
             <div class="finance-summary-grid">
               <article><span>总收入</span><strong class="is-income" id="financeIncomeTotal">¥0.00</strong></article>
               <article><span>总支出</span><strong class="is-expense" id="financeExpenseTotal">¥0.00</strong></article>
@@ -583,7 +585,7 @@
           <p class="section-kicker">财务账目</p><h2 id="financeTransactionModalTitle">新增账目</h2>
           <form class="finance-form" id="financeTransactionForm">
             <input id="financeTransactionId" type="hidden" />
-            <div class="finance-form-grid"><label><span>类型</span><select id="financeTransactionDirection" required><option value="expense">支出</option><option value="income">收入</option><option value="refund">退款</option></select></label><label><span>金额（CNY）</span><input id="financeTransactionAmount" inputmode="decimal" maxlength="14" placeholder="0.00" required /></label></div>
+            <div class="finance-form-grid"><label><span>类型</span><select id="financeTransactionDirection" required><option value="expense">支出</option><option value="income">收入</option><option value="refund">退款</option></select></label><label><span>交易币种</span><select id="financeTransactionCurrency"><option value="CNY">CNY</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="HKD">HKD</option><option value="GBP">GBP</option><option value="JPY">JPY</option></select></label><label><span>原币金额</span><input id="financeTransactionAmount" inputmode="decimal" maxlength="14" placeholder="0.00" required /></label></div>
             <div class="finance-form-grid"><label><span>时间</span><input id="financeTransactionTime" type="datetime-local" required /></label><label><span>分类</span><select id="financeTransactionCategory"><option value="">未分类</option></select></label></div>
             <div class="finance-form-grid"><label><span>商户</span><input id="financeTransactionMerchant" maxlength="160" placeholder="例如：便利店" /></label><label><span>对手方</span><input id="financeTransactionCounterparty" maxlength="160" placeholder="例如：朋友或公司" /></label></div>
             <label><span>备注</span><textarea id="financeTransactionNote" maxlength="500" placeholder="可选，不要填写密码或支付凭据"></textarea></label>
@@ -605,7 +607,7 @@
         <section class="modal-panel finance-editor-modal" role="dialog" aria-modal="true" aria-labelledby="financeBudgetTitle">
           <button class="modal-close" data-finance-close="financeBudgetModal" type="button" aria-label="关闭"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
           <p class="section-kicker">财务设置</p><h2 id="financeBudgetTitle">月度预算</h2>
-          <form class="finance-form" id="financeBudgetForm"><input id="financeBudgetId" type="hidden" /><div class="finance-form-grid"><label><span>月份</span><input id="financeBudgetMonth" type="month" required /></label><label><span>预算金额（CNY）</span><input id="financeBudgetAmount" inputmode="decimal" maxlength="14" placeholder="0.00" required /></label></div><label><span>分类</span><select id="financeBudgetCategory"><option value="">总预算（不限定分类）</option></select></label><div class="action-row"><button class="primary" type="submit">保存预算</button></div></form>
+          <form class="finance-form" id="financeBudgetForm"><input id="financeBudgetId" type="hidden" /><div class="finance-form-grid"><label><span>月份</span><input id="financeBudgetMonth" type="month" required /></label><label><span>预算币种</span><select id="financeBudgetCurrency"><option value="CNY">CNY</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="HKD">HKD</option><option value="GBP">GBP</option><option value="JPY">JPY</option></select></label><label><span>预算原币金额</span><input id="financeBudgetAmount" inputmode="decimal" maxlength="14" placeholder="0.00" required /></label></div><label><span>分类</span><select id="financeBudgetCategory"><option value="">总预算（不限定分类）</option></select></label><div class="action-row"><button class="primary" type="submit">保存预算</button></div></form>
           <div class="finance-manager-list" id="financeBudgetManagerList"></div>
         </section>
       </div>
@@ -684,23 +686,6 @@
             <button id="achievementsViewTab" type="button" role="tab" aria-controls="achievementsView" data-view="achievementsView">成就</button>
             <button id="studyViewTab" type="button" role="tab" aria-controls="studyView" data-view="studyView">统计</button>
           </nav>
-
-          <section class="panel mastery-section hidden" id="masterySection" aria-labelledby="masteryTitle">
-            <div class="mastery-heading"><div><p class="eyebrow">按你的进度学习</p><h3 id="masteryTitle">掌握度与智能复习</h3></div><button id="masteryRetryBtn" type="button" class="secondary">刷新 / 重试同步</button></div>
-            <p id="masteryOverview">从第一道题开始积累掌握度</p>
-            <p class="muted" id="masteryCounts">既有测验、错题和历史保留；新的掌握度从有效答题开始。</p>
-            <p class="muted" id="masterySyncStatus" role="status">尚未读取学习进度</p>
-            <p id="masteryStatus" role="status" aria-live="polite"></p>
-            <div class="mastery-actions"><button id="masteryStartBtn" type="button">开始自适应学习</button><button id="masteryWeakBtn" type="button" class="secondary">练习弱项</button><button id="masteryReviewBtn" type="button" class="secondary">开始到期复习</button></div>
-            <div class="mastery-quiz hidden" id="masteryQuiz">
-              <p class="muted" id="masteryQuestionReason"></p><h4 id="masteryPrompt"></h4><p id="masteryInstruction"></p>
-              <form id="masteryAnswerForm"><label class="field-label"><span>你的答案</span><input id="masteryAnswerInput" maxlength="240" autocomplete="off" autocapitalize="off" spellcheck="false" aria-describedby="masteryInstruction" /></label><div class="mastery-actions"><button id="masterySubmitBtn" type="submit">提交答案</button><button id="masterySkipBtn" type="button" class="secondary">跳过</button><button id="masteryNextBtn" type="button" class="secondary">下一题</button></div></form>
-              <div id="masteryResult" class="mastery-result hidden" aria-live="polite"><h4 id="masteryResultTitle"></h4><p class="muted" id="masteryDelta"></p><p id="masteryCorrectAnswer"></p><p class="muted" id="masteryReviewAt"></p><p id="masteryCourseExplanation"></p><p id="masteryExample"></p><p id="masteryConfusion"></p><button id="masteryAiBtn" type="button" class="secondary">查看错因解析</button><p id="masteryAiExplanation"></p></div>
-              <p class="muted" id="masteryRoundSummary"></p>
-            </div>
-            <div class="mastery-columns"><details class="ds-collapse" open><summary>薄弱知识点</summary><div id="masteryWeakList" class="mastery-point-list"></div></details><details class="ds-collapse" id="masteryReviewArea" open><summary>今日待复习</summary><div id="masteryReviewList" class="mastery-point-list"></div></details></div>
-            <section id="masteryDetail" class="mastery-detail hidden" aria-label="知识点学习状态"></section>
-          </section>
 
           <section class="view active" id="setupView" role="tabpanel" aria-labelledby="setupViewTab">
             <div class="panel">
@@ -840,6 +825,8 @@
                 <button id="historyWrongTab" type="button">历史</button>
               </div>
               <p class="meta-line" id="wrongScopeLabel"></p>
+              <p class="meta-line" id="wrongReviewStatus" role="status"></p>
+              <button id="legacyRecoveryBtn" class="secondary hidden" type="button">恢复旧版未完成答题</button>
               <label class="wrong-search" for="wrongSearchInput"><span class="visually-hidden">搜索错题</span><input id="wrongSearchInput" type="search" maxlength="120" autocomplete="off" placeholder="搜索单词、答案或释义" /></label>
               <div class="action-row">
                 <button class="primary" id="reviewBtn">复习本轮</button>
@@ -890,6 +877,7 @@
                 <div>
                   <h2>学习统计</h2>
                   <p class="meta-line" id="studySummary">完成一轮测试后开始记录</p>
+                  <p class="meta-line" id="studyWrongReviewSummary"></p>
                 </div>
                 <label class="study-goal-field" for="studyGoalInput">
                   <span>每日目标</span>
@@ -902,7 +890,7 @@
               </div>
               <div class="study-metrics">
                 <div><strong id="studyTotalRounds">0</strong><span>完成轮次</span></div>
-                <div><strong id="studyTotalWords">0</strong><span>累计题数</span></div>
+                <div><strong id="studyTotalWords">0</strong><span>实际作答（不含跳过）</span></div>
                 <div><strong id="studyWeekAccuracy">--</strong><span>近 7 天正确率</span></div>
                 <div><strong id="studyStreak">0</strong><span>连续学习天数</span></div>
               </div>
