@@ -6,6 +6,11 @@
 当前结果见 [V6.3 集成报告](AERIS_V63_AZURE_TTS_INTEGRATION_REPORT.md)；首次
 改造的历史失败和零真实调用记录仍保留在原迁移报告中。
 
+V6.3 本轮已通过真实 Azure 三语 API（3 次合成 + 1 次音色查询）、原始 MP3
+的隔离 Chrome 完整解码/播放，以及所有者三语试听确认。证据见集成报告和
+`docs/tts/v63/`。Android 真机、独立 Hosted 和 Production 仍分别未验收/未切换；
+这份本地 F0 结果不会自动放行生产，也没有把 Key 写入任何远端 Secret。
+
 ## 1. 资源和凭据
 
 创建独立的 Azure Speech **F0** 资源，记录真实区域、资源 SKU、额度和三种
