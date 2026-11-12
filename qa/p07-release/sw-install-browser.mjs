@@ -15,12 +15,16 @@ const out=path.resolve(arg('--out',`docs/migration-evidence/p07-release/sw-insta
 assert.equal(await fs.stat(out).then(()=>true,e=>{if(e.code==='ENOENT')return false;throw e;}),false,'Do not overwrite prior evidence');
 await fs.mkdir(out,{recursive:true});
 const git=(...args)=>execFileSync('git',args,{maxBuffer:30*1024*1024,windowsHide:true});
-const sourceSha=git('rev-parse',sha).toString().trim();
+const sourceSha=git('rev-parse',sha==='WORKTREE'?'HEAD':sha).toString().trim();
 function blobs(ref){const list=git('ls-tree','-r','--name-only',ref).toString().trim().split(/\r?\n/).filter(p=>isAllowedPagesFile(p)&&!p.startsWith('functions/')&&p!=='_headers');return Object.fromEntries(list.map(p=>[p,git('show',ref+':'+p)]));}
 const current=blobs(sourceSha),old=blobs('482580b0855e14a61b3f6b51e9d91ae7855296cb');
+// A local candidate need not be committed merely to test its actual assets.
+if(sha==='WORKTREE')for(const file of Object.keys(current))current[file]=await fs.readFile(file);
 function metadata(files){const source=files['sw.js'].toString(),context={self:{addEventListener(){}}};vm.runInNewContext(source+';globalThis.meta={release:RELEASE,cache:CACHE,core:CORE_SHELL};',context);return JSON.parse(JSON.stringify(context.meta));}
 const meta=metadata(current),oldMeta=metadata(old),hash=x=>createHash('sha256').update(x).digest('hex');
 const proof={source_sha:sourceSha,qa_sha256:hash(await fs.readFile(import.meta.filename)),release:meta.release,sw_sha256:hash(current['sw.js']),core_count:meta.core.length,fixture:'actual Chrome; HTTP/1 six-connection queue, 900ms response latency; loopback only',production_operations:0,model_calls:0,cases:[]};
+proof.source_mode=sha==='WORKTREE'?'working-tree':'git-ref';
+proof.source_manifest=Object.fromEntries(Object.entries(current).map(([file,bytes])=>[file,hash(bytes)]));
 const save=()=>fs.writeFile(path.join(out,'results.json'),JSON.stringify(proof,null,2)+'\n');
 let sequence=0;
 for(const name of cases){
