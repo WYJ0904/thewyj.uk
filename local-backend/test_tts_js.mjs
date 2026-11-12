@@ -1,379 +1,254 @@
 import assert from "node:assert/strict";
-import path from "node:path";
-
+import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
+import test from "node:test";
 import { Miniflare } from "miniflare";
-
+import { syntheticMp3 } from "../qa/tts/synthetic-audio.mjs";
 import {
-  TTS_CACHE_VERSION,
-  TTS_FALLBACK_MODEL,
-  handleTtsRequest,
-  normalizeTtsLanguage,
-  normalizeTtsText,
-  ttsBytesFromResult,
-  ttsCacheKey,
+  TTS_DEFAULT_MODEL, TTS_MAX_AUDIO_BYTES, TTS_OUTPUT_FORMAT, audioContentType,
+  azureSpeechConfig, azureTtsCacheModel, handleTtsRequest, normalizeTtsLanguage,
+  normalizeTtsText, synthesizeAzureSpeech, ttsCacheKey, ttsSsml,
 } from "../functions/_lib/tts-api.mjs";
 
-const ROOT = path.resolve(import.meta.dirname, "..");
-
-/** Minimal in-memory R2 replacement: only the operations the handler uses. */
-function fakeBucket() {
-  const objects = new Map();
-  return {
-    objects,
-    async get(key) {
-      const entry = objects.get(key);
-      if (!entry) return null;
-      return {
-        body: entry.bytes,
-        httpMetadata: entry.httpMetadata,
-      };
-    },
-    async put(key, value, options = {}) {
-      const bytes = value instanceof Uint8Array ? value : new Uint8Array(value);
-      objects.set(key, { bytes, httpMetadata: options.httpMetadata || {} });
-    },
-  };
+const AUDIO = syntheticMp3();
+const ENV = { AZURE_SPEECH_REGION: "eastasia", AZURE_SPEECH_KEY: "synthetic-test-key",
+  TTS_RETRY_BASE_MS: "0", TTS_AZURE_RATE_LIMIT: "1000", WORKERS_AI_ENABLED: "false" };
+const audioResponse = () => new Response(AUDIO, { headers: { "Content-Type": "audio/mpeg" } });
+async function withFetch(impl, run) {
+  const original = globalThis.fetch;
+  globalThis.fetch = impl;
+  try { return await run(); } finally { globalThis.fetch = original; }
+}
+async function errorIs(response, status, code, retryable) {
+  assert.equal(response.status, status);
+  assert.equal(response.headers.get("Cache-Control"), "no-store");
+  const body = await response.json();
+  assert.equal(body.code, code);
+  if (retryable !== undefined) assert.equal(body.retryable, retryable);
+  assert.ok(!JSON.stringify(body).includes(ENV.AZURE_SPEECH_KEY));
+  return body;
 }
 
-function base64(bytes) {
-  return Buffer.from(bytes).toString("base64");
-}
-
-function fakeAi({ audio = new Uint8Array([0xff, 0xfb, 0x90, 0x44, 1, 2, 3, 4]), fail = null, capture = [] } = {}) {
-  return {
-    capture,
-    async run(model, input, options) {
-      capture.push({ model, input, options });
-      if (fail) throw fail;
-      return { audio: base64(audio) };
-    },
-  };
-}
-
-async function withDatabase(run) {
-  const mf = new Miniflare({
-    modules: true,
-    script: "export default { fetch() { return new Response('ok'); } }",
-    d1Databases: { WYJ_DB: "tts-test" },
-  });
+await test("Azure cloud TTS with isolated D1/R2 and synthetic provider responses", async (t) => {
+  const mf = new Miniflare({ modules: true, script: "export default { fetch() { return new Response('fixture'); } }",
+    d1Databases: { WYJ_DB: "tts-test" }, r2Buckets: ["WYJ_STORAGE"] });
   try {
     const db = await mf.getD1Database("WYJ_DB");
-    await db.prepare(
-      "CREATE TABLE IF NOT EXISTS cloud_rate_limit_windows (" +
-        "bucket_key TEXT PRIMARY KEY, route TEXT NOT NULL, window_started_at INTEGER NOT NULL, " +
-        "expires_at INTEGER NOT NULL, request_count INTEGER NOT NULL)",
-    ).run();
-    await run(db);
-  } finally {
-    await mf.dispose();
-  }
-}
+    const bucket = await mf.getR2Bucket("WYJ_STORAGE");
+    await db.prepare("CREATE TABLE cloud_rate_limit_windows (bucket_key TEXT PRIMARY KEY, route TEXT NOT NULL, window_started_at INTEGER NOT NULL, expires_at INTEGER NOT NULL, request_count INTEGER NOT NULL)").run();
+    let sequence = 0;
+    const call = ({ language = "en", text = `fixture-${++sequence}`, method = "GET", body, env = {}, ip, query } = {}) =>
+      handleTtsRequest({ env: { ...ENV, WYJ_DB: db, WYJ_STORAGE: bucket,
+        AI: { run() { throw new Error("Workers AI must never be called"); } }, ...env },
+      request: new Request(`https://tts.invalid/api/tts?${query ?? new URLSearchParams({ language, text, voice: "default" })}`, {
+        method, headers: { "Content-Type": "application/json", "CF-Connecting-IP": ip || `fixture-${++sequence}` },
+        ...(method === "POST" ? { body: typeof body === "string" ? body : JSON.stringify(body) } : {}),
+      }) });
 
-function call(db, { query = "", method = "GET", body = null, env = {} } = {}) {
-  const url = `https://preview.thewyj.uk/api/tts${query}`;
-  return handleTtsRequest({
-    env: {
-      WYJ_ENVIRONMENT: "preview",
-      WORKERS_AI_ENABLED: "true",
-      D1_RATE_LIMIT_ENABLED: "true",
-      WYJ_DB: db,
-      ...env,
-    },
-    data: { requestId: crypto.randomUUID() },
-    request: new Request(url, {
-      method,
-      headers: body ? { "Content-Type": "application/json" } : undefined,
-      body: body ? JSON.stringify(body) : undefined,
-    }),
-  });
-}
-
-async function expectError(response, status, code) {
-  assert.equal(response.status, status, `expected HTTP ${status}, got ${response.status}`);
-  const payload = await response.json();
-  assert.equal(payload.code, code, `expected code ${code}, got ${payload.code}`);
-}
-
-await withDatabase(async (db) => {
-  // 1. Normalisation: kanji is never rewritten, language aliases collapse.
-  assert.equal(normalizeTtsLanguage("ja-JP"), "jp");
-  assert.equal(normalizeTtsLanguage("EN-us"), "en");
-  assert.equal(normalizeTtsLanguage("klingon"), "");
-  assert.equal(normalizeTtsText("  お茶を  飲む  "), "お茶を 飲む");
-  assert.equal(normalizeTtsText("Kanji: \u6f22\u5b57"), "Kanji: \u6f22\u5b57");
-
-  // 2. Stable cache identity covers language + text + voice + model version.
-  const keyA = await ttsCacheKey({ language: "jp", text: "\u304a\u8336", voice: "default", model: "m" });
-  const keyB = await ttsCacheKey({ language: "jp", text: "\u304a\u8336", voice: "default", model: "m" });
-  const keyC = await ttsCacheKey({ language: "jp", text: "\u304a\u6c34", voice: "default", model: "m" });
-  const keyD = await ttsCacheKey({ language: "en", text: "\u304a\u8336", voice: "default", model: "m" });
-  assert.equal(keyA, keyB, "identical input must share one cache key");
-  assert.notEqual(keyA, keyC);
-  assert.notEqual(keyA, keyD);
-  assert.ok(keyA.includes(`/${TTS_CACHE_VERSION}/`));
-
-  // 3. First request synthesises once, second request is a cache hit.
-  const bucket = fakeBucket();
-  const ai = fakeAi();
-  const first = await call(db, {
-    query: "?language=ja&text=" + encodeURIComponent("\u6f22\u5b57\u306e\u8aad\u307f"),
-    env: { WYJ_STORAGE: bucket, AI: ai },
-  });
-  assert.equal(first.status, 200);
-  assert.equal(first.headers.get("Content-Type"), "audio/mpeg");
-  assert.equal(first.headers.get("X-WYJ-TTS"), "miss");
-  assert.equal(first.headers.get("X-WYJ-TTS-Attempts"), "1");
-  assert.equal(ai.capture.length, 1);
-  assert.equal(ai.capture[0].input.lang, "jp");
-  assert.equal(
-    ai.capture[0].options?.returnRawResponse,
-    true,
-    "binary TTS must request the raw Workers AI response",
-  );
-  assert.equal(
-    ai.capture[0].input.prompt,
-    "\u6f22\u5b57\u306e\u8aad\u307f",
-    "the server must receive the original kanji text",
-  );
-  const audio = new Uint8Array(await first.arrayBuffer());
-  assert.ok(audio.length > 0);
-
-  const second = await call(db, {
-    query: "?language=jp&text=" + encodeURIComponent("\u6f22\u5b57\u306e\u8aad\u307f"),
-    env: { WYJ_STORAGE: bucket, AI: fakeAi({ fail: new Error("must not be called") }) },
-  });
-  assert.equal(second.status, 200);
-  assert.equal(second.headers.get("X-WYJ-TTS"), "hit", "repeat playback must hit the cache");
-  assert.equal(second.headers.get("X-WYJ-TTS-Attempts"), "0", "a cache hit never calls Workers AI");
-  assert.equal(second.headers.get("ETag"), first.headers.get("ETag"));
-
-  // 4. Chinese, English and Japanese share one protocol and one cache namespace.
-  const english = await call(db, {
-    query: "?language=en&text=" + encodeURIComponent("dictation practice"),
-    env: { WYJ_STORAGE: bucket, AI: ai },
-  });
-  assert.equal(english.status, 200);
-  assert.equal(ai.capture.at(-1).input.lang, "en");
-  const chinese = await call(db, {
-    query: "?language=zh&text=" + encodeURIComponent("中文朗读"),
-    env: { WYJ_STORAGE: bucket, AI: ai },
-  });
-  assert.equal(chinese.status, 200);
-  assert.equal(ai.capture.at(-1).input.lang, "zh");
-
-  // 5. POST body form works for the Android/Web clients.
-  const posted = await call(db, {
-    method: "POST",
-    body: { language: "en", text: "posted body", voice: "default" },
-    env: { WYJ_STORAGE: fakeBucket(), AI: ai },
-  });
-  assert.equal(posted.status, 200);
-
-  // 6. A transient Workers AI error is retried with one bounded generation
-  // ladder. Production probes observed an occasional first-attempt 503 for
-  // Japanese kanji while the same input succeeded immediately afterwards.
-  let transientAttempts = 0;
-  const transientAi = {
-    async run() {
-      transientAttempts += 1;
-      if (transientAttempts < 3) throw Object.assign(new Error("temporary"), { status: 503 });
-      return { audio: base64(new Uint8Array([0xff, 0xfb, 1, 2, 3, 4])) };
-    },
-  };
-  const recovered = await call(db, {
-    query: "?language=jp&text=" + encodeURIComponent("学校"),
-    env: { WYJ_STORAGE: fakeBucket(), AI: transientAi, TTS_RETRY_BASE_MS: "0" },
-  });
-  assert.equal(recovered.status, 200);
-  assert.equal(transientAttempts, 3, "the bounded ladder reaches the successful third attempt");
-  assert.equal(recovered.headers.get("X-WYJ-TTS-Attempts"), "3");
-
-  // 7. A persistent MeloTTS provider failure falls through to the bounded
-  // Cloudflare Unified Catalog TTS fallback without changing the client API.
-  const fallbackCalls = [];
-  const pcmBytes = new Uint8Array([1, 2, 3, 4, 5, 6]);
-  const fallbackAi = {
-    async run(model, input, options) {
-      fallbackCalls.push({ model, input, options });
-      if (model === "@cf/myshell-ai/melotts") {
-        throw Object.assign(new Error("melotts provider failed"), { status: 500 });
-      }
-      assert.equal(model, TTS_FALLBACK_MODEL);
-      return { audio: `data:audio/l16;base64,${base64(pcmBytes)}` };
-    },
-  };
-  const fallbackBucket = fakeBucket();
-  const fallback = await call(db, {
-    query: "?language=ja&text=" + encodeURIComponent("日本語の読み上げ"),
-    env: { WYJ_STORAGE: fallbackBucket, AI: fallbackAi, TTS_RETRY_BASE_MS: "0" },
-  });
-  assert.equal(fallback.status, 200);
-  assert.equal(fallback.headers.get("Content-Type"), "audio/wav");
-  assert.equal(fallback.headers.get("X-WYJ-TTS-Model"), TTS_FALLBACK_MODEL);
-  assert.equal(fallback.headers.get("X-WYJ-TTS-Attempts"), "4");
-  assert.deepEqual(
-    fallbackCalls.map((entry) => entry.model),
-    ["@cf/myshell-ai/melotts", "@cf/myshell-ai/melotts", "@cf/myshell-ai/melotts", TTS_FALLBACK_MODEL],
-  );
-  assert.equal(fallbackCalls.at(-1).input.text, "日本語の読み上げ");
-  assert.deepEqual(
-    fallbackCalls.at(-1).options,
-    { gateway: { id: "default" } },
-    "third-party TTS must use the Cloudflare AI Gateway binding option",
-  );
-  const fallbackAudio = new Uint8Array(await fallback.clone().arrayBuffer());
-  assert.deepEqual(
-    Array.from(fallbackAudio.slice(0, 12)),
-    [0x52, 0x49, 0x46, 0x46, 42, 0, 0, 0, 0x57, 0x41, 0x56, 0x45],
-    "raw Gemini L16 PCM must be wrapped as a browser-playable WAV",
-  );
-
-  const fallbackCached = await call(db, {
-    query: "?language=jp&text=" + encodeURIComponent("日本語の読み上げ"),
-    env: {
-      WYJ_STORAGE: fallbackBucket,
-      AI: { async run() { throw new Error("fallback cache hit must not call AI"); } },
-    },
-  });
-  assert.equal(fallbackCached.status, 200);
-  assert.equal(fallbackCached.headers.get("X-WYJ-TTS"), "hit");
-  assert.equal(fallbackCached.headers.get("X-WYJ-TTS-Model"), TTS_FALLBACK_MODEL);
-  assert.equal(fallbackCached.headers.get("X-WYJ-TTS-Attempts"), "0");
-
-  // 8. Validation errors are explicit.
-  await expectError(await call(db, { query: "?language=fr&text=bonjour", env: { WYJ_STORAGE: bucket, AI: ai } }), 400, "tts_language_unsupported");
-  await expectError(await call(db, { query: "?language=en&text=", env: { WYJ_STORAGE: bucket, AI: ai } }), 400, "tts_text_required");
-  await expectError(await call(db, { query: "?language=en&text=hi&voice=male", env: { WYJ_STORAGE: bucket, AI: ai } }), 400, "tts_voice_unsupported");
-  await expectError(
-    await call(db, { query: "?language=en&text=" + "a".repeat(400), env: { WYJ_STORAGE: bucket, AI: ai } }),
-    413,
-    "tts_text_too_long",
-  );
-
-  // 9. A persistent server failure stays explicit - never a silent device fallback.
-  const failedCapture = [];
-  await expectError(
-    await call(db, {
-      query: "?language=en&text=offline",
-      env: { WYJ_STORAGE: fakeBucket(), AI: fakeAi({ fail: new Error("ai down"), capture: failedCapture }), TTS_RETRY_BASE_MS: "0" },
-    }),
-    503,
-    "tts_generation_failed",
-  );
-  assert.equal(failedCapture.length, 5, "persistent failures stop after the primary and fallback attempt budgets");
-  await expectError(
-    await call(db, { query: "?language=en&text=disabled", env: { WYJ_STORAGE: fakeBucket(), WORKERS_AI_ENABLED: "false" } }),
-    503,
-    "tts_unavailable",
-  );
-  const quotaCapture = [];
-  await expectError(
-    await call(db, { query: "?language=en&text=quota", env: { WYJ_STORAGE: fakeBucket(), AI: fakeAi({ fail: Object.assign(new Error("rate"), { status: 429 }), capture: quotaCapture }) } }),
-    429,
-    "tts_quota_exhausted",
-  );
-  assert.equal(quotaCapture.length, 1, "quota exhaustion is never retried");
-
-  // 10. Rate limiting still protects the synthesis path.
-  const limitedDb = db;
-  let limited = 0;
-  for (let index = 0; index < 5; index += 1) {
-    const response = await call(limitedDb, {
-      query: `?language=en&text=limit-${index}`,
-      env: { WYJ_STORAGE: fakeBucket(), AI: ai, TTS_RATE_LIMIT: "1" },
+    await t.test("language aliases, unchanged kanji, XML escaping and legacy cache identity", async () => {
+      for (const alias of ["ja", "jp", "jpn", "japanese", "ja-JP"]) assert.equal(normalizeTtsLanguage(alias), "jp");
+      assert.equal(normalizeTtsLanguage("EN-us"), "en");
+      assert.equal(normalizeTtsLanguage("中文"), "zh");
+      assert.equal(normalizeTtsLanguage("fr"), "");
+      assert.equal(normalizeTtsText("  漢字の\u0001読み  "), "漢字の 読み");
+      assert.match(ttsSsml("<voice> & \" ' 漢字", "jp"), /&lt;voice&gt; &amp; &quot; &apos; 漢字/);
+      assert.match(ttsSsml("先生", "jp"), /xml:lang="ja-JP".*name="ja-JP-NanamiNeural">先生</);
+      const input = { language: "en", voice: "default", model: "@cf/myshell-ai/melotts", text: "legacy" };
+      const digest = createHash("sha256").update("en\0default\0@cf/myshell-ai/melotts\0v2\0legacy").digest("hex");
+      assert.equal(await ttsCacheKey(input), `tts/v2/en/${digest}`);
+      assert.notEqual(await ttsCacheKey(input), await ttsCacheKey({ ...input, model: azureTtsCacheModel("en") }));
     });
-    if (response.status === 429) limited += 1;
-  }
-  assert.ok(limited >= 1, "rate limiting must be able to reject a burst");
 
-  // 11. Audio shape normalisation covers every documented provider answer.
-  const bytes = new Uint8Array([1, 2, 3, 4]);
-  assert.deepEqual(await ttsBytesFromResult({ audio: base64(bytes) }), bytes);
-  assert.deepEqual(await ttsBytesFromResult({ audio: `data:audio/wav;base64,${base64(bytes)}` }), bytes);
-  const pcmWrapped = await ttsBytesFromResult({ audio: `data:audio/l16;base64,${base64(bytes)}` });
-  assert.deepEqual(Array.from(pcmWrapped.slice(0, 4)), [0x52, 0x49, 0x46, 0x46]);
-  assert.equal(pcmWrapped.length, 44 + bytes.length);
-  assert.deepEqual(await ttsBytesFromResult(bytes), bytes);
-  assert.deepEqual(await ttsBytesFromResult({ audio: base64(bytes) }), bytes);
-  assert.deepEqual(
-    await ttsBytesFromResult(new Response(JSON.stringify({ audio: base64(bytes) }), {
-      headers: { "Content-Type": "application/json" },
-    })),
-    bytes,
-  );
-  await assert.rejects(
-    ttsBytesFromResult(new Response(JSON.stringify({ name: "AiError" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    })),
-    (error) => error.status === 500,
-    "a raw Workers AI error response must never be served as audio",
-  );
-  assert.equal(await ttsBytesFromResult({ nope: true }), null);
+    for (const [language, voice] of [["en", "en-US-JennyNeural"], ["jp", "ja-JP-NanamiNeural"], ["zh", "zh-CN-XiaoxiaoNeural"]]) {
+      await t.test(`${language}: Azure request and real R2 streamed cache round trip`, async () => {
+        const text = `${language} 語音 fixture`;
+        let calls = 0;
+        await withFetch(async (url, options) => {
+          calls += 1;
+          assert.equal(url, "https://eastasia.tts.speech.microsoft.com/cognitiveservices/v1");
+          assert.equal(options.headers["Ocp-Apim-Subscription-Key"], ENV.AZURE_SPEECH_KEY);
+          assert.equal(options.headers["X-Microsoft-OutputFormat"], TTS_OUTPUT_FORMAT);
+          assert.equal(options.redirect, "manual");
+          assert.ok(options.signal instanceof AbortSignal);
+          assert.ok(options.body.includes(`name="${voice}"`));
+          return audioResponse();
+        }, async () => {
+          const first = await call({ language, text });
+          assert.equal(first.status, 200);
+          assert.equal(first.headers.get("X-WYJ-TTS"), "miss");
+          assert.equal(first.headers.get("X-WYJ-TTS-Model"), TTS_DEFAULT_MODEL);
+          assert.equal(first.headers.get("X-WYJ-TTS-Voice"), voice);
+          assert.equal(first.headers.get("X-WYJ-TTS-Attempts"), "1");
+          assert.deepEqual(new Uint8Array(await first.arrayBuffer()), AUDIO);
+          const second = await call({ language, text, env: { AZURE_SPEECH_KEY: "", TTS_MODE: "cache-only" } });
+          assert.equal(second.status, 200);
+          assert.equal(second.headers.get("X-WYJ-TTS"), "hit");
+          assert.equal(second.headers.get("Content-Length"), String(AUDIO.length));
+          assert.equal(second.headers.get("ETag"), first.headers.get("ETag"));
+          assert.deepEqual(new Uint8Array(await second.arrayBuffer()), AUDIO);
+          assert.equal(calls, 1);
+        });
+      });
+    }
 
-  // 12. Raw provider errors follow the same bounded retry and quota paths as
-  // thrown binding errors. Their JSON error bodies are never cached as audio.
-  let rawFailureAttempts = 0;
-  const rawFailure = await call(db, {
-    query: "?language=en&text=raw-provider-error",
-    env: {
-      WYJ_STORAGE: fakeBucket(),
-      TTS_RETRY_BASE_MS: "0",
-      AI: {
-        async run() {
-          rawFailureAttempts += 1;
-          return new Response(JSON.stringify({ name: "AiError" }), {
-            status: 500,
-            headers: { "Content-Type": "application/json" },
-          });
-        },
-      },
-    },
-  });
-  await expectError(rawFailure, 503, "tts_generation_failed");
-  assert.equal(rawFailureAttempts, 5);
+    await t.test("GET lang alias and POST protocol remain compatible", async () => {
+      await withFetch(async () => audioResponse(), async () => {
+        assert.equal((await call({ query: "lang=ja-JP&text=学校" })).status, 200);
+        assert.equal((await call({ method: "POST", body: { lang: "zh", text: "中文 & English", voice: "default" } })).status, 200);
+      });
+    });
 
-  let rawQuotaAttempts = 0;
-  const rawQuota = await call(db, {
-    query: "?language=en&text=raw-provider-quota",
-    env: {
-      WYJ_STORAGE: fakeBucket(),
-      AI: {
-        async run() {
-          rawQuotaAttempts += 1;
-          return new Response("quota", { status: 429 });
-        },
-      },
-    },
-  });
-  await expectError(rawQuota, 429, "tts_quota_exhausted");
-  assert.equal(rawQuotaAttempts, 1);
+    await t.test("valid legacy EN/ZH audio is reused without secrets or synthesis", async () => {
+      for (const language of ["en", "zh"]) for (const model of ["@cf/myshell-ai/melotts", "google/gemini-3.1-flash-tts"]) {
+        const text = `legacy-${language}-${model}`;
+        const key = await ttsCacheKey({ language, text, model, voice: "default" });
+        await bucket.put(key, AUDIO, { httpMetadata: { contentType: "audio/mpeg" } });
+        const response = await call({ language, text, env: { AZURE_SPEECH_KEY: "" } });
+        assert.equal(response.status, 200);
+        assert.equal(response.headers.get("X-WYJ-TTS-Model"), model);
+        assert.equal(response.headers.get("X-WYJ-TTS-Attempts"), "0");
+      }
+    });
+
+    await t.test("unverified legacy Japanese is preserved and replaced with a Japanese Azure voice", async () => {
+      const text = "先生と学生";
+      const key = await ttsCacheKey({ language: "jp", text, voice: "default", model: "@cf/myshell-ai/melotts" });
+      await bucket.put(key, AUDIO);
+      await withFetch(async (_, options) => { assert.match(options.body, /ja-JP-NanamiNeural/); return audioResponse(); }, async () => {
+        const response = await call({ language: "jp", text });
+        assert.equal(response.headers.get("X-WYJ-TTS"), "miss");
+        assert.equal(response.headers.get("X-WYJ-TTS-Voice"), "ja-JP-NanamiNeural");
+        assert.ok(await bucket.head(key), "legacy object is never deleted");
+      });
+    });
+
+    await t.test("reviewed legacy Japanese can still be reused", async () => {
+      const text = "確認済み音声";
+      const key = await ttsCacheKey({ language: "jp", text, voice: "default", model: "@cf/myshell-ai/melotts" });
+      await bucket.put(key, AUDIO, { customMetadata: { ttsLocale: "ja-JP", ttsVerified: "true" } });
+      const response = await call({ language: "jp", text, env: { AZURE_SPEECH_KEY: "" } });
+      assert.equal(response.status, 200);
+      assert.equal(response.headers.get("X-WYJ-TTS"), "hit");
+    });
+
+    await t.test("corrupt legacy JSON is neither played nor deleted", async () => {
+      const text = "invalid-old-object";
+      const key = await ttsCacheKey({ language: "en", text, voice: "default", model: "@cf/myshell-ai/melotts" });
+      await bucket.put(key, '{"error":"old provider failure"}', { httpMetadata: { contentType: "audio/mpeg" } });
+      await withFetch(async () => audioResponse(), async () => {
+        assert.equal((await call({ text })).headers.get("X-WYJ-TTS"), "miss");
+        assert.ok(await bucket.head(key));
+      });
+    });
+
+    await t.test("invalid inputs fail before any provider call", async () => {
+      await errorIs(await call({ language: "fr" }), 400, "tts_language_unsupported", false);
+      await errorIs(await call({ text: "" }), 400, "tts_text_required", false);
+      await errorIs(await call({ text: "a".repeat(241) }), 413, "tts_text_too_long", false);
+      await errorIs(await call({ query: "language=en&text=hello&voice=other" }), 400, "tts_voice_unsupported", false);
+      await errorIs(await call({ method: "DELETE" }), 405, "method_not_allowed", false);
+      await errorIs(await call({ method: "POST", body: "{" }), 400, "invalid_payload", false);
+      await errorIs(await call({ method: "POST", body: [] }), 400, "invalid_payload", false);
+    });
+
+    await t.test("missing credentials, unsafe region and cache-only rollback are explicit", async () => {
+      await errorIs(await call({ env: { AZURE_SPEECH_KEY: "" } }), 503, "tts_not_configured", false);
+      await errorIs(await call({ env: { AZURE_SPEECH_REGION: "eastasia.evil.invalid/" } }), 503, "tts_not_configured", false);
+      await errorIs(await call({ env: { TTS_MODE: "cache-only" } }), 503, "tts_unavailable", true);
+      await errorIs(await call({ env: { TTS_MODE: "melotts" } }), 503, "tts_not_configured", false);
+      assert.throws(() => azureSpeechConfig({ ...ENV, AZURE_SPEECH_REGION: "https://evil.invalid" }));
+    });
+
+    for (const [status, code, resultStatus, retryable] of [
+      [302, "tts_provider_rejected", 503, false],
+      [401, "tts_auth_failed", 503, false], [403, "tts_auth_failed", 503, false],
+      [429, "tts_quota_exhausted", 429, true], [400, "tts_provider_rejected", 503, false],
+      [415, "tts_provider_rejected", 503, false], [504, "tts_timeout", 504, true],
+    ]) await t.test(`Azure HTTP ${status}: one attempt, safe JSON, no cache poisoning`, async () => {
+      let calls = 0;
+      const text = `upstream-${status}`;
+      await withFetch(async () => { calls += 1; return new Response(ENV.AZURE_SPEECH_KEY,
+        { status, headers: { "Retry-After": "37" } }); }, async () => {
+        const response = await call({ text });
+        if (status === 429) assert.equal(response.headers.get("Retry-After"), "37");
+        await errorIs(response, resultStatus, code, retryable);
+        assert.equal(calls, 1);
+        assert.equal(await bucket.head(await ttsCacheKey({ language: "en", text, voice: "default", model: azureTtsCacheModel("en") })), null);
+      });
+    });
+
+    await t.test("temporary 503 recovers once; persistent service/network failures stop after two attempts", async () => {
+      let calls = 0;
+      await withFetch(async () => ++calls === 1 ? new Response("down", { status: 503 }) : audioResponse(), async () => {
+        assert.equal((await call()).headers.get("X-WYJ-TTS-Attempts"), "2"); assert.equal(calls, 2);
+      });
+      for (const impl of [() => new Response("down", { status: 502 }), () => { throw new Error(ENV.AZURE_SPEECH_KEY); }]) {
+        calls = 0;
+        await withFetch(async () => { calls += 1; return impl(); }, async () => {
+          await errorIs(await call(), 503, "tts_service_unavailable", true); assert.equal(calls, 2);
+        });
+      }
+    });
+
+    await t.test("empty audio, disguised JSON, wrong format and excessive audio are rejected", async () => {
+      for (const [response, code] of [
+        [new Response(null, { headers: { "Content-Type": "audio/mpeg" } }), "tts_empty_audio"],
+        [new Response('{"error":"no audio"}', { headers: { "Content-Type": "audio/mpeg" } }), "tts_invalid_audio"],
+        [new Response(AUDIO, { headers: { "Content-Type": "application/json" } }), "tts_invalid_audio"],
+        [new Response(AUDIO, { headers: { "Content-Type": "audio/mpeg", "Content-Length": String(TTS_MAX_AUDIO_BYTES + 1) } }), "tts_invalid_audio"],
+        [new Response(new Uint8Array(TTS_MAX_AUDIO_BYTES + 1), { headers: { "Content-Type": "audio/mpeg" } }), "tts_invalid_audio"],
+      ]) await withFetch(async () => response, async () => errorIs(await call(), 503, code));
+      assert.equal(audioContentType(new TextEncoder().encode("{bad provider}")), "");
+    });
+
+    await t.test("deadline aborts a hung fetch and a stalled body without retry", async () => {
+      for (const streaming of [false, true]) {
+        let calls = 0;
+        let signal;
+        await withFetch(async (_, options) => {
+          calls += 1; signal = options.signal;
+          return streaming ? new Response(new ReadableStream({ start() {} }), { headers: { "Content-Type": "audio/mpeg" } })
+            : new Promise((_, reject) => signal.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")), { once: true }));
+        }, async () => {
+          const started = Date.now();
+          await errorIs(await call({ env: { TTS_TIMEOUT_MS: "1000" } }), 504, "tts_timeout", true);
+          assert.ok(Date.now() - started < 3_000); assert.equal(signal.aborted, true); assert.equal(calls, 1);
+        });
+      }
+    });
+
+    await t.test("cache read/write failures leave synthesis usable and do not expose internals", async () => {
+      await withFetch(async () => audioResponse(), async () => assert.equal((await call({ env: { WYJ_STORAGE: {
+        async get() { throw new Error("cache down"); }, async put() { throw new Error("cache down"); },
+      } } })).status, 200));
+    });
+
+    await t.test("per-client limiter is retained and cached requests cannot bypass it", async () => {
+      const text = "cached rate test";
+      await withFetch(async () => audioResponse(), async () => {
+        assert.equal((await call({ text, ip: "limit-client", env: { TTS_RATE_LIMIT: "1" } })).status, 200);
+        await errorIs(await call({ text, ip: "limit-client", env: { TTS_RATE_LIMIT: "1" } }), 429, "rate_limited", true);
+      });
+    });
+
+    await t.test("resource-wide F0 limiter spans client IPs and fails closed when D1 is unavailable", async () => {
+      await db.prepare("DELETE FROM cloud_rate_limit_windows WHERE route = '/api/tts:tts-azure'").run();
+      let calls = 0;
+      await withFetch(async () => { calls += 1; return audioResponse(); }, async () => {
+        const env = { TTS_AZURE_RATE_LIMIT: "1" };
+        assert.equal((await call({ env, text: "global-budget-first" })).status, 200);
+        await errorIs(await call({ env }), 429, "tts_quota_exhausted", true);
+        assert.equal((await call({ env, text: "global-budget-first" })).status, 200, "a cache hit spends no synthesis quota");
+        await errorIs(await call({ env: { WYJ_DB: undefined } }), 503, "tts_unavailable", true);
+        assert.equal(calls, 1);
+      });
+    });
+
+    await t.test("Android WebView keeps the shared cloud player and requires no native voice or permission changes", async () => {
+      const source = await readFile(new URL("../android/app/src/main/java/uk/thewyj/app/core/web/ThewyjWebView.kt", import.meta.url), "utf8");
+      assert.ok(source.includes("mediaPlaybackRequiresUserGesture = false"));
+      const player = await readFile(new URL("../js/language/speech.js", import.meta.url), "utf8");
+      assert.doesNotMatch(player, /speechSynthesis|SpeechSynthesisUtterance|thewyj:\/\/speech/);
+    });
+  } finally { await mf.dispose(); }
 });
-
-// 13. The web and Android clients must not treat device voices as the normal path.
-const webSpeech = await import("node:fs/promises").then((fs) =>
-  fs.readFile(path.join(ROOT, "js", "language", "speech.js"), "utf8"),
-);
-assert.ok(webSpeech.includes("/api/tts"), "web speech must call the cloud TTS API");
-assert.ok(
-  webSpeech.indexOf("/api/tts") < webSpeech.indexOf("speechSynthesis"),
-  "the cloud path must be evaluated before any device fallback",
-);
-// Android plays the exact same asset: the WebView loads the shared module, and
-// the native bridge is only reachable from the offline fallback branch.
-const androidBridge = await import("node:fs/promises").then((fs) =>
-  fs.readFile(path.join(ROOT, "android", "app", "src", "main", "java", "uk", "thewyj", "app", "core", "speech", "AndroidSpeechBridge.kt"), "utf8"),
-);
-assert.ok(
-  /offline|离线/.test(androidBridge),
-  "the Android system TTS bridge must be documented as the offline fallback",
-);
-const webView = await import("node:fs/promises").then((fs) =>
-  fs.readFile(path.join(ROOT, "android", "app", "src", "main", "java", "uk", "thewyj", "app", "core", "web", "ThewyjWebView.kt"), "utf8"),
-);
-assert.ok(
-  webView.includes("mediaPlaybackRequiresUserGesture = false"),
-  "the WebView must allow the cloud dictation asset to play",
-);
-
-console.log("Cloud TTS checks passed (cache identity, ZH/EN/JP synthesis, bounded cloud fallback, explicit failures, no device dependency).");

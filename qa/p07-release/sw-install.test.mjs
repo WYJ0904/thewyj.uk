@@ -72,6 +72,14 @@ test('a stale same-URL Task26 source fails integrity before publishing',async()=
  await assert.rejects(w.install(),/Release shell is incomplete/);
  assert.equal(w.stores.has(meta.publication),false);assert.equal(w.stores.has(meta.cache),false);
 });
+
+test('stale cloud speech code cannot publish an older device fallback under the current release',async()=>{
+ const speech=meta.core.find(asset=>asset.startsWith('/js/language/speech.js?'));
+ assert.ok(meta.integrity[speech]);
+ const w=worker(async asset=>asset===speech?new Response('stale device fallback'):response(asset));
+ await assert.rejects(w.install(),/Release shell is incomplete/);
+ assert.equal(w.stores.has(meta.publication),false);assert.equal(w.skipped(),0);
+});
 test('a delayed stale navigation cannot replace committed publication HTML',async()=>{
  let release;const w=worker(async asset=>typeof asset==='string'?response(asset):new Promise(resolve=>{release=resolve;}));
  const late=w.fetch('/','navigate');await turn();await w.install();
