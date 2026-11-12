@@ -4,7 +4,10 @@
 **执行 Agent**：Gemini Flash High  
 **分支**：`flash/p0-azure-tts-standalone-hotfix`  
 **基线**：生产 `main` HEAD `4fc025a044e5e39d742166df9510d488413f7043`  
-**状态**：`DRAFT_PR_READY` / `LOCAL_TESTS_PASS` / `REAL_AUDIO_CONFIRMED` / `PRODUCTION_NOT_SWITCHED`  
+**Draft PR**：[PR #148](https://github.com/WYJ0904/thewyj.uk/pull/148)  
+**候选 SHA**：`c750e73bcc1533364038261bf540b74a42290a9e`  
+**远程 Core CI**：[Run 43218589396](https://github.com/WYJ0904/thewyj.uk/actions/runs/43218589396)（**10/10 PASS / SKIPPED AS DESIGNED, 0 FAIL**）  
+**状态**：`DRAFT_PR_READY` / `REMOTE_CI_PASS` / `REAL_AUDIO_CONFIRMED` / `PRODUCTION_NOT_SWITCHED`  
 
 ---
 
@@ -78,6 +81,21 @@
 - **本地解码与播放 (`docs/tts/v63/local-audio.json`)**：Chrome 本地解码真实 MP3 原始样本成功。
 - **所有者试听确认 (`docs/tts/v63/listening-confirmation.json`)**：所有者已在真实设备试听三语音频，确认发音正常、音质清晰，无语言跑偏。
 - **音频样本留存 (`docs/tts/v63/*.mp3`)**：保留合成的 `en.mp3`、`jp.mp3`、`zh.mp3`。
+
+### 3.3 远程 Core CI 验证（Run ID: 43218589396，10/10 成功）
+
+| CI Job | 执行环境 | 耗时 | 状态 |
+| --- | --- | --- | --- |
+| `Android unit, lint and APK` | Ubuntu | 1m 59s | **SUCCESS** |
+| `Sensitive files and static naming` | Ubuntu | 8s | **SUCCESS** |
+| `Pages build and publish allowlist` | Ubuntu | 14s | **SUCCESS** |
+| `Python syntax and unittest (ubuntu-latest)` | Ubuntu | 49s | **SUCCESS** |
+| `Python syntax and unittest (windows-latest)` | Windows | 3m 8s | **SUCCESS** |
+| `JavaScript and static site checks` | Ubuntu | 3m 45s | **SUCCESS** |
+| `Cloud-only browser, canonical session and toolbox` | Ubuntu | 10m 30s | **SUCCESS** |
+| `Browser flow (application)` | Ubuntu | 2m 10s | **SUCCESS** |
+| `Task 25 cloud credential discovery` | Ubuntu | - | **SKIPPED AS DESIGNED** |
+| `Task 25 Android runtime contract` | Ubuntu | - | **SKIPPED AS DESIGNED** |
 
 ---
 
