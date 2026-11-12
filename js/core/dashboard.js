@@ -1,7 +1,7 @@
-import { $, escapeHtml } from "./ui.js?release=20261109-aeris-p07-production-r2";
-import { reconcileKeyedRows } from "./keyed-list.js?release=20261109-aeris-p07-production-r2";
-import { createHomeWidgets } from "./home-widgets.js?release=20261109-aeris-p07-production-r2";
-import { projectHomeWidgets } from "./home-widget-data.js?release=20261109-aeris-p07-production-r2";
+import { $, escapeHtml } from "./ui.js?release=20261112-aeris-v63-azure-tts-r1";
+import { reconcileKeyedRows } from "./keyed-list.js?release=20261112-aeris-v63-azure-tts-r1";
+import { createHomeWidgets } from "./home-widgets.js?release=20261112-aeris-v63-azure-tts-r1";
+import { projectHomeWidgets } from "./home-widget-data.js?release=20261112-aeris-v63-azure-tts-r1";
 const bound = new WeakSet();
 const setText = (node,value) => { if(node && node.textContent!==String(value))node.textContent=String(value); };
 
@@ -67,7 +67,7 @@ export function createDashboardView(context) {
 
   const finance = financeController?.dashboardSummary?.() || { balance_minor: 0, pending: 0, available: false };
   const financeKnown = finance.available && Number.isFinite(finance.balance_minor) && Boolean(finance.last_sync_at || finance.pending);
-  const financeBalance = financeKnown ? formatFinanceMoney(finance.balance_minor) : "尚未读取";
+  const financeBalance = financeKnown ? formatFinanceMoney(finance.balance_minor, finance.display_currency || 'CNY') + (finance.unconverted?.length ? ' · 部分未换算' : '') : "尚未读取";
   if ($("dashboardFinanceBalance")) setText($("dashboardFinanceBalance"), financeBalance);
   document.querySelectorAll("[data-dashboard-balance-copy]").forEach((element) => { setText(element, financeBalance); });
   if ($("dashboardFinanceSync")) {

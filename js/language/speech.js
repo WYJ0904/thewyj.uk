@@ -1,215 +1,141 @@
-/**
- * Dictation speech output (cross-device compatible).
- *
- * Normal online path: thewyj cloud TTS (`/api/tts`) → one server audio asset
- * per `{language, text, voice, version}`, played by the same HTML5 audio player
- * on browsers and inside the Android WebView. Speed is applied with
- * `playbackRate`, so changing the slider never re-synthesises and never depends
- * on a device voice package.
- *
- * Device engines are only an explicit offline fallback: Android system
- * `TextToSpeech` through the `thewyj://speech/*` bridge, or the browser Web
- * Speech API. A missing voice package - or a missing `speechSynthesis` - must
- * never be a prerequisite for normal dictation.
- */
-
+/** Shared Web/Android WebView cloud audio player. Device TTS is never used. */
 export const CLOUD_TTS_PATH = "/api/tts";
 export const CLOUD_TTS_VOICE = "default";
+export const CLOUD_TTS_TIMEOUT_MS = 22_000;
 
 export function normalizeSpeechLanguage(value) {
-  return String(value || "").toLowerCase().startsWith("ja") ? "ja-JP" : "en-US";
+  const language = String(value || "").trim().toLowerCase();
+  if (/^(?:ja(?:-|$)|jp$|jpn$|japanese$)/.test(language)) return "ja-JP";
+  if (/^(?:zh(?:-|$)|chinese$|中文$)/.test(language)) return "zh-CN";
+  return "en-US";
 }
 
-/** Cloud TTS language code (`en` / `jp`), server normalises aliases. */
 export function cloudSpeechLanguage(value) {
-  return String(value || "").toLowerCase().startsWith("ja") ? "jp" : "en";
+  return ({ "ja-JP": "jp", "zh-CN": "zh", "en-US": "en" })[normalizeSpeechLanguage(value)];
 }
 
 export function cloudSpeechUrl({ text, lang } = {}) {
-  const params = new URLSearchParams({
-    text: String(text ?? "").slice(0, 240),
-    language: cloudSpeechLanguage(lang),
-    voice: CLOUD_TTS_VOICE,
-    v: "1",
-  });
-  return `${CLOUD_TTS_PATH}?${params.toString()}`;
+  return `${CLOUD_TTS_PATH}?${new URLSearchParams({
+    text: [...String(text ?? "")].slice(0, 240).join(""),
+    language: cloudSpeechLanguage(lang), voice: CLOUD_TTS_VOICE,
+    // Bypass old browser/CDN responses, including unverified Japanese audio.
+    // The server can still reuse valid R2 objects with their original keys.
+    v: "azure-neural-r1",
+  })}`;
 }
 
-/**
- * Engine ladder. Cloud is the normal path whenever the runtime can play audio;
- * the device engines are labelled `*-offline` so every caller can tell the user
- * which path was actually used.
- */
-export function chooseSpeechEngine(globalObject = {}, options = {}) {
-  const online = options.online !== false;
-  if (online && typeof globalObject.Audio === "function") return "cloud";
-  if (options.native === true) return "native-offline";
-  if (globalObject.speechSynthesis && typeof globalObject.SpeechSynthesisUtterance === "function") {
-    return "web-offline";
-  }
-  return "none";
+export function chooseSpeechEngine(globalObject = {}) {
+  return typeof globalObject.Audio === "function" && typeof globalObject.fetch === "function" ? "cloud" : "none";
 }
 
-export function nativeSpeechUrl({ text, lang, rate } = {}) {
-  const params = new URLSearchParams({
-    text: String(text || "").slice(0, 200),
-    lang: normalizeSpeechLanguage(lang),
-    rate: String(Number(rate) || 1),
-  });
-  return `thewyj://speech/speak?${params.toString()}`;
+function failure(code, message, extra = {}) {
+  return { ok: false, engine: "cloud", fallback: false, cloudFailed: true, code, message, ...extra };
 }
 
-function ensureAudio(globalObject) {
-  const existing = globalObject.__wyjCloudAudio;
-  if (existing && typeof existing.play === "function") return existing;
-  const audio = new globalObject.Audio();
-  audio.preload = "auto";
+function playCloud(globalObject, { text, language, speed }) {
+  stopSpeech(globalObject);
+  const audio = globalObject.__wyjCloudAudio || new globalObject.Audio();
   globalObject.__wyjCloudAudio = audio;
-  return audio;
-}
-
-/** One offline utterance through the device engine, used only after cloud failure. */
-function speakOffline(globalObject, { text, language, speed, native }) {
-  const engine = chooseSpeechEngine(globalObject, { native, online: false });
-  if (engine === "native-offline") {
-    try {
-      // Only the native offline path may arm the `thewyj://speech/stop` bridge.
-      globalObject.__wyjNativeSpeech = true;
-      globalObject.console?.info?.("WYJ_SPEECH:offline-fallback");
-      globalObject.location.href = nativeSpeechUrl({ text, lang: language, rate: speed });
-      return { ok: true, engine, message: "云端语音暂时不可用，已改用本机离线语音。" };
-    } catch (_) {
-      return { ok: false, engine, message: "无法调用本机语音引擎，请检查系统文字转语音设置。" };
-    }
-  }
-  if (engine === "web-offline") {
-    try {
-      const synth = globalObject.speechSynthesis;
-      const utterance = new globalObject.SpeechSynthesisUtterance(text);
-      utterance.lang = language;
-      utterance.rate = speed;
-      synth.cancel();
-      synth.speak(utterance);
-      return { ok: true, engine, message: "云端语音暂时不可用，已改用浏览器离线语音。" };
-    } catch (_) {
-      return { ok: false, engine, message: "浏览器离线语音朗读失败，请稍后重试。" };
-    }
-  }
-  return {
-    ok: false,
-    engine: "none",
-    message: "云端语音暂时不可用，且当前环境没有离线语音；请联网后重试。",
-  };
-}
-
-function playCloud(globalObject, { text, language, speed, native }) {
-  const audio = ensureAudio(globalObject);
+  const urls = globalObject.URL || URL;
+  const controller = new AbortController();
+  let blobUrl = "";
   let settled = false;
-  let failed = false;
-  let resolvePending = () => {};
-  const pending = new Promise((resolve) => {
-    resolvePending = resolve;
-  });
+  let resolvePending;
+  const pending = new Promise((resolve) => { resolvePending = resolve; });
+  const current = () => globalObject.__wyjCloudPlayback === playback;
   const finish = (result) => {
     if (settled) return;
     settled = true;
-    resolvePending(result);
-  };
-
-  const cleanup = () => {
+    clearTimeout(timer);
     audio.removeEventListener?.("playing", onPlaying);
     audio.removeEventListener?.("error", onError);
+    resolvePending(result);
   };
-  function onPlaying() {
-    cleanup();
-    finish({ ok: true, engine: "cloud", fallback: false, message: "" });
-  }
-  function onError() {
-    // `play()` rejects and the media element also fires `error`; the offline
-    // fallback must run exactly once.
-    if (failed || settled) return;
-    failed = true;
-    cleanup();
-    const offline = speakOffline(globalObject, {
-      text,
-      language,
-      speed,
-      native: native === true,
-    });
-    finish({ ...offline, fallback: offline.ok, cloudFailed: true });
-  }
+  const release = () => {
+    controller.abort();
+    audio.removeEventListener?.("ended", release);
+    if (blobUrl) { urls.revokeObjectURL(blobUrl); blobUrl = ""; }
+    if (current()) delete globalObject.__wyjCloudPlayback;
+  };
+  const fail = (result) => { finish(result); release(); };
+  function onPlaying() { finish({ ok: true, engine: "cloud", fallback: false, message: "" }); }
+  function onError() { fail(failure("tts_playback_failed", "云端语音音频播放失败，请点击朗读重试。")); }
+  const playback = {
+    cancel() {
+      finish({ ok: false, engine: "cloud", fallback: false, cancelled: true, code: "tts_cancelled", message: "" });
+      release();
+    },
+  };
+  globalObject.__wyjCloudPlayback = playback;
+  const timer = setTimeout(() => fail(failure("tts_timeout", "云端语音服务响应超时，请稍后重试。")), CLOUD_TTS_TIMEOUT_MS);
 
-  audio.addEventListener?.("playing", onPlaying, { once: true });
-  audio.addEventListener?.("error", onError, { once: true });
-  audio.pause?.();
-  audio.currentTime = 0;
-  audio.src = cloudSpeechUrl({ text, lang: language });
-  audio.playbackRate = speed;
-  try {
-    const playResult = audio.play();
-    if (playResult && typeof playResult.catch === "function") {
-      playResult.catch(() => onError());
+  // Read the existing API's error envelope before starting audio so auth,
+  // throttling and service errors remain visible on Web and Android alike.
+  void (async () => {
+    try {
+      const response = await globalObject.fetch(cloudSpeechUrl({ text, lang: language }), {
+        signal: controller.signal, credentials: "same-origin",
+      });
+      if (!current()) return;
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        if (!current()) return;
+        fail(failure(payload.code || "tts_unavailable", payload.error || "云端语音服务暂时不可用，请稍后重试。", {
+          httpStatus: response.status, retryable: payload.retryable === true,
+          retryAfter: response.headers.get("Retry-After"),
+        }));
+        return;
+      }
+      if (!/^audio\/(?:mpeg|wav|ogg)(?:;|$)/i.test(response.headers.get("Content-Type") || "")) {
+        fail(failure("tts_invalid_audio", "云端语音返回了无效音频，请稍后重试。"));
+        return;
+      }
+      const blob = await response.blob();
+      if (!current()) return;
+      if (!blob.size) { fail(failure("tts_empty_audio", "云端语音没有返回音频，请稍后重试。")); return; }
+      blobUrl = urls.createObjectURL(blob);
+      audio.preload = "auto";
+      audio.addEventListener?.("playing", onPlaying, { once: true });
+      audio.addEventListener?.("error", onError, { once: true });
+      audio.addEventListener?.("ended", release, { once: true });
+      audio.src = blobUrl;
+      audio.playbackRate = speed;
+      const playing = audio.play();
+      playing?.catch?.(() => { if (current()) onError(); });
+    } catch (_) {
+      if (current()) fail(failure("tts_unavailable", "无法连接云端语音服务，请检查网络后重试。"));
     }
-  } catch (_) {
-    onError();
-  }
+  })();
   return pending;
 }
 
-/**
- * Speaks one dictation entry.
- *
- * Returns immediately with the engine that was started; `pending` resolves once
- * the cloud asset is actually playing, or - when the cloud path failed - with
- * the explicit offline fallback result so the UI can tell the user what
- * happened. Nothing here silently falls back without reporting it.
- */
-export function speakText(globalObject, { text, lang, rate, native = false } = {}) {
+// Keep the result/pending contract used by app.js and the Android WebView.
+export function speakText(globalObject, { text, lang, rate } = {}) {
   const value = String(text || "").trim();
   if (!value) return { ok: false, engine: "none", message: "没有可朗读的内容。" };
-  const language = normalizeSpeechLanguage(lang);
-  const speed = Number.isFinite(Number(rate)) && Number(rate) > 0 ? Number(rate) : 1;
-  const engine = chooseSpeechEngine(globalObject, { native });
-  if (engine === "cloud") {
-    return {
-      ok: true,
-      engine,
-      message: "",
-      pending: playCloud(globalObject, { text: value, language, speed, native }),
-    };
+  if (chooseSpeechEngine(globalObject) === "none") {
+    return { ok: false, engine: "none", code: "tts_unavailable", message: "当前环境无法播放云端语音，请使用支持音频的浏览器后重试。" };
   }
-  const offline = speakOffline(globalObject, { text: value, language, speed, native });
-  return { ...offline, pending: Promise.resolve(offline) };
+  try {
+    return { ok: true, engine: "cloud", message: "", pending: playCloud(globalObject, {
+      text: value, language: normalizeSpeechLanguage(lang),
+      speed: Number.isFinite(Number(rate)) && Number(rate) > 0 ? Number(rate) : 1,
+    }) };
+  } catch (_) { return failure("tts_playback_failed", "无法启动云端语音播放器，请稍后重试。"); }
 }
 
-export function stopSpeech(globalObject = {}, { native = false } = {}) {
+export function stopSpeech(globalObject = {}) {
+  globalObject.__wyjCloudPlayback?.cancel();
   try {
     const audio = globalObject.__wyjCloudAudio;
-    if (audio) {
-      audio.pause?.();
-      audio.removeAttribute?.("src");
-      audio.load?.();
-    }
-  } catch (_) {
-    // Stopping is best effort.
-  }
-  try {
-    if (native && globalObject.__wyjNativeSpeech === true) {
-      globalObject.__wyjNativeSpeech = false;
-      globalObject.location.href = "thewyj://speech/stop";
-    }
-  } catch (_) {
-    // Same as above.
-  }
-  try {
-    globalObject.speechSynthesis?.cancel?.();
-  } catch (_) {
-    // Same as above.
-  }
+    audio?.pause?.();
+    audio?.removeAttribute?.("src");
+    audio?.load?.();
+  } catch (_) { /* Best effort stopping of the cloud audio element. */ }
 }
 
-/** Test-only: clear playback markers between cases. */
+/** Test-only: release cloud playback resources. */
 export function resetSpeechState(globalObject = {}) {
-  globalObject.__wyjNativeSpeech = false;
+  stopSpeech(globalObject);
   delete globalObject.__wyjCloudAudio;
 }

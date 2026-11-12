@@ -369,10 +369,13 @@ jobs:
           node local-backend/test_aeris_p5_js.mjs 2>&1 | tee artifacts/aeris-p5-ownership-unit.log
           node local-backend/test_aeris_public_js.mjs 2>&1 | tee artifacts/aeris-p3-public-unit.log
 
-      - name: Test cloud TTS provider fallback
+      - name: Test Azure cloud TTS and legacy cache compatibility
         run: |
           set -euo pipefail
           node local-backend/test_tts_js.mjs 2>&1 | tee artifacts/cloud-tts.log
+          npm run test:tts:runtime 2>&1 | tee artifacts/cloud-tts-runtime.log
+          CHROME_BIN="$(command -v google-chrome || command -v chromium || command -v chromium-browser)" npm run test:tts:browser 2>&1 | tee artifacts/cloud-tts-browser.log
+          cp .wrangler/tts-evidence/browser-result.json artifacts/cloud-tts-browser.json
 
       - name: Test language JavaScript modules
         run: |

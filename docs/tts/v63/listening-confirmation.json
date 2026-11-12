@@ -1,0 +1,27 @@
+{
+  "recorded_at": "2026-11-12T10:47:50.005Z",
+  "status": "LISTENING_PASS_OWNER_CONFIRMED",
+  "confirmed_by": "owner in this chat",
+  "confirmation": "已试听三语，语言和声音均正常",
+  "device_model": "NOT_RECORDED",
+  "samples": [
+    {
+      "language": "en",
+      "locale": "en-US",
+      "voice": "en-US-JennyNeural",
+      "sha256": "8d1594f6d863deb18a6d968a309be4e3d73c9187fbe14c767222beccc1a0ee35"
+    },
+    {
+      "language": "jp",
+      "locale": "ja-JP",
+      "voice": "ja-JP-NanamiNeural",
+      "sha256": "59e16d0659f480748894b90aab3a77aa94daf587abfa1def73a6378670dab8bd"
+    },
+    {
+      "language": "zh",
+      "locale": "zh-CN",
+      "voice": "zh-CN-XiaoxiaoNeural",
+      "sha256": "d348ce95552aeb9509d469e670c5c547d9077739687bade6e86a0162a910b1f8"
+    }
+  ]
+}
