@@ -166,3 +166,70 @@ hash 为 `c4421bdb7443f61a028683272be5bb68ed92d29df7e504ce2e68d25d131217b0`。
    CAS/前置快照恢复，不覆盖并发变更。
 4. 单独审阅 PWA 修复 Draft PR，之后由所有者统一收敛并授权新 Preview 部署。
    当前不合并 #146、#148 或其他 PR，不自行更新 Flash 的部署。
+
+## 6. S0 收尾再核查（2026-11-13）
+
+#149 原 HEAD `89e860ccc17b1093fbfabdc33a12dd36d7dd1123` 的 Core CI
+[43359633199](https://github.com/WYJ0904/thewyj.uk/actions/runs/43359633199)
+第 1 次执行为 **FAIL**：7 个 job 成功、2 个条件跳过，Cloud-only browser
+在 `qa/aeris/p5-pwa-browser.mjs:11` 报 `84 !== 83`。原始日志及 artifact 保留。
+这是上次未同步的验收脚本总数断言，不是原 81 项 CORE 合同改变。
+
+本轮最小更正仅补齐该 P5 脚本的分层合同：独立断言 CORE=81 及原 RC5 指纹、
+Task26 的两个精确模块、FINANCE 的一个 money.js，并断言组合完整为 84。
+原有静态完整性、旧客户端字节、用户 cache、离线 guest shell 与在线恢复
+断言保留。使用实际编译 Pages Worker、新建本地 D1/R2 和独立 Chrome 执行
+该失败脚本，已通过；没有重跑 21 项迁移演练或 824 项 Android 本地回归。
+新提交的精确 SHA / Core CI 以 #149 最新 head 检查为准，不将首次失败改写为 PASS。
+
+同类依赖复核：当前 REQUIRED_SHELL 的 JS 闭包共 64 个可达模块，未发现其他
+缺失的静态/字面量懒加载依赖；原 81+2+1 分层、11 项 integrity hash 和
+`c4421b…` publication 均有效。未扩展到未启用功能或修改 TTS 分支。
+
+实时只读核查再次确认 D1 UUID/名称及当前 Pages 项目 Preview WYJ_DB 绑定一致。
+ledger 仍为 27 条至 0026，Task16/21=1/2，三个学习 Flags 仍 OFF/0%。八个 SQL
+与 #146 原文件及既有验证 hash 一致；0031 只新增/回填两位币种 exponent，旧
+JPY 的 amount_minor/currency 不缩放且 exponent 不自动确认为 0。
+
+UTC 03:45:45 和 03:48:26 两次观察中，13 个被观察业务/策略表的行数与最大
+活动时间未变；这不是全库停写证明。可见 Codex agent 树只有本任务，外部
+Flash 的实时写入状态不可独立确认。故维护窗口仍 **UNCONFIRMED**，不执行
+私有完整备份、remote migrations apply、注册、权益/Flags 写入或整库 restore。
+已取得当次只读 bookmark 观察，执行前仍须重新捕获；它不等于已完成备份。
+
+迁移前后证据：远程只有迁移前只读状态，没有远程迁移后保全 PASS。原 21 项
+本地保全/故障恢复证据继续有效；不能用它们替代历史 Preview 的实际后置比对。
+当前 Hosted 业务矩阵维持第 4 节：旧 URL 的财务硬断网仍 FAIL，登录/权益/Flags
+所阻断的 Task11、Task26、财务和云回执均 BLOCKED，P07 实际交互/跨版本暖更新
+仍 NOT_TESTED。本轮没有授权的独立测试账户，因而没有应撤销的本轮远端权益、
+Flags 或测试数据；也没有将软删除标成物理删除。
+
+### Samsung W01–W10
+
+承接 [既有真实验收矩阵](../ANDROID_HOTFIX_REMAINING_ACCEPTANCE_MATRIX.md)
+及 [W01–W10 方案](../AERIS_HOTFIX_PHASE4_WECHAT_PLAN.md)，本轮均为
+**NOT_TESTED，0/10**；没有操作手机或真实支付。
+
+| ID | 仍需单独授权并完成的真实事件条件 |
+| --- | --- |
+| W01 | 主微信、前台完整通知→合法 ticket/核实→Room/outbox→云 receipt→三页链路 |
+| W02 | 第二独立事件，可同额；证明身份独立、不合并或重复记账 |
+| W03 | 从本机核实到获准完成页，验证 90s ticket、来源与 profile 绑定 |
+| W04 | 保存后正常 Home/返回，无手动刷新观察收敛 |
+| W05 | 保存期间息屏/亮屏/解锁，分开记录人工等待，票据不续期 |
+| W06 | 获准隔离网络中断/恢复，Outbox 与补拉完整 |
+| W07 | 独立新事件内同 operation 重试，仅一份回执/流水 |
+| W08 | 独立新事件完成后重启候选，验证实际持久化和新会话读取 |
+| W09 | 单独授权的第二微信 profile/分身事件，禁止跨用户读取 |
+| W10 | 第十独立事件，三页面/重载/云新会话核对同笔身份、金额和终态 |
+
+每行都必须有独立真实事件并覆盖完整链路；重试和重读不能重复计数。正式 APK、
+签名、权限、测试 origin、设备/WebView 身份及真实事件范围需要先冻结并单独
+授权。Web/Android 回执协议的合成测试不等于 Samsung 验收。
+
+### P0 最终发布前仍阻断
+
+最新精确 SHA 的 Core CI 放行；合并后 PWA/TTS 源码收敛及新的获准 Preview；
+指定历史库备份/停写/八项迁移和实际后置保全；两个 QA 账户、最小权益及三
+Flags 的受控开启；完整 Hosted 业务验收；适用 Samsung 实机门禁。任何整库
+restore、Production 或真实支付均不包含在本轮授权中。
