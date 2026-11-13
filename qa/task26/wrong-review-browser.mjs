@@ -34,7 +34,8 @@ for(const width of widths){
     await page.navigate('/language/'+language);await page.evaluate("document.getElementById('dismissVersionNoticeBtn')?.click()");
     await page.setFields({'#profileInput':profile});
     await page.waitFor(`state.profile===${JSON.stringify(profile)}`);
-    await page.evaluate(`(async()=>{const {sanitizeWrongBook}=await import('/js/language/wrong-book.js?v=${ASSET_RELEASE}');
+    // Use the same immutable publication URL as the application and SW cache.
+    await page.evaluate(`(async()=>{const {sanitizeWrongBook}=await import('/js/language/wrong-book.js?release=${ASSET_RELEASE}');
       const language=${JSON.stringify(language)},kind=${JSON.stringify(kind)},profile=${JSON.stringify(profile)};
       const terms=language==='english'?['apple','banana']:['学校','電話'];
       const payload=Object.fromEntries(terms.map((word,index)=>[word,{word,language,question_type:kind,grading_mode:'strict',wrong_count:index+2,correct_answer:kind==='dictation'?(language==='japanese'?word+' / '+(index?'でんわ':'がっこう'):word):language==='english'?(index?'香蕉':'苹果'):(index?'电话':'学校'),accepted:[],rubric:{reading:index?'でんわ':'がっこう'}}]));
@@ -126,7 +127,7 @@ for(const width of widths){
       const issued=await call('/api/learning/adaptive/next',{language:'japanese',mode:'adaptive'});assert.equal(issued.status,200);
       const ticket=issued.body.question,eventId=crypto.randomUUID();
       const oldFault=await page.intercept([{match:'/api/learning/legacy/events',state:'lost',respond:({state})=>state==='lost'?{status:503,body:{ok:false,code:'learning_unavailable',error:'isolated recovery outage'}}:{continue:true}}]);
-      await page.evaluate(`(async()=>{const {emptyLearningStore,masteryStorageKey}=await import('/js/language/mastery-state.js?v=${ASSET_RELEASE}');const {createMasteryJournal}=await import('/js/language/mastery-journal.js?v=${ASSET_RELEASE}');
+      await page.evaluate(`(async()=>{const {emptyLearningStore,masteryStorageKey}=await import('/js/language/mastery-state.js?release=${ASSET_RELEASE}');const {createMasteryJournal}=await import('/js/language/mastery-journal.js?release=${ASSET_RELEASE}');
         const question=${JSON.stringify(ticket)},entry={language:'japanese',input:{event_id:${JSON.stringify(eventId)},ticket_id:question.ticket_id,kind:'answer_submitted',answer:'legacy-recovery-fixture',response_ms:1200}},store=emptyLearningStore(state.account.id);
         store.questions.japanese={question,started_at:Date.now(),mode:'adaptive'};store.outbox=[entry];
         await createMasteryJournal().put(state.account.id,entry,question);localStorage.setItem(masteryStorageKey(state.account.id),JSON.stringify(store));})()`);

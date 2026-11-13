@@ -1,0 +1,691 @@
+{
+  "recorded_at": "2026-11-13T02:17:40.887Z",
+  "origin": "https://6d3ca922.thewyj-uk.pages.dev",
+  "baseline": "29bdbb9e3ae4cd88019b6c0046aabc6df574a942",
+  "release": "20261109-aeris-p07-production-r2",
+  "core_count": 81,
+  "required_count": 83,
+  "api_requests": 0,
+  "status": "PASS_STATIC_SOURCE_IDENTITY",
+  "rows": [
+    {
+      "asset": "/",
+      "status": 200,
+      "mime": "text/html; charset=utf-8",
+      "bytes": 141809,
+      "sha256": "2e7a9c887de3d29cc4c2186031dd78ff0983a319d1411452854da17461aa20d3",
+      "canonical_equal_to_146": true,
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
+    },
+    {
+      "asset": "/app.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 351927,
+      "sha256": "eff3903e3e2f82647e6be53577dced7cf1a000928075c509030adf41bf782eaa",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/assets/brand/aeris-lockup.png?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "image/png",
+      "bytes": 71244,
+      "sha256": "afdc3e7b323731e060d10000b2d8f0a17ae278432ac65502aba93b188964d2bd",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/assets/brand/aeris-maskable-512.png?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "image/png",
+      "bytes": 37420,
+      "sha256": "1166a8f14c85eecc3d034b38de019b2d1d1ab2de5eb0c9c94d5fef58132f1c1f",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/assets/brand/apple-touch-icon.png?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "image/png",
+      "bytes": 10337,
+      "sha256": "d2a360b4f07008be6b1009eb4443e5f9d45a203b795a556cc5b53d8c8ccfd485",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/assets/brand/favicon-32.png?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "image/png",
+      "bytes": 1050,
+      "sha256": "d0d30ca5a338432d9581ea5f1e33571988f5d75c76e2875b4db42d8d3a6d6f66",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/changelog.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 60046,
+      "sha256": "1fab242908996a39504d06a75b6aeeb3eb088ac28c583b50a32de01797a305d7",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/design-system.css?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "text/css; charset=utf-8",
+      "bytes": 37766,
+      "sha256": "da4d482e7f969afe60ebee2d94b6896389ba827d0aed0a80c4a35acb27ab9ee1",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/favicon.ico?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "image/vnd.microsoft.icon",
+      "bytes": 6253,
+      "sha256": "e8ea76143ae28d384616811bbcc405c41e5afa972623e90943cb3e3c6c74ece9",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/icon-192.png",
+      "status": 200,
+      "mime": "image/png",
+      "bytes": 11401,
+      "sha256": "455cc55b9335fa03e2167fea7361242241136f47a7cc56f0cfb7fcf8f065c696",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/icon-192.png?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "image/png",
+      "bytes": 11401,
+      "sha256": "455cc55b9335fa03e2167fea7361242241136f47a7cc56f0cfb7fcf8f065c696",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/icon-512.png",
+      "status": 200,
+      "mime": "image/png",
+      "bytes": 53696,
+      "sha256": "942fef5531e439f0d8879b7bf8e160bb2977d3e1dfb12eca1fab4e68cd56c2da",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/icon-512.png?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "image/png",
+      "bytes": 53696,
+      "sha256": "942fef5531e439f0d8879b7bf8e160bb2977d3e1dfb12eca1fab4e68cd56c2da",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/index.html",
+      "status": 200,
+      "mime": "text/html; charset=utf-8",
+      "bytes": 141809,
+      "sha256": "2e7a9c887de3d29cc4c2186031dd78ff0983a319d1411452854da17461aa20d3",
+      "canonical_equal_to_146": true,
+      "redirects": [
+        {
+          "status": 308,
+          "target": "/"
+        }
+      ]
+    },
+    {
+      "asset": "/js/admin/formatters.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 984,
+      "sha256": "3392d2cd95304c0a78924ebfcd4289c27e3ca3509e46230cbfcbaeadfc18044f",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/core/api.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 13887,
+      "sha256": "401f3ae75b847974d7550751f7e2e78778b851e83377257cac575e4930c73e56",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/core/capabilities.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 7448,
+      "sha256": "01a07b545f76a18aa05b1c98589b093f0c4a30597d4acd5a7efc5c9ec1ef2b56",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/core/changelog.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 2974,
+      "sha256": "e94c1f84bf13b4345256e6b0ac80681ab7982ad13b2456a21995aad69cb78fbe",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/core/config.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 704,
+      "sha256": "5270114285feabdb5fb430ec994db34afafebb64246f7f664134f87b434d4028",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/core/dashboard.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 12017,
+      "sha256": "2857be40fecc8dafcac373b50d983209125918c7dec661091a084caf0ecdc603",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/core/design-system.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 15422,
+      "sha256": "8d8d34c4545f56088683e959eea8af7a3f4741ef80e325522d93b631f973fb05",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/core/download.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 3467,
+      "sha256": "3f50c623346e9e7df3a2eb1aa1edd31aa883bc98af2f2d981932b763cea11f9e",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/core/feature-console.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 6958,
+      "sha256": "0337378cc22e8ff8d46701c478a3018d7147cabdfd38bf7df0e83031c5838fc1",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/core/feature-flags.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 7600,
+      "sha256": "60ee56d09de8b7e10f5322c802f6af5ff619178450d90102f0faa25c87d4bb3f",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/core/home-widget-data.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 5115,
+      "sha256": "9388cbf85e76e8739a0412725f1e05991a77395e266f3df3e4d98064ed897605",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/core/home-widget-layout.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 5660,
+      "sha256": "9b798a44764fdcbda5b0dc5e2f0a0db7dc9ad55c8dfff60796d3af0c61e3a3ed",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/core/home-widgets.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 17222,
+      "sha256": "aef91d8e0c9d3d2b28e5f98ade704811afea022da1d709f2f2fbe60a5a39013b",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/core/keyed-list.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 2453,
+      "sha256": "0d97c204dd2792906a0938b7cde4f3ce88d8de01da4768789eb3a34b8d9ed4be",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/core/lazy-controller.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 3791,
+      "sha256": "5baddd29157f65e032a333f4192abd20ccb4512df713d4afe948b281df387637",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/core/motion.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 9732,
+      "sha256": "40d29e746c31904c9432df7a3c5df6cf58962eecf106f3f854212284b0b68293",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/core/parked-rows.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 1016,
+      "sha256": "dba6e9fe3ee28d55727cc3bb80edeb6b9ba421021efbc4aaa03995f75d3b2c10",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/core/perf.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 9308,
+      "sha256": "add801f4828b3de5510cab3aa278b388ebbfe63ab940afeeb7de0954b4d58779",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/core/public-experience.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 8173,
+      "sha256": "8686b8269fb80fa90438c5212193ad4e129d80a52a6680e2c52b0cd1b9aa80d8",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/core/public-ui-policy.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 4656,
+      "sha256": "0ba84e2ad06a282b2805d8eb5886c6fb2779439adb95a2a4d79ea4027898f823",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/core/router.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 2903,
+      "sha256": "aaa0cbe4bcbd3696be6cb4e15157e2474ccf66afd38fbf9a15a9d277a5590bc3",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/core/session.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 2785,
+      "sha256": "9e2eb3cce8fa0ad34997d187b74a053bef6cbd1b898bad722bbb0d5a82473742",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/core/startup.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 2812,
+      "sha256": "3b3fe2af83847cc6eb6357f29e5fa613b27936eca9c68d4630c4fcb99ceceb42",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/core/storage.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 4059,
+      "sha256": "6dc0175f5f17ad2dc4ff7cb73065b8840062b51f80ffaf32151df059e5cb1200",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/core/ui.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 1696,
+      "sha256": "b02c5e9fadfc7cbfef3b405f1a9acced8d356de842543e953b4ec4c65b799c1c",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/finance/app.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 89588,
+      "sha256": "9bdcb1b982455c6fa15b53af9e42739422d3eb566a9640f711ed9b34be59f1de",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/finance/candidates.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 39654,
+      "sha256": "ac737826f95cccd9453cbcda3574490ce4a0141559293f6a30aad438f49b350c",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/finance/disclosure.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 1282,
+      "sha256": "b4032c25e57ec04b72d4d5141e5a857dd6e96e34e9cb5edc1526f3e5640a2c62",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/finance/format.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 1002,
+      "sha256": "b5083b8a559b25df6cbf0dd77577d57fca2d000308d6aa38a1ee7a26ef429325",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/finance/notification-ledger.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 5337,
+      "sha256": "9c25fec579c578af82b5d996679c5ee6f1ecf83902e5346e9963c995d22aacd5",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/language/achievements.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 5875,
+      "sha256": "b72bf7bd4e1cad4c3e1f42d0b25f75c1e2fab885c38f0ba78ef8d748c60e62b0",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/language/history.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 3829,
+      "sha256": "546989e2a977db8aa77a16d7f1c8207df347208ff1cb0acf0db3a58a7ea881be",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/language/mastery-journal.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 3357,
+      "sha256": "7895b68eb225d35ffd57b96883df610c7b76c55de584e15a5423bf2b10019f6d",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/language/mastery-state.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 5339,
+      "sha256": "94dc4e4c9253a9d0fa8aed57ec81b3029926dd8642eec7b3edbbc5808edca478",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/language/mastery.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 8389,
+      "sha256": "65b55adb1e66d075d9c899481a17020a0241fb388ff2e71925214190dd9b4797",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/language/pdf.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 9871,
+      "sha256": "59662916aade5334b395563d903780e757d714c36bc6dd0a48a3bb24fb5a17eb",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/language/quiz.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 14699,
+      "sha256": "cd4546dc7e48876bac503c49e259267bde99b79ab0cf5565cb917c1ed031e3b0",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/language/speech-rate.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 1554,
+      "sha256": "375d7100787d437854bfae0496783ecabbc65781c351cbe70f1edf272021cf48",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/language/speech.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 7469,
+      "sha256": "912ee8f2df2d7b0179ba43f0015d759175d1029f6414c666f41148f3b698bfe7",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/language/sync-adapter.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 1057,
+      "sha256": "686ce5b6f7941a0af4919eea34943f950ff0021991676426c4443517a5e4f2d6",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/language/wrong-book.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 7027,
+      "sha256": "a1b452848f7d332f4add1d6c7b55feb00d7ba6f80045c352b9ce32fbade724eb",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/language/wrong-review-sync.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 12279,
+      "sha256": "231cb66e91aa6909157253d064b0241fe9cf3e6c841b95c1b41a2ba0657f5997",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/language/wrong-review.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 9463,
+      "sha256": "d77ec0816756cf4a65a7c4f804ea80d6c17aee4757524bcee7ba2aca558c3a25",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/membership/account.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 2406,
+      "sha256": "b262fb48b08381f6e4a6849c5ad83f05748a5e8a2a3f54fc1705d53141b9b493",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/membership/plans.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 3194,
+      "sha256": "3636e0bb273f9fb0443c97d0cac48d04d96d1252140cd174cf7661b6e2a5337a",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/membership/recharge.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 1499,
+      "sha256": "b2e04cb1a4fdd788f3f5157a5924479389bb93ce4d382c05d525052448508c57",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/tools/catalog.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 18705,
+      "sha256": "19f2165361ea595d5df4d8c0b7640ece5e273cbe8247676f57700b67b28dc643",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/tools/digest-worker.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 266,
+      "sha256": "499c9344769aeabf0578948c124455a56d4f78608d6c2453103e9c6ed3c05352",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/tools/file.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 7536,
+      "sha256": "1e99472f56a6f837652bd4d5083ac612b2971bdf7310e6ae35b84965c0ab1905",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/tools/image.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 7918,
+      "sha256": "e7aa9a1edc8caca4547bda2f1f56bca5f3de567d53fae89b51e42c2f762ac398",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/tools/random.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 5715,
+      "sha256": "eb32c14573ee7c38badf8e504f6e72c327f9b89f74d61137db763ebe8bbc9b1d",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/tools/runner.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 266,
+      "sha256": "b0f0370cbb72b57b082016dc67802688652e08816a8c7a134538db2bdd123220",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/tools/temporary.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 3841,
+      "sha256": "00d807346ed025da0618c1da40c1973b613782660d888c6c12286a48ea310fa2",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/tools/text.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 12959,
+      "sha256": "8f103fdfff4af9e82274f6fe6c76e7861a9108c5945e64b946a888dc0797ccbe",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/transfer/app.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 66291,
+      "sha256": "92c137bd87e3c1a2ddc7f0e99aa3cde4ffa1449bef12f7992f611e3fc8525cb5",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/transfer/updates.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 1637,
+      "sha256": "cc1dd699f5587366f72fa0e3dbc49d308685a3e44f69f5bd4f9a9bf8b863167a",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/js/transfer/upload-part.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 3776,
+      "sha256": "49ec1e3f623aac0f5812c6c6a6b35d137b28cb8aa07592015ea62de96de3ae1a",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/learning-sync.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 43219,
+      "sha256": "74ced24b8dab7c8ad16dc6b4b68ff81a89e968d18a607bbba6b066a8bee7727d",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/manifest.webmanifest?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/manifest+json",
+      "bytes": 591,
+      "sha256": "27bf1b56cc0927aa3a62940127a29cefd0a861e01a9810eb7bf8d58c2e73ce5f",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/product-ui.css?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "text/css; charset=utf-8",
+      "bytes": 96869,
+      "sha256": "2afdb61afc1770198569bad4a2afa1c4fe131a5201a688c4e3af40cb96a1e5b8",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/public-experience.css?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "text/css; charset=utf-8",
+      "bytes": 58533,
+      "sha256": "70ab65f941cefe3efb86bd2906842e9fcde194344ecdec2d294f269ef3cb0cf4",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/spatial-experience.css?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "text/css; charset=utf-8",
+      "bytes": 113703,
+      "sha256": "ae959e0a2f85164e1246308398f2b5b202745842e54bc8ef39c2fd24e8615950",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/styles.css?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "text/css; charset=utf-8",
+      "bytes": 62701,
+      "sha256": "0afc88cc5a5b58bac2645e4b5864a7160ac41d372a1c5470aad4af21d46cdc41",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/sw.js",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 16700,
+      "sha256": "9f89c0f180bf0f18bead3a864177e29b783848c30c3f52dc6bafcee65647cba3",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/tools.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 96262,
+      "sha256": "8e66b009c373a9103e1b1c15a777d905fad3518fedaccbdc6056af298dabd055",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/vendor/opencc-st-characters.txt",
+      "status": 200,
+      "mime": "text/plain; charset=utf-8",
+      "bytes": 36022,
+      "sha256": "81c27e6364fd164181276197b9215cf95f7f12a050aa207375248a5badf8d6fc",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/vendor/opencc-ts-characters.txt",
+      "status": 200,
+      "mime": "text/plain; charset=utf-8",
+      "bytes": 104516,
+      "sha256": "737c21c66f55a419dd6956cb3089476cdefc5a36877452631617696df1e5d925",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/vendor/qrcode.js?v=2.0.4",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 56694,
+      "sha256": "79ec86f82856005b1c887905cfccfcfbec3821ca61c7fd5a952faa5f778f791c",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/workflows.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "application/javascript",
+      "bytes": 56323,
+      "sha256": "3d035293b595900403e1badf497229ce4465bdede015fce0f4569165c45a9fa6",
+      "canonical_equal_to_146": true
+    },
+    {
+      "asset": "/workspace-experience.css?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "mime": "text/css; charset=utf-8",
+      "bytes": 34117,
+      "sha256": "a2d55639edfaaa15519a85d0ad94a6690b2c7450deead84b40afa045aa8572ab",
+      "canonical_equal_to_146": true
+    }
+  ]
+}
