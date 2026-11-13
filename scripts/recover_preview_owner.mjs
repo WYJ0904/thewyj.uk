@@ -30,13 +30,27 @@ function bindSql(sql, params) {
   return sql.replace(/\?(\d+)/g, (_, idx) => sqlLiteral(params[Number(idx) - 1]));
 }
 
+export function parseWranglerJsonOutput(stdout) {
+  const text = String(stdout || "").trim();
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    const match = text.match(/^\s*[\[{]/m);
+    if (match && typeof match.index === "number") {
+      return JSON.parse(text.slice(match.index));
+    }
+    throw new SyntaxError(`Unable to locate JSON payload in Wrangler output: ${text.slice(0, 120)}`);
+  }
+}
+
 function runWrangler(args) {
   const stdout = execFileSync(process.execPath, [WRANGLER_BIN, ...args], {
     cwd: ROOT,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
   });
-  return JSON.parse(stdout);
+  return parseWranglerJsonOutput(stdout);
 }
 
 function createRemoteReadOnlyDb(databaseId, envName) {
@@ -94,6 +108,7 @@ export function parseArgs(argv) {
     writeWindowConfirmed: false,
     ownerApprovalConfirmed: false,
     backupConfirmed: false,
+    bootstrapLegacyUpgrade: false,
     confirmPhrase: "",
     note: "",
   };
@@ -107,6 +122,7 @@ export function parseArgs(argv) {
     else if (token === "--write-window-confirmed") args.writeWindowConfirmed = true;
     else if (token === "--owner-approval-confirmed") args.ownerApprovalConfirmed = true;
     else if (token === "--backup-confirmed") args.backupConfirmed = true;
+    else if (token === "--bootstrap-legacy-upgrade") args.bootstrapLegacyUpgrade = true;
     else if (token === "--confirm-phrase") args.confirmPhrase = String(argv[++i] || "");
     else if (token === "--note") args.note = String(argv[++i] || "");
     else throw new PreviewOwnerRecoveryError(`Unknown argument '${token}'`, "invalid_argument", 400);
@@ -201,11 +217,13 @@ async function main() {
       remote: true,
       newSecret,
       passwordPepper,
+      bootstrapLegacyUpgrade: args.bootstrapLegacyUpgrade,
       note: args.note,
     });
     console.log(JSON.stringify({
       ok: true,
       mode: "dry-run",
+      recovery_mode: args.bootstrapLegacyUpgrade ? "bootstrap_legacy_upgrade" : "peppered_direct",
       pinned_owner: PINNED_PREVIEW_OWNER_IDENTIFIER,
       database_id: args.databaseId,
       database_name: args.databaseName,
@@ -227,6 +245,7 @@ async function main() {
     remote: true,
     newSecret,
     passwordPepper,
+    bootstrapLegacyUpgrade: args.bootstrapLegacyUpgrade,
     note: args.note,
   });
 
@@ -255,6 +274,7 @@ async function main() {
   console.log(JSON.stringify({
     ok: true,
     mode: "apply",
+    recovery_mode: args.bootstrapLegacyUpgrade ? "bootstrap_legacy_upgrade" : "peppered_direct",
     pinned_owner: PINNED_PREVIEW_OWNER_IDENTIFIER,
     database_id: args.databaseId,
     database_name: args.databaseName,

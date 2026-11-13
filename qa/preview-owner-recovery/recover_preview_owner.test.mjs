@@ -6,7 +6,7 @@ import path from "node:path";
 import { Miniflare } from "miniflare";
 
 import { onRequest as dispatchApi } from "../../functions/api/[[path]].js";
-import { sessionStorageKey } from "../../functions/_lib/task12-crypto.mjs";
+import { hashSecret, sessionStorageKey } from "../../functions/_lib/task12-crypto.mjs";
 import {
   PINNED_PREVIEW_OWNER_IDENTIFIER,
   PREVIEW_D1_DATABASE_ID,
@@ -16,7 +16,7 @@ import {
   assertPreviewRecoveryTarget,
   readPreviewOwnerSnapshot,
 } from "../../scripts/preview-owner-recovery-lib.mjs";
-import { assertRemoteApplyGates, parseArgs } from "../../scripts/recover_preview_owner.mjs";
+import { assertRemoteApplyGates, parseArgs, parseWranglerJsonOutput } from "../../scripts/recover_preview_owner.mjs";
 
 const ROOT = path.resolve(import.meta.dirname, "../..");
 const TEST_PEPPER = "preview-owner-recovery-test-pepper-at-least-32-bytes";
@@ -125,6 +125,12 @@ async function seedSyntheticPreviewState(db, ownerId, ownerUsername = PINNED_PRE
     ) VALUES (?1, ?2, ?3, '', 'reset_required', 0, 'user', ?4, ?4, ?4, ?4)`)
       .bind(id, name, name, now).run();
   }
+  const existingUserHash = await hashSecret("ExistingUser#2026!Secret", TEST_PEPPER);
+  await db.prepare(`INSERT INTO task12_users (
+    id, username, username_normalized, password_hash, password_scheme,
+    password_iterations, role, registered_at, created_at, updated_at, source_updated_at
+  ) VALUES ('qa-existing-cfv1-001', 'qa_peppered_one', 'qa_peppered_one', ?1, 'pbkdf2_sha256', 310000, 'user', ?2, ?2, ?2, ?2)`)
+    .bind(existingUserHash, now).run();
 
   // Grant normal admin role via owner (historical Task 18 state).
   await db.prepare(`INSERT INTO task18_admin_roles (
@@ -161,7 +167,7 @@ async function seedSyntheticPreviewState(db, ownerId, ownerUsername = PINNED_PRE
   return { adminId, adminToken: "qa-admin-token", regularId };
 }
 
-async function testRecoveryLifecycleWithOwnerId(ownerId, label) {
+async function testRecoveryLifecycleWithOwnerId(ownerId, label, { bootstrapLegacyUpgrade = false } = {}) {
   const fixture = await createMigratedDb();
   try {
     const seeded = await seedSyntheticPreviewState(fixture.db, ownerId);
@@ -206,7 +212,7 @@ async function testRecoveryLifecycleWithOwnerId(ownerId, label) {
     const result = await applyPreviewOwnerRecovery(fixture.db, {
       environment: "preview",
       newSecret: NEW_OWNER_SECRET,
-      passwordPepper: TEST_PEPPER,
+      ...(bootstrapLegacyUpgrade ? { bootstrapLegacyUpgrade: true } : { passwordPepper: TEST_PEPPER }),
       now: "2026-11-13T08:00:00Z",
     });
     assert.equal(result.ok, true);
@@ -217,7 +223,7 @@ async function testRecoveryLifecycleWithOwnerId(ownerId, label) {
     assert.equal(result.after.username, PINNED_PREVIEW_OWNER_IDENTIFIER);
     assert.equal(result.after.role, "super_admin");
     assert.equal(result.after.password_scheme, "pbkdf2_sha256");
-    assert.equal(result.after.password_iterations, 310000);
+    assert.equal(result.after.password_iterations, bootstrapLegacyUpgrade ? 100000 : 310000);
     assert.equal(result.after.session_version, 2);
 
     // Ensure no secret or hash leaked in result JSON.
@@ -230,7 +236,8 @@ async function testRecoveryLifecycleWithOwnerId(ownerId, label) {
     const ownerRow = await fixture.db.prepare("SELECT * FROM task12_users WHERE id = ?1").bind(ownerId).first();
     assert.equal(ownerRow.role, "super_admin");
     assert.equal(ownerRow.password_scheme, "pbkdf2_sha256");
-    assert.equal(ownerRow.password_hash.startsWith("pbkdf2_sha256_cf_v1$310000$"), true);
+    const expectedPreLoginPrefix = bootstrapLegacyUpgrade ? "pbkdf2_sha256$100000$" : "pbkdf2_sha256_cf_v1$310000$";
+    assert.equal(ownerRow.password_hash.startsWith(expectedPreLoginPrefix), true);
     assert.equal(ownerRow.session_version, 2);
 
     const staleSession = await fixture.db
@@ -280,6 +287,19 @@ async function testRecoveryLifecycleWithOwnerId(ownerId, label) {
     assert.equal(login.payload.account.is_super_admin, true);
     assert.equal(login.payload.account.role, "super_admin");
     const ownerToken = login.payload.session;
+
+    const ownerAfterLogin = await fixture.db.prepare("SELECT password_scheme, password_iterations, password_hash FROM task12_users WHERE id = ?1")
+      .bind(ownerId).first();
+    assert.equal(ownerAfterLogin.password_scheme, "pbkdf2_sha256");
+    assert.equal(ownerAfterLogin.password_iterations, 310000);
+    assert.equal(ownerAfterLogin.password_hash.startsWith("pbkdf2_sha256_cf_v1$310000$"), true);
+
+    const existingUserLogin = await apiCall(fixture.db, "/api/login", {
+      method: "POST",
+      body: { username: "qa_peppered_one", secret: "ExistingUser#2026!Secret" },
+    });
+    assert.equal(existingUserLogin.status, 200, JSON.stringify(existingUserLogin.payload));
+    assert.equal(existingUserLogin.payload.account.role, "user");
 
     const rolesRes = await apiCall(fixture.db, "/api/admin/roles", { token: ownerToken });
     assert.equal(rolesRes.status, 200);
@@ -353,6 +373,15 @@ async function testAtomicRollbackAndGuards() {
         passwordPepper: TEST_PEPPER,
       }),
       (err) => err.code === "secret_too_short",
+    );
+    await assert.rejects(
+      applyPreviewOwnerRecovery(fixture.db, {
+        environment: "preview",
+        newSecret: NEW_OWNER_SECRET,
+        passwordPepper: TEST_PEPPER,
+        bootstrapLegacyUpgrade: true,
+      }),
+      (err) => err.code === "ambiguous_recovery_mode",
     );
     await assert.rejects(
       applyPreviewOwnerRecovery(fixture.db, {
@@ -454,11 +483,21 @@ function testRemoteCliGates() {
     () => assertRemoteApplyGates(parseArgs([...base.slice(0, -1), "WRONG-PHRASE"])),
     (err) => err.code === "confirm_phrase_mismatch",
   );
+  assert.equal(parseArgs([...base, "--bootstrap-legacy-upgrade"]).bootstrapLegacyUpgrade, true);
+  assert.deepEqual(
+    parseWranglerJsonOutput("├ Checking if remote database exists\n[{\"success\":true}]"),
+    [{ success: true }],
+  );
   console.log("PASS remote CLI authorization gates");
 }
 
 await testRecoveryLifecycleWithOwnerId("10f06c88-1111-4222-8333-000000000001", "uuid-id-pinned-username");
 await testRecoveryLifecycleWithOwnerId(PINNED_PREVIEW_OWNER_IDENTIFIER, "matching-id-and-username");
+await testRecoveryLifecycleWithOwnerId(
+  "task18-preview-owner-d3a343d9-90d1-47ae-bb76-742771b5ecab",
+  "bootstrap-legacy-auto-upgrade",
+  { bootstrapLegacyUpgrade: true },
+);
 await testAtomicRollbackAndGuards();
 testRemoteCliGates();
 console.log("All Preview Owner minimal recovery tests passed.");

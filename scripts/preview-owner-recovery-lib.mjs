@@ -1,7 +1,9 @@
 import {
   PASSWORD_HASH_ITERATIONS,
+  PASSWORD_HASH_PREFIX,
   hashSecret,
   passwordPepperConfigured,
+  verifySecret,
 } from "../functions/_lib/task12-crypto.mjs";
 import {
   auditSnapshot,
@@ -14,6 +16,9 @@ export const PREVIEW_D1_DATABASE_ID = "a3e6253b-689f-49f3-998b-7c5828ea255a";
 export const PREVIEW_D1_DATABASE_NAME = "wyj-cloud-preview";
 export const PREVIEW_RECOVERY_CONFIRM_PHRASE = "PREVIEW-OWNER-RECOVERY-10F06C88";
 export const FORBIDDEN_USERNAMES = new Set(["wyj"]);
+// Cloudflare Workers WebCrypto PBKDF2 rejects single-call iterations > 100,000;
+// task12-crypto MIN_ACCEPTED_ITERATIONS accepts 100,000 and auto-upgrades to cf_v1$310000 on first login.
+export const BOOTSTRAP_LEGACY_ITERATIONS = 100_000;
 
 const OPTIONAL_TABLES = Object.freeze([
   "task18_admin_roles",
@@ -219,14 +224,46 @@ function renderSql(sql, params) {
   return sql.replace(/\?(\d+)/g, (_, idx) => sqlLiteral(params[Number(idx) - 1]));
 }
 
+function toBase64Url(bytes) {
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
+async function hashBootstrapLegacySecret(secret) {
+  const salt = new Uint8Array(16);
+  crypto.getRandomValues(salt);
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(String(secret || "")),
+    "PBKDF2",
+    false,
+    ["deriveBits"],
+  );
+  const bits = await crypto.subtle.deriveBits(
+    { name: "PBKDF2", hash: "SHA-256", salt, iterations: BOOTSTRAP_LEGACY_ITERATIONS },
+    key,
+    256,
+  );
+  return `${PASSWORD_HASH_PREFIX}$${BOOTSTRAP_LEGACY_ITERATIONS}$${toBase64Url(salt)}$${toBase64Url(new Uint8Array(bits))}`;
+}
+
 export async function prepareRecoveryPlan(db, options = {}) {
   assertPreviewRecoveryTarget(options);
   const now = options.now || isoNow();
   const snapshot = await readPreviewOwnerSnapshot(db, now);
   validateOwnerPreconditions(snapshot, options);
 
+  const bootstrapLegacyUpgrade = Boolean(options.bootstrapLegacyUpgrade);
   const pepper = String(options.passwordPepper || "");
-  if (!passwordPepperConfigured(pepper)) {
+  if (bootstrapLegacyUpgrade && passwordPepperConfigured(pepper)) {
+    throw new PreviewOwnerRecoveryError(
+      "Do not combine bootstrapLegacyUpgrade with WYJ_TASK12_PASSWORD_PEPPER",
+      "ambiguous_recovery_mode",
+      400,
+    );
+  }
+  if (!bootstrapLegacyUpgrade && !passwordPepperConfigured(pepper)) {
     throw new PreviewOwnerRecoveryError(
       "WYJ_TASK12_PASSWORD_PEPPER is missing or shorter than 32 bytes",
       "password_pepper_not_configured",
@@ -243,15 +280,32 @@ export async function prepareRecoveryPlan(db, options = {}) {
   const { owner, tables } = snapshot;
   const beforeSessionVersion = Number(owner.session_version || 1);
   const nextSessionVersion = beforeSessionVersion + 1;
-  const passwordHash = await hashSecret(cleanSecret, pepper);
+  const passwordHash = bootstrapLegacyUpgrade
+    ? await hashBootstrapLegacySecret(cleanSecret)
+    : await hashSecret(cleanSecret, pepper);
+  if (bootstrapLegacyUpgrade) {
+    const verification = await verifySecret(cleanSecret, passwordHash, "");
+    if (!verification.valid || !verification.needsUpgrade) {
+      throw new PreviewOwnerRecoveryError(
+        "Bootstrap legacy hash failed self-verification",
+        "bootstrap_hash_verification_failed",
+        500,
+      );
+    }
+  }
   const beforeAudit = auditSnapshot(owner);
   const afterAudit = {
     ...beforeAudit,
     password_scheme: "pbkdf2_sha256",
     session_version: nextSessionVersion,
+    ...(bootstrapLegacyUpgrade ? { recovery_mode: "bootstrap_legacy_upgrade" } : {}),
   };
   const note = String(
-    options.note || "Controlled Preview Owner recovery from reset_required (preserves UUID, role, and single-owner constraints)",
+    options.note || (
+      bootstrapLegacyUpgrade
+        ? "Controlled Preview Owner bootstrap recovery (pbkdf2_sha256 -> auto-upgrades to pbkdf2_sha256_cf_v1 on first login)"
+        : "Controlled Preview Owner recovery from reset_required (preserves UUID, role, and single-owner constraints)"
+    ),
   ).slice(0, 500);
   const requestId = String(options.requestId || `preview-owner-recovery:${crypto.randomUUID()}`).slice(0, 120);
   const accountAuditId = crypto.randomUUID();
@@ -279,7 +333,7 @@ export async function prepareRecoveryPlan(db, options = {}) {
   const updateOwnerParams = [
     owner.id,
     passwordHash,
-    PASSWORD_HASH_ITERATIONS,
+    bootstrapLegacyUpgrade ? BOOTSTRAP_LEGACY_ITERATIONS : PASSWORD_HASH_ITERATIONS,
     now,
     owner.username_normalized,
     beforeSessionVersion,

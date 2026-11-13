@@ -142,7 +142,10 @@ export async function handleEmailRequest(context) {
     return response({ ...sent, build: EMAIL_BUILD }, 200, context);
   } catch (error) {
     if (error instanceof EmailServiceError) {
-      return apiError(error.code, error.message, error.status, requestId(context), { retryable: error.retryable });
+      return apiError(error.code, error.message, error.status, requestId(context), {
+        retryable: error.retryable,
+        ...(error.details ? { details: error.details } : {}),
+      });
     }
     if (error?.name === "Task12Error") {
       return apiError(error.code || "task12_unavailable", error.message, error.status || 503, requestId(context), {

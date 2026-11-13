@@ -24,12 +24,13 @@ const CLOUDFLARE_ACCOUNT_ID_PATTERN = /^[a-f0-9]{32}$/i;
 const CLOUDFLARE_API_BASE = "https://api.cloudflare.com/client/v4";
 
 export class EmailServiceError extends Error {
-  constructor(message, status = 400, code = "email_invalid_request", retryable = false) {
+  constructor(message, status = 400, code = "email_invalid_request", retryable = false, details = null) {
     super(message);
     this.name = "EmailServiceError";
     this.status = status;
     this.code = code;
     this.retryable = retryable;
+    this.details = details && typeof details === "object" ? details : null;
   }
 }
 
@@ -257,6 +258,17 @@ function classifyProviderError(error, httpStatus = 0) {
   return { status: 502, code: "email_delivery_failed", retryable: true, publicError: "云端邮件发送暂时失败，请稍后重试" };
 }
 
+export function buildCloudflareRestPayload(built) {
+  return {
+    from: { address: built.fromEmail, name: DEFAULT_FROM_NAME },
+    to: [built.toEmail],
+    reply_to: { address: built.replyToEmail, name: DEFAULT_REPLY_TO_NAME },
+    subject: built.payload.subject,
+    text: built.payload.text,
+    html: built.payload.html,
+  };
+}
+
 async function sendViaCloudflareRest(env, built) {
   const accountId = String(env?.EMAIL_CLOUDFLARE_ACCOUNT_ID || "").trim();
   const token = String(env?.EMAIL_SEND_API_TOKEN || "").trim();
@@ -271,14 +283,7 @@ async function sendViaCloudflareRest(env, built) {
       "Authorization": `Bearer ${token}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      from: built.payload.from,
-      to: [built.toEmail],
-      reply_to: built.payload.replyTo,
-      subject: built.payload.subject,
-      text: built.payload.text,
-      html: built.payload.html,
-    }),
+    body: JSON.stringify(buildCloudflareRestPayload(built)),
     signal: typeof AbortSignal?.timeout === "function" ? AbortSignal.timeout(10_000) : undefined,
   });
   let body = null;
@@ -288,9 +293,18 @@ async function sendViaCloudflareRest(env, built) {
     body = null;
   }
   if (!response.ok || body?.success !== true) {
-    const firstError = Array.isArray(body?.errors) && body.errors[0]?.message ? body.errors[0].message : `http_${response.status}`;
+    const firstErr = Array.isArray(body?.errors) && body.errors[0] && typeof body.errors[0] === "object"
+      ? body.errors[0]
+      : null;
+    const firstError = firstErr?.message ? String(firstErr.message) : `http_${response.status}`;
+    const providerCode = firstErr?.code !== undefined && firstErr?.code !== null ? String(firstErr.code).slice(0, 40) : "";
     const classified = classifyProviderError(new Error(firstError), response.status);
-    throw new EmailServiceError(classified.publicError, classified.status, classified.code, classified.retryable);
+    const details = {
+      delivery_status: "rejected",
+      provider_status: response.status,
+      ...(providerCode ? { provider_code: providerCode } : {}),
+    };
+    throw new EmailServiceError(classified.publicError, classified.status, classified.code, classified.retryable, details);
   }
   const result = body?.result || {};
   return {
@@ -298,6 +312,7 @@ async function sendViaCloudflareRest(env, built) {
     delivered: Array.isArray(result.delivered) ? result.delivered : [],
     queued: Array.isArray(result.queued) ? result.queued : [],
     permanentBounces: Array.isArray(result.permanent_bounces) ? result.permanent_bounces : [],
+    suppressedRecipients: Array.isArray(result.suppressed_recipients) ? result.suppressed_recipients : [],
   };
 }
 
@@ -320,9 +335,20 @@ export async function sendTransactionalEmail(env, options = {}) {
     const result = transport === "binding"
       ? await env.EMAIL.send(built.payload)
       : await sendViaCloudflareRest(env, built);
-    if (Array.isArray(result?.permanentBounces) && result.permanentBounces.length > 0) {
-      throw new EmailServiceError("收件人处于永久退信列表，无法投递", 400, "email_rejected", false);
+    const delivered = Array.isArray(result?.delivered) ? result.delivered : [];
+    const queued = Array.isArray(result?.queued) ? result.queued : [];
+    const permanentBounces = Array.isArray(result?.permanentBounces) ? result.permanentBounces : [];
+    const suppressedRecipients = Array.isArray(result?.suppressedRecipients) ? result.suppressedRecipients : [];
+    if (permanentBounces.length > 0 || suppressedRecipients.length > 0) {
+      throw new EmailServiceError("收件人处于永久退信或抑制列表，无法投递", 400, "email_rejected", false, {
+        delivery_status: "rejected",
+        permanent_bounces: permanentBounces,
+        suppressed_recipients: suppressedRecipients,
+      });
     }
+    const deliveryStatus = delivered.length > 0
+      ? "delivered"
+      : (queued.length > 0 ? "queued" : "accepted");
     const messageId = String(result?.messageId || result?.message_id || result?.id || "").slice(0, 160);
     const sentAt = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
     console.info(JSON.stringify({
@@ -333,11 +359,17 @@ export async function sendTransactionalEmail(env, options = {}) {
       from: built.fromEmail,
       reply_to: built.replyToEmail,
       recipient_domain: built.toEmail.split("@")[1] || "",
+      delivery_status: deliveryStatus,
       message_id: messageId,
     }));
     return {
       ok: true,
       transport,
+      delivery_status: deliveryStatus,
+      delivered,
+      queued,
+      permanent_bounces: permanentBounces,
+      suppressed_recipients: suppressedRecipients,
       message_id: messageId,
       from: built.fromEmail,
       reply_to: built.replyToEmail,
@@ -354,6 +386,8 @@ export async function sendTransactionalEmail(env, options = {}) {
         kind: built.kind,
         code: error.code,
         status: error.status,
+        ...(error.details?.provider_code ? { provider_code: error.details.provider_code } : {}),
+        ...(error.details?.provider_status ? { provider_status: error.details.provider_status } : {}),
       }));
       throw error;
     }
