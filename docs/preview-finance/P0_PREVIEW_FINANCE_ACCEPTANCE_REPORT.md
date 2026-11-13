@@ -175,12 +175,27 @@ hash 为 `c4421bdb7443f61a028683272be5bb68ed92d29df7e504ce2e68d25d131217b0`。
 在 `qa/aeris/p5-pwa-browser.mjs:11` 报 `84 !== 83`。原始日志及 artifact 保留。
 这是上次未同步的验收脚本总数断言，不是原 81 项 CORE 合同改变。
 
-本轮最小更正仅补齐该 P5 脚本的分层合同：独立断言 CORE=81 及原 RC5 指纹、
+针对此次失败的最小更正仅补齐该 P5 脚本的分层合同：独立断言 CORE=81 及原 RC5 指纹、
 Task26 的两个精确模块、FINANCE 的一个 money.js，并断言组合完整为 84。
 原有静态完整性、旧客户端字节、用户 cache、离线 guest shell 与在线恢复
 断言保留。使用实际编译 Pages Worker、新建本地 D1/R2 和独立 Chrome 执行
 该失败脚本，已通过；没有重跑 21 项迁移演练或 824 项 Android 本地回归。
 新提交的精确 SHA / Core CI 以 #149 最新 head 检查为准，不将首次失败改写为 PASS。
+
+随后 `a6770937deb9085c2f7d11f6ce5c57801dd8d66a` 的 Core CI
+[43363184137](https://github.com/WYJ0904/thewyj.uk/actions/runs/43363184137)
+已通过前述 P5 检查，但在 Task26 browser 的 seed 导入报错：
+`wrong-book.js?v=20261109-aeris-p07-production-r2`。该测试还对 mastery-state、
+mastery-journal 使用了同类旧别名，而应用和原子缓存均使用 `?release=`。
+本轮只将这三个 QA 导入 URL 对齐发布合同，不增加 SW 别名或修改业务算法。
+不能仅据此断言 CI 当时为何网络失败；受控浏览器证明，在 Worker 网络真正
+阻断时，三个旧别名均失败，而对应的三个发布 URL 均从已有缓存返回 200。
+
+精确受影响的 wrong-review 浏览器脚本已在新建本地 D1/R2、实际编译 Worker
+及独立 Chrome 的 390px 场景通过，包含冷离线图/IDB、原 attempt 回连、legacy
+签名 ticket/旧 Outbox、JSON 导出/删除/恢复等 11 项检查。它不是 Hosted 或
+Samsung PASS；没有重跑未受影响的 Android/全量迁移测试。第二次 CI 的失败
+日志也保留，最新修正仍须由新精确 SHA 的 Core CI 重新确认。
 
 同类依赖复核：当前 REQUIRED_SHELL 的 JS 闭包共 64 个可达模块，未发现其他
 缺失的静态/字面量懒加载依赖；原 81+2+1 分层、11 项 integrity hash 和

@@ -173,5 +173,65 @@
   "remote_accounts_created": 0,
   "remote_flags_changed": 0,
   "samsung_w01_w10": "NOT_TESTED_0_OF_10",
-  "production_operations": 0
+  "production_operations": 0,
+  "second_ci": {
+    "run_id": 43363184137,
+    "head": "a6770937deb9085c2f7d11f6ce5c57801dd8d66a",
+    "status": "FAIL",
+    "file": "qa/task26/wrong-review-browser.mjs",
+    "error": "uncached legacy ?v= seed module import failed",
+    "original_failure_retained": true
+  },
+  "module_url_contract": {
+    "scope": "owned Chrome loopback fixture; worker network hard blocked",
+    "network_guard": true,
+    "published": [
+      {
+        "asset": "/js/language/wrong-book.js?release=20261109-aeris-p07-production-r2",
+        "status": 200
+      },
+      {
+        "asset": "/js/language/mastery-state.js?release=20261109-aeris-p07-production-r2",
+        "status": 200
+      },
+      {
+        "asset": "/js/language/mastery-journal.js?release=20261109-aeris-p07-production-r2",
+        "status": 200
+      }
+    ],
+    "legacy": [
+      {
+        "asset": "/js/language/wrong-book.js?v=20261109-aeris-p07-production-r2",
+        "status": "NETWORK_ERROR"
+      },
+      {
+        "asset": "/js/language/mastery-state.js?v=20261109-aeris-p07-production-r2",
+        "status": "NETWORK_ERROR"
+      },
+      {
+        "asset": "/js/language/mastery-journal.js?v=20261109-aeris-p07-production-r2",
+        "status": "NETWORK_ERROR"
+      }
+    ],
+    "remote_api_requests": 0
+  },
+  "wrong_review_local_retest": {
+    "scope": "compiled Pages worker + fresh local D1/R2 + owned Chrome",
+    "width": 390,
+    "physical_device": false,
+    "passed": true,
+    "checks": [
+      "one_quiz_five_tabs_no_catalog_panel",
+      "current_scope_first_correct_retained",
+      "refresh_one_attempt_original_transition",
+      "history_scope_error_retained",
+      "responsive_light_dark_real_chromium",
+      "flags_off_base_dictation_works",
+      "japanese_dictation_original_form",
+      "offline_cold_graph_and_idb_retained_authenticated_reconnect_same_attempt",
+      "offline_answer_durable_local_not_synced",
+      "legacy_signed_ticket_old_idb_outbox_flags_off_same_form_no_double_stats",
+      "real_json_export_delete_clear_sync_reload_explicit_import_restore"
+    ]
+  }
 }
