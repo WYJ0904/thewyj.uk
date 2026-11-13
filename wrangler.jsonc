@@ -62,14 +62,6 @@
     "TASK26_ADAPTIVE_LEARNING_ENABLED": "true",
     "EMAIL_SENDING_ENABLED": "false"
   },
-  "send_email": [
-    {
-      "name": "EMAIL",
-      "allowed_sender_addresses": [
-        "noreply@thewyj.uk"
-      ]
-    }
-  ],
   "env": {
     "preview": {
       "vars": {
@@ -147,15 +139,7 @@
       ],
       "ai": {
         "binding": "AI"
-      },
-      "send_email": [
-        {
-          "name": "EMAIL",
-          "allowed_sender_addresses": [
-            "noreply@thewyj.uk"
-          ]
-        }
-      ]
+      }
     },
     "production": {
       "vars": {
@@ -233,15 +217,7 @@
       ],
       "ai": {
         "binding": "AI"
-      },
-      "send_email": [
-        {
-          "name": "EMAIL",
-          "allowed_sender_addresses": [
-            "noreply@thewyj.uk"
-          ]
-        }
-      ]
+      }
     }
   }
 }

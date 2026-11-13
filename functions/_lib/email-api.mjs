@@ -15,6 +15,7 @@ import {
   emailBindingConfigured,
   emailSendingEnabled,
   parseAllowedTestRecipients,
+  resolveEmailTransport,
   sendTransactionalEmail,
 } from "./email-service.mjs";
 import { resolveTask12Account } from "./task12-auth.mjs";
@@ -111,10 +112,12 @@ export async function handleEmailRequest(context) {
 
     if (method === "GET") {
       const testAllowlist = parseAllowedTestRecipients(context.env);
+      const transport = resolveEmailTransport(context.env);
       return response({
         ok: true,
         enabled: emailSendingEnabled(context.env),
         binding_configured: emailBindingConfigured(context.env),
+        transport: transport || "unconfigured",
         allowed_senders: ALLOWED_SENDER_ADDRESSES,
         allowed_reply_to: ALLOWED_REPLY_TO_ADDRESSES,
         default_reply_to: DEFAULT_REPLY_TO_EMAIL,

@@ -20,6 +20,8 @@ const MAX_LOCAL_LENGTH = 64;
 const MAX_SUBJECT_LENGTH = 120;
 const MAX_BODY_LENGTH = 4000;
 const EMAIL_PATTERN = /^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/u;
+const CLOUDFLARE_ACCOUNT_ID_PATTERN = /^[a-f0-9]{32}$/i;
+const CLOUDFLARE_API_BASE = "https://api.cloudflare.com/client/v4";
 
 export class EmailServiceError extends Error {
   constructor(message, status = 400, code = "email_invalid_request", retryable = false) {
@@ -40,8 +42,18 @@ export function emailSendingEnabled(env = {}) {
   return booleanFlag(env?.EMAIL_SENDING_ENABLED, false);
 }
 
+export function resolveEmailTransport(env = {}) {
+  if (typeof env?.EMAIL?.send === "function") return "binding";
+  const token = String(env?.EMAIL_SEND_API_TOKEN || "").trim();
+  const accountId = String(env?.EMAIL_CLOUDFLARE_ACCOUNT_ID || "").trim();
+  if (token && CLOUDFLARE_ACCOUNT_ID_PATTERN.test(accountId)) {
+    return "cloudflare_rest";
+  }
+  return "";
+}
+
 export function emailBindingConfigured(env = {}) {
-  return typeof env?.EMAIL?.send === "function";
+  return Boolean(resolveEmailTransport(env));
 }
 
 export function cleanEmailAddress(value, fieldLabel = "收件邮箱") {
@@ -228,7 +240,13 @@ export function buildEmailMessage(options = {}) {
   };
 }
 
-function classifyProviderError(error) {
+function classifyProviderError(error, httpStatus = 0) {
+  if (httpStatus === 401 || httpStatus === 403) {
+    return { status: 503, code: "email_credentials_invalid", retryable: false, publicError: "云端邮件发信凭据无效或权限不足" };
+  }
+  if (httpStatus === 429) {
+    return { status: 429, code: "email_rate_limited", retryable: true, publicError: "邮件发送触发频率或每日配额限制，请稍后重试" };
+  }
   const message = String(error?.message || error || "").toLowerCase();
   if (/rate|quota|limit|429|too many/.test(message)) {
     return { status: 429, code: "email_rate_limited", retryable: true, publicError: "邮件发送触发频率或每日配额限制，请稍后重试" };
@@ -239,12 +257,57 @@ function classifyProviderError(error) {
   return { status: 502, code: "email_delivery_failed", retryable: true, publicError: "云端邮件发送暂时失败，请稍后重试" };
 }
 
+async function sendViaCloudflareRest(env, built) {
+  const accountId = String(env?.EMAIL_CLOUDFLARE_ACCOUNT_ID || "").trim();
+  const token = String(env?.EMAIL_SEND_API_TOKEN || "").trim();
+  if (!token || !CLOUDFLARE_ACCOUNT_ID_PATTERN.test(accountId)) {
+    throw new EmailServiceError("Cloudflare Email Sending 通道尚未就绪", 503, "email_binding_unavailable", true);
+  }
+  const endpoint = `${CLOUDFLARE_API_BASE}/accounts/${accountId}/email/sending/send`;
+  const fetchFn = typeof env?.__EMAIL_FETCH === "function" ? env.__EMAIL_FETCH : fetch;
+  const response = await fetchFn(endpoint, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: built.payload.from,
+      to: [built.toEmail],
+      reply_to: built.payload.replyTo,
+      subject: built.payload.subject,
+      text: built.payload.text,
+      html: built.payload.html,
+    }),
+    signal: typeof AbortSignal?.timeout === "function" ? AbortSignal.timeout(10_000) : undefined,
+  });
+  let body = null;
+  try {
+    body = await response.json();
+  } catch {
+    body = null;
+  }
+  if (!response.ok || body?.success !== true) {
+    const firstError = Array.isArray(body?.errors) && body.errors[0]?.message ? body.errors[0].message : `http_${response.status}`;
+    const classified = classifyProviderError(new Error(firstError), response.status);
+    throw new EmailServiceError(classified.publicError, classified.status, classified.code, classified.retryable);
+  }
+  const result = body?.result || {};
+  return {
+    messageId: String(result.message_id || result.messageId || result.id || "").slice(0, 160),
+    delivered: Array.isArray(result.delivered) ? result.delivered : [],
+    queued: Array.isArray(result.queued) ? result.queued : [],
+    permanentBounces: Array.isArray(result.permanent_bounces) ? result.permanent_bounces : [],
+  };
+}
+
 export async function sendTransactionalEmail(env, options = {}) {
   if (!emailSendingEnabled(env)) {
     throw new EmailServiceError("云端事务邮件服务尚未启用", 503, "email_sending_disabled", true);
   }
-  if (!emailBindingConfigured(env)) {
-    throw new EmailServiceError("Cloudflare Email Sending 绑定尚未就绪", 503, "email_binding_unavailable", true);
+  const transport = resolveEmailTransport(env);
+  if (!transport) {
+    throw new EmailServiceError("Cloudflare Email Sending 通道尚未就绪", 503, "email_binding_unavailable", true);
   }
   const built = buildEmailMessage(options);
   if (options.enforceTestAllowlist === true) {
@@ -254,12 +317,18 @@ export async function sendTransactionalEmail(env, options = {}) {
     }
   }
   try {
-    const result = await env.EMAIL.send(built.payload);
-    const messageId = String(result?.messageId || result?.id || "").slice(0, 160);
+    const result = transport === "binding"
+      ? await env.EMAIL.send(built.payload)
+      : await sendViaCloudflareRest(env, built);
+    if (Array.isArray(result?.permanentBounces) && result.permanentBounces.length > 0) {
+      throw new EmailServiceError("收件人处于永久退信列表，无法投递", 400, "email_rejected", false);
+    }
+    const messageId = String(result?.messageId || result?.message_id || result?.id || "").slice(0, 160);
     const sentAt = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
     console.info(JSON.stringify({
       event: "aeris_email_sent",
       request_id: String(options.requestId || ""),
+      transport,
       kind: built.kind,
       from: built.fromEmail,
       reply_to: built.replyToEmail,
@@ -268,6 +337,7 @@ export async function sendTransactionalEmail(env, options = {}) {
     }));
     return {
       ok: true,
+      transport,
       message_id: messageId,
       from: built.fromEmail,
       reply_to: built.replyToEmail,
@@ -276,11 +346,22 @@ export async function sendTransactionalEmail(env, options = {}) {
       sent_at: sentAt,
     };
   } catch (error) {
-    if (error instanceof EmailServiceError) throw error;
+    if (error instanceof EmailServiceError) {
+      console.error(JSON.stringify({
+        event: "aeris_email_failed",
+        request_id: String(options.requestId || ""),
+        transport,
+        kind: built.kind,
+        code: error.code,
+        status: error.status,
+      }));
+      throw error;
+    }
     const classified = classifyProviderError(error);
     console.error(JSON.stringify({
       event: "aeris_email_failed",
       request_id: String(options.requestId || ""),
+      transport,
       kind: built.kind,
       code: classified.code,
       status: classified.status,

@@ -329,6 +329,74 @@ try {
   assert.equal(Number(auditCount.count), 5);
   check("owner status, allowlisted sending, D1 rate limiting (429), and admin audit trail");
 
+  // 5. Cloudflare Email Sending REST transport & Pages wrangler schema guard
+  const wranglerConfig = JSON.parse(await readFile(path.join(ROOT, "wrangler.jsonc"), "utf8"));
+  assert.equal("send_email" in wranglerConfig, false);
+  assert.equal("send_email" in wranglerConfig.env.preview, false);
+  assert.equal("send_email" in wranglerConfig.env.production, false);
+  assert.equal(wranglerConfig.vars.EMAIL_SENDING_ENABLED, "false");
+  assert.equal(wranglerConfig.env.preview.vars.EMAIL_SENDING_ENABLED, "true");
+  assert.equal(wranglerConfig.env.production.vars.EMAIL_SENDING_ENABLED, "false");
+
+  const validAccountId = "0123456789abcdef0123456789abcdef";
+  await assert.rejects(
+    () => sendTransactionalEmail({
+      EMAIL_SENDING_ENABLED: "true",
+      EMAIL_SEND_API_TOKEN: "tok_test",
+      EMAIL_CLOUDFLARE_ACCOUNT_ID: "../bad-id",
+    }, { kind: "owner_ops_test", to: "wyj20090904@gmail.com" }),
+    (err) => err.code === "email_binding_unavailable" && err.status === 503,
+  );
+
+  const restRequests = [];
+  const restOk = await sendTransactionalEmail({
+    EMAIL_SENDING_ENABLED: "true",
+    EMAIL_SEND_API_TOKEN: "tok_test",
+    EMAIL_CLOUDFLARE_ACCOUNT_ID: validAccountId,
+    __EMAIL_FETCH: async (url, init) => {
+      restRequests.push({ url, init, body: JSON.parse(init.body) });
+      return new Response(JSON.stringify({
+        success: true,
+        result: { delivered: ["wyj20090904@gmail.com"], queued: [], permanent_bounces: [], message_id: "rest-msg-1" },
+      }), { status: 200, headers: { "Content-Type": "application/json" } });
+    },
+  }, { kind: "owner_ops_test", to: "wyj20090904@gmail.com", note: "REST check" });
+  assert.equal(restOk.ok, true);
+  assert.equal(restOk.transport, "cloudflare_rest");
+  assert.equal(restOk.message_id, "rest-msg-1");
+  assert.equal(restRequests.length, 1);
+  assert.equal(restRequests[0].url, `https://api.cloudflare.com/client/v4/accounts/${validAccountId}/email/sending/send`);
+  assert.equal(restRequests[0].body.from.email, "noreply@thewyj.uk");
+  assert.deepEqual(restRequests[0].body.to, ["wyj20090904@gmail.com"]);
+  assert.equal(restRequests[0].body.reply_to.email, "support@thewyj.uk");
+
+  await assert.rejects(
+    () => sendTransactionalEmail({
+      EMAIL_SENDING_ENABLED: "true",
+      EMAIL_SEND_API_TOKEN: "bad_tok",
+      EMAIL_CLOUDFLARE_ACCOUNT_ID: validAccountId,
+      __EMAIL_FETCH: async () => new Response(JSON.stringify({ success: false, errors: [{ message: "Invalid access token bad_tok" }] }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      }),
+    }, { kind: "owner_ops_test", to: "wyj20090904@gmail.com" }),
+    (err) => err.code === "email_credentials_invalid" && err.status === 503 && !err.message.includes("bad_tok"),
+  );
+
+  await assert.rejects(
+    () => sendTransactionalEmail({
+      EMAIL_SENDING_ENABLED: "true",
+      EMAIL_SEND_API_TOKEN: "tok_test",
+      EMAIL_CLOUDFLARE_ACCOUNT_ID: validAccountId,
+      __EMAIL_FETCH: async () => new Response(JSON.stringify({
+        success: true,
+        result: { delivered: [], queued: [], permanent_bounces: ["wyj20090904@gmail.com"] },
+      }), { status: 200, headers: { "Content-Type": "application/json" } }),
+    }, { kind: "owner_ops_test", to: "wyj20090904@gmail.com" }),
+    (err) => err.code === "email_rejected" && err.status === 400,
+  );
+  check("Pages wrangler schema guard and Cloudflare Email Sending REST transport");
+
   console.log(`Cloudflare Email Sending tests passed: ${passed} suites`);
 } finally {
   if (mf) await mf.dispose();
