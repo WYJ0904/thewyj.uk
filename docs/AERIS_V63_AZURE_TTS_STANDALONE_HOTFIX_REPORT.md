@@ -41,7 +41,7 @@
    - CSP 更新：允许播放音频 Blob，`Content-Security-Policy` 增加 `media-src 'self' blob:;`。
 
 4. **环境与运行时配置 (`wrangler.jsonc`, `.dev.vars.example`)**：
-   - `wrangler.jsonc`：preview/production 默认启用 `TTS_MODE: "azure"`, `TTS_AZURE_RATE_LIMIT: "20"`, `TTS_TIMEOUT_MS: "8000"`。根级别默认 `TTS_MODE: "cache-only"`。
+   - `wrangler.jsonc`：preview/production 配置 `TTS_MODE: "azure"`，根级别默认 `TTS_MODE: "cache-only"`。为满足 Workers Free 单 Worker **64 变量上限**（文本变量 + 加密 Secret + 平台绑定），从 `wrangler.jsonc` 移除 5 个与源码默认值完全一致的冗余变量（`TTS_AZURE_RATE_LIMIT=20`、`TTS_TIMEOUT_MS=8000`、`D1_RATE_LIMIT_ENABLED=true`、`CLOUD_RATE_LIMIT_REQUESTS=120`、`CLOUD_RATE_LIMIT_WINDOW_SECONDS=60`），将 `wrangler.jsonc` 文本变量降至 **53 个**（预留 `AZURE_SPEECH_KEY` 与 `AZURE_SPEECH_REGION` 空间）。
    - `.dev.vars.example`：增加 `AZURE_SPEECH_KEY` 与 `AZURE_SPEECH_REGION` 占位示例。
 
 5. **PWA 缓存与发布版本号 (`sw.js`, `index.html`, `qa/p07-release/sw-install-browser.mjs`, 各模块 import)**：
@@ -117,8 +117,8 @@
 ### 4.2 紧急安全回滚策略
 
 若上线后 Azure 产生未预料的 429 配额用尽或服务故障：
-- **方案 A（无需重新构建客户端代码）**：
-  直接在 Cloudflare Pages 生产环境变量中将 `TTS_MODE` 设置为 `"cache-only"` 并重新触发部署。
-  - 效果：已缓存音频（R2 中的常见单词）仍可正常流畅朗读；未缓存的新单词将直接弹出显式友好 Toast，不会产生 Azure 错误堆栈，更不会产生设备静默回退。
-- **方案 B（代码级回滚）**：
-  保持发布 token，仅在 `wrangler.jsonc` 中设置 `TTS_MODE: "cache-only"` 进行热更。
+- **方案 A（仅改 Pages 变量并重新部署，无需改客户端包）**：
+  在 Cloudflare Pages 生产环境变量中将 `TTS_MODE` 设置为 `"cache-only"`，并**必须重新触发一次部署**使 Worker 运行时环境生效（`TTS_MODE` 属于 Worker 部署期环境变量，不是热更新远程开关，因此**不承诺零停机/即时切换**）。
+  - 效果：部署生效后，已缓存音频（R2 中的常见单词）仍可正常流畅朗读；未缓存的新单词将直接弹出显式友好 Toast，不会产生 Azure 错误堆栈，更不会产生设备静默回退。
+- **方案 B（代码配置回滚并重新部署）**：
+  保持发布 token，在 `wrangler.jsonc` 中将生产 `TTS_MODE` 设为 `"cache-only"` 并重新部署发布。
