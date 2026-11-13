@@ -1,0 +1,109 @@
+{
+  "baseline": "29bdbb9e3ae4cd88019b6c0046aabc6df574a942",
+  "scope": "new local Miniflare D1; remote schema only, all account/business rows synthetic",
+  "migration_hashes": {
+    "0026_wrong_book_review.sql": "4794bff0e6535b6d3012d5b60d7b548245755289028492dfd8f9e5cf73a20c15",
+    "0027_payment_identity_lifecycle.sql": "9c830831fa397210f921fcac17fbdf8e48aab2e1cf5f8d757b479665410f911a",
+    "0028_payment_lifecycle_accounting.sql": "eca2c4f66671e48a14d975d9d821ea29efb978e8c5f5efa6152c62a4edc4d432",
+    "0029_payment_reconciliation.sql": "9b18c95cb3886f03ac8149af672b5a8e15c48f6c9b3ee7f8f13d015579f2e640",
+    "0030_payment_supersession.sql": "f1c15b09e9e5eaf5f540132b935634401a999af1eb05a48f80cd6550570a53aa",
+    "0031_finance_currency_fx.sql": "1e49cfd146968ed92914bcf224fe07aaf1385ff9027a7f3c3c006b131e3ed1c2",
+    "0032_notification_currency_units.sql": "d88b70dd65b293bb31b4b0ae78c38796196816b8a6d83896317d6333b97d35a1",
+    "0033_currency_default_review.sql": "3f80ef80fcd49d116292a6caa3499c52e397dfc663480e71d4a7ec09c1561d3f",
+    "0034_finance_ai_assistance.sql": "c477c64e432dc028cc92aa78a99e325cd1365fd47b22645609543ea9b7ae19c3"
+  },
+  "failed_file_injection_cases": [
+    {
+      "name": "0027_payment_identity_lifecycle.sql: failed batch rolls back DDL/data/ledger; resume succeeds",
+      "status": "PASS"
+    },
+    {
+      "name": "0028_payment_lifecycle_accounting.sql: failed batch rolls back DDL/data/ledger; resume succeeds",
+      "status": "PASS"
+    },
+    {
+      "name": "0029_payment_reconciliation.sql: failed batch rolls back DDL/data/ledger; resume succeeds",
+      "status": "PASS"
+    },
+    {
+      "name": "0030_payment_supersession.sql: failed batch rolls back DDL/data/ledger; resume succeeds",
+      "status": "PASS"
+    },
+    {
+      "name": "0031_finance_currency_fx.sql: failed batch rolls back DDL/data/ledger; resume succeeds",
+      "status": "PASS"
+    },
+    {
+      "name": "0032_notification_currency_units.sql: failed batch rolls back DDL/data/ledger; resume succeeds",
+      "status": "PASS"
+    },
+    {
+      "name": "0033_currency_default_review.sql: failed batch rolls back DDL/data/ledger; resume succeeds",
+      "status": "PASS"
+    },
+    {
+      "name": "0034_finance_ai_assistance.sql: failed batch rolls back DDL/data/ledger; resume succeeds",
+      "status": "PASS"
+    }
+  ],
+  "final_recovery_cases": [
+    {
+      "name": "exact Preview schema reproduced with synthetic rows only",
+      "status": "PASS"
+    },
+    {
+      "name": "canonical-26: base schema probes are recorded separately from money capability",
+      "status": "PASS"
+    },
+    {
+      "name": "canonical-26: upgrade retains original IDs/currencies/amounts/relations/Task11/Task26/receipts and outbox",
+      "status": "PASS",
+      "ledger_before": 26,
+      "ledger_after": 34
+    },
+    {
+      "name": "canonical-26: ledger-aware repeat is a zero-change no-op",
+      "status": "PASS"
+    },
+    {
+      "name": "canonical-26: retained notification receipt replay and offline finance delivery are idempotent/account-isolated",
+      "status": "PASS"
+    },
+    {
+      "name": "actual-Preview-DDL: base schema probes are recorded separately from money capability",
+      "status": "PASS"
+    },
+    {
+      "name": "actual-Preview-DDL: upgrade retains original IDs/currencies/amounts/relations/Task11/Task26/receipts and outbox",
+      "status": "PASS",
+      "ledger_before": 27,
+      "ledger_after": 35
+    },
+    {
+      "name": "actual-Preview-DDL: ledger-aware repeat is a zero-change no-op",
+      "status": "PASS"
+    },
+    {
+      "name": "actual-Preview-DDL: retained notification receipt replay and offline finance delivery are idempotent/account-isolated",
+      "status": "PASS"
+    },
+    {
+      "name": "workerd restart after 0030 resumes only 0031-0034 with old rows intact",
+      "status": "PASS"
+    },
+    {
+      "name": "pre-upgrade logical snapshot restores all original tables/rows/ledger",
+      "status": "PASS"
+    },
+    {
+      "name": "standalone before/after SQLite backup artifacts reopen with integrity_check=ok",
+      "status": "PASS"
+    },
+    {
+      "name": "untracked raw ALTER replay is rejected without changing the already-upgraded database",
+      "status": "PASS"
+    }
+  ],
+  "initial_harness_errors_retained": true,
+  "remote_writes": 0
+}

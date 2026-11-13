@@ -79,8 +79,6 @@ const CORE_SHELL = [
 ];
 CORE_SHELL.push("/js/core/feature-flags.js?release=20261109-aeris-p07-production-r2", "/js/core/feature-console.js?release=20261109-aeris-p07-production-r2");
 const OPTIONAL_BRAND_ASSETS = ["/assets/logo.png"];
-// Dynamic or lazy modules referenced in browser graph:
-// "/js/finance/money.js?release=20261109-aeris-p07-production-r2"
 CORE_SHELL.push("/js/core/startup.js?release=20261109-aeris-p07-production-r2");
 CORE_SHELL.push("/js/core/home-widget-layout.js?release=20261109-aeris-p07-production-r2");
 CORE_SHELL.push("/js/core/home-widgets.js?release=20261109-aeris-p07-production-r2", "/js/core/home-widget-data.js?release=20261109-aeris-p07-production-r2");
@@ -93,7 +91,10 @@ const TASK26_SHELL = [
   "/js/language/wrong-review.js?release=20261109-aeris-p07-production-r2",
   "/js/language/wrong-review-sync.js?release=20261109-aeris-p07-production-r2",
 ];
-const REQUIRED_SHELL = [...CORE_SHELL, ...TASK26_SHELL];
+// Finance formatting statically imports money.js. A fresh installation must
+// include it before publishing HTML, while retaining the original RC5 layer.
+const FINANCE_SHELL = ["/js/finance/money.js?release=20261109-aeris-p07-production-r2"];
+const REQUIRED_SHELL = [...CORE_SHELL, ...TASK26_SHELL, ...FINANCE_SHELL];
 // Canonical UTF-8 text (CRLF -> LF) binds the changed Task26 graph, not only its
 // public P07 URL token. The publication name changes with these source hashes.
 const TASK26_INTEGRITY = Object.freeze({
@@ -106,9 +107,10 @@ const TASK26_INTEGRITY = Object.freeze({
   "/js/language/quiz.js?release=20261109-aeris-p07-production-r2": "cd4546dc7e48876bac503c49e259267bde99b79ab0cf5565cb917c1ed031e3b0",
   "/js/language/wrong-book.js?release=20261109-aeris-p07-production-r2": "a1b452848f7d332f4add1d6c7b55feb00d7ba6f80045c352b9ce32fbade724eb",
   "/js/language/wrong-review.js?release=20261109-aeris-p07-production-r2": "d77ec0816756cf4a65a7c4f804ea80d6c17aee4757524bcee7ba2aca558c3a25",
-  "/js/language/wrong-review-sync.js?release=20261109-aeris-p07-production-r2": "231cb66e91aa6909157253d064b0241fe9cf3e6c841b95c1b41a2ba0657f5997"
+  "/js/language/wrong-review-sync.js?release=20261109-aeris-p07-production-r2": "231cb66e91aa6909157253d064b0241fe9cf3e6c841b95c1b41a2ba0657f5997",
+  "/js/finance/money.js?release=20261109-aeris-p07-production-r2": "f1172d6c74835784bd1a6629d48c1884f46c14d9825f9f8308a07d3542214277"
 });
-const PUBLICATION_HASH = "4e7af7eb2650fc76b359684bca13eb971c1e9edc70a084608166dd9653158ddf";
+const PUBLICATION_HASH = "c4421bdb7443f61a028683272be5bb68ed92d29df7e504ce2e68d25d131217b0";
 const PUBLICATION_CACHE = `${CACHE}-task26-${PUBLICATION_HASH.slice(0, 16)}`;
 const PUBLICATION_MARKER = "/__aeris/task26-publication";
 

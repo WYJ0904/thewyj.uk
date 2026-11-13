@@ -19,9 +19,9 @@ const sourceSha=git('rev-parse',sha).toString().trim();
 function blobs(ref){const list=git('ls-tree','-r','--name-only',ref).toString().trim().split(/\r?\n/).filter(p=>isAllowedPagesFile(p)&&!p.startsWith('functions/')&&p!=='_headers');return Object.fromEntries(list.map(p=>[p,git('show',ref+':'+p)]));}
 const baseSha=git('rev-parse',arg('--base','482580b0855e14a61b3f6b51e9d91ae7855296cb')).toString().trim();
 const current=blobs(sourceSha),old=blobs(baseSha);
-function metadata(files){const source=files['sw.js'].toString(),context={self:{addEventListener(){}}};vm.runInNewContext(source+';globalThis.meta={release:RELEASE,cache:CACHE,core:CORE_SHELL,publication:typeof PUBLICATION_CACHE===\"undefined\"?CACHE:PUBLICATION_CACHE,layer:typeof TASK26_SHELL===\"undefined\"?[]:TASK26_SHELL};',context);return JSON.parse(JSON.stringify(context.meta));}
+function metadata(files){const source=files['sw.js'].toString(),context={self:{addEventListener(){}}};vm.runInNewContext(source+';globalThis.meta={release:RELEASE,cache:CACHE,core:CORE_SHELL,required:typeof REQUIRED_SHELL===\"undefined\"?CORE_SHELL:REQUIRED_SHELL,publication:typeof PUBLICATION_CACHE===\"undefined\"?CACHE:PUBLICATION_CACHE,layer:typeof TASK26_SHELL===\"undefined\"?[]:TASK26_SHELL};',context);return JSON.parse(JSON.stringify(context.meta));}
 const meta=metadata(current),oldMeta=metadata(old),hash=x=>createHash('sha256').update(x).digest('hex');
-const required=[...meta.core,...meta.layer];
+const required=meta.required;
 const proof={source_sha:sourceSha,base_sha:baseSha,qa_sha256:hash(await fs.readFile(import.meta.filename)),release:meta.release,publication:meta.publication,sw_sha256:hash(current['sw.js']),core_count:meta.core.length,required_count:required.length,fixture:'actual Chrome; HTTP/1 six-connection queue, 900ms response latency; loopback only',production_operations:0,model_calls:0,cases:[]};
 const save=()=>fs.writeFile(path.join(out,'results.json'),JSON.stringify(proof,null,2)+'\n');
 let sequence=0;
