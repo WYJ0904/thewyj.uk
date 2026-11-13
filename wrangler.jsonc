@@ -51,9 +51,7 @@
     "ANDROID_APK_SHA256": "9a4fad7f01c1dd1013efbcabd3931ea6c698b52dc2d2ce10cd18745ad7d7f55a",
     "ANDROID_APK_SIZE_BYTES": "48124983",
     "WORKERS_AI_ENABLED": "false",
-    "D1_RATE_LIMIT_ENABLED": "true",
-    "CLOUD_RATE_LIMIT_REQUESTS": "120",
-    "CLOUD_RATE_LIMIT_WINDOW_SECONDS": "60",
+    "TTS_MODE": "cache-only",
     "CLOUD_DEEP_HEALTH_CHECKS": "true",
     "LEGACY_API_FALLBACK_ENABLED": "false",
     "TASK11_IMPORT_ENABLED": "false",
@@ -110,15 +108,14 @@
         "ANDROID_APK_SHA256": "9a4fad7f01c1dd1013efbcabd3931ea6c698b52dc2d2ce10cd18745ad7d7f55a",
         "ANDROID_APK_SIZE_BYTES": "48124983",
         "WORKERS_AI_ENABLED": "true",
-        "D1_RATE_LIMIT_ENABLED": "true",
-        "CLOUD_RATE_LIMIT_REQUESTS": "120",
-        "CLOUD_RATE_LIMIT_WINDOW_SECONDS": "60",
+        "TTS_MODE": "azure",
         "CLOUD_DEEP_HEALTH_CHECKS": "true",
         "LEGACY_API_FALLBACK_ENABLED": "false",
         "TASK11_IMPORT_ENABLED": "true",
         "TASK11_PRODUCTION_IMPORT_ENABLED": "false",
         "TASK25_FEATURE_FLAGS_ENABLED": "true",
-        "TASK26_ADAPTIVE_LEARNING_ENABLED": "true"
+        "TASK26_ADAPTIVE_LEARNING_ENABLED": "true",
+        "AZURE_SPEECH_REGION": "eastasia"
       },
       "d1_databases": [
         {
@@ -187,15 +184,14 @@
         "ANDROID_APK_SHA256": "9a4fad7f01c1dd1013efbcabd3931ea6c698b52dc2d2ce10cd18745ad7d7f55a",
         "ANDROID_APK_SIZE_BYTES": "48124983",
         "WORKERS_AI_ENABLED": "true",
-        "D1_RATE_LIMIT_ENABLED": "true",
-        "CLOUD_RATE_LIMIT_REQUESTS": "120",
-        "CLOUD_RATE_LIMIT_WINDOW_SECONDS": "60",
+        "TTS_MODE": "azure",
         "CLOUD_DEEP_HEALTH_CHECKS": "true",
         "LEGACY_API_FALLBACK_ENABLED": "false",
         "TASK11_IMPORT_ENABLED": "false",
         "TASK11_PRODUCTION_IMPORT_ENABLED": "false",
         "TASK25_FEATURE_FLAGS_ENABLED": "true",
-        "TASK26_ADAPTIVE_LEARNING_ENABLED": "true"
+        "TASK26_ADAPTIVE_LEARNING_ENABLED": "true",
+        "AZURE_SPEECH_REGION": "eastasia"
       },
       "d1_databases": [
         {

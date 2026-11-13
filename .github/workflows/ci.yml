@@ -369,10 +369,11 @@ jobs:
           node local-backend/test_aeris_p5_js.mjs 2>&1 | tee artifacts/aeris-p5-ownership-unit.log
           node local-backend/test_aeris_public_js.mjs 2>&1 | tee artifacts/aeris-p3-public-unit.log
 
-      - name: Test cloud TTS provider fallback
+      - name: Test Azure cloud TTS and legacy cache compatibility
         run: |
           set -euo pipefail
           node local-backend/test_tts_js.mjs 2>&1 | tee artifacts/cloud-tts.log
+          npm run test:tts:runtime 2>&1 | tee artifacts/cloud-tts-runtime.log
 
       - name: Test language JavaScript modules
         run: |
