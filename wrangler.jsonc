@@ -59,8 +59,17 @@
     "TASK11_IMPORT_ENABLED": "false",
     "TASK11_PRODUCTION_IMPORT_ENABLED": "false",
     "TASK25_FEATURE_FLAGS_ENABLED": "true",
-    "TASK26_ADAPTIVE_LEARNING_ENABLED": "true"
+    "TASK26_ADAPTIVE_LEARNING_ENABLED": "true",
+    "EMAIL_SENDING_ENABLED": "false"
   },
+  "send_email": [
+    {
+      "name": "EMAIL",
+      "allowed_sender_addresses": [
+        "noreply@thewyj.uk"
+      ]
+    }
+  ],
   "env": {
     "preview": {
       "vars": {
@@ -118,7 +127,8 @@
         "TASK11_IMPORT_ENABLED": "true",
         "TASK11_PRODUCTION_IMPORT_ENABLED": "false",
         "TASK25_FEATURE_FLAGS_ENABLED": "true",
-        "TASK26_ADAPTIVE_LEARNING_ENABLED": "true"
+        "TASK26_ADAPTIVE_LEARNING_ENABLED": "true",
+        "EMAIL_SENDING_ENABLED": "true"
       },
       "d1_databases": [
         {
@@ -137,7 +147,15 @@
       ],
       "ai": {
         "binding": "AI"
-      }
+      },
+      "send_email": [
+        {
+          "name": "EMAIL",
+          "allowed_sender_addresses": [
+            "noreply@thewyj.uk"
+          ]
+        }
+      ]
     },
     "production": {
       "vars": {
@@ -195,7 +213,8 @@
         "TASK11_IMPORT_ENABLED": "false",
         "TASK11_PRODUCTION_IMPORT_ENABLED": "false",
         "TASK25_FEATURE_FLAGS_ENABLED": "true",
-        "TASK26_ADAPTIVE_LEARNING_ENABLED": "true"
+        "TASK26_ADAPTIVE_LEARNING_ENABLED": "true",
+        "EMAIL_SENDING_ENABLED": "false"
       },
       "d1_databases": [
         {
@@ -214,7 +233,15 @@
       ],
       "ai": {
         "binding": "AI"
-      }
+      },
+      "send_email": [
+        {
+          "name": "EMAIL",
+          "allowed_sender_addresses": [
+            "noreply@thewyj.uk"
+          ]
+        }
+      ]
     }
   }
 }
