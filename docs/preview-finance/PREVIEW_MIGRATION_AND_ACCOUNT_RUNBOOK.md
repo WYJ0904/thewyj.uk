@@ -130,9 +130,9 @@ shell 参数或日志；不读取历史用户密码，不直接 SQL 插入账户
 通过既有 `POST /api/register` 正常注册，字段为 username、secret、confirm_secret。
 已有所有者管理员通过正常 API 操作这些新 UUID；不提升测试账户角色。
 
-- A 仅授予 `finance_access`、`language_all_access` 两项 entitlement override。
-- B 初始不授予权益，先验证财务/学习拒绝及隔离；再为 B 授予同样两项，以完成
-  双账户及同名 profile/operation ID 的隔离验收。
+- A/B 都先保持无权益，分别验证财务/学习拒绝及双账户隔离。
+- 通过上述负向检查后，仅向 A/B 授予 `finance_access`、`language_all_access`
+  两项 entitlement override，继续双账户及同名 profile/operation ID 验收。
 - 使用 `POST /api/admin/entitlement`，字段 user_id、entitlement、allowed=true、
   note。不要使用充值支付流程、创建真实订单或授予 all_features_access。
   这两个权益足以通过当前财务及英语/日语学习云端 gate；若另需测试会员计划显示，
@@ -151,7 +151,7 @@ enabled=true override。当前没有其他 enabled=true 覆盖，但操作前必
 
 ## E. 获批后的最短 Hosted 业务序列
 
-1. 确认新/旧 URL 与最终 SHA，完成 B 节迁移及后置检查，安全配置两个账户。
+1. 确认新/旧 URL 与最终 SHA，完成 B 节迁移及后置检查，安全创建两个无权益普通账户。
 2. A/B 先测拒绝、跨账户读取/操作拒绝，再授予所需权益；两个账户各建两个
    合成 profile，测试 Task11 离线队列、断网恢复和同一事件重放。
 3. 临时启用 D 节的三 Flags，仅对 A/B 验证 wrong-review-v1、Mastery、旧错题
@@ -186,6 +186,16 @@ enabled=true override。当前没有其他 enabled=true 覆盖，但操作前必
 | 专用身份及数据 | 两个普通新账户、两项权益、仅合成财务/学习测试写入及正常软删除/撤权清理 |
 | Task26 | 三 Flags enabled=true/rollout=0%、两个账户实验通道与覆盖，结束按 CAS 恢复 |
 | PWA 修复 | 审阅独立 Draft PR；由所有者协调新的统一候选 SHA 与 Preview 部署，不修改 PR #148 工作树 |
+
+2026-11-13 再核查补充：指定数据库及当前 Pages Preview WYJ_DB 绑定一致，
+ledger 仍为 27 条至 0026、Task16/21 仍为 1/2。两个只读观测中被观察业务表
+的数量/最大更新时间未变，但外部 Flash 的实时状态和全局停写窗口无法由此
+证明。当前仍无远程备份/迁移、账户/Flags 写入授权。上表不含整库 Time Travel
+restore；该项必须再次单独明确授权，不能从“批准迁移”推定。
+
+向 Azure TTS 候选收敛时，只移植 FINANCE_SHELL 的必要增量和验收合同；资源
+URL 使用目标分支实际 release，重新计算合并后的所有完整性 hash 并核对依赖
+闭包。`c4421b…` 仅对应 #149 原树，不能把该 sw.js 或 hash 原样覆盖到 #148。
 
 参考：[D1 migrations](https://developers.cloudflare.com/d1/reference/migrations/)、
 [D1 import/export](https://developers.cloudflare.com/d1/best-practices/import-export-data/)、

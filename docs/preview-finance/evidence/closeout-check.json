@@ -1,0 +1,177 @@
+{
+  "recorded_at": "2026-11-13T04:04:58.163Z",
+  "reviewed_head": "89e860ccc17b1093fbfabdc33a12dd36d7dd1123",
+  "first_ci": {
+    "run_id": 43359633199,
+    "attempt": 1,
+    "status": "FAIL",
+    "successful_jobs": 7,
+    "skipped_jobs": 2,
+    "failed_job": 131671809115,
+    "step": "Aeris P1 route coalescing and inactive rendering contract",
+    "file": "qa/aeris/p5-pwa-browser.mjs",
+    "assertion": "84 !== 83",
+    "original_failure_retained": true
+  },
+  "local_retest": {
+    "scope": "compiled Pages worker + new local D1/R2 + owned Chrome",
+    "exit_code": 0,
+    "offline_guest_shell": true,
+    "online_recovery": true,
+    "prior_client_bytes_preserved": true,
+    "user_bytes_preserved": true
+  },
+  "current_preview": {
+    "identity": {
+      "database": {
+        "uuid": "a3e6253b-689f-49f3-998b-7c5828ea255a",
+        "name": "wyj-cloud-preview",
+        "database_size": 2895872,
+        "num_tables": 94,
+        "write_queries_24h": 996
+      },
+      "current_project_preview_bindings": [
+        {
+          "database_id": "a3e6253b-689f-49f3-998b-7c5828ea255a",
+          "binding": "WYJ_DB",
+          "database_name": "WYJ_DB"
+        }
+      ]
+    },
+    "migration_ledger_rows": 27,
+    "last_migration": "0026_wrong_book_review.sql",
+    "versions": [
+      {
+        "component": "task16",
+        "value": "1"
+      },
+      {
+        "component": "task21",
+        "value": "2"
+      }
+    ],
+    "flags": [
+      {
+        "flag_key": "adaptive_learning",
+        "enabled": 0,
+        "kill_switch": 0,
+        "channels_json": "[\"experimental\"]",
+        "rollout_basis_points": 0,
+        "revision": 44
+      },
+      {
+        "flag_key": "adaptive_review",
+        "enabled": 0,
+        "kill_switch": 0,
+        "channels_json": "[\"experimental\"]",
+        "rollout_basis_points": 0,
+        "revision": 42
+      },
+      {
+        "flag_key": "mastery_score",
+        "enabled": 0,
+        "kill_switch": 0,
+        "channels_json": "[\"experimental\"]",
+        "rollout_basis_points": 0,
+        "revision": 38
+      },
+      {
+        "flag_key": "p07_accessibility",
+        "enabled": 1,
+        "kill_switch": 0,
+        "channels_json": "[\"stable\",\"beta\",\"experimental\"]",
+        "rollout_basis_points": 10000,
+        "revision": 56
+      }
+    ],
+    "overrides": [
+      {
+        "flag_key": "adaptive_learning",
+        "enabled": null,
+        "accounts": 13
+      },
+      {
+        "flag_key": "adaptive_review",
+        "enabled": null,
+        "accounts": 13
+      },
+      {
+        "flag_key": "mastery_score",
+        "enabled": null,
+        "accounts": 13
+      }
+    ],
+    "observation_a": "2026-11-13T03:45:45.985Z",
+    "observation_b": "2026-11-13T03:48:26.637Z",
+    "watched_business_tables_changed": [],
+    "exclusive_write_window_confirmed": false,
+    "external_flash_activity_confirmed": false
+  },
+  "source_review": {
+    "head": "89e860ccc17b1093fbfabdc33a12dd36d7dd1123",
+    "core": 81,
+    "task26": 2,
+    "finance": 1,
+    "required": 84,
+    "reachable_js_modules": 64,
+    "missing_static_dependencies": [],
+    "publication": "c4421bdb7443f61a028683272be5bb68ed92d29df7e504ce2e68d25d131217b0",
+    "integrity_entries": 11,
+    "migrations": [
+      {
+        "name": "0027_payment_identity_lifecycle.sql",
+        "sha256": "9c830831fa397210f921fcac17fbdf8e48aab2e1cf5f8d757b479665410f911a",
+        "canonical_equal_to_146": true
+      },
+      {
+        "name": "0028_payment_lifecycle_accounting.sql",
+        "sha256": "eca2c4f66671e48a14d975d9d821ea29efb978e8c5f5efa6152c62a4edc4d432",
+        "canonical_equal_to_146": true
+      },
+      {
+        "name": "0029_payment_reconciliation.sql",
+        "sha256": "9b18c95cb3886f03ac8149af672b5a8e15c48f6c9b3ee7f8f13d015579f2e640",
+        "canonical_equal_to_146": true
+      },
+      {
+        "name": "0030_payment_supersession.sql",
+        "sha256": "f1c15b09e9e5eaf5f540132b935634401a999af1eb05a48f80cd6550570a53aa",
+        "canonical_equal_to_146": true
+      },
+      {
+        "name": "0031_finance_currency_fx.sql",
+        "sha256": "1e49cfd146968ed92914bcf224fe07aaf1385ff9027a7f3c3c006b131e3ed1c2",
+        "canonical_equal_to_146": true
+      },
+      {
+        "name": "0032_notification_currency_units.sql",
+        "sha256": "d88b70dd65b293bb31b4b0ae78c38796196816b8a6d83896317d6333b97d35a1",
+        "canonical_equal_to_146": true
+      },
+      {
+        "name": "0033_currency_default_review.sql",
+        "sha256": "3f80ef80fcd49d116292a6caa3499c52e397dfc663480e71d4a7ec09c1561d3f",
+        "canonical_equal_to_146": true
+      },
+      {
+        "name": "0034_finance_ai_assistance.sql",
+        "sha256": "c477c64e432dc028cc92aa78a99e325cd1365fd47b22645609543ea9b7ae19c3",
+        "canonical_equal_to_146": true
+      }
+    ],
+    "full_migration_rehearsal_repeated": false
+  },
+  "backup_gate": {
+    "recorded_at": "2026-11-13T03:51:09.560Z",
+    "bookmark_observation_available": true,
+    "full_remote_backup_performed": false,
+    "remote_migrations_applied": false,
+    "restore_performed": false,
+    "authorized_write_window": false
+  },
+  "remote_migrations_executed": false,
+  "remote_accounts_created": 0,
+  "remote_flags_changed": 0,
+  "samsung_w01_w10": "NOT_TESTED_0_OF_10",
+  "production_operations": 0
+}
