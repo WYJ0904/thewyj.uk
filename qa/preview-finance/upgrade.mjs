@@ -53,10 +53,11 @@ async function seed(db,remote){
  const accounts=['a','b'].map(n=>({id:'synthetic-preview-'+n,role:'user',entitlements:['finance_access','language_all_access']}));
  for(const a of accounts){await insert(db,'task12_users',{id:a.id,username:a.id,username_normalized:a.id,password_hash:'',password_scheme:'reset_required',password_iterations:0,role:'user',registered_at:now,created_at:now,updated_at:now,source_updated_at:now});
   for(const currency of ['CNY','USD','EUR','HKD','GBP','JPY']){
-   const event={event_id:'synthetic-old-'+currency,fingerprint:hash(a.id+currency),payment_channel:'wechat',provider_reference:'',direction:'expense',amount_minor:currency==='JPY'?12345:64800,currency:'CNY',merchant:'synthetic merchant',counterparty:'',occurred_at_ms:1792368000000,received_at_ms:1792368000000,confidence:950,parser_version:'wechat-4'};
+   const event={event_id:a.id+'-old-'+currency,fingerprint:hash(a.id+currency),payment_channel:'wechat',provider_reference:'',direction:'expense',amount_minor:currency==='JPY'?12345:64800,currency:'CNY',merchant:'synthetic merchant',counterparty:'',occurred_at_ms:1792368000000,received_at_ms:1792368000000,confidence:950,parser_version:'wechat-4'};
    const created=await createAutomaticFinanceTransaction(db,a,'synthetic-old-device',event);
    await db.prepare('UPDATE task16_finance_transactions SET currency=?1 WHERE id=?2').bind(currency,created.transaction_id).run();
    await db.prepare('UPDATE task16_finance_raw_events SET currency=?1 WHERE user_id=?2 AND source_event_id=?3').bind(currency,a.id,event.event_id).run();
+   await insert(db,'task21_notification_events',{event_id:event.event_id,user_id:a.id,device_id:'synthetic-old-device',fingerprint:event.fingerprint,source_package:'com.tencent.mm',source_type:'notification',event_type:'transaction',parser_version:'wechat-4',parse_status:'parsed',direction:'expense',amount_minor:event.amount_minor,currency,payment_channel:'wechat',merchant:'synthetic merchant',confidence:950,occurred_at_ms:event.occurred_at_ms,received_at_ms:event.received_at_ms,finance_transaction_id:created.transaction_id,created_at:now,updated_at:now});
   }
   await insert(db,'task11_learning_sync_heads',{user_id:a.id,version:1,updated_at:now});
   await insert(db,'task11_learning_sync_records',{user_id:a.id,data_type:'wrong_book',record_id:'wrong|synthetic-profile|english|word',payload_json:'{"word":"synthetic","profile":"synthetic-profile"}',updated_at:now,deleted:0,client_id:'synthetic-browser',client_version:'synthetic',server_version:1,created_at:now,server_updated_at:now});
@@ -66,7 +67,7 @@ async function seed(db,remote){
   await insert(db,'task26_wrong_review_states',{user_id:a.id,profile:'synthetic-profile',language:'english',review_id:'synthetic-review',last_event_seq:0,state_json:'{"synthetic":true}'});
  }
  const a=accounts[0],txn=await db.prepare("SELECT id FROM task16_finance_transactions WHERE user_id=?1 AND currency='CNY'").bind(a.id).first();
- const op={operation_id:'synthetic-old-notification-operation',type:'event.ingest',payload:{event_id:'synthetic-retained-notification'}};
+ const op={operation_id:'synthetic-old-notification-operation',type:'event.ingest',payload:{event_id:a.id+'-old-CNY'}};
  await insert(db,'task21_notification_sync_operations',{user_id:a.id,operation_id:op.operation_id,device_id:'synthetic-old-device',operation_type:op.type,payload_digest:hash(JSON.stringify(stable(op))),result_version:0,result_json:JSON.stringify({transaction_id:txn.id,synthetic_original_receipt:true}),created_at:now});
  await insert(db,'task16_finance_sync_operations',{user_id:a.id,operation_id:'synthetic-retained-finance-receipt',device_id:'synthetic-old-device',operation_type:'transaction.upsert',payload_digest:hash('synthetic finance receipt'),result_version:1,result_json:JSON.stringify({transaction:{id:txn.id},synthetic_original_receipt:true}),created_at:now});
  await insert(db,'task21_notification_candidates',{id:'synthetic-old-candidate',user_id:a.id,event_id:'synthetic-pending-event',direction:'expense',amount_minor:remote?0:100,currency:'CNY',merchant:'synthetic pending',counterparty:'',payment_channel:'wechat',occurred_at_ms:1792368000000,confidence:600,status:'pending',finance_transaction_id:'',created_at:now,updated_at:now});
@@ -79,6 +80,7 @@ async function verified(db,before){
  assert.equal(await ensureTask16Schema(db),true);assert.equal(await ensureTask21Schema(db),true);
  assert.equal((await db.prepare("SELECT COUNT(*) AS n FROM task16_finance_transactions WHERE currency='JPY' AND amount_minor=12345 AND amount_exponent IS NULL").first()).n,2);
  assert.equal((await db.prepare("SELECT COUNT(*) AS n FROM task16_finance_transactions WHERE currency<>'JPY' AND amount_exponent=2").first()).n,10);
+ assert.equal((await db.prepare('SELECT COUNT(*) AS n FROM task21_notification_events e JOIN task16_finance_transactions t ON t.id=e.finance_transaction_id JOIN task16_finance_raw_events r ON r.user_id=e.user_id AND r.source_event_id=e.event_id WHERE t.user_id=e.user_id AND t.currency=e.currency AND r.currency=e.currency AND t.amount_minor=e.amount_minor AND r.amount_minor=e.amount_minor').first()).n,12);
  assert.deepEqual((await db.prepare('PRAGMA foreign_key_check').all()).results,[]);return after;
 }
 const active=[];
@@ -110,7 +112,7 @@ try{
   assert.equal(replay.operation_results[0].idempotent_replay,true);
   const one=await syncFinance(h.db,fixture.accounts[0],fixture.queue),two=await syncFinance(h.db,fixture.accounts[0],fixture.queue);
   assert.equal(one.operation_results[0].transaction.id,two.operation_results[0].transaction.id);assert.equal(two.operation_results[0].idempotent_replay,true);
-  const b=await listFinanceTransactions(h.db,fixture.accounts[1],{limit:100});assert.ok(b.transactions.every(t=>t.user_id!==fixture.accounts[0].id&&t.id!=='synthetic-offline-transaction'));
+  const b=await listFinanceTransactions(h.db,fixture.accounts[1],{limit:100}),allowed=new Set(before.tables.task16_finance_transactions.filter(t=>t.user_id===fixture.accounts[1].id).map(t=>t.id));assert.equal(b.transactions.length,allowed.size);assert.ok(b.transactions.every(t=>allowed.has(t.id)));
   record(label+': retained notification receipt replay and offline finance delivery are idempotent/account-isolated');
  }
  for(let failAt=0;failAt<(process.argv.includes('--recovery-check')?0:later.length);failAt++){

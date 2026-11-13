@@ -82,7 +82,7 @@ node qa/preview-finance/upgrade.mjs
 
 脚本仅启动全新本地 Miniflare D1，无 Cloudflare 认证/远程数据库调用。两种
 基线分别为仓库 0001–0026、远程只读 DDL 重建的结构；业务行全部为合成数据，
-包含两账户、六币种账目和 raw 关系、未知金额候选、Task11 档案记录/changes、
+包含两账户、六币种账目及 12 条通知→raw→账目关系、未知金额候选、Task11 档案记录/changes、
 Mastery、wrong-review 历史、旧通知/财务回执及待发 Outbox。
 
 已通过的验证：
@@ -101,7 +101,8 @@ Mastery、wrong-review 历史、旧通知/财务回执及待发 Outbox。
 - 迁移前逻辑快照恢复全部原表/行/ledger；前后 SQLite 备份均可重新打开，
   integrity_check=ok、升级后 foreign_key_check 为空。
 
-最终恢复专项 13 个检查通过，复用此前已通过的 8 个逐文件失败注入案例。
+最终增强通知/账目关联夹具后，完整 21 个检查均通过，包含全部 8 个逐文件
+失败注入及持久化恢复；表数按实际 Preview 结构从 94 增至 112。
 未把这些本地合成结果标成 Hosted PASS。旧 JPY 的单位仍需按现有能力门禁
 人工确认，不能因迁移成功就自动把历史整数解释为已验证的 JPY 单位。
 
@@ -129,7 +130,8 @@ hash 为 `c4421bdb7443f61a028683272be5bb68ed92d29df7e504ce2e68d25d131217b0`。
 没有更改业务模块、旧 release token、TTS、数据库迁移、Android 或 Flash 代码。
 
 本地修复的 18 项 SW 单测及真实 Chrome 硬断网检查通过，money.js 可从新原子
-缓存返回 200，用户缓存保留。证据分别为
+缓存返回 200，用户缓存保留。提交后的正常安装、同 release 暖更新和 Task26
+升级失败回滚 3 个浏览器场景、2 项派生回滚检查也通过。证据分别为
 [原 Hosted 失败](evidence/hosted-pwa-baseline.json) 与
 [本地修复通过](evidence/local-pwa-fixed.json)。原 Hosted URL 是不可变部署，
 仍为 FAIL；本地修复不能当作它已更新。发布修复需要新的候选 SHA/Preview URL。

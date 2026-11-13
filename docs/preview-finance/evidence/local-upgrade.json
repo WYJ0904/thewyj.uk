@@ -12,6 +12,122 @@
     "0033_currency_default_review.sql": "3f80ef80fcd49d116292a6caa3499c52e397dfc663480e71d4a7ec09c1561d3f",
     "0034_finance_ai_assistance.sql": "c477c64e432dc028cc92aa78a99e325cd1365fd47b22645609543ea9b7ae19c3"
   },
+  "full_run_cases": [
+    {
+      "name": "exact Preview schema reproduced with synthetic rows only",
+      "status": "PASS",
+      "ddl_differences_from_canonical_26": [
+        {
+          "type": "table",
+          "name": "task21_notification_candidates"
+        },
+        {
+          "type": "table",
+          "name": "task25_flag_audit"
+        },
+        {
+          "type": "table",
+          "name": "task25_metadata"
+        },
+        {
+          "type": "table",
+          "name": "wyj_d1_migrations"
+        }
+      ],
+      "legacy_ledger_extra": "0021_candidate_unknown_amount.sql"
+    },
+    {
+      "name": "canonical-26: base schema probes are recorded separately from money capability",
+      "status": "PASS",
+      "task16_base_probe": true,
+      "task21_base_probe": false
+    },
+    {
+      "name": "canonical-26: upgrade retains original IDs/currencies/amounts/relations/Task11/Task26/receipts and outbox",
+      "status": "PASS",
+      "ledger_before": 26,
+      "ledger_after": 34
+    },
+    {
+      "name": "canonical-26: ledger-aware repeat is a zero-change no-op",
+      "status": "PASS"
+    },
+    {
+      "name": "canonical-26: retained notification receipt replay and offline finance delivery are idempotent/account-isolated",
+      "status": "PASS"
+    },
+    {
+      "name": "actual-Preview-DDL: base schema probes are recorded separately from money capability",
+      "status": "PASS",
+      "task16_base_probe": true,
+      "task21_base_probe": false
+    },
+    {
+      "name": "actual-Preview-DDL: upgrade retains original IDs/currencies/amounts/relations/Task11/Task26/receipts and outbox",
+      "status": "PASS",
+      "ledger_before": 27,
+      "ledger_after": 35
+    },
+    {
+      "name": "actual-Preview-DDL: ledger-aware repeat is a zero-change no-op",
+      "status": "PASS"
+    },
+    {
+      "name": "actual-Preview-DDL: retained notification receipt replay and offline finance delivery are idempotent/account-isolated",
+      "status": "PASS"
+    },
+    {
+      "name": "0027_payment_identity_lifecycle.sql: failed batch rolls back DDL/data/ledger; resume succeeds",
+      "status": "PASS"
+    },
+    {
+      "name": "0028_payment_lifecycle_accounting.sql: failed batch rolls back DDL/data/ledger; resume succeeds",
+      "status": "PASS"
+    },
+    {
+      "name": "0029_payment_reconciliation.sql: failed batch rolls back DDL/data/ledger; resume succeeds",
+      "status": "PASS"
+    },
+    {
+      "name": "0030_payment_supersession.sql: failed batch rolls back DDL/data/ledger; resume succeeds",
+      "status": "PASS"
+    },
+    {
+      "name": "0031_finance_currency_fx.sql: failed batch rolls back DDL/data/ledger; resume succeeds",
+      "status": "PASS"
+    },
+    {
+      "name": "0032_notification_currency_units.sql: failed batch rolls back DDL/data/ledger; resume succeeds",
+      "status": "PASS"
+    },
+    {
+      "name": "0033_currency_default_review.sql: failed batch rolls back DDL/data/ledger; resume succeeds",
+      "status": "PASS"
+    },
+    {
+      "name": "0034_finance_ai_assistance.sql: failed batch rolls back DDL/data/ledger; resume succeeds",
+      "status": "PASS"
+    },
+    {
+      "name": "workerd restart after 0030 resumes only 0031-0034 with old rows intact",
+      "status": "PASS"
+    },
+    {
+      "name": "pre-upgrade logical snapshot restores all original tables/rows/ledger",
+      "status": "PASS"
+    },
+    {
+      "name": "standalone before/after SQLite backup artifacts reopen with integrity_check=ok",
+      "status": "PASS"
+    },
+    {
+      "name": "untracked raw ALTER replay is rejected without changing the already-upgraded database",
+      "status": "PASS"
+    }
+  ],
+  "full_run_pass": 21,
+  "full_run_fail": 0,
+  "linked_notification_raw_ledger_rows": 12,
   "failed_file_injection_cases": [
     {
       "name": "0027_payment_identity_lifecycle.sql: failed batch rolls back DDL/data/ledger; resume succeeds",
@@ -46,64 +162,10 @@
       "status": "PASS"
     }
   ],
-  "final_recovery_cases": [
-    {
-      "name": "exact Preview schema reproduced with synthetic rows only",
-      "status": "PASS"
-    },
-    {
-      "name": "canonical-26: base schema probes are recorded separately from money capability",
-      "status": "PASS"
-    },
-    {
-      "name": "canonical-26: upgrade retains original IDs/currencies/amounts/relations/Task11/Task26/receipts and outbox",
-      "status": "PASS",
-      "ledger_before": 26,
-      "ledger_after": 34
-    },
-    {
-      "name": "canonical-26: ledger-aware repeat is a zero-change no-op",
-      "status": "PASS"
-    },
-    {
-      "name": "canonical-26: retained notification receipt replay and offline finance delivery are idempotent/account-isolated",
-      "status": "PASS"
-    },
-    {
-      "name": "actual-Preview-DDL: base schema probes are recorded separately from money capability",
-      "status": "PASS"
-    },
-    {
-      "name": "actual-Preview-DDL: upgrade retains original IDs/currencies/amounts/relations/Task11/Task26/receipts and outbox",
-      "status": "PASS",
-      "ledger_before": 27,
-      "ledger_after": 35
-    },
-    {
-      "name": "actual-Preview-DDL: ledger-aware repeat is a zero-change no-op",
-      "status": "PASS"
-    },
-    {
-      "name": "actual-Preview-DDL: retained notification receipt replay and offline finance delivery are idempotent/account-isolated",
-      "status": "PASS"
-    },
-    {
-      "name": "workerd restart after 0030 resumes only 0031-0034 with old rows intact",
-      "status": "PASS"
-    },
-    {
-      "name": "pre-upgrade logical snapshot restores all original tables/rows/ledger",
-      "status": "PASS"
-    },
-    {
-      "name": "standalone before/after SQLite backup artifacts reopen with integrity_check=ok",
-      "status": "PASS"
-    },
-    {
-      "name": "untracked raw ALTER replay is rejected without changing the already-upgraded database",
-      "status": "PASS"
-    }
-  ],
+  "schema_table_counts": {
+    "before-preview.sqlite": 94,
+    "after-preview.sqlite": 112
+  },
   "initial_harness_errors_retained": true,
   "remote_writes": 0
 }

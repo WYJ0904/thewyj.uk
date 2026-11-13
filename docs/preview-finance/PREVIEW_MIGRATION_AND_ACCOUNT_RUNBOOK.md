@@ -81,6 +81,8 @@ node node_modules/wrangler/bin/wrangler.js d1 migrations apply WYJ_PREVIEW_ONLY 
 
 SQL 导出会阻塞其他请求，应在已协调的维护窗口内进行。若数据库出现 virtual
 tables 或导出不支持的类型，应停止并选择受支持的备份方式，不能为导出删除表。
+SQL 导出是辅助逻辑备份；D1 export 对超大 int64 有精度限制，不能据此承诺任意
+整数完全保真，原生恢复应优先使用当次 Time Travel 点。
 Time Travel 的当前 bookmark 可能因内部维护前进，不能把 bookmark 变化直接
 当成业务写入或数据变化；本轮只读获取的旧 bookmark 不能代替执行当次恢复点。
 
@@ -110,7 +112,8 @@ Wrangler 4.118.0 将每个文件 SQL 和该文件 ledger INSERT 拼成同一次�
 或另行批准隔离恢复/数据协调。恢复命令形式为：
 
 ```powershell
-node node_modules/wrangler/bin/wrangler.js d1 time-travel restore a3e6253b-689f-49f3-998b-7c5828ea255a --bookmark <本次批准的恢复点> --json
+$approvedBookmark = (Get-Content -LiteralPath (Join-Path $previewBackup 'bookmark.json') -Raw | ConvertFrom-Json).bookmark
+node node_modules/wrangler/bin/wrangler.js d1 time-travel restore a3e6253b-689f-49f3-998b-7c5828ea255a --bookmark $approvedBookmark --json
 ```
 
 保留 restore 返回的 undo bookmark；恢复后再只读确认旧 27 条 ledger、旧
