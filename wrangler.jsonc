@@ -59,7 +59,8 @@
     "TASK11_IMPORT_ENABLED": "false",
     "TASK11_PRODUCTION_IMPORT_ENABLED": "false",
     "TASK25_FEATURE_FLAGS_ENABLED": "true",
-    "TASK26_ADAPTIVE_LEARNING_ENABLED": "true"
+    "TASK26_ADAPTIVE_LEARNING_ENABLED": "true",
+    "EMAIL_SENDING_ENABLED": "false"
   },
   "env": {
     "preview": {
@@ -118,7 +119,10 @@
         "TASK11_IMPORT_ENABLED": "true",
         "TASK11_PRODUCTION_IMPORT_ENABLED": "false",
         "TASK25_FEATURE_FLAGS_ENABLED": "true",
-        "TASK26_ADAPTIVE_LEARNING_ENABLED": "true"
+        "TASK26_ADAPTIVE_LEARNING_ENABLED": "true",
+        "EMAIL_SENDING_ENABLED": "true",
+        "EMAIL_CLOUDFLARE_ACCOUNT_ID": "97c274a981e8dd6703aa6388e11c4614",
+        "EMAIL_TEST_RECIPIENTS": "wyj20090904@gmail.com,support@thewyj.uk"
       },
       "d1_databases": [
         {
@@ -195,7 +199,8 @@
         "TASK11_IMPORT_ENABLED": "false",
         "TASK11_PRODUCTION_IMPORT_ENABLED": "false",
         "TASK25_FEATURE_FLAGS_ENABLED": "true",
-        "TASK26_ADAPTIVE_LEARNING_ENABLED": "true"
+        "TASK26_ADAPTIVE_LEARNING_ENABLED": "true",
+        "EMAIL_SENDING_ENABLED": "false"
       },
       "d1_databases": [
         {
