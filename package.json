@@ -4,6 +4,11 @@
   "version": "0.0.0",
   "description": "Cloudflare Pages development tooling for thewyj.uk",
   "scripts": {
+    "test:tts": "node local-backend/test_tts_js.mjs && node local-backend/test_language_js.mjs",
+    "test:tts:browser": "node qa/tts/browser.mjs",
+    "test:tts:runtime": "npm run cf:check && node qa/tts/workerd.mjs",
+    "test:tts:live": "node qa/tts/live-azure.mjs",
+    "test:email": "node local-backend/test_email_js.mjs",
     "cf:check": "wrangler pages functions build functions --outdir .wrangler/functions-build",
     "cf:types": "wrangler types .wrangler/worker-configuration.d.ts --env preview",
     "cf:migrate:local": "wrangler d1 migrations apply WYJ_DB --local --config wrangler.local.jsonc --persist-to .wrangler/state",

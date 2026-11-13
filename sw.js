@@ -1,5 +1,5 @@
-const CACHE = "wyj-shell-20261109-aeris-p07-production-r2-es-modules";
-const RELEASE = "20261109-aeris-p07-production-r2";
+const CACHE = "wyj-shell-20261113-aeris-s0-p0-rc1-es-modules";
+const RELEASE = "20261113-aeris-s0-p0-rc1";
 const OWNED_PREFIX = "wyj-shell-";
 const observedShellReleases = new Set();
 const NAVIGATION_TIMEOUT_MS = 5000;
@@ -9,108 +9,109 @@ const INSTALL_CONCURRENCY = 6;
 const CORE_SHELL = [
   "/",
   "/index.html",
-  "/styles.css?release=20261109-aeris-p07-production-r2",
-  "/product-ui.css?release=20261109-aeris-p07-production-r2",
-  "/design-system.css?release=20261109-aeris-p07-production-r2",
-  "/public-experience.css?release=20261109-aeris-p07-production-r2",
-  "/workspace-experience.css?release=20261109-aeris-p07-production-r2",
-  "/spatial-experience.css?release=20261109-aeris-p07-production-r2",
-  "/changelog.js?release=20261109-aeris-p07-production-r2",
-  "/learning-sync.js?release=20261109-aeris-p07-production-r2",
-  "/app.js?release=20261109-aeris-p07-production-r2",
-  "/js/core/api.js?release=20261109-aeris-p07-production-r2",
-  "/js/core/changelog.js?release=20261109-aeris-p07-production-r2",
-  "/js/core/capabilities.js?release=20261109-aeris-p07-production-r2",
-  "/js/core/config.js?release=20261109-aeris-p07-production-r2",
-  "/js/core/router.js?release=20261109-aeris-p07-production-r2",
-  "/js/core/session.js?release=20261109-aeris-p07-production-r2",
-  "/js/core/storage.js?release=20261109-aeris-p07-production-r2",
-  "/js/core/ui.js?release=20261109-aeris-p07-production-r2",
-  "/js/core/design-system.js?release=20261109-aeris-p07-production-r2",
-  "/js/core/public-ui-policy.js?release=20261109-aeris-p07-production-r2",
-  "/js/core/download.js?release=20261109-aeris-p07-production-r2",
-  "/js/core/perf.js?release=20261109-aeris-p07-production-r2",
-  "/js/core/motion.js?release=20261109-aeris-p07-production-r2",
-  "/js/core/keyed-list.js?release=20261109-aeris-p07-production-r2",
-  "/js/core/public-experience.js?release=20261109-aeris-p07-production-r2",
-  "/favicon.ico?release=20261109-aeris-p07-production-r2",
-  "/assets/brand/favicon-32.png?release=20261109-aeris-p07-production-r2",
-  "/assets/brand/apple-touch-icon.png?release=20261109-aeris-p07-production-r2",
-  "/assets/brand/aeris-maskable-512.png?release=20261109-aeris-p07-production-r2",
-  "/assets/brand/aeris-lockup.png?release=20261109-aeris-p07-production-r2",
-  "/icon-192.png?release=20261109-aeris-p07-production-r2",
-  "/icon-512.png?release=20261109-aeris-p07-production-r2",
-  "/js/finance/app.js?release=20261109-aeris-p07-production-r2",
-  "/js/finance/candidates.js?release=20261109-aeris-p07-production-r2",
-  "/js/finance/disclosure.js?release=20261109-aeris-p07-production-r2",
-  "/js/finance/notification-ledger.js?release=20261109-aeris-p07-production-r2",
-  "/js/transfer/app.js?release=20261109-aeris-p07-production-r2",
-  "/js/transfer/updates.js?release=20261109-aeris-p07-production-r2",
-  "/js/language/achievements.js?release=20261109-aeris-p07-production-r2",
-  "/js/language/history.js?release=20261109-aeris-p07-production-r2",
-  "/js/language/pdf.js?release=20261109-aeris-p07-production-r2",
-  "/js/language/mastery.js?release=20261109-aeris-p07-production-r2",
-  "/js/language/mastery-state.js?release=20261109-aeris-p07-production-r2",
-  "/js/language/mastery-journal.js?release=20261109-aeris-p07-production-r2",
-  "/js/language/quiz.js?release=20261109-aeris-p07-production-r2",
-  "/js/language/speech.js?release=20261109-aeris-p07-production-r2",
-  "/js/language/speech-rate.js?release=20261109-aeris-p07-production-r2",
-  "/js/language/sync-adapter.js?release=20261109-aeris-p07-production-r2",
-  "/js/language/wrong-book.js?release=20261109-aeris-p07-production-r2",
-  "/js/membership/account.js?release=20261109-aeris-p07-production-r2",
-  "/js/membership/plans.js?release=20261109-aeris-p07-production-r2",
-  "/js/membership/recharge.js?release=20261109-aeris-p07-production-r2",
-  "/js/admin/formatters.js?release=20261109-aeris-p07-production-r2",
-  "/tools.js?release=20261109-aeris-p07-production-r2",
-  "/js/tools/catalog.js?release=20261109-aeris-p07-production-r2",
-  "/js/tools/file.js?release=20261109-aeris-p07-production-r2",
-  "/js/tools/image.js?release=20261109-aeris-p07-production-r2",
-  "/js/tools/random.js?release=20261109-aeris-p07-production-r2",
-  "/js/tools/runner.js?release=20261109-aeris-p07-production-r2",
-  "/js/tools/temporary.js?release=20261109-aeris-p07-production-r2",
-  "/js/tools/text.js?release=20261109-aeris-p07-production-r2",
-  "/workflows.js?release=20261109-aeris-p07-production-r2",
+  "/styles.css?release=20261113-aeris-s0-p0-rc1",
+  "/product-ui.css?release=20261113-aeris-s0-p0-rc1",
+  "/design-system.css?release=20261113-aeris-s0-p0-rc1",
+  "/public-experience.css?release=20261113-aeris-s0-p0-rc1",
+  "/workspace-experience.css?release=20261113-aeris-s0-p0-rc1",
+  "/spatial-experience.css?release=20261113-aeris-s0-p0-rc1",
+  "/changelog.js?release=20261113-aeris-s0-p0-rc1",
+  "/learning-sync.js?release=20261113-aeris-s0-p0-rc1",
+  "/app.js?release=20261113-aeris-s0-p0-rc1",
+  "/js/core/api.js?release=20261113-aeris-s0-p0-rc1",
+  "/js/core/changelog.js?release=20261113-aeris-s0-p0-rc1",
+  "/js/core/capabilities.js?release=20261113-aeris-s0-p0-rc1",
+  "/js/core/config.js?release=20261113-aeris-s0-p0-rc1",
+  "/js/core/router.js?release=20261113-aeris-s0-p0-rc1",
+  "/js/core/session.js?release=20261113-aeris-s0-p0-rc1",
+  "/js/core/storage.js?release=20261113-aeris-s0-p0-rc1",
+  "/js/core/ui.js?release=20261113-aeris-s0-p0-rc1",
+  "/js/core/design-system.js?release=20261113-aeris-s0-p0-rc1",
+  "/js/core/public-ui-policy.js?release=20261113-aeris-s0-p0-rc1",
+  "/js/core/download.js?release=20261113-aeris-s0-p0-rc1",
+  "/js/core/perf.js?release=20261113-aeris-s0-p0-rc1",
+  "/js/core/motion.js?release=20261113-aeris-s0-p0-rc1",
+  "/js/core/keyed-list.js?release=20261113-aeris-s0-p0-rc1",
+  "/js/core/public-experience.js?release=20261113-aeris-s0-p0-rc1",
+  "/favicon.ico?release=20261113-aeris-s0-p0-rc1",
+  "/assets/brand/favicon-32.png?release=20261113-aeris-s0-p0-rc1",
+  "/assets/brand/apple-touch-icon.png?release=20261113-aeris-s0-p0-rc1",
+  "/assets/brand/aeris-maskable-512.png?release=20261113-aeris-s0-p0-rc1",
+  "/assets/brand/aeris-lockup.png?release=20261113-aeris-s0-p0-rc1",
+  "/icon-192.png?release=20261113-aeris-s0-p0-rc1",
+  "/icon-512.png?release=20261113-aeris-s0-p0-rc1",
+  "/js/finance/app.js?release=20261113-aeris-s0-p0-rc1",
+  "/js/finance/candidates.js?release=20261113-aeris-s0-p0-rc1",
+  "/js/finance/disclosure.js?release=20261113-aeris-s0-p0-rc1",
+  "/js/finance/notification-ledger.js?release=20261113-aeris-s0-p0-rc1",
+  "/js/transfer/app.js?release=20261113-aeris-s0-p0-rc1",
+  "/js/transfer/updates.js?release=20261113-aeris-s0-p0-rc1",
+  "/js/language/achievements.js?release=20261113-aeris-s0-p0-rc1",
+  "/js/language/history.js?release=20261113-aeris-s0-p0-rc1",
+  "/js/language/pdf.js?release=20261113-aeris-s0-p0-rc1",
+  "/js/language/mastery.js?release=20261113-aeris-s0-p0-rc1",
+  "/js/language/mastery-state.js?release=20261113-aeris-s0-p0-rc1",
+  "/js/language/mastery-journal.js?release=20261113-aeris-s0-p0-rc1",
+  "/js/language/quiz.js?release=20261113-aeris-s0-p0-rc1",
+  "/js/language/speech.js?release=20261113-aeris-s0-p0-rc1",
+  "/js/language/speech-rate.js?release=20261113-aeris-s0-p0-rc1",
+  "/js/language/sync-adapter.js?release=20261113-aeris-s0-p0-rc1",
+  "/js/language/wrong-book.js?release=20261113-aeris-s0-p0-rc1",
+  "/js/membership/account.js?release=20261113-aeris-s0-p0-rc1",
+  "/js/membership/plans.js?release=20261113-aeris-s0-p0-rc1",
+  "/js/membership/recharge.js?release=20261113-aeris-s0-p0-rc1",
+  "/js/admin/formatters.js?release=20261113-aeris-s0-p0-rc1",
+  "/tools.js?release=20261113-aeris-s0-p0-rc1",
+  "/js/tools/catalog.js?release=20261113-aeris-s0-p0-rc1",
+  "/js/tools/file.js?release=20261113-aeris-s0-p0-rc1",
+  "/js/tools/image.js?release=20261113-aeris-s0-p0-rc1",
+  "/js/tools/random.js?release=20261113-aeris-s0-p0-rc1",
+  "/js/tools/runner.js?release=20261113-aeris-s0-p0-rc1",
+  "/js/tools/temporary.js?release=20261113-aeris-s0-p0-rc1",
+  "/js/tools/text.js?release=20261113-aeris-s0-p0-rc1",
+  "/workflows.js?release=20261113-aeris-s0-p0-rc1",
   "/vendor/qrcode.js?v=2.0.4",
   "/vendor/opencc-st-characters.txt",
   "/vendor/opencc-ts-characters.txt",
-  "/manifest.webmanifest?release=20261109-aeris-p07-production-r2",
+  "/manifest.webmanifest?release=20261113-aeris-s0-p0-rc1",
   "/icon-192.png",
   "/icon-512.png"
 ];
-CORE_SHELL.push("/js/core/feature-flags.js?release=20261109-aeris-p07-production-r2", "/js/core/feature-console.js?release=20261109-aeris-p07-production-r2");
+CORE_SHELL.push("/js/core/feature-flags.js?release=20261113-aeris-s0-p0-rc1", "/js/core/feature-console.js?release=20261113-aeris-s0-p0-rc1");
 const OPTIONAL_BRAND_ASSETS = ["/assets/logo.png"];
-CORE_SHELL.push("/js/core/startup.js?release=20261109-aeris-p07-production-r2");
-CORE_SHELL.push("/js/core/home-widget-layout.js?release=20261109-aeris-p07-production-r2");
-CORE_SHELL.push("/js/core/home-widgets.js?release=20261109-aeris-p07-production-r2", "/js/core/home-widget-data.js?release=20261109-aeris-p07-production-r2");
-CORE_SHELL.push("/js/transfer/upload-part.js?release=20261109-aeris-p07-production-r2");
-CORE_SHELL.push("/js/core/lazy-controller.js?release=20261109-aeris-p07-production-r2", "/js/core/parked-rows.js?release=20261109-aeris-p07-production-r2", "/js/core/dashboard.js?release=20261109-aeris-p07-production-r2", "/js/finance/format.js?release=20261109-aeris-p07-production-r2", "/js/tools/digest-worker.js?release=20261109-aeris-p07-production-r2");
+CORE_SHELL.push("/js/core/startup.js?release=20261113-aeris-s0-p0-rc1");
+CORE_SHELL.push("/js/core/home-widget-layout.js?release=20261113-aeris-s0-p0-rc1");
+CORE_SHELL.push("/js/core/home-widgets.js?release=20261113-aeris-s0-p0-rc1", "/js/core/home-widget-data.js?release=20261113-aeris-s0-p0-rc1");
+CORE_SHELL.push("/js/transfer/upload-part.js?release=20261113-aeris-s0-p0-rc1");
+CORE_SHELL.push("/js/core/lazy-controller.js?release=20261113-aeris-s0-p0-rc1", "/js/core/parked-rows.js?release=20261113-aeris-s0-p0-rc1", "/js/core/dashboard.js?release=20261113-aeris-s0-p0-rc1", "/js/finance/format.js?release=20261113-aeris-s0-p0-rc1", "/js/tools/digest-worker.js?release=20261113-aeris-s0-p0-rc1");
 
 // Keep the independently fingerprinted 81-resource RC5 shell intact. Task26
 // extends its required graph; these imports are never best-effort artwork.
 const TASK26_SHELL = [
-  "/js/language/wrong-review.js?release=20261109-aeris-p07-production-r2",
-  "/js/language/wrong-review-sync.js?release=20261109-aeris-p07-production-r2",
+  "/js/language/wrong-review.js?release=20261113-aeris-s0-p0-rc1",
+  "/js/language/wrong-review-sync.js?release=20261113-aeris-s0-p0-rc1",
 ];
 // Finance formatting statically imports money.js. A fresh installation must
 // include it before publishing HTML, while retaining the original RC5 layer.
-const FINANCE_SHELL = ["/js/finance/money.js?release=20261109-aeris-p07-production-r2"];
+const FINANCE_SHELL = ["/js/finance/money.js?release=20261113-aeris-s0-p0-rc1"];
 const REQUIRED_SHELL = [...CORE_SHELL, ...TASK26_SHELL, ...FINANCE_SHELL];
 // Canonical UTF-8 text (CRLF -> LF) binds the changed Task26 graph, not only its
 // public P07 URL token. The publication name changes with these source hashes.
 const TASK26_INTEGRITY = Object.freeze({
-  "/": "2e7a9c887de3d29cc4c2186031dd78ff0983a319d1411452854da17461aa20d3",
-  "/index.html": "2e7a9c887de3d29cc4c2186031dd78ff0983a319d1411452854da17461aa20d3",
-  "/app.js?release=20261109-aeris-p07-production-r2": "eff3903e3e2f82647e6be53577dced7cf1a000928075c509030adf41bf782eaa",
-  "/learning-sync.js?release=20261109-aeris-p07-production-r2": "74ced24b8dab7c8ad16dc6b4b68ff81a89e968d18a607bbba6b066a8bee7727d",
-  "/product-ui.css?release=20261109-aeris-p07-production-r2": "2afdb61afc1770198569bad4a2afa1c4fe131a5201a688c4e3af40cb96a1e5b8",
-  "/js/language/mastery.js?release=20261109-aeris-p07-production-r2": "65b55adb1e66d075d9c899481a17020a0241fb388ff2e71925214190dd9b4797",
-  "/js/language/quiz.js?release=20261109-aeris-p07-production-r2": "cd4546dc7e48876bac503c49e259267bde99b79ab0cf5565cb917c1ed031e3b0",
-  "/js/language/wrong-book.js?release=20261109-aeris-p07-production-r2": "a1b452848f7d332f4add1d6c7b55feb00d7ba6f80045c352b9ce32fbade724eb",
-  "/js/language/wrong-review.js?release=20261109-aeris-p07-production-r2": "d77ec0816756cf4a65a7c4f804ea80d6c17aee4757524bcee7ba2aca558c3a25",
-  "/js/language/wrong-review-sync.js?release=20261109-aeris-p07-production-r2": "231cb66e91aa6909157253d064b0241fe9cf3e6c841b95c1b41a2ba0657f5997",
-  "/js/finance/money.js?release=20261109-aeris-p07-production-r2": "f1172d6c74835784bd1a6629d48c1884f46c14d9825f9f8308a07d3542214277"
+  "/": "55cca1f29c039e2954665d108854cd1e8d87678813274303edc82d997111a983",
+  "/index.html": "55cca1f29c039e2954665d108854cd1e8d87678813274303edc82d997111a983",
+  "/app.js?release=20261113-aeris-s0-p0-rc1": "64839837237fd78e04a067e42b0dad17ac689618f381ab752f2827b41e3b4e97",
+  "/learning-sync.js?release=20261113-aeris-s0-p0-rc1": "74ced24b8dab7c8ad16dc6b4b68ff81a89e968d18a607bbba6b066a8bee7727d",
+  "/product-ui.css?release=20261113-aeris-s0-p0-rc1": "2afdb61afc1770198569bad4a2afa1c4fe131a5201a688c4e3af40cb96a1e5b8",
+  "/js/language/mastery.js?release=20261113-aeris-s0-p0-rc1": "2bdebc9b38191301973bc8dbeb3907af5a091d3b6e7d4f143c958a8ff731ed2b",
+  "/js/language/quiz.js?release=20261113-aeris-s0-p0-rc1": "cd4546dc7e48876bac503c49e259267bde99b79ab0cf5565cb917c1ed031e3b0",
+  "/js/language/wrong-book.js?release=20261113-aeris-s0-p0-rc1": "5bc59e9ef3000944ed6739db65f30dad911dcb95f4837ff331210015e98ecea0",
+  "/js/language/wrong-review.js?release=20261113-aeris-s0-p0-rc1": "d77ec0816756cf4a65a7c4f804ea80d6c17aee4757524bcee7ba2aca558c3a25",
+  "/js/language/wrong-review-sync.js?release=20261113-aeris-s0-p0-rc1": "73bf1d47bc1dcd6599455fbae236f4ec90e96bf4b95a9e26f6379ede40f8bd47",
+  "/js/finance/money.js?release=20261113-aeris-s0-p0-rc1": "f1172d6c74835784bd1a6629d48c1884f46c14d9825f9f8308a07d3542214277",
+  "/js/language/speech.js?release=20261113-aeris-s0-p0-rc1": "a6c7ab6b03d7e8499abef932670e18e013f0e65cb1a4cf6192e67fe50541bf6c"
 });
-const PUBLICATION_HASH = "c4421bdb7443f61a028683272be5bb68ed92d29df7e504ce2e68d25d131217b0";
+const PUBLICATION_HASH = "acc747238a844ff941f5d77c45fd17d1255d9ba0107cccb7c39f1b040a1ccc07";
 const PUBLICATION_CACHE = `${CACHE}-task26-${PUBLICATION_HASH.slice(0, 16)}`;
 const PUBLICATION_MARKER = "/__aeris/task26-publication";
 

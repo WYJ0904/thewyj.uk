@@ -1,0 +1,101 @@
+{
+  "recorded_at": "2026-11-12T10:44:40.620Z",
+  "scope": "isolated-real-Azure-with-local-D1-R2",
+  "status": "AZURE_API_PASS",
+  "actual_azure_requests": 4,
+  "synthesis_requests": 3,
+  "voice_list_requests": 1,
+  "samples": [
+    {
+      "language": "en",
+      "locale": "en-US",
+      "text": "Welcome to Aeris. This is an English speech test.",
+      "voice": "en-US-JennyNeural",
+      "bytes": 28224,
+      "http_status": 200,
+      "mime": "audio/mpeg",
+      "first_cache": "miss",
+      "second_cache": "hit",
+      "synthesis_requests": 1,
+      "cache_synthesis_requests": 0,
+      "sha256": "8d1594f6d863deb18a6d968a309be4e3d73c9187fbe14c767222beccc1a0ee35",
+      "local_cache_round_trip": "PASS",
+      "human_listening": "LISTENING_PENDING"
+    },
+    {
+      "language": "jp",
+      "locale": "ja-JP",
+      "text": "先生と学生が日本語を勉強しています。",
+      "voice": "ja-JP-NanamiNeural",
+      "bytes": 24480,
+      "http_status": 200,
+      "mime": "audio/mpeg",
+      "first_cache": "miss",
+      "second_cache": "hit",
+      "synthesis_requests": 1,
+      "cache_synthesis_requests": 0,
+      "sha256": "59e16d0659f480748894b90aab3a77aa94daf587abfa1def73a6378670dab8bd",
+      "local_cache_round_trip": "PASS",
+      "human_listening": "LISTENING_PENDING"
+    },
+    {
+      "language": "zh",
+      "locale": "zh-CN",
+      "text": "欢迎使用 Aeris。这是一段中文语音测试。",
+      "voice": "zh-CN-XiaoxiaoNeural",
+      "bytes": 28080,
+      "http_status": 200,
+      "mime": "audio/mpeg",
+      "first_cache": "miss",
+      "second_cache": "hit",
+      "synthesis_requests": 1,
+      "cache_synthesis_requests": 0,
+      "sha256": "d348ce95552aeb9509d469e670c5c547d9077739687bade6e86a0162a910b1f8",
+      "local_cache_round_trip": "PASS",
+      "human_listening": "LISTENING_PENDING"
+    }
+  ],
+  "upstream": [
+    {
+      "status": 200,
+      "mime": "audio/mpeg",
+      "elapsed_ms": 466
+    },
+    {
+      "status": 200,
+      "mime": "audio/mpeg",
+      "elapsed_ms": 534
+    },
+    {
+      "status": 200,
+      "mime": "audio/mpeg",
+      "elapsed_ms": 684
+    }
+  ],
+  "human_listening": "LISTENING_PENDING",
+  "web_playback": "NOT_TESTED",
+  "android_device": "ANDROID_DEVICE_NOT_TESTED",
+  "hosted_preview": "NOT_TESTED",
+  "production": "NOT_SWITCHED",
+  "region": "eastasia",
+  "voices": [
+    {
+      "voice": "en-US-JennyNeural",
+      "locale": "en-US",
+      "type": "Neural",
+      "availability_status": 200
+    },
+    {
+      "voice": "ja-JP-NanamiNeural",
+      "locale": "ja-JP",
+      "type": "Neural",
+      "availability_status": 200
+    },
+    {
+      "voice": "zh-CN-XiaoxiaoNeural",
+      "locale": "zh-CN",
+      "type": "Neural",
+      "availability_status": 200
+    }
+  ]
+}
