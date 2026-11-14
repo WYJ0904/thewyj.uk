@@ -162,6 +162,9 @@ async function cacheAssetSafely(cache, asset) {
 self.addEventListener("install", (event) => {
   event.waitUntil(
     (async () => {
+      const workerURL = self.location?.href ? new URL(self.location.href, self.location.origin) : null;
+      const workerRelease = workerURL && (workerURL.searchParams.get('release') || workerURL.searchParams.get('v'));
+      if (workerRelease && workerRelease !== RELEASE) throw new Error('Release changed during installation');
       // A previous worker can finish asynchronous requests after activation.
       // Its legacy CACHE writes must never reach this immutable publication.
       if (await publicationCache()) { await self.skipWaiting(); return; }

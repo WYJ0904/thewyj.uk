@@ -6,11 +6,11 @@ import {createHash} from 'node:crypto';
 const source=fs.readFileSync(new URL('../../sw.js',import.meta.url),'utf8'),origin='https://isolated.example';
 function metadata(s){const c={self:{addEventListener(){}}};vm.runInNewContext(s+';globalThis.meta={core:CORE_SHELL,cache:CACHE,release:RELEASE,publication:PUBLICATION_CACHE,layer:TASK26_SHELL,finance:FINANCE_SHELL,required:REQUIRED_SHELL,integrity:TASK26_INTEGRITY,fingerprint:PUBLICATION_HASH};',c);return JSON.parse(JSON.stringify(c.meta));}
 const meta=metadata(source),normalize=s=>s.replace(/\d{8}-aeris-[a-z0-9-]+/g,'RELEASE');
-function worker(network,{stores=new Map(),activeScriptURL}={}){
+function worker(network,{stores=new Map(),activeScriptURL,scriptURL}={}){
  const handlers=new Map(),timers=new Map();let timerId=0,skipped=0;
  const key=v=>new URL(typeof v==='string'?v:v.url,origin).href;
  const caches={keys:async()=>[...stores.keys()],delete:async n=>stores.delete(n),open:async n=>{if(!stores.has(n))stores.set(n,new Map());const m=stores.get(n);return{put:async(k,r)=>{const bytes=await r.arrayBuffer();m.set(key(k),new Response(bytes,{status:r.status,headers:r.headers}));},match:async k=>m.get(key(k))?.clone(),keys:async()=>[...m.keys()].map(url=>({url}))};}};
- vm.runInNewContext(source,{URL,Response,AbortController,crypto,TextEncoder,caches,fetch:network,setTimeout:f=>{timers.set(++timerId,f);return timerId;},clearTimeout:id=>timers.delete(id),self:{location:{origin},registration:{active:activeScriptURL?{scriptURL:activeScriptURL}:null},addEventListener:(k,v)=>handlers.set(k,v),clients:{claim:async()=>{}},skipWaiting:async()=>{skipped++;}}});
+ vm.runInNewContext(source,{URL,Response,AbortController,crypto,TextEncoder,caches,fetch:network,setTimeout:f=>{timers.set(++timerId,f);return timerId;},clearTimeout:id=>timers.delete(id),self:{location:{origin,href:scriptURL||(origin+'/sw.js?v='+meta.release)},registration:{active:activeScriptURL?{scriptURL:activeScriptURL}:null},addEventListener:(k,v)=>handlers.set(k,v),clients:{claim:async()=>{}},skipWaiting:async()=>{skipped++;}}});
  return{stores,timers,caches,skipped:()=>skipped,install:()=>{let p;handlers.get('install')({waitUntil:x=>p=x});return p;},fetch:(path,mode='cors')=>{let p;handlers.get('fetch')({request:{method:'GET',url:new URL(path,origin).href,mode},respondWith:x=>p=x});return p;}};
 }
 const html=fs.readFileSync(new URL('../../index.html',import.meta.url),'utf8');
@@ -140,4 +140,10 @@ test('a distinct release receives a complete compatibility graph for retained cl
 test('a same-release active legacy writer cannot race compatibility-cache seeding',async()=>{
  const w=worker(async asset=>response(asset),{activeScriptURL:origin+'/sw.js?v='+meta.release});await w.install();
  assert.equal(w.stores.has(meta.cache),false);assert.ok(w.stores.has(meta.publication));
+});
+test('a worker registered under a mismatched release script URL rejects installation',async()=>{
+ const w=worker(async asset=>response(asset),{scriptURL:origin+'/sw.js?v=20260101-aeris-stale'});
+ await assert.rejects(w.install(),/Release changed during installation/);
+ assert.equal(w.skipped(),0);
+ assert.equal(w.stores.size,0);
 });
