@@ -8,7 +8,7 @@ const match=/const TASK26_INTEGRITY = Object.freeze\((\{[\s\S]*?\})\);/.exec(wor
 if (!match) throw new Error('Existing publication integrity contract is missing');
 const entries=JSON.parse(match[1]);
 const release=(await readFile(path.join(root,'js/core/config.js'),'utf8')).match(/ASSET_RELEASE = "([^"]+)"/)[1];
-for(const file of ['js/account/security-center.js','js/account/policy-page.js','js/account/policy-version.js','js/core/api.js','js/core/router.js','js/transfer/app.js'])entries[`/${file}?release=${release}`]='';
+for(const file of ['js/account/security-center.js','js/account/policy-page.js','js/account/policy-version.js','js/account/password-policy.js','js/account/password-fields.js','js/core/api.js','js/core/router.js','js/transfer/app.js'])entries[`/${file}?release=${release}`]='';
 for(const url of Object.keys(entries)) {
   const pathname=new URL(url,'https://isolated.example').pathname,file=pathname==='/'?'index.html':pathname.slice(1);
   if (!isAllowedPagesFile(file)||file.startsWith('functions/'))throw new Error('Publication path outside the static allowlist');

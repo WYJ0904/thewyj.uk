@@ -53,13 +53,16 @@ export function randomDigits() {
   return String(n % 1000000).padStart(6, '0');
 }
 export function temporaryPassword() {
-  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@$%*-_';
-  let result = '';
-  const limit = 256 - (256 % alphabet.length);
-  while (result.length < 20) for (const n of randomBytes(32)) {
-    if (n < limit && result.length < 20) result += alphabet[n % alphabet.length];
-  }
-  return result;
+  const groups=['ABCDEFGHJKLMNPQRSTUVWXYZ','abcdefghijkmnopqrstuvwxyz','23456789','!@$%*-_'];
+  const index=max=>{const limit=256-(256%max);let n;do{n=randomBytes(1)[0];}while(n>=limit);return n%max;};
+  const alphabet=groups.join(''),result=groups.map(group=>group[index(group.length)]);
+  while(result.length<20)result.push(alphabet[index(alphabet.length)]);
+  for(let i=result.length-1;i>0;i--){const j=index(i+1);[result[i],result[j]]=[result[j],result[i]];}
+  return result.join('');
+}
+export function totpUri(username,secret) {
+  if(!/^[A-Z2-7]{32}$/.test(secret))throw new TypeError('Invalid TOTP enrollment secret');
+  return `otpauth://totp/Aeris:${encodeURIComponent(username)}?secret=${secret}&issuer=Aeris&algorithm=SHA1&digits=6&period=30`;
 }
 async function encryptionKey(env) {
   const bytes = unbase64url(String(env.WYJ_TASK27_TOTP_KEY || ''));

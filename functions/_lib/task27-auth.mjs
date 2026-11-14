@@ -1,7 +1,7 @@
 import { createSessionToken, sessionStorageKey, verifySecret, consumeVerificationWork } from './task12-crypto.mjs';
 import { Task12Error } from './task12-model.mjs';
 import { enforceD1RateLimit,sha256Hex } from './cloudflare-foundation.mjs';
-import { sendTransactionalEmail } from './email-service.mjs';
+import { sendTransactionalEmail,emailSendingEnabled,emailBindingConfigured,EmailServiceError } from './email-service.mjs';
 import { equalText, keyedDigest, randomDigits, decryptTotp, matchingTotpStep } from './task27-crypto.mjs';
 import { activeUser, assertion, atomic, changed, eventStatements, fail, first, generationAssertion, hasTask27, nowIso, run, securityState, stmt } from './task27-store.mjs';
 
@@ -106,7 +106,7 @@ export async function verifyPassword(db,env,userId,password) {
 }
 export async function beginStepup(context,account,payload,sessionDigest) {
   const {env,request}=context, db=env.WYJ_DB;
-  if (typeof payload.scope!=='string' || payload.scope.length>200 || !/^(password_change|email_change|mfa_change|recovery_regenerate|sessions_revoke|account_delete|admin_reset:[A-Za-z0-9_-]{1,80}|admin_roles|admin_account|admin_entitlements|admin_features|email_send:[A-Za-z0-9_-]{1,80}:\d+)$/.test(payload.scope)) fail('stepup_scope_invalid','操作范围无效');
+  if (typeof payload.scope!=='string' || payload.scope.length>200 || /[\u0000-\u001f\u007f]/u.test(payload.scope) || !/^(password_change|email_change|mfa_change|recovery_regenerate|sessions_revoke|account_delete|admin_reset:[^\u0000-\u001f\u007f]{1,80}|admin_roles|admin_account|admin_entitlements|admin_features|email_send:[A-Za-z0-9_-]{1,80}:\d+)$/.test(payload.scope)) fail('stepup_scope_invalid','操作范围无效');
   await securityRate(context,'stepup-account',account.id);
   const user=await verifyPassword(db,env,account.id,payload.password), state=await securityState(db,account.id);
   const code=state.mfa_method==='email'?randomDigits():'';
@@ -136,6 +136,7 @@ export async function grantStatements(db,token,user,state,sessionDigest,scope) {
 export async function requestPasswordReset(context,username,method='email') {
   const db=context.env.WYJ_DB;
   if (typeof username!=='string' || username.length>40 || !['email','totp','recovery'].includes(method)) fail('recovery_input_invalid','恢复请求无效');
+  if(method==='email'&&(!emailSendingEnabled(context.env)||!emailBindingConfigured(context.env)))throw new EmailServiceError('邮件服务尚不可用，验证码未发送；请稍后重试或选择已配置的其他恢复方式',503,'email_sending_unavailable',true);
   const normalized=username.trim().toLowerCase().replace(/ß/g,'ss').replace(/ς/g,'σ');
   await securityRate(context,'password-recovery',await sessionStorageKey(normalized),3,900);
   const found=await first(db,'SELECT id FROM task12_users WHERE username_normalized=?1 AND deleted=0 AND banned=0',[normalized]);
@@ -151,5 +152,5 @@ export async function requestPasswordReset(context,username,method='email') {
     });
     if (context.waitUntil) context.waitUntil(work); else await work;
   }
-  return {challenge:challenge.token,expires_at:challenge.expires_at,message:'如果账户存在且已配置该恢复方式，您可以继续验证。邮箱方式请检查绑定邮箱。'};
+  return {challenge:challenge.token,expires_at:challenge.expires_at,request_accepted:true,delivery_status:method==='email'?'not_disclosed':'not_applicable',inbox_confirmed:false,message:'已受理恢复请求，这不表示验证码已发送或送达。如果账户存在且已配置该恢复方式，会尝试处理；邮箱方式请检查绑定邮箱，未收到时可稍后重试或使用其他已配置的恢复方式。'};
 }

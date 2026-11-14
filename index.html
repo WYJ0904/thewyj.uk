@@ -667,14 +667,14 @@
           </div>
           <div id="loginTabPanel" role="tabpanel" aria-labelledby="showLoginBtn"><form id="loginForm" class="login-form" aria-labelledby="showLoginBtn" aria-describedby="loginError">
             <label class="field-label auth-field"><span>用户名</span><input id="usernameInput" autocomplete="username" maxlength="40" placeholder="请输入用户名" required /></label>
-            <label class="field-label auth-field"><span>登录密钥</span><input id="secretInput" type="password" autocomplete="current-password" maxlength="128" placeholder="请输入登录密钥" required /></label>
+            <label class="field-label auth-field"><span>登录密钥</span><input id="secretInput" type="password" autocomplete="current-password" maxlength="256" placeholder="请输入现有登录密钥" required /></label>
             <button class="primary" id="loginSubmitBtn" type="submit">登录</button>
             <button class="button-ghost" id="forgotPasswordBtn" type="button">忘记密码或无法使用验证器？</button>
           </form>
           </div><div id="registerTabPanel" class="hidden" role="tabpanel" aria-labelledby="showRegisterBtn"><form id="registerForm" class="login-form hidden" aria-labelledby="showRegisterBtn" aria-describedby="loginError">
             <label class="field-label auth-field"><span>用户名</span><input id="registerUsernameInput" autocomplete="username" maxlength="40" placeholder="请输入用户名" required /></label>
-            <label class="field-label auth-field"><span>登录密钥</span><input id="registerSecretInput" type="password" autocomplete="new-password" minlength="7" maxlength="128" placeholder="至少 7 个字符" required /></label>
-            <label class="field-label auth-field"><span>确认登录密钥</span><input id="registerConfirmInput" type="password" autocomplete="new-password" minlength="7" maxlength="128" placeholder="再次输入登录密钥" required /></label>
+            <label class="field-label auth-field"><span>登录密码</span><input id="registerSecretInput" type="password" autocomplete="new-password" minlength="9" maxlength="256" placeholder="至少 9 位，包含大小写字母、数字和特殊符号" required /></label>
+            <label class="field-label auth-field"><span>确认登录密码</span><input id="registerConfirmInput" type="password" autocomplete="new-password" minlength="9" maxlength="256" placeholder="再次输入登录密码" required /></label>
             <div class="task27-policy-consent"><input id="registerTermsConsent" type="checkbox" required /><label for="registerTermsConsent">我已阅读并同意<a href="/terms" target="_blank" rel="noopener">《Aeris 使用条款》</a>，并已获提供<a href="/privacy" target="_blank" rel="noopener">《Aeris 隐私政策》</a>和<a href="/security-privacy" target="_blank" rel="noopener">《Aeris 安全与隐私说明》</a>。</label></div>
             <button class="primary" id="registerSubmitBtn" type="submit">创建账户</button>
           </form>
@@ -1210,11 +1210,11 @@
         <form id="changeSecretForm" class="stack-form">
           <h2 class="account-settings-title">修改登录密钥</h2>
           <label data-p07-label for="currentSecretInput">当前登录密钥</label>
-          <div class="secret-input-row"><input id="currentSecretInput" type="password" autocomplete="current-password" maxlength="128" placeholder="当前登录密钥" required /><button id="toggleCurrentSecretBtn" type="button" aria-pressed="false">显示</button></div>
-          <label data-p07-label for="newSecretInput">新登录密钥（至少 7 个字符）</label>
-          <div class="secret-input-row"><input id="newSecretInput" type="password" autocomplete="new-password" minlength="7" maxlength="128" placeholder="新登录密钥（至少 7 个字符）" required /><button id="toggleNewSecretBtn" type="button" aria-pressed="false">显示</button></div>
+          <div class="secret-input-row"><input id="currentSecretInput" type="password" autocomplete="current-password" maxlength="256" placeholder="当前登录密钥" required /><button id="toggleCurrentSecretBtn" type="button" aria-pressed="false">显示</button></div>
+          <label data-p07-label for="newSecretInput">新密码（至少 9 位，包含大小写字母、数字和特殊符号）</label>
+          <div class="secret-input-row"><input id="newSecretInput" type="password" autocomplete="new-password" minlength="9" maxlength="256" placeholder="设置新的混合密码" required /><button id="toggleNewSecretBtn" type="button" aria-pressed="false">显示</button></div>
           <label data-p07-label for="newSecretConfirmInput">再次输入新登录密钥</label>
-          <input id="newSecretConfirmInput" type="password" autocomplete="new-password" minlength="7" maxlength="128" placeholder="再次输入新登录密钥" required />
+          <input id="newSecretConfirmInput" type="password" autocomplete="new-password" minlength="9" maxlength="256" placeholder="再次输入新登录密码" required />
           <div class="account-secret-actions"><button id="generateOwnSecretBtn" type="button">生成安全密钥</button><button class="primary" type="submit">保存并退出全部会话</button></div>
         </form>
         <div class="danger-zone">
@@ -1258,7 +1258,7 @@
           <p class="danger-note" id="deleteAccountWarning">注销后无法继续使用原账户及其会员权益，已有登录会话将被撤销。必要的业务记录、安全审计和备份可能按实际规则继续保留，不会在同一时刻全部物理删除。</p>
         <form id="deleteAccountForm" class="stack-form">
           <label data-p07-label for="deleteSecretInput">当前登录密钥</label>
-          <input id="deleteSecretInput" type="password" autocomplete="current-password" maxlength="128" placeholder="重新输入当前登录密钥" required />
+            <input id="deleteSecretInput" type="password" autocomplete="current-password" maxlength="256" placeholder="重新输入当前登录密钥" required />
           <div class="action-row"><button data-close-modal="deleteAccountModal" data-dialog-initial-focus type="button">取消</button><button class="danger-button" id="confirmDeleteAccountBtn" type="submit">永久注销</button></div>
         </form>
       </section>

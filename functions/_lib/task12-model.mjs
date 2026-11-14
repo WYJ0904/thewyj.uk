@@ -1,7 +1,8 @@
+import { NEW_PASSWORD_MIN_LENGTH,passwordIssues } from '../../js/account/password-policy.js';
 export const TASK12_SCHEMA_VERSION = "1";
 export const SESSION_TTL_SECONDS = 7 * 24 * 60 * 60;
 export const MAX_SESSIONS_PER_USER = 12;
-export const MIN_SECRET_LENGTH = 7;
+export const MIN_SECRET_LENGTH = NEW_PASSWORD_MIN_LENGTH;
 export const LOGIN_AUDIT_RETENTION_DAYS = 90;
 export const LOGIN_AUDIT_MAX_RECORDS = 5000;
 
@@ -32,13 +33,16 @@ export function validateUsername(username) {
 }
 
 export function validateSecret(secret) {
-  const value = String(secret || "");
+  if (typeof secret!=='string') throw new Task12Error('登录密码必须为文本',400,'secret_invalid');
+  const value = secret;
   if (!value) throw new Task12Error("登录密钥不能为空", 400, "secret_required");
   if ([...value].length < MIN_SECRET_LENGTH) {
     throw new Task12Error(`登录密钥不能少于 ${MIN_SECRET_LENGTH} 个字符`, 400, "secret_too_short");
   }
   if ([...value].length > 128) throw new Task12Error("登录密钥不能超过 128 个字符", 400, "secret_too_long");
   if (/\r|\n/.test(value)) throw new Task12Error("登录密钥不能包含换行", 400, "secret_invalid");
+  const issues=passwordIssues(value);
+  if(issues.length)throw new Task12Error(`新密码要求：${issues.map(issue=>issue.label).join('；')}`,400,'secret_policy_failed');
   return value;
 }
 

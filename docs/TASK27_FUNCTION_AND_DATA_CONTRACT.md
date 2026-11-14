@@ -102,3 +102,27 @@ branch, retaining the original baseline asset token and excluding S0 release
 metadata/changelog changes. No Hydrogen ref or worktree was changed. Task27's
 new JSON contract already bounds size and field types without recursive traversal.
 Final-main synchronization remains a separate post-S0 integration gate.
+
+## Incremental owner requirements (2026-11-15)
+
+The prior implementation is preserved at `4167af98b38ae6c11c632e0b58b3902e62e57c3f`.
+New registration and voluntarily set passwords now require at least nine Unicode
+code points, ASCII upper/lower case and digit, plus a punctuation/symbol. The
+maximum stays 128 code points. Existing-password verification never invokes this
+new-password validator. Web and server share its pure policy module; Android
+has matching input checks. Plaintext is neither normalized for hashing nor sent
+to a third-party password checker. The small local weak-password list is not a
+comprehensive breach database.
+
+TOTP's displayed QR, OS link and manual key derive from one server URI. The
+existing local QR encoder remains in place; an independent decoder and OTPAuth
+oracle validate the configuration. Android handles the narrow standard URI only
+from a trusted main frame with user activation and provides a missing-handler
+fallback. No manifest permissions or native authenticator app are added.
+
+Legacy management routes retain the quota of their existing owning module.
+Task27 rate limits its new endpoints (normally 30/min, read/step-up 120/min);
+step-up retains its separate five-failed-attempt window and one-use grants.
+The loopback CI adapters acquire real grants rather than bypassing this gate.
+Hosted smoke tools stop before fixture creation when reviewed Task27 step-up is
+unavailable. No remote smoke or release action is performed by this task.

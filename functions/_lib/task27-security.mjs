@@ -1,9 +1,9 @@
 import { hashSecret, PASSWORD_HASH_ITERATIONS, sessionStorageKey, verifySecret } from './task12-crypto.mjs';
 import { isAdminAccount, isOwnerAccount, validateSecret } from './task12-model.mjs';
 import { task20TokenFromRequest } from './task20-model.mjs';
-import { cleanEmailAddress, sendAccountSecurityNotice } from './email-service.mjs';
+import { cleanEmailAddress, sendAccountSecurityNotice,emailSendingEnabled,emailBindingConfigured,EmailServiceError } from './email-service.mjs';
 import { activeUser, assertion, atomic, changed, DAY, EVENT_TEXT, eventStatements, fail, first, generationAssertion, nowIso, rows, run, securityState, stmt, revokeAllStatements } from './task27-store.mjs';
-import { base32, encryptTotp, randomBytes, randomDigits, temporaryPassword } from './task27-crypto.mjs';
+import { base32, encryptTotp, randomBytes, randomDigits, temporaryPassword,totpUri } from './task27-crypto.mjs';
 import { challengeAssertion, challengeIdentity, challengeRow, createChallenge, grantStatements, securityRate, sendCode, task27EnrollmentEnabled, verifyChallenge, verifyPassword } from './task27-auth.mjs';
 
 export async function identity(context,account) {
@@ -78,7 +78,7 @@ export async function resetOtherPassword(context,account,payload) {
   const target=await activeUser(db,payload.user_id);
   if (isOwnerAccount(target) || target.id===user.id) fail('owner_protected','不能通过此功能重置自身或超级管理员密码',403);
   const targetState=await securityState(db,target.id);
-  const secret=temporaryPassword(), hash=await hashSecret(secret,context.env.WYJ_TASK12_PASSWORD_PEPPER);
+  const secret=validateSecret(temporaryPassword()), hash=await hashSecret(secret,context.env.WYJ_TASK12_PASSWORD_PEPPER);
   await atomic(db,[...guards,...generationAssertion(db,target,targetState),...passwordStatements(db,target,hash),
     ...bumpStatements(db,target,targetState,'must_change_password=1'),...eventStatements(db,target.id,'password_reset',user.id,context.data?.requestId),
     stmt(db,`INSERT INTO task18_admin_action_audit(id,actor_user_id,actor_username,actor_role,target_type,target_id,target_label,action,success,request_id,created_at)
@@ -89,16 +89,17 @@ export async function beginEmailBinding(context,account,payload) {
   const email=cleanEmailAddress(payload.email);
   const {db,user,state,sessionDigest,guards}=await authorize(context,account,payload.grant,'email_change');
   await securityRate(context,'email-bind',user.id,3,900);
-  // Do not reveal whether another account has already verified this address.
-  const occupied=await first(db,'SELECT user_id FROM task27_security WHERE verified_email=?1 AND user_id!=?2',[email,user.id]);
+  await securityRate(context,'email-bind-recipient',await sessionStorageKey(email),3,900);
+  if(!emailSendingEnabled(context.env)||!emailBindingConfigured(context.env))throw new EmailServiceError('邮件服务尚不可用，验证码未发送',503,'email_sending_unavailable',true);
   await atomic(db,guards);
   const code=randomDigits();
-  const challenge=await createChallenge(db,{user:occupied?null:user,state:occupied?null:state,kind:'email_bind',method:'email',sessionDigest,code:occupied?'':code,env:context.env,data:occupied?{}:{email}});
-  if (!occupied) {
-    try { await sendCode(context.env,email,code,'绑定邮箱',context.data?.requestId); }
-    catch(_) { await run(db,'UPDATE task27_challenges SET consumed_at=?2 WHERE token_digest=?1',[challenge.digest,nowIso()]); }
-  }
-  return {challenge:challenge.token,expires_at:challenge.expires_at,message:'如果该地址可用于绑定，验证码将发送至该邮箱。'};
+  // Sending the ownership challenge does not reveal whether the address is
+  // already associated with another account. Uniqueness is checked on confirm.
+  const challenge=await createChallenge(db,{user,state,kind:'email_bind',method:'email',sessionDigest,code,env:context.env,data:{email}});
+  let sent;
+  try { sent=await sendCode(context.env,email,code,'绑定邮箱',context.data?.requestId); }
+  catch(error) { await run(db,'UPDATE task27_challenges SET consumed_at=?2 WHERE token_digest=?1',[challenge.digest,nowIso()]);throw error; }
+  return {challenge:challenge.token,expires_at:challenge.expires_at,delivery_status:sent.delivery_status,inbox_confirmed:false,message:'验证码已交给邮件服务处理，不代表已抵达收件箱。'};
 }
 export async function finishEmailBinding(context,account,payload) {
   const {db,sessionDigest}=await identity(context,account);
@@ -127,7 +128,7 @@ export async function beginMfa(context,account,payload) {
   const challenge=await createChallenge(db,{user,state,kind:'mfa_setup',method:payload.method,sessionDigest,code,env:context.env,data});
   if (payload.method==='email') await sendCode(context.env,state.verified_email,code,'开启邮箱双重验证',context.data?.requestId);
   return {challenge:challenge.token,method:payload.method,expires_at:challenge.expires_at,
-    ...(secret?{secret,otpauth_uri:`otpauth://totp/Aeris:${encodeURIComponent(user.username)}?secret=${secret}&issuer=Aeris&algorithm=SHA1&digits=6&period=30`}: {})};
+    ...(secret?{secret,otpauth_uri:totpUri(user.username,secret)}: {})};
 }
 export async function finishMfa(context,account,payload) {
   const {db,sessionDigest}=await identity(context,account);
@@ -209,5 +210,5 @@ export async function overview(context,account) {
     rows(db,'SELECT event_type,created_at FROM task27_events WHERE user_id=?1 ORDER BY created_at DESC,id DESC LIMIT 30',[account.id]),listSessions(context,account)]);
   return {email:state.verified_email,email_verified_at:state.email_verified_at,mfa_method:state.mfa_method,recovery_codes_remaining:Number(codes.count),
     password_changed_at:state.password_changed_at,password_age_measured_from:state.password_changed_at || state.password_age_start_at,password_advice_only:true,
-    enrollment_enabled:task27EnrollmentEnabled(context.env),sessions,events};
+    enrollment_enabled:task27EnrollmentEnabled(context.env),password_guidance:'为了提高账户安全性，建议使用至少 9 位、包含大小写字母、数字和特殊符号的密码。',sessions,events};
 }

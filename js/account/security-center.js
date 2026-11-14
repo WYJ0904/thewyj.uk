@@ -1,5 +1,6 @@
 import { updateCopyrightYear } from './policy-page.js?release=20261113-aeris-s0-p0-rc1';
 import { POLICY_VERSIONS } from './policy-version.js?release=20261113-aeris-s0-p0-rc1';
+import { wireNewPasswordField,wirePasswordVisibility } from './password-fields.js?release=20261113-aeris-s0-p0-rc1';
 
 const esc=value=>String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const date=value=>value?new Date(value).toLocaleString():'尚无记录';
@@ -7,10 +8,16 @@ const labels={none:'未开启',email:'邮箱验证码',totp:'TOTP 验证器'};
 const eventLabels={password_changed:'登录密码已修改',password_reset:'管理员已重置密码',password_recovered:'账户密码已恢复',email_changed:'绑定邮箱已变更',mfa_enabled:'双重验证已开启',mfa_disabled:'双重验证已关闭',mfa_changed:'双重验证方式已变更',mfa_recovered:'已通过独立程序恢复双重验证',recovery_used:'一次性恢复码已使用',recovery_regenerated:'恢复码已重新生成',session_revoked:'登录会话已撤销',refresh_reuse:'检测到刷新凭据重复使用'};
 const mailLabels={draft:'草稿',sending:'处理中，结果待核实',sent:'已提交邮件服务',partial:'部分投递待处理',accepted:'服务已接受',queued:'服务排队中',provider_delivered:'收件服务器已接受',failed:'发送失败，可受控重试',rejected:'服务已拒绝',unknown:'发送结果未知，需人工核实',pending:'待发送'};
 
+export function ownerBoundRequest(request,getOwner) {
+  const changed=()=>{const error=new Error('账户已切换，请重新打开账户安全中心');error.code='account_changed';return error;};
+  return async(...args)=>{const owner=getOwner();try{const result=await request(...args);if(owner!==getOwner())throw changed();return result;}catch(error){if(owner!==getOwner())throw changed();throw error;}};
+}
+
 export function createSecurityCenter({api,apiGet,publicApi,getSession,getAccount,openModal,closeModal,onInvalidated,onNativeLogout=()=>{}}) {
   const $=id=>document.getElementById(id);
   let pendingPrompt=null,owner='',badgeAt=0,badgePromise=null,filter='all',page=1,inboxState=null,mailState=null,policyConfig=null,consentPromise=null;
   const key=()=>`${getSession() || ''}:${getAccount()?.id || ''}`;
+  api=ownerBoundRequest(api,key);apiGet=ownerBoundRequest(apiGet,key);
   function modal(id,title) {
     let node=$(id);
     if (!node) {
@@ -28,9 +35,10 @@ export function createSecurityCenter({api,apiGet,publicApi,getSession,getAccount
   async function prompt(title,fields,{message='',content='',button='继续'}={}) {
     if(pendingPrompt){pendingPrompt.reject(new Error('操作已取消'));pendingPrompt=null;}
     const node=modal('task27Prompt',title);$('task27PromptTitle').textContent=title;status(node,'');
-    body(node).innerHTML=`${message?`<p>${esc(message)}</p>`:''}${content}<form class="stack-form">${fields.map(field=>`<label class="field-label"><span>${esc(field.label)}</span><input name="${esc(field.name)}" type="${field.type || 'text'}" ${field.type==='checkbox'?'':'maxlength="128"'} ${field.autocomplete?`autocomplete="${esc(field.autocomplete)}"`:'autocomplete="off"'} ${field.required===false?'':'required'}></label>`).join('')}<button class="primary" type="submit">${esc(button)}</button></form>`;
+    body(node).innerHTML=`${message?`<p>${esc(message)}</p>`:''}${content}<form class="stack-form">${fields.map(field=>`<label class="field-label"><span>${esc(field.label)}</span><input name="${esc(field.name)}" type="${field.type || 'text'}" ${field.type==='checkbox'?'':'maxlength="256"'} ${field.autocomplete?`autocomplete="${esc(field.autocomplete)}"`:'autocomplete="off"'} ${field.required===false?'':'required'}></label>`).join('')}<button class="primary" type="submit">${esc(button)}</button></form>`;
     const promise=new Promise((resolve,reject)=>{pendingPrompt={resolve,reject};});
     body(node).querySelector('form').addEventListener('submit',event=>{event.preventDefault();const values={};for(const field of fields){const input=body(node).querySelector(`[name="${field.name}"]`);values[field.name]=field.type==='checkbox'?input.checked:input.value;}body(node).querySelectorAll('select[name]').forEach(select=>{values[select.name]=select.value;});const waiting=pendingPrompt;pendingPrompt=null;body(node).querySelectorAll('input').forEach(input=>{input.value='';input.checked=false;});closeModal('task27Prompt',true);waiting?.resolve(values);});
+    body(node).querySelectorAll('input[type=password]').forEach(input=>{if(input.name==='new_secret')wireNewPasswordField(input);else wirePasswordVisibility(input);});
     openModal('task27Prompt');return promise;
   }
   async function codePrompt(method,title='完成安全验证') {return (await prompt(title,[{name:'code',label:method==='totp'?'六位验证器验证码或一次性恢复码':'六位邮件验证码',autocomplete:'one-time-code'}],{message:method==='email'?'验证码已交给邮件服务发送，请检查绑定邮箱。有效期约五分钟。':'请输入验证器当前验证码；无法使用验证器时，可输入一个未使用的恢复码。'})).code.trim();}
@@ -45,7 +53,7 @@ export function createSecurityCenter({api,apiGet,publicApi,getSession,getAccount
   async function completeLogin(result) {
     if(result.mfa_required)result=await publicApi('/api/security/login/verify',{challenge:result.challenge,code:await codePrompt(result.method,'登录双重验证')});
     if(result.password_change_required){
-      const values=await prompt('设置新的登录密码',[{name:'new_secret',label:'新密码（至少 7 个字符）',type:'password',autocomplete:'new-password'},{name:'confirm_secret',label:'再次输入新密码',type:'password',autocomplete:'new-password'}],{message:'临时密码只能用于设置新密码。完成后请重新登录。'});
+      const values=await prompt('设置新的登录密码',[{name:'new_secret',label:'新密码（至少 9 位混合密码）',type:'password',autocomplete:'new-password'},{name:'confirm_secret',label:'再次输入新密码',type:'password',autocomplete:'new-password'}],{message:'临时密码只能用于设置新密码。完成后请重新登录。'});
       await publicApi('/api/security/password/complete',{challenge:result.password_change_token,...values});
       throw new Error('密码已修改，请使用新密码重新登录');
     }
@@ -73,7 +81,7 @@ export function createSecurityCenter({api,apiGet,publicApi,getSession,getAccount
       body(node).innerHTML=`<div class="task27-security-summary"><article><h3>登录密码</h3><p>${data.password_changed_at?`最近修改：${esc(date(data.password_changed_at))}`:'历史修改时间未知，从功能启用后开始计算提醒。'}</p><p>30 天提醒仅为个人安全建议，不强制修改。</p><button type="button" data-security-password>修改密码</button></article><article><h3>绑定邮箱</h3><p>${esc(data.email || '尚未绑定已验证邮箱')}</p><button type="button" data-security-email>${data.email?'更换邮箱':'绑定并验证邮箱'}</button></article><article><h3>双重验证</h3><p>当前方式：${esc(labels[data.mfa_method])}</p><p>普通用户自主开启，不影响会员权益。</p><div class="action-row">${data.enrollment_enabled?'<button type="button" data-security-mfa="email">使用邮箱</button><button type="button" data-security-mfa="totp">使用验证器</button>':'<p>新的验证方式设置尚未开放。</p>'}${data.mfa_method!=='none'?'<button type="button" data-security-disable>关闭双重验证</button>':''}</div></article><article><h3>一次性恢复码</h3><p>${data.mfa_method==='totp'?`剩余 ${Number(data.recovery_codes_remaining)} 个；已有恢复码无法再次查看。`:'开启 TOTP 后可获得恢复码。'}</p>${data.mfa_method==='totp'?'<button type="button" data-security-recovery>重新生成恢复码</button>':''}</article></div><h3>登录设备与会话</h3><p>Web 会话显示可确认的客户端类型，不推测具体设备型号。</p><div class="task27-session-list">${valid.map(session=>`<article><div><strong>${esc(session.client || '浏览器会话')}${session.current?' · 当前会话':''}</strong><p>创建：${esc(date(session.created_at))}<br>最近活动：${esc(date(session.last_seen_at))}</p></div><button type="button" data-revoke-id="${esc(session.id)}" data-kind="${session.kind}">退出此会话</button></article>`).join('') || '<p>暂无有效会话。</p>'}</div><div class="action-row"><button type="button" data-revoke-mode="others">退出其他设备</button><button type="button" data-revoke-mode="all">退出全部设备</button></div><h3>最近安全活动</h3><ul>${data.events.map(event=>`<li>${esc(eventLabels[event.event_type] || '账户安全操作')} · ${esc(date(event.created_at))}</li>`).join('') || '<li>暂无记录</li>'}</ul>`;
       bind(node,'[data-security-password]',async()=>{
         const grant=await stepup('password_change');
-        const values=await prompt('修改登录密码',[{name:'new_secret',label:'新密码（至少 7 个字符）',type:'password',autocomplete:'new-password'},{name:'confirm_secret',label:'再次输入新密码',type:'password',autocomplete:'new-password'}]);
+        const values=await prompt('修改登录密码',[{name:'new_secret',label:'新密码（至少 9 位混合密码）',type:'password',autocomplete:'new-password'},{name:'confirm_secret',label:'再次输入新密码',type:'password',autocomplete:'new-password'}]);
         await invalidate(await api('/api/account/secret',{grant,...values}),'密码已修改，请重新登录');
       });
       bind(node,'[data-security-email]',async()=>{
@@ -86,7 +94,16 @@ export function createSecurityCenter({api,apiGet,publicApi,getSession,getAccount
         const method=button.dataset.securityMfa,start=await api('/api/security/mfa/start',{method,grant:await stepup('mfa_change')});
         let code;
         if(method==='totp') {
-          const fields=await prompt('绑定 TOTP 验证器',[{name:'code',label:'验证器当前六位验证码',autocomplete:'one-time-code'}],{message:'将此密钥手动输入兼容 TOTP 的验证器，或扫描二维码；此密钥仅用于本次绑定。',content:`<div class="task27-qr" id="task27TotpQr"></div><p class="task27-key">${esc(start.secret)}</p>`});code=fields.code;
+          const uri=new URL(start.otpauth_uri);
+          if(uri.protocol!=='otpauth:'||uri.hostname!=='totp'||uri.searchParams.get('secret')!==start.secret||uri.searchParams.get('issuer')!=='Aeris'||uri.searchParams.get('algorithm')!=='SHA1'||uri.searchParams.get('digits')!=='6'||uri.searchParams.get('period')!=='30')throw new Error('验证器配置无效，请重新开始');
+          const answer=prompt('绑定 TOTP 验证器',[{name:'code',label:'验证器当前六位验证码',autocomplete:'one-time-code'}],{message:'任选二维码、验证器链接或手动密钥添加账户。输入正确验证码后才会启用；取消不会改变现有登录保护。',content:`<div class="task27-qr" id="task27TotpQr"></div><p><a id="task27OpenAuthenticator" rel="noreferrer noopener" class="button-secondary">在验证器 App 中打开</a></p><p id="task27AuthenticatorFallback" role="status">如未打开验证器或提示没有可处理的应用，请扫描二维码，或复制下面密钥手动添加。</p><p>账户标签：Aeris · ${esc(getAccount()?.username || '')}<br>参数：TOTP · SHA-1 · 6 位验证码 · 30 秒周期</p><p class="task27-key" tabindex="0">${esc(start.secret)}</p><button type="button" id="task27CopyTotpSecret">复制设置密钥</button><p class="meta-line">若复制不可用，可选中密钥手动复制；添加后验证码仍不匹配时，请确认验证器时间自动同步并重新输入当前验证码。</p>`});
+          const target=$('task27TotpQr');
+          if(typeof window.qrcode==='function'){const qr=window.qrcode(0,'M');qr.addData(start.otpauth_uri);qr.make();target.innerHTML=qr.createSvgTag({cellSize:4,margin:16});target.setAttribute('role','img');target.setAttribute('aria-label','Aeris 验证器绑定二维码');}
+          else target.textContent='二维码暂不可用，请使用验证器链接或手动密钥。';
+          $('task27OpenAuthenticator').href=start.otpauth_uri;
+          $('task27OpenAuthenticator').addEventListener('click',()=>{$('task27AuthenticatorFallback').textContent='已请求系统打开验证器；如没有打开，请使用二维码或手动复制密钥。此步骤尚未启用双重验证。';});
+          $('task27CopyTotpSecret').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(start.secret);$('task27AuthenticatorFallback').textContent='设置密钥已复制。请在验证器中手动添加 Aeris 账户，然后输入当前六位验证码。';}catch(_){$('task27AuthenticatorFallback').textContent='当前环境无法自动复制，请选中上方设置密钥手动复制。';}});
+          code=(await answer).code;
         } else code=await codePrompt('email','确认开启邮箱双重验证');
         const result=await api('/api/security/mfa/confirm',{challenge:start.challenge,code:code.trim()});
         await invalidate(result,'双重验证已更新，请重新登录');
@@ -144,10 +161,9 @@ export function createSecurityCenter({api,apiGet,publicApi,getSession,getAccount
     bind(node,'[data-mail-preview]',async button=>{const preview=await api('/api/admin/email/preview',{id:button.dataset.mailPreview});const draft=preview.draft;await prompt(draft.status==='partial'?'确认受控重试':'确认发送服务邮件',[{name:'confirm',label:`确认向 ${preview.recipients.length} 个已验证邮箱发送`,type:'checkbox'}],{message:'已接受、排队或结果未知的投递不会重复发送。失败投递至少等待一分钟，最多尝试三次。',content:`<article><h3>${esc(draft.subject)}</h3><p>${preview.recipients.map(r=>esc(r.username+' · '+r.email_masked)).join('<br>')}</p><p class="task27-message-body">${esc(draft.body)}</p></article>`,button:'继续身份验证'});await api('/api/admin/email/send',{id:draft.id,revision:draft.revision,preview:preview.preview,confirm:true,retry:draft.status==='partial',grant:await stepup(`email_send:${draft.id}:${draft.revision}`)});await openMail();});
   }
   $('notificationBellBtn')?.addEventListener('click',()=>void openInbox());
+  wireNewPasswordField($('registerSecretInput'));wirePasswordVisibility($('registerConfirmInput'));wireNewPasswordField($('newSecretInput'));
   $('securityCenterMenuBtn')?.addEventListener('click',()=>void openSecurity());$('openSecurityCenterBtn')?.addEventListener('click',()=>void openSecurity());
   $('forgotPasswordBtn')?.addEventListener('click',()=>void forgotPassword());$('task27MailOpenBtn')?.addEventListener('click',()=>void openMail());
-  // QR generation is local using the existing bundled generator; no external service sees a secret.
-  new MutationObserver(()=>{const target=$('task27TotpQr');if(!target||target.childNodes.length||typeof window.qrcode!=='function')return;const text=target.nextElementSibling?.textContent;if(!text)return;const qr=window.qrcode(0,'M');qr.addData(`otpauth://totp/Aeris:${encodeURIComponent(getAccount()?.username || 'account')}?secret=${text}&issuer=Aeris&algorithm=SHA1&digits=6&period=30`);qr.make();target.innerHTML=qr.createSvgTag({cellSize:4,margin:4});target.setAttribute('role','img');target.setAttribute('aria-label','验证器绑定二维码');}).observe(document.body,{childList:true,subtree:true});
   window.addEventListener('focus',()=>void refreshBadge(true));document.addEventListener('visibilitychange',()=>{if(!document.hidden)void refreshBadge(true);});window.setInterval(()=>void refreshBadge(),60000);
   updateCopyrightYear();
   return {stepup,completeLogin,openSecurity,openInbox,updateAccount,registrationConsent,reaccept,forgotPassword,openMail,refreshBadge,isSupported};

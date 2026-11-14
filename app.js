@@ -2508,6 +2508,7 @@ function generateOwnSecret() {
   try {
     const secret = generateSecureSecret();
     $("newSecretInput").value = secret;
+    $('newSecretInput').dispatchEvent(new Event('input',{bubbles:true}));
     $("newSecretConfirmInput").value = secret;
     setSecretFieldsVisibility(["newSecretInput", "newSecretConfirmInput"], "toggleNewSecretBtn", true);
     $("accountMessage").textContent = "已生成安全密钥；保存前请确认你已记住或安全保存。";

@@ -355,6 +355,8 @@ private fun createWebView(
         }
 
         override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
+            if (policy.decide(request.url.toString()) == NavigationDecision.Authenticator &&
+                (!request.isForMainFrame || !request.hasGesture() || policy.decide(view.url.orEmpty()) != NavigationDecision.Internal)) return true
             if (!request.isForMainFrame && policy.decide(request.url.toString()) == NavigationDecision.VerifyPayment) return true
             if (request.isForMainFrame && policy.spaRoute(request.url.toString()) != null) {
                 view.navigateWithinDocument(policy, request.url.toString())
@@ -371,6 +373,7 @@ private fun createWebView(
 
         @Deprecated("Deprecated by Android")
         override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
+            if (policy.decide(url) == NavigationDecision.Authenticator) return true
             if (policy.spaRoute(url) != null) {
                 view.navigateWithinDocument(policy, url)
                 return true
@@ -481,6 +484,7 @@ private fun handleNavigation(
         else runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
     }
     NavigationDecision.Blocked -> true
+    NavigationDecision.Authenticator -> true.also { AuthenticatorLauncher.open(context, url) }
 }
 
 internal fun downloadName(url: String, contentDisposition: String): String {

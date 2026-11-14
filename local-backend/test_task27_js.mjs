@@ -92,6 +92,13 @@ try {
     const fresh=(await login('email-user')).session;
     assert.notEqual((await call('/api/security/email/confirm',{challenge:start.body.challenge,code},fresh)).status,200);
   });
+  await test('provider failure invalidates the email challenge and reports failure without changing binding',async()=>{
+    const token=(await login('recover-user')).session;
+    const result=await call('/api/security/email/start',{email:'provider-failure@example.test',grant:await grant(token,'email_change')},token,{env:{EMAIL:{async send(){throw new Error('synthetic provider offline');}}}});
+    assert.equal(result.status,502);assert.equal(result.body.code,'email_delivery_failed');assert.equal(result.body.challenge,undefined);
+    assert.equal((await one("SELECT verified_email FROM task27_security WHERE user_id='recover-user'")).verified_email,'');
+    assert.equal((await one("SELECT COUNT(*) AS count FROM task27_challenges WHERE user_id='recover-user' AND kind='email_bind' AND consumed_at=''")).count,0);
+  });
   await test('email MFA sends only after correct password and issues no pre-MFA session',async()=>{
     const session=(await login('email-user')).session;
     const start=await call('/api/security/mfa/start',{method:'email',grant:await grant(session,'mfa_change')},session);assert.equal(start.status,200);

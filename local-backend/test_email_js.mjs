@@ -28,7 +28,7 @@ const ENVIRONMENT = Object.freeze({
   D1_RATE_LIMIT_ENABLED: "false",
   LEGACY_API_FALLBACK_ENABLED: "false",
   EMAIL_SENDING_ENABLED: "true",
-  EMAIL_TEST_RECIPIENTS: "wyj20090904@gmail.com,support@thewyj.uk",
+  EMAIL_TEST_RECIPIENTS: "owner-fixture@example.test,support@thewyj.uk",
   WYJ_ENVIRONMENT: "preview",
 });
 
@@ -101,16 +101,16 @@ function check(label) {
 
 try {
   // 1. Strict address, header injection, sender, reply-to, bulk/XSS validation
-  assert.equal(cleanEmailAddress("  WYJ20090904@Gmail.COM "), "wyj20090904@gmail.com");
+  assert.equal(cleanEmailAddress("  OWNER-FIXTURE@EXAMPLE.TEST "), "owner-fixture@example.test");
   for (const bad of ["", "bad\r\nBcc: x@y.com", "a,b@c.com", "Aeris <a@b.com>", "no-at-sign", "..a@b.com"]) {
     assert.throws(() => cleanEmailAddress(bad), EmailServiceError);
   }
   assert.throws(
-    () => buildEmailMessage({ kind: "owner_ops_test", to: "wyj20090904@gmail.com", from: "evil@attacker.test" }),
+    () => buildEmailMessage({ kind: "owner_ops_test", to: "owner-fixture@example.test", from: "evil@attacker.test" }),
     (err) => err.code === "email_sender_forbidden",
   );
   assert.throws(
-    () => buildEmailMessage({ kind: "owner_ops_test", to: "wyj20090904@gmail.com", replyTo: "evil@attacker.test" }),
+    () => buildEmailMessage({ kind: "owner_ops_test", to: "owner-fixture@example.test", replyTo: "evil@attacker.test" }),
     (err) => err.code === "email_reply_to_forbidden",
   );
   assert.throws(
@@ -118,16 +118,16 @@ try {
     (err) => err.code === "email_bulk_recipients_forbidden",
   );
   assert.throws(
-    () => buildEmailMessage({ kind: "owner_ops_test", to: "wyj20090904@gmail.com", cc: "other@b.com" }),
+    () => buildEmailMessage({ kind: "owner_ops_test", to: "owner-fixture@example.test", cc: "other@b.com" }),
     (err) => err.code === "email_bulk_recipients_forbidden",
   );
   assert.throws(
-    () => buildEmailMessage({ kind: "owner_ops_test", to: "wyj20090904@gmail.com", subject: "ok\r\nBcc: pwn@evil.com" }),
+    () => buildEmailMessage({ kind: "owner_ops_test", to: "owner-fixture@example.test", subject: "ok\r\nBcc: pwn@evil.com" }),
     (err) => err.code === "email_header_injection_rejected",
   );
   const rendered = buildEmailMessage({
     kind: "account_security_notice",
-    to: "wyj20090904@gmail.com",
+    to: "owner-fixture@example.test",
     eventSummary: "<script>alert(1)</script> 新设备登录",
     occurredAt: "2026-11-13T04:00:00Z",
   });
@@ -140,14 +140,14 @@ try {
   // 2. Service-level transactional notices & fail-closed checks
   await assert.rejects(
     () => sendAccountSecurityNotice({ EMAIL_SENDING_ENABLED: "false", EMAIL: { send: async () => ({ messageId: "x" }) } }, {
-      to: "wyj20090904@gmail.com",
+      to: "owner-fixture@example.test",
       eventSummary: "登录密钥已更新",
     }),
     (err) => err.code === "email_sending_disabled" && err.status === 503,
   );
   await assert.rejects(
     () => sendOrderStatusNotice({ EMAIL_SENDING_ENABLED: "true" }, {
-      to: "wyj20090904@gmail.com",
+      to: "owner-fixture@example.test",
       orderId: "ORD-001",
       statusLabel: "已激活",
     }),
@@ -181,14 +181,14 @@ try {
     () => sendTransactionalEmail({
       EMAIL_SENDING_ENABLED: "true",
       EMAIL: { send: async () => { throw new Error("upstream 429 rate limit token=secret123"); } },
-    }, { kind: "owner_ops_test", to: "wyj20090904@gmail.com" }),
+    }, { kind: "owner_ops_test", to: "owner-fixture@example.test" }),
     (err) => err.code === "email_rate_limited" && err.status === 429 && !err.message.includes("secret123"),
   );
   await assert.rejects(
     () => sendTransactionalEmail({
       EMAIL_SENDING_ENABLED: "true",
       EMAIL: { send: async () => { throw new Error("recipient suppressed by domain bounce list"); } },
-    }, { kind: "owner_ops_test", to: "wyj20090904@gmail.com" }),
+    }, { kind: "owner_ops_test", to: "owner-fixture@example.test" }),
     (err) => err.code === "email_rejected" && err.status === 400,
   );
   check("server transactional helpers, fail-closed gating, and sanitized provider error classification");
@@ -221,7 +221,7 @@ try {
   assert.equal(anonStatus.status, 401);
   const anonSend = await callApi(db, "/api/admin/email/test-send", {
     method: "POST",
-    body: { recipient: "wyj20090904@gmail.com" },
+    body: { recipient: "owner-fixture@example.test" },
     env: { EMAIL: emailBinding },
   });
   assert.equal(anonSend.status, 401);
@@ -231,7 +231,7 @@ try {
     const res = await callApi(db, "/api/admin/email/test-send", {
       method: "POST",
       token: actor.token,
-      body: { recipient: "wyj20090904@gmail.com" },
+      body: { recipient: "owner-fixture@example.test" },
       env: { EMAIL: emailBinding },
     });
     assert.equal(res.status, 403);
@@ -243,7 +243,7 @@ try {
     method: "POST",
     token: USERS.owner.token,
     headers: { Origin: "https://attacker.invalid" },
-    body: { recipient: "wyj20090904@gmail.com" },
+    body: { recipient: "owner-fixture@example.test" },
     env: { EMAIL: emailBinding },
   });
   assert.equal(xOrigin.status, 403);
@@ -262,7 +262,7 @@ try {
   const emptyAllowlist = await callApi(db, "/api/admin/email/test-send", {
     method: "POST",
     token: USERS.owner.token,
-    body: { recipient: "wyj20090904@gmail.com" },
+    body: { recipient: "owner-fixture@example.test" },
     env: { EMAIL: emailBinding, EMAIL_TEST_RECIPIENTS: "" },
   });
   assert.equal(emptyAllowlist.status, 403);
@@ -271,7 +271,7 @@ try {
   const extraField = await callApi(db, "/api/admin/email/test-send", {
     method: "POST",
     token: USERS.owner.token,
-    body: { recipient: "wyj20090904@gmail.com", html: "<script>bad</script>" },
+    body: { recipient: "owner-fixture@example.test", html: "<script>bad</script>" },
     env: { EMAIL: emailBinding },
   });
   assert.equal(extraField.status, 400);
@@ -283,7 +283,7 @@ try {
   const prodDisabled = await callApi(db, "/api/admin/email/test-send", {
     method: "POST",
     token: USERS.owner.token,
-    body: { recipient: "wyj20090904@gmail.com" },
+    body: { recipient: "owner-fixture@example.test" },
     env: { EMAIL: emailBinding, EMAIL_SENDING_ENABLED: "false", WYJ_ENVIRONMENT: "production" },
   });
   assert.equal(prodDisabled.status, 503);
@@ -302,7 +302,7 @@ try {
   assert.equal(statusOk.body.test_recipient_count, 2);
 
   for (let i = 0; i < 5; i += 1) {
-    const target = i % 2 === 0 ? "wyj20090904@gmail.com" : "support@thewyj.uk";
+    const target = i % 2 === 0 ? "owner-fixture@example.test" : "support@thewyj.uk";
     const ok = await callApi(db, "/api/admin/email/test-send", {
       method: "POST",
       token: USERS.owner.token,
@@ -318,7 +318,7 @@ try {
   const limited = await callApi(db, "/api/admin/email/test-send", {
     method: "POST",
     token: USERS.owner.token,
-    body: { recipient: "wyj20090904@gmail.com", kind: "owner_ops_test" },
+    body: { recipient: "owner-fixture@example.test", kind: "owner_ops_test" },
     env: { EMAIL: emailBinding, D1_RATE_LIMIT_ENABLED: "true" },
   });
   assert.equal(limited.status, 429);
@@ -346,7 +346,7 @@ try {
       EMAIL_SENDING_ENABLED: "true",
       EMAIL_SEND_API_TOKEN: "tok_test",
       EMAIL_CLOUDFLARE_ACCOUNT_ID: "../bad-id",
-    }, { kind: "owner_ops_test", to: "wyj20090904@gmail.com" }),
+    }, { kind: "owner_ops_test", to: "owner-fixture@example.test" }),
     (err) => err.code === "email_binding_unavailable" && err.status === 503,
   );
 
@@ -359,21 +359,21 @@ try {
       restRequests.push({ url, init, body: JSON.parse(init.body) });
       return new Response(JSON.stringify({
         success: true,
-        result: { delivered: ["wyj20090904@gmail.com"], queued: [], permanent_bounces: [], message_id: "rest-msg-1" },
+        result: { delivered: ["owner-fixture@example.test"], queued: [], permanent_bounces: [], message_id: "rest-msg-1" },
       }), { status: 200, headers: { "Content-Type": "application/json" } });
     },
-  }, { kind: "owner_ops_test", to: "wyj20090904@gmail.com", note: "REST check" });
+  }, { kind: "owner_ops_test", to: "owner-fixture@example.test", note: "REST check" });
   assert.equal(restDelivered.ok, true);
   assert.equal(restDelivered.transport, "cloudflare_rest");
   assert.equal(restDelivered.delivery_status, "delivered");
-  assert.deepEqual(restDelivered.delivered, ["wyj20090904@gmail.com"]);
+  assert.deepEqual(restDelivered.delivered, ["owner-fixture@example.test"]);
   assert.deepEqual(restDelivered.queued, []);
   assert.equal(restDelivered.message_id, "rest-msg-1");
   assert.equal(restRequests.length, 1);
   assert.equal(restRequests[0].url, `https://api.cloudflare.com/client/v4/accounts/${validAccountId}/email/sending/send`);
   assert.deepEqual(restRequests[0].body.from, { address: "noreply@thewyj.uk", name: "Aeris" });
   assert.equal("email" in restRequests[0].body.from, false);
-  assert.deepEqual(restRequests[0].body.to, ["wyj20090904@gmail.com"]);
+  assert.deepEqual(restRequests[0].body.to, ["owner-fixture@example.test"]);
   assert.deepEqual(restRequests[0].body.reply_to, { address: "support@thewyj.uk", name: "Aeris Support" });
   assert.equal("email" in restRequests[0].body.reply_to, false);
 
@@ -409,7 +409,7 @@ try {
         status: 401,
         headers: { "Content-Type": "application/json" },
       }),
-    }, { kind: "owner_ops_test", to: "wyj20090904@gmail.com" }),
+    }, { kind: "owner_ops_test", to: "owner-fixture@example.test" }),
     (err) => err.code === "email_credentials_invalid"
       && err.status === 503
       && err.details?.provider_code === "10000"
@@ -426,7 +426,7 @@ try {
         success: false,
         errors: [{ code: 5501, message: "Sender domain is not verified" }],
       }), { status: 400, headers: { "Content-Type": "application/json" } }),
-    }, { kind: "owner_ops_test", to: "wyj20090904@gmail.com" }),
+    }, { kind: "owner_ops_test", to: "owner-fixture@example.test" }),
     (err) => err.code === "email_rejected"
       && err.status === 400
       && err.details?.delivery_status === "rejected"
@@ -437,7 +437,7 @@ try {
   const apiRejected = await callApi(db, "/api/admin/email/test-send", {
     method: "POST",
     token: USERS.owner.token,
-    body: { recipient: "wyj20090904@gmail.com", kind: "owner_ops_test" },
+    body: { recipient: "owner-fixture@example.test", kind: "owner_ops_test" },
     env: {
       EMAIL_SEND_API_TOKEN: "tok_test",
       EMAIL_CLOUDFLARE_ACCOUNT_ID: validAccountId,
@@ -460,9 +460,9 @@ try {
       EMAIL_CLOUDFLARE_ACCOUNT_ID: validAccountId,
       __EMAIL_FETCH: async () => new Response(JSON.stringify({
         success: true,
-        result: { delivered: [], queued: [], permanent_bounces: ["wyj20090904@gmail.com"] },
+        result: { delivered: [], queued: [], permanent_bounces: ["owner-fixture@example.test"] },
       }), { status: 200, headers: { "Content-Type": "application/json" } }),
-    }, { kind: "owner_ops_test", to: "wyj20090904@gmail.com" }),
+    }, { kind: "owner_ops_test", to: "owner-fixture@example.test" }),
     (err) => err.code === "email_rejected" && err.status === 400 && err.details?.delivery_status === "rejected",
   );
 
@@ -473,9 +473,9 @@ try {
       EMAIL_CLOUDFLARE_ACCOUNT_ID: validAccountId,
       __EMAIL_FETCH: async () => new Response(JSON.stringify({
         success: true,
-        result: { delivered: [], queued: [], permanent_bounces: [], suppressed_recipients: ["wyj20090904@gmail.com"] },
+        result: { delivered: [], queued: [], permanent_bounces: [], suppressed_recipients: ["owner-fixture@example.test"] },
       }), { status: 200, headers: { "Content-Type": "application/json" } }),
-    }, { kind: "owner_ops_test", to: "wyj20090904@gmail.com" }),
+    }, { kind: "owner_ops_test", to: "owner-fixture@example.test" }),
     (err) => err.code === "email_rejected" && err.status === 400 && err.details?.delivery_status === "rejected",
   );
   check("Pages wrangler schema guard and Cloudflare Email Sending REST transport");

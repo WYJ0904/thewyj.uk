@@ -7,7 +7,7 @@ import { assertion, atomic, changed, fail, first, nowIso, rows, run, stmt } from
 
 const mask=email=>email.replace(/^(.{1,2})[^@]*@/,'$1…@');
 async function recipients(db,ids) {
-  if (!Array.isArray(ids) || ids.length<1 || ids.length>20 || new Set(ids).size!==ids.length || ids.some(id=>typeof id!=='string'||!/^[A-Za-z0-9_-]{1,80}$/.test(id))) fail('mail_recipients_invalid','请选择 1 至 20 个已验证邮箱的账户');
+  if (!Array.isArray(ids) || ids.length<1 || ids.length>20 || new Set(ids).size!==ids.length || ids.some(id=>typeof id!=='string'||!id||id.length>80||/[\u0000-\u001f\u007f]/u.test(id))) fail('mail_recipients_invalid','请选择 1 至 20 个已验证邮箱的账户');
   const values=await rows(db,`SELECT u.id,u.username,s.verified_email FROM task12_users u JOIN task27_security s ON s.user_id=u.id
     WHERE u.id IN (${ids.map(()=>'?').join(',')}) AND u.deleted=0 AND u.banned=0 AND s.verified_email!='' AND s.email_verified_at!=''`,ids);
   if (values.length!==ids.length) fail('mail_recipient_unavailable','部分收件用户没有可用的已验证邮箱',409);

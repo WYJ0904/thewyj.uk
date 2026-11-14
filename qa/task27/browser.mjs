@@ -4,6 +4,7 @@ import {spawn} from 'node:child_process';
 import {mkdir,mkdtemp,readFile,readdir,writeFile,rm} from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import {createRequire} from 'node:module';
 import {Miniflare} from 'miniflare';
 import {CdpClient,openPage,delay} from '../../local-backend/browser_harness.mjs';
 import {onRequest as apiRequest} from '../../functions/api/[[path]].js';
@@ -17,6 +18,7 @@ import {accountPayload} from '../../functions/_lib/task12-model.mjs';
 import {totpAt} from '../../functions/_lib/task27-crypto.mjs';
 
 const root=path.resolve(import.meta.dirname,'../..'),run=crypto.randomUUID();
+const jsQR=createRequire(import.meta.url)(path.join(root,'.wrangler/task27-reference/otpauth-lab/node_modules/jsqr/dist/jsQR.js'));
 const out=path.join(root,'.wrangler/task27-ui',run);await mkdir(out,{recursive:true});
 const mf=new Miniflare({modules:true,script:"export default {fetch(){return new Response('fixture')}}",compatibilityDate:'2026-08-06',d1Databases:['WYJ_DB'],r2Buckets:['WYJ_STORAGE']});
 const db=await mf.getD1Database('WYJ_DB');
@@ -28,8 +30,10 @@ const env={...config.env.preview.vars,WYJ_DB:db,WYJ_STORAGE:await mf.getR2Bucket
 for(const name of (await readdir(path.join(root,'cloudflare/migrations'))).filter(n=>/^\d{4}_.+\.sql$/.test(n)).sort())await db.exec((await readFile(path.join(root,'cloudflare/migrations',name),'utf8')).replace(/\r?\n/g,' '));
 const when=new Date().toISOString();
 for(const [id,role]of [['fixture-owner','super_admin'],['mail-fixture','user']])await db.prepare(`INSERT INTO task12_users(id,username,username_normalized,password_hash,password_scheme,password_iterations,role,registered_at,created_at,updated_at,source_updated_at) VALUES(?1,?1,?1,?2,'pbkdf2_sha256',310000,?3,?4,?4,?4,?4)`).bind(id,await hashSecret(password,env.WYJ_TASK12_PASSWORD_PEPPER),role,when).run();
+await db.prepare(`INSERT INTO task12_users(id,username,username_normalized,password_hash,password_scheme,password_iterations,role,registered_at,created_at,updated_at,source_updated_at) VALUES('legacy-browser','legacy-browser','legacy-browser',?1,'pbkdf2_sha256',310000,'user','2020-01-01T00:00:00Z','2020-01-01T00:00:00Z','2020-01-01T00:00:00Z','2020-01-01T00:00:00Z')`).bind(await hashSecret('123456',env.WYJ_TASK12_PASSWORD_PEPPER)).run();
 await db.prepare("INSERT INTO task27_security(user_id,verified_email,email_verified_at,password_age_start_at) VALUES('mail-fixture','fixture@example.test',?1,?1)").bind(when).run();
 let registerCalls=0;
+let lastEnrollment=null;
 const apiErrors=[];
 const spa=new Set(['/','/login','/register','/account','/admin','/forgot-password','/changelog','/language','/recharge']);
 const csp=(await readFile(path.join(root,'_headers'),'utf8')).match(/Content-Security-Policy: (.+)/)[1].trim();
@@ -44,6 +48,7 @@ const server=createServer(async(req,res)=>{
       const tasks=[],context={request,env,data:{requestId:crypto.randomUUID()},waitUntil(p){tasks.push(p);}};
       if(url.pathname==='/api/register')registerCalls++;
       const response=url.pathname==='/api/status'?await statusRequest(context):url.pathname==='/terms'?policyPage(context,'terms'):url.pathname==='/privacy'?policyPage(context,'privacy'):url.pathname==='/security-privacy'?policyPage(context,'security'):await apiRequest(context);
+      if(url.pathname==='/api/security/mfa/start'&&response.ok){const enrollment=await response.clone().json();if(enrollment.method==='totp')lastEnrollment={secret:enrollment.secret,uri:enrollment.otpauth_uri};}
       if(response.status>=500)apiErrors.push({path:url.pathname,status:response.status});
       res.writeHead(response.status,Object.fromEntries(response.headers));res.end(Buffer.from(await response.arrayBuffer()));await Promise.all(tasks);return;
     }
@@ -56,7 +61,7 @@ const server=createServer(async(req,res)=>{
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));base=`http://127.0.0.1:${server.address().port}`;
 const profile=await mkdtemp(path.join(os.tmpdir(),'aeris-task27-chrome-'));
 const chrome=process.env.AERIS_TEST_CHROME || process.env.CHROME_BIN || (process.platform==='win32'?'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe':'google-chrome');
-const child=spawn(chrome,['--headless=new','--remote-debugging-port=0','--remote-debugging-address=127.0.0.1',`--user-data-dir=${profile}`,'--no-first-run','--no-default-browser-check','--disable-background-networking','--disable-component-update','--disable-default-apps','--disable-sync','--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1','about:blank'],{windowsHide:true,stdio:'ignore'});
+const child=spawn(chrome,['--headless=new',...(process.platform==='linux'?['--no-sandbox','--disable-dev-shm-usage']:[]),'--remote-debugging-port=0','--remote-debugging-address=127.0.0.1',`--user-data-dir=${profile}`,'--no-first-run','--no-default-browser-check','--disable-background-networking','--disable-component-update','--disable-default-apps','--disable-sync','--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1','about:blank'],{windowsHide:true,stdio:'ignore'});
 let browser,page;
 const proof={scope:'loopback Chrome, actual application UI, Node API dispatcher and isolated Miniflare D1; synthetic mail only',run,checks:[],screenshots:[],real_email:'NOT_TESTED',android_device:'OWNER_OPERATED_NOT_TESTED',hosted:'NOT_TESTED',production:'NOT_TOUCHED'};
 async function check(name,fn){await fn();proof.checks.push({name,status:'PASS'});console.log('PASS '+name);}
@@ -72,7 +77,17 @@ try {
     await page.navigate('/register');await page.waitFor("document.querySelector('#registerForm')?.checkVisibility()",15000);
     assert.equal(await page.evaluate("document.querySelector('#registerTermsConsent').checked"),false);
     assert.equal(await page.evaluate("document.querySelectorAll('.task27-policy-consent a[href]').length"),3);
-    await page.setFields({'#registerUsernameInput':'browser-fixture','#registerSecretInput':password,'#registerConfirmInput':password});await page.click('#registerSubmitBtn');await delay(300);assert.equal(registerCalls,0);
+    await page.setFields({'#registerUsernameInput':'browser-fixture','#registerSecretInput':'Abcde1!x','#registerConfirmInput':'Abcde1!x'});await page.click('#registerTermsConsent');await page.click('#registerSubmitBtn');await delay(200);assert.equal(registerCalls,0);assert.equal(await page.evaluate("document.getElementById('registerSecretInput').checkValidity()"),false);
+    assert.equal(await page.evaluate("document.querySelectorAll('#registerSecretInputRequirements li').length"),5);
+    for(const value of ['abcdef12!','ABCDEF12!','Abcdefgh!','Abcdef123']){await page.setFields({'#registerSecretInput':value});assert.equal(await page.evaluate("document.getElementById('registerSecretInput').checkValidity()"),false);}
+    await page.setFields({'#registerSecretInput':'Abcdef1!x'});assert.equal(await page.evaluate("document.querySelectorAll('#registerSecretInputRequirements li[data-met=true]').length"),5);assert.equal(await page.evaluate("document.getElementById('registerSecretInput').checkValidity()"),true);
+    await page.click('#registerSecretInput + button');assert.equal(await page.evaluate("document.getElementById('registerSecretInput').type"),'text');await page.click('#registerSecretInput + button');assert.equal(await page.evaluate("document.getElementById('registerSecretInput').type"),'password');assert.equal(await page.evaluate("document.getElementById('registerSecretInput').autocomplete"),'new-password');
+    assert.equal(await page.evaluate("(()=>{const input=document.getElementById('registerSecretInput'),event=new Event('paste',{bubbles:true,cancelable:true});return input.dispatchEvent(event)&&!event.defaultPrevented;})()"),true);
+    await page.setFields({'#registerSecretInput':password,'#registerConfirmInput':password});await page.click('#registerTermsConsent');await page.click('#registerSubmitBtn');await delay(200);assert.equal(registerCalls,0);
+    await page.evaluate("document.getElementById('registerForm').scrollIntoView({block:'center',behavior:'instant'})");await screenshot('password-policy-desktop');
+    await page.send('Emulation.setDeviceMetricsOverride',{width:375,height:900,deviceScaleFactor:1,mobile:true});assert.equal(await page.evaluate('document.documentElement.scrollWidth>innerWidth+1'),false);
+    await page.evaluate(await readFile(path.join(root,'qa/p07-f/vendor/axe.min.js'),'utf8'));assert.deepEqual(await page.evaluate("axe.run(document.getElementById('registerForm')).then(r=>r.violations.map(v=>({id:v.id,targets:v.nodes.map(n=>n.target)})))"),[]);await screenshot('password-policy-mobile');
+    await page.send('Emulation.setDeviceMetricsOverride',{width:1440,height:1000,deviceScaleFactor:1,mobile:false});
     await page.click('#registerTermsConsent');await page.click('#registerSubmitBtn');await page.waitFor("location.pathname==='/login'&&document.querySelector('#loginError').textContent.includes('注册成功')",30000);
     assert.equal(registerCalls,1);
   });
@@ -91,6 +106,14 @@ try {
   await check('TOTP setup uses local QR, requires confirmation and shows recovery codes once',async()=>{
     await page.click('[data-security-mfa=totp]');await prompt({password});await page.waitFor("document.querySelector('#task27TotpQr svg')",15000);
     secret=await page.evaluate("document.querySelector('.task27-key').textContent");
+    assert.ok(lastEnrollment&&lastEnrollment.secret===secret,'manual key must be the actual server enrollment key');
+    const qrPixels=await page.evaluate("(async()=>{const svg=document.querySelector('#task27TotpQr svg'),blob=new Blob([new XMLSerializer().serializeToString(svg)],{type:'image/svg+xml'}),url=URL.createObjectURL(blob);try{const img=new Image();img.src=url;await img.decode();const canvas=document.createElement('canvas');canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;const ctx=canvas.getContext('2d');ctx.fillStyle='white';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0);return{width:canvas.width,height:canvas.height,pixels:Array.from(ctx.getImageData(0,0,canvas.width,canvas.height).data)};}finally{URL.revokeObjectURL(url);}})()");
+    const decoded=jsQR(new Uint8ClampedArray(qrPixels.pixels),qrPixels.width,qrPixels.height);assert.ok(decoded?.data===lastEnrollment.uri,'actual displayed QR must decode to the canonical URI');
+    assert.ok((await page.evaluate("document.getElementById('task27OpenAuthenticator').getAttribute('href')"))===lastEnrollment.uri,'link must use exactly the displayed QR URI');
+    assert.equal(await page.evaluate("document.getElementById('task27OpenAuthenticator').rel.includes('noreferrer')"),true);
+    await page.evaluate("Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async value=>{window.__syntheticCopiedTotp=value;}}});true");await page.click('#task27CopyTotpSecret');await page.waitFor("window.__syntheticCopiedTotp!==undefined",5000);assert.ok((await page.evaluate('window.__syntheticCopiedTotp'))===secret,'copy action must use the canonical setup key');await page.evaluate('delete window.__syntheticCopiedTotp;true');
+    const historyBefore=await page.send('Page.getNavigationHistory');await page.evaluate("document.getElementById('task27OpenAuthenticator').addEventListener('click',event=>event.preventDefault(),{once:true});true");await page.click('#task27OpenAuthenticator');assert.ok((await page.evaluate("document.getElementById('task27AuthenticatorFallback').textContent")).includes('手动复制密钥'));const historyAfter=await page.send('Page.getNavigationHistory');assert.equal(historyAfter.entries.length,historyBefore.entries.length);
+    proof.authenticator_link='canonical URI and manual fallback verified; OS launch intentionally handed to owner/device acceptance';
     await prompt({code:await totpAt(secret,Math.floor(Date.now()/30000))});
     await page.waitFor("document.querySelector('#task27Secrets .task27-codes')",20000);
     codes=(await page.evaluate("document.querySelector('#task27Secrets .task27-codes').textContent")).split('\n');assert.equal(codes.length,10);
@@ -117,6 +140,8 @@ try {
     await page.send('Emulation.setDeviceMetricsOverride',{width:375,height:900,deviceScaleFactor:1,mobile:true});
     for(const theme of ['light','dark']){
       await page.evaluate(`document.documentElement.dataset.theme=${JSON.stringify(theme)}`);
+      await page.evaluate("(async()=>{await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));await Promise.all(document.getElementById('task27Security').getAnimations({subtree:true}).filter(animation=>Number.isFinite(animation.effect?.getComputedTiming().endTime)).map(animation=>animation.finished.catch(()=>{})));return true;})()");
+      const colors=await page.evaluate("(()=>{const button=document.querySelector('[data-security-password]'),style=getComputedStyle(button);return{theme:document.documentElement.dataset.theme,color:style.color,background:style.backgroundColor};})()");(proof.theme_states||=[]).push(colors);
       assert.equal(await page.evaluate("document.documentElement.scrollWidth>innerWidth+1"),false);
       await page.evaluate(await readFile(path.join(root,'qa/p07-f/vendor/axe.min.js'),'utf8'));
       const axe=await page.evaluate("axe.run(document.querySelector('#task27Security')).then(r=>r.violations.map(v=>({id:v.id,impact:v.impact,targets:v.nodes.map(n=>n.target)})))");assert.deepEqual(axe,[]);await screenshot('security-mobile-'+theme);
@@ -133,6 +158,9 @@ try {
     await screenshot('policy-mobile');
   });
   await page.close();page=await openPage({cdpUrl,baseUrl:base,width:1440,height:1000,mobile:false});
+  await check('old six-character password stays usable in the actual Web login form without MFA enforcement',async()=>{
+    await page.navigate('/login');await page.setFields({'#usernameInput':'legacy-browser','#secretInput':'123456'});await page.click('#loginSubmitBtn');await page.waitFor("location.pathname==='/'&&document.getElementById('notificationBellBtn').checkVisibility()",45000);await closeBroadcast();assert.equal(await page.evaluate("document.querySelector('#task27Prompt')?.checkVisibility() || false"),false);await page.close();page=await openPage({cdpUrl,baseUrl:base,width:1440,height:1000,mobile:false});
+  });
   await check('administrator mail draft, preview, confirmation and queued status work in UI',async()=>{
     await page.navigate('/login');await page.setFields({'#usernameInput':'fixture-owner','#secretInput':password});await page.click('#loginSubmitBtn');await page.waitFor("location.pathname==='/'&&document.getElementById('notificationBellBtn').checkVisibility()",45000);await closeBroadcast();
     await page.navigate('/admin');await page.waitFor("document.getElementById('adminMessagesTab').checkVisibility()",25000);await page.click('#adminMessagesTab');await page.click('#task27MailOpenBtn');await page.waitFor("document.getElementById('task27MailForm')",20000);

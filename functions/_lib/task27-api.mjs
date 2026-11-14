@@ -121,7 +121,10 @@ export async function handleTask27Request(context) {
     if (!ready) fail('task27_schema_not_ready','账户安全功能尚未开放',503);
     if (!featureFlags(context.env).task12CloudAccounts) fail('cloud_accounts_disabled','账户服务不可用',503);
     const account=descriptor?.auth==='public'?null:await authenticate(context,descriptor?.auth==='admin'||url.pathname.startsWith('/api/admin/'));
-    await securityRate(context,key,account?.id,method==='GET'?120:30,60);
+    // Existing routes retain their owning module's quota. Re-authentication
+    // keeps its separate five-failed-attempt budget; successful admin work
+    // must not silently halve the pre-existing 60/minute management limits.
+    if(!legacyScope)await securityRate(context,key,account?.id,method==='GET'||url.pathname==='/api/security/stepup'?120:30,60);
     if (legacyScope) {
       const {db,guards}=await authorize(context,account,context.request.headers.get('X-Aeris-Stepup'),legacyScope);
       await atomic(db,guards);

@@ -72,6 +72,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -246,6 +247,7 @@ private fun AuthScreen(
 ) {
     var username by remember { mutableStateOf("") }
     var secret by remember { mutableStateOf("") }
+    var secretVisible by remember { mutableStateOf(false) }
     var registerMode by remember { mutableStateOf(false) }
     var termsAccepted by remember { mutableStateOf(false) }
     val uriHandler = LocalUriHandler.current
@@ -295,12 +297,13 @@ private fun AuthScreen(
                     Spacer(Modifier.height(ThewyjSpacing.Md))
                     OutlinedTextField(
                         value = secret,
-                        onValueChange = { if (it.length <= 128 && '\n' !in it && '\r' !in it) secret = it },
+                        onValueChange = { if (it.codePointCount(0,it.length) <= 128 && '\n' !in it && '\r' !in it) secret = it },
                         modifier = Modifier.fillMaxWidth(),
                         label = { Text("登录密钥") },
-                        supportingText = { Text(if (registerMode) "新密钥至少 7 个字符" else "输入现有密钥，仅用于本次验证") },
+                        supportingText = { Text(if (registerMode) "新密码至少 9 位，包含大小写字母、数字和特殊符号" else "输入现有密钥，仅用于本次验证；旧密码继续有效") },
                         singleLine = true,
-                        visualTransformation = PasswordVisualTransformation(),
+                        visualTransformation = if (secretVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        trailingIcon = { TextButton(onClick = { secretVisible = !secretVisible }) { Text(if (secretVisible) "隐藏" else "显示") } },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, autoCorrectEnabled = false),
                         shape = ThewyjRadius.Medium,
                     )
@@ -309,6 +312,9 @@ private fun AuthScreen(
                         StatusPanel(message, "error")
                     }
                     if (registerMode) {
+                        AuthInputPolicy.requirements(secret).forEach { requirement ->
+                            Text("${if (requirement.satisfied) "✓" else "○"} ${requirement.label}", style = MaterialTheme.typography.bodySmall)
+                        }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Checkbox(checked = termsAccepted, onCheckedChange = { termsAccepted = it }, enabled = !busy)
                             Text("我已阅读并同意《Aeris 使用条款》，并已获提供《Aeris 隐私政策》和《Aeris 安全与隐私说明》。", style = MaterialTheme.typography.bodySmall)
@@ -354,6 +360,7 @@ private fun AuthenticationVerificationScreen(
     var code by remember(state.challenge.token) { mutableStateOf("") }
     var password by remember(state.challenge.token) { mutableStateOf("") }
     var confirmation by remember(state.challenge.token) { mutableStateOf("") }
+    var newPasswordVisible by remember(state.challenge.token) { mutableStateOf(false) }
     val change = state.challenge.passwordChangeRequired
     BackHandler(enabled = !busy, onBack = onCancel)
     Surface(Modifier.fillMaxSize()) {
@@ -364,14 +371,15 @@ private fun AuthenticationVerificationScreen(
                 else "请输入当前 TOTP 验证码，或一个未使用的一次性恢复码。")
             Spacer(Modifier.height(16.dp))
             if (change) {
-                OutlinedTextField(value = password, onValueChange = { if (it.length <= 128) password = it }, label = { Text("新密码（至少 7 个字符）") }, visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth(), singleLine = true)
-                OutlinedTextField(value = confirmation, onValueChange = { if (it.length <= 128) confirmation = it }, label = { Text("再次输入新密码") }, visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth(), singleLine = true)
+                OutlinedTextField(value = password, onValueChange = { if (it.codePointCount(0,it.length) <= 128) password = it }, label = { Text("新密码（至少 9 位混合密码）") }, visualTransformation = if (newPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(), trailingIcon = { TextButton(onClick = { newPasswordVisible = !newPasswordVisible }) { Text(if (newPasswordVisible) "隐藏" else "显示") } }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                AuthInputPolicy.requirements(password).forEach { requirement -> Text("${if (requirement.satisfied) "✓" else "○"} ${requirement.label}", style = MaterialTheme.typography.bodySmall) }
+                OutlinedTextField(value = confirmation, onValueChange = { if (it.codePointCount(0,it.length) <= 128) confirmation = it }, label = { Text("再次输入新密码") }, visualTransformation = if (newPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth(), singleLine = true)
             } else {
                 OutlinedTextField(value = code, onValueChange = { if (it.length <= 80) code = it }, label = { Text("验证码或恢复码") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
             }
             if (state.message.isNotBlank()) StatusPanel(state.message, "error")
             Spacer(Modifier.height(16.dp))
-            ThewyjPrimaryButton(text = { Text(if (change) "设置密码" else "验证并登录") }, enabled = !busy && if (change) password.length >= 7 && password == confirmation else code.isNotBlank(), onClick = {
+            ThewyjPrimaryButton(text = { Text(if (change) "设置密码" else "验证并登录") }, enabled = !busy && if (change) AuthInputPolicy.isNewSecretValid(password) && password == confirmation else code.isNotBlank(), onClick = {
                 if (change) { onChangePassword(password, confirmation); password = ""; confirmation = "" }
                 else { onVerify(code); code = "" }
             })
