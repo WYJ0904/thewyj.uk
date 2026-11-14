@@ -23,7 +23,7 @@ interface PaymentDao {
         ORDER BY r.updatedAtMs DESC""")
     fun unbookedRecognitions(accountId: String): List<PaymentRecognitionEntity>
 
-    @Query("UPDATE local_payment_bookings SET transactionId = :transactionId, syncState = 'synced' WHERE accountId = :accountId AND eventId = :eventId")
+    @Query("UPDATE local_payment_bookings SET transactionId = :transactionId, syncState = 'synced' WHERE accountId = :accountId AND eventId = :eventId AND (syncState != 'synced' OR transactionId = :transactionId)")
     fun acknowledgeLocalBooking(accountId: String, eventId: String, transactionId: String)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -34,6 +34,21 @@ interface PaymentDao {
 
     @Query("SELECT * FROM payment_recognitions WHERE accountId = :accountId AND sourceEventId = :sourceEventId LIMIT 1")
     fun recognitionBySourceEvent(accountId: String, sourceEventId: String): PaymentRecognitionEntity?
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    fun insertEventAlias(alias: PaymentEventAliasEntity)
+
+    @Query("SELECT r.* FROM payment_event_aliases a JOIN payment_recognitions r ON r.accountId = a.accountId AND r.recognitionId = a.recognitionId WHERE a.accountId = :accountId AND a.sourceEventId = :sourceEventId")
+    fun recognitionByAlias(accountId: String, sourceEventId: String): PaymentRecognitionEntity?
+
+    @Query("SELECT DISTINCT r.* FROM payment_event_aliases a JOIN payment_recognitions r ON r.accountId=a.accountId AND r.recognitionId=a.recognitionId WHERE a.accountId=:accountId AND a.sourceEventId LIKE :prefix || '%'")
+    fun recognitionsByMessageProof(accountId: String, prefix: String): List<PaymentRecognitionEntity>
+
+    @Query("SELECT sourceEventId FROM payment_event_aliases WHERE accountId=:accountId AND recognitionId=:recognitionId")
+    fun eventAliases(accountId: String, recognitionId: String): List<String>
+
+    @Query("SELECT * FROM payment_recognitions WHERE accountId = :accountId AND (providerReference = :reference OR lifecycleReference = :reference)")
+    fun recognitionsByReference(accountId: String, reference: String): List<PaymentRecognitionEntity>
 
     /**
      * Looks a recognition up by the structured-event identity it was uploaded
@@ -143,7 +158,7 @@ interface PaymentDao {
         WHERE accountId = :accountId AND status IN ('pending', 'confirmed')
           AND hasAmount = 1 AND amountMinor = :amountMinor
           AND occurredAtMs BETWEEN :fromMs AND :toMs
-        ORDER BY ABS(occurredAtMs - :occurredAtMs) ASC LIMIT 1
+        ORDER BY ABS(occurredAtMs - :occurredAtMs) ASC LIMIT 2
         """,
     )
     fun reconciliationCandidates(

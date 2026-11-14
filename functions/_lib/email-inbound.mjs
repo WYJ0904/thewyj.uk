@@ -310,12 +310,34 @@ async function tableExists(db, tableName) {
 }
 
 async function matchVerifiedUser(db, senderEmail) {
-  if (!db || !senderEmail || !(await tableExists(db, "email_center_bindings"))) return null;
-  const row = await db
-    .prepare("SELECT user_id FROM email_center_bindings WHERE email = ? AND verified = 1 LIMIT 1")
-    .bind(senderEmail)
-    .first();
-  return row?.user_id || null;
+  if (!db || !senderEmail) return null;
+  if (await tableExists(db, "email_center_bindings")) {
+    const row = await db
+      .prepare("SELECT user_id FROM email_center_bindings WHERE email = ? AND verified = 1 LIMIT 1")
+      .bind(senderEmail)
+      .first();
+    if (row?.user_id) return row.user_id;
+  }
+  if (await tableExists(db, "task27_security")) {
+    try {
+      const sec = await db
+        .prepare(
+          `SELECT s.user_id
+           FROM task27_security AS s
+           JOIN task12_users AS u ON u.id = s.user_id
+           WHERE u.deleted = 0
+             AND LOWER(TRIM(s.verified_email)) = ?
+             AND COALESCE(s.email_verified_at, '') <> ''
+           LIMIT 1`
+        )
+        .bind(String(senderEmail).trim().toLowerCase())
+        .first();
+      if (sec?.user_id) return sec.user_id;
+    } catch {
+      return null;
+    }
+  }
+  return null;
 }
 
 async function resolveThreadId(db, { senderEmail, normalizedSubject, xAerisThread, inReplyTo, referencesHeader }) {

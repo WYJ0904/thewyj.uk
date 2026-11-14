@@ -11,13 +11,18 @@ import {
   buildCloudflareRestPayload,
   buildEmailMessage,
   buildWorkersBindingPayload,
+  cleanBodyText,
   cleanEmailAddress,
+  cleanSingleLineText,
   DEFAULT_FROM_EMAIL,
   DEFAULT_REPLY_TO_EMAIL,
   EMAIL_BUILD,
+  emailBindingConfigured,
+  emailNativeBindingConfigured,
   EmailServiceError,
   escapeHtml,
   getEmailDeliveryStatus,
+  getUserEmailBinding,
   parseAllowedTestRecipients,
   renderTransactionalEmail,
   resolveEmailTransport,
@@ -929,6 +934,132 @@ async function run() {
       } finally {
         mockRest.restore();
       }
+    });
+
+    await suite("7. Codex Task 27 Security Center (0035 + 0036) & S0 compatibility", async () => {
+      // 7a. Dual-signature EmailServiceError & text cleaners & emailBindingConfigured
+      const codexErr = new EmailServiceError("邮件发送服务尚未启用", 503, "email_service_disabled", true, {
+        delivery_status: "rejected",
+      });
+      assert.equal(codexErr.message, "邮件发送服务尚未启用");
+      assert.equal(codexErr.status, 503);
+      assert.equal(codexErr.code, "email_service_disabled");
+      assert.equal(codexErr.retryable, true);
+      assert.equal(codexErr.details?.delivery_status, "rejected");
+
+      assert.equal(cleanSingleLineText("  安全中心提醒  ", "主题", 120), "安全中心提醒");
+      assert.throws(() => cleanSingleLineText("bad\nline", "主题", 120), EmailServiceError);
+      assert.equal(cleanBodyText("第一行\r\n第二行", "正文", 4000), "第一行\n第二行");
+
+      assert.equal(emailBindingConfigured({}), false);
+      assert.equal(emailNativeBindingConfigured({}), false);
+      assert.equal(
+        emailBindingConfigured({ EMAIL_CLOUDFLARE_ACCOUNT_ID: "acc_1", EMAIL_SEND_API_TOKEN: "tok_1" }),
+        true
+      );
+      assert.equal(
+        emailBindingConfigured({ EMAIL: { send: async () => ({ messageId: "m1" }) } }),
+        true
+      );
+
+      // S0 buildCloudflareRestPayload compat + supressed/bounce coverage
+      const restBuilt = buildCloudflareRestPayload({
+        fromEmail: DEFAULT_FROM_EMAIL,
+        toEmail: "user1@thewyj.uk",
+        replyToEmail: DEFAULT_REPLY_TO_EMAIL,
+        payload: { subject: "S0 测试", text: "正文", html: "<p>正文</p>" },
+      });
+      assert.equal(restBuilt.from.address, DEFAULT_FROM_EMAIL);
+      assert.deepEqual(restBuilt.to, ["user1@thewyj.uk"]);
+      assert.equal(restBuilt.reply_to.address, DEFAULT_REPLY_TO_EMAIL);
+      assert.equal(restBuilt.subject, "S0 测试");
+
+      // 7b. Apply Codex 0035 task27_security schema alongside 0036 and test grandfathering + sync
+      await db.exec(
+        "CREATE TABLE IF NOT EXISTS task27_security (" +
+          "user_id TEXT PRIMARY KEY REFERENCES task12_users(id) ON DELETE CASCADE," +
+          "verified_email TEXT NOT NULL DEFAULT '' COLLATE NOCASE," +
+          "email_verified_at TEXT NOT NULL DEFAULT ''," +
+          "mfa_method TEXT NOT NULL DEFAULT 'none'," +
+          "password_age_start_at TEXT NOT NULL DEFAULT ''" +
+        ");"
+      );
+
+      const legacyUser = await seedAccount(db, { id: "u_legacy_compat", username: "legacy_compat" });
+      await db
+        .prepare("INSERT INTO task27_security (user_id, verified_email, email_verified_at, mfa_method, password_age_start_at) VALUES (?, '', '', 'none', '2026-11-15T00:00:00Z')")
+        .bind(legacyUser.id)
+        .run();
+
+      // Existing user with empty verified_email in task27_security stays unverified/grandfathered
+      assert.equal(await resolveVerifiedUserEmail(db, legacyUser.id), null);
+
+      const t27OnlyUser = await seedAccount(db, { id: "u_t27_only", username: "t27_verified_user" });
+      await db
+        .prepare("INSERT INTO task27_security (user_id, verified_email, email_verified_at, mfa_method, password_age_start_at) VALUES (?, ?, ?, 'email', ?)")
+        .bind(t27OnlyUser.id, "t27user@thewyj.uk", "2026-11-15T01:00:00Z", "2026-11-15T00:00:00Z")
+        .run();
+
+      // Automatically recognized via resolveVerifiedUserEmail / getUserEmailBinding & /api/admin/email/recipients
+      const bridged = await getUserEmailBinding(db, t27OnlyUser.id);
+      assert.equal(bridged?.verified, true);
+      assert.equal(bridged?.email, "t27user@thewyj.uk");
+      assert.equal(bridged?.source, "task27_security");
+
+      const recRes = await callApi(makeEnv(db), "/api/admin/email/recipients?q=t27_verified_user&verified=verified", {
+        token: superAdmin.token,
+      });
+      assert.equal(recRes.status, 200);
+      assert.equal(recRes.data.recipients.length, 1);
+      assert.equal(recRes.data.recipients[0].user_id, t27OnlyUser.id);
+      assert.equal(recRes.data.recipients[0].verified, true);
+      assert.equal(recRes.data.recipients[0].email, "t27user@thewyj.uk");
+
+      // Sync from email_center_bindings back into task27_security when verified=true
+      await upsertUserEmailBinding(db, { userId: legacyUser.id, email: "t27legacy@thewyj.uk", verified: true, actorUserId: superAdmin.id });
+      const syncedRow = await db.prepare("SELECT verified_email, email_verified_at FROM task27_security WHERE user_id = ? LIMIT 1").bind(legacyUser.id).first();
+      assert.equal(syncedRow?.verified_email, "t27legacy@thewyj.uk");
+      assert.ok(String(syncedRow?.email_verified_at || "").length > 0);
+
+      // Inbound support email matches task27_security verified_email automatically
+      const envT27 = makeEnv(db, {
+        EMAIL: {
+          send: async (msg) => ({ messageId: `bind_${msg.to[0].email}` }),
+        },
+        EMAIL_TRANSPORT: "binding",
+        EMAIL_TEST_RECIPIENTS: "t27user@thewyj.uk,support@thewyj.uk",
+      });
+      const inboundFromT27 = await handleInboundSupportEmail(
+        {
+          from: "T27 User <t27user@thewyj.uk>",
+          to: "support@thewyj.uk",
+          raw: Buffer.from("From: t27user@thewyj.uk\r\nTo: support@thewyj.uk\r\nSubject: Task27 Sync Inquiry\r\nMessage-ID: <t27-in-1@example.net>\r\n\r\nPlease check my 2FA status."),
+        },
+        envT27
+      );
+      assert.equal(inboundFromT27.matched_user_id, t27OnlyUser.id);
+
+      // 7c. Codex's exact transactional call forms (Chinese purpose + account_security_notice)
+      const codexOtp = await sendTransactionalEmail(envT27, {
+        kind: "verification_code",
+        to: "t27user@thewyj.uk",
+        code: "839201",
+        purpose: "登录验证",
+        userId: t27OnlyUser.id,
+        idempotencyKey: "codex:compat:otp:1",
+      });
+      assert.equal(codexOtp.ok, true);
+      assert.equal(codexOtp.kind, "verification_code");
+
+      const codexNotice = await sendAccountSecurityNotice(envT27, {
+        to: "t27user@thewyj.uk",
+        eventSummary: "您已开启邮箱双重验证（2FA）。",
+        occurredAt: "2026-11-15T02:00:00Z",
+        userId: t27OnlyUser.id,
+        idempotencyKey: "codex:compat:sec:1",
+      });
+      assert.equal(codexNotice.ok, true);
+      assert.equal(codexNotice.kind, "account_security_notice");
     });
 
     process.stdout.write(`Cloudflare Email Center tests passed: ${passedSuites} suites\n`);

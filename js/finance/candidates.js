@@ -1,7 +1,10 @@
-import { mergeLocalNotificationReviews, localNotificationRecovery } from "./notification-ledger.js?release=20261109-aeris-p07-production-r2";
-import { randomId } from "../core/capabilities.js?release=20261109-aeris-p07-production-r2";
-import { createFinanceDisclosure } from "./disclosure.js?release=20261109-aeris-p07-production-r2";
-import { reconcileKeyedRows } from "../core/keyed-list.js?release=20261109-aeris-p07-production-r2";
+import { mergeLocalNotificationReviews, localNotificationRecovery } from "./notification-ledger.js?release=20261115-aeris-s0-p0-release";
+import { randomId } from "../core/capabilities.js?release=20261115-aeris-s0-p0-release";
+import { createFinanceDisclosure } from "./disclosure.js?release=20261115-aeris-s0-p0-release";
+import { reconcileKeyedRows } from "../core/keyed-list.js?release=20261115-aeris-s0-p0-release";
+import { formatFinanceMoney } from "./format.js?release=20261115-aeris-s0-p0-release";
+import { SUPPORTED_CURRENCIES, currencyDigits, moneyText } from "./money.js?release=20261115-aeris-s0-p0-release";
+import { validateAmountText } from "./app.js?release=20261115-aeris-s0-p0-release";
 import {
   INTERACTION_STAGES,
   attachInteractionFeedback,
@@ -9,10 +12,20 @@ import {
   createLatestOnly,
   createSingleFlight,
   withInteractionFeedback,
-} from "../core/perf.js?release=20261109-aeris-p07-production-r2";
+} from "../core/perf.js?release=20261115-aeris-s0-p0-release";
 const FINANCE_DEVICE_KEY = "wyjFinanceDevice:v1";
 const DIRECTION_LABELS = Object.freeze({ income: "收入", expense: "支出", refund: "退款", unknown: "方向待核实" });
 const VALID_DIRECTIONS = new Set(["income", "expense", "refund"]);
+const AUTHORIZATION_PHASES = new Set(["AUTHORIZED", "PENDING_AUTHORIZATION"]);
+const AUTHORIZATION_OPERATIONS = new Set(["AUTHORIZE", "RELEASE", "EXPIRE"]);
+const AUTHORIZATION_STATES = new Set(["pending_authorization", "authorization_release", "authorization_expired"]);
+
+export function isCandidateAuthorization(candidate) {
+  return AUTHORIZATION_STATES.has(candidate?.reconciliation_state) ||
+    AUTHORIZATION_PHASES.has(candidate?.financial_phase) ||
+    AUTHORIZATION_OPERATIONS.has(candidate?.lifecycle_operation);
+}
+
 const SOURCE_LABELS = Object.freeze({
   "com.tencent.mm": "微信",
   "com.eg.android.AlipayGphone": "支付宝",
@@ -35,27 +48,55 @@ const REASON_LABELS = Object.freeze({
  * offered「确认记账」, and the API correctly answered 400
  * `hint_direction_required`. The record then stayed pending forever and looked
  * like "confirmed but still in 通知待确认".
+ *
+ * Multi-currency: unverified currency, legacy JPY without exponent 0, or
+ * authorization control items can never be booked with one-click confirm.
  */
 export function candidateNeedsEditor(candidate) {
   const amountMissing = !Number(candidate?.amount_minor);
   const directionMissing = !VALID_DIRECTIONS.has(String(candidate?.direction || "").trim().toLowerCase());
-  return amountMissing || directionMissing || candidate?.local_evidence?.conflict === true;
+  const rawCurrency = candidate?.currency !== undefined && candidate?.currency !== null
+    ? String(candidate.currency).trim().toUpperCase()
+    : "";
+  const currencyNeedsReview = candidate?.currency_review_required === true ||
+    (rawCurrency !== "" && (!SUPPORTED_CURRENCIES.includes(rawCurrency) || rawCurrency === "XXX")) ||
+    (rawCurrency === "JPY" && candidate?.money_unit_status === "review_required");
+  const isAuth = isCandidateAuthorization(candidate);
+  return amountMissing || directionMissing || currencyNeedsReview || isAuth || candidate?.local_evidence?.conflict === true;
 }
 
 export function candidatePresentation(candidate) {
+  const isAuth = isCandidateAuthorization(candidate);
   const evidenceConflict = candidate?.local_evidence?.conflict === true;
   const localEvidencePending = candidate?.local_evidence?.pending_sync === true;
   const amountMinor = Number(candidate?.amount_minor) || (!evidenceConflict ? Number(candidate?.local_evidence?.amount_minor) : 0) || 0;
   const amountUnknown = !amountMinor;
+  const rawCurrency = candidate?.currency !== undefined && candidate?.currency !== null
+    ? String(candidate.currency).trim().toUpperCase()
+    : "";
+  const currency = rawCurrency ? (SUPPORTED_CURRENCIES.includes(rawCurrency) ? rawCurrency : rawCurrency) : "CNY";
+  const currencyNeedsReview = candidate?.currency_review_required === true ||
+    (rawCurrency !== "" && (!SUPPORTED_CURRENCIES.includes(rawCurrency) || rawCurrency === "XXX")) ||
+    (currency === "JPY" && candidate?.money_unit_status === "review_required");
   const rawDirection = String(candidate?.direction || "").trim().toLowerCase();
   const direction = VALID_DIRECTIONS.has(rawDirection) ? rawDirection : "unknown";
   const merchant = String(candidate?.merchant || candidate?.counterparty || "").trim();
   const missing = [];
   if (!Number(candidate?.amount_minor)) missing.push("金额");
   if (direction === "unknown") missing.push("收支方向");
+  if (currencyNeedsReview) missing.push("币种核实");
+  if (isAuth) missing.push("清算完成");
+  let primaryAction = "确认记账";
+  if (isAuth) primaryAction = "预授权控制（未结算）";
+  else if (evidenceConflict) primaryAction = "核对并确认";
+  else if (currencyNeedsReview) primaryAction = "核实币种并确认";
+  else if (missing.length) primaryAction = "补全并确认";
   return Object.freeze({
     amountUnknown,
     amountMinor,
+    currency,
+    currencyNeedsReview,
+    isAuth,
     evidenceConflict,
     localEvidencePending,
     direction,
@@ -63,7 +104,7 @@ export function candidatePresentation(candidate) {
     merchant,
     merchantLabel: merchant || "商户未知（可选）",
     missing,
-    primaryAction: evidenceConflict ? "核对并确认" : missing.length ? "补全并确认" : "确认记账",
+    primaryAction,
   });
 }
 
@@ -74,13 +115,28 @@ export function canonicalPendingCandidates(summary) {
     : [];
   return pending.map((row) => {
     const hint = row.kind === "hint";
+    const rawCurrency = String(row.currency || "").trim().toUpperCase();
+    const currency = SUPPORTED_CURRENCIES.includes(rawCurrency)
+      ? rawCurrency
+      : (rawCurrency || (row.currency_review_required ? "XXX" : "CNY"));
+    const currencyReviewRequired = row.currency_review_required === true ||
+      row.currency_review_required === 1 ||
+      currency === "XXX" ||
+      (rawCurrency !== "" && !SUPPORTED_CURRENCIES.includes(rawCurrency));
     return {
       id: String(row.id || ""), hint, canonical_id: `${row.kind}:${String(row.id || "")}`,
       event_id: String(row.event_id || ""),
       event_ids: [...new Set([String(row.event_id || ""), ...(row.event_ids || [])])].filter(Boolean),
       source_package: String(row.source_package || ""), app_label: String(row.app_label || ""),
       direction: String(row.direction || ""), amount_minor: Number(row.amount_minor) || 0,
-      currency: "CNY", merchant: String(row.merchant || ""),
+      currency,
+      currency_review_required: currencyReviewRequired,
+      currency_decision_source: String(row.currency_decision_source || ""),
+      amount_exponent: row.amount_exponent !== undefined ? row.amount_exponent : null,
+      money_unit_status: String(row.money_unit_status || (currency === "JPY" && row.amount_exponent !== 0 ? "review_required" : "")),
+      financial_phase: String(row.financial_phase || ""),
+      reconciliation_state: String(row.reconciliation_state || ""),
+      merchant: String(row.merchant || ""),
       occurred_at_ms: Number(row.occurred_at_ms) || 0, confidence: Number(row.confidence) || 0,
       evidence: [{ source_type: "notification", source_package: String(row.source_package || ""), app_label: String(row.app_label || "") }],
       evidence_count: 1,
@@ -111,15 +167,16 @@ function escapeHtml(value) {
 }
 
 function formatMinor(minor, currency = "CNY") {
-  const amount = Number(minor || 0) / 100;
-  try {
-    return new Intl.NumberFormat("zh-CN", { style: "currency", currency, minimumFractionDigits: 2 }).format(amount);
-  } catch (_) {
-    return `${amount.toFixed(2)} ${currency}`;
-  }
+  return formatFinanceMoney(minor, currency);
 }
 
 function evidenceExplanation(candidate, presentation) {
+  if (presentation.isAuth) {
+    return "交易处于预授权或冻结控制状态，清算完成前不可直接转为实际支出";
+  }
+  if (presentation.currencyNeedsReview) {
+    return "原始通知未明确支持的币种或按默认设置暂存，记账前须人工核实币种与金额";
+  }
   const reasons = Array.isArray(candidate?.recognition_reasons) ? candidate.recognition_reasons : [];
   const labels = [...new Set(reasons.map((reason) => REASON_LABELS[String(reason)]).filter(Boolean))];
   if (labels.length) return labels.join("；");
@@ -235,7 +292,7 @@ export function createFinanceCandidatesController({
       render: (candidate) => {
       const id = String(candidate.id || "");
       const presentation = candidatePresentation(candidate);
-      const { direction } = presentation;
+      const { direction, currency, currencyNeedsReview, isAuth } = presentation;
       const occurred = Number(candidate.occurred_at_ms) > 0
         ? new Date(Number(candidate.occurred_at_ms)).toLocaleString("zh-CN")
         : "时间未知";
@@ -246,26 +303,35 @@ export function createFinanceCandidatesController({
       const evidenceCount = Math.max(evidence.length, Number(candidate.evidence_count) || 1);
       const editedCount = Number(candidate.correction_count) || 0;
       const missingLabel = presentation.missing.length ? `需补：${presentation.missing.join("、")}` : "信息完整，可直接确认";
-      const amountValue = !Number(candidate.amount_minor) ? "" : (Number(candidate.amount_minor) / 100).toFixed(2);
+      const amountValue = !Number(candidate.amount_minor)
+        ? ""
+        : (SUPPORTED_CURRENCIES.includes(currency) ? moneyText(candidate.amount_minor, currency) : (Number(candidate.amount_minor) / 100).toFixed(2));
       const evidenceReason = evidenceExplanation(candidate, presentation);
       return `<article class="finance-candidate" data-finance-candidate="${escapeHtml(id)}" data-canonical-identity="${escapeHtml(candidate.canonical_id || "")}">
         <div class="finance-candidate-main">
           <span class="finance-direction is-${escapeHtml(direction)}">${presentation.directionLabel}</span>
-          <div class="finance-candidate-copy"><strong>${presentation.amountUnknown ? "金额待补" : escapeHtml(formatMinor(presentation.amountMinor, candidate.currency))}</strong>
-          ${presentation.evidenceConflict ? `<small role="status">本机与云端金额或方向不一致，请核对后编辑确认${candidate.local_evidence?.amount_minor ? `（本机金额 ${escapeHtml(formatMinor(candidate.local_evidence.amount_minor, candidate.currency))}）` : ""}。</small>` : presentation.localEvidencePending ? '<small role="status">本机已识别，等待同步；云端尚未确认。</small>' : ""}
+          <div class="finance-candidate-copy"><strong>${presentation.amountUnknown ? "金额待补" : escapeHtml(formatMinor(presentation.amountMinor, currency))}</strong>
+          ${presentation.evidenceConflict ? `<small role="status">本机与云端金额或方向不一致，请核对后编辑确认${candidate.local_evidence?.amount_minor ? `（本机金额 ${escapeHtml(formatMinor(candidate.local_evidence.amount_minor, currency))}）` : ""}。</small>` : presentation.localEvidencePending ? '<small role="status">本机已识别，等待同步；云端尚未确认。</small>' : ""}
+          ${currencyNeedsReview ? `<small role="status" class="warning-text">币种待核实（${escapeHtml(currency)}）· 需人工确认</small>` : ""}
+          ${isAuth ? '<small role="status" class="warning-text">预授权控制状态 · 尚未结算，不可记为实际支出</small>' : ""}
           <small>${escapeHtml(sources)} · ${escapeHtml(occurred)}</small>
           <small><span class="finance-candidate-merchant" title="${escapeHtml(presentation.merchantLabel)}">${escapeHtml(presentation.merchantLabel)}</span><span>${escapeHtml(missingLabel)}</span></small>
           <details class="finance-candidate-evidence"><summary>查看识别依据</summary><p>${escapeHtml(evidenceReason)}</p><p>结构化证据 ${evidenceCount} 条 · 置信度 ${confidence}/1000${editedCount ? ` · 用户已修改 ${editedCount} 次` : ""}</p><p>核实标识：${escapeHtml(candidate.canonical_id || "")}</p><p>事件标识：${escapeHtml(candidate.event_id || id)}</p></details></div>
         </div>
         <div class="finance-candidate-actions">
-          ${presentation.missing.length ? `<button class="primary" type="button" data-finance-candidate-verify="${escapeHtml(id)}" ${busy ? "disabled" : ""}>核实交易</button>` : ""}
-          <button ${presentation.missing.length ? 'class="button-ghost"' : ''} type="button" data-finance-candidate-confirm="${escapeHtml(id)}" ${busy ? "disabled" : ""}>${presentation.primaryAction}</button>
+          ${presentation.missing.length && !isAuth ? `<button class="primary" type="button" data-finance-candidate-verify="${escapeHtml(id)}" ${busy ? "disabled" : ""}>核实交易</button>` : ""}
+          ${isAuth ? `<button class="button-ghost" type="button" disabled title="预授权交易尚未结算，不能记入实际支出">预授权未结算</button>` : `<button ${presentation.missing.length ? 'class="button-ghost"' : ''} type="button" data-finance-candidate-confirm="${escapeHtml(id)}" ${busy ? "disabled" : ""}>${presentation.primaryAction}</button>`}
           <button class="button-ghost" type="button" data-finance-candidate-edit="${escapeHtml(id)}" ${busy ? "disabled" : ""}>编辑</button>
           <button class="danger-text" type="button" data-finance-candidate-reject="${escapeHtml(id)}" ${busy ? "disabled" : ""}>忽略</button>
           <small>忽略只关闭这条候选，不会撤销实际支付。</small>
         </div>
         <form class="finance-candidate-editor hidden" data-finance-candidate-editor="${escapeHtml(id)}">
-          <label>金额<input type="number" step="0.01" min="0.01" name="amount" required inputmode="decimal" value="${escapeHtml(amountValue)}"></label>
+          <label>币种
+            <select name="currency" required>
+              ${SUPPORTED_CURRENCIES.map(code => `<option value="${code}"${(currency === code || (!SUPPORTED_CURRENCIES.includes(currency) && code === 'CNY')) ? ' selected' : ''}>${code}</option>`).join("")}
+            </select>
+          </label>
+          <label>金额<input type="number" step="any" min="0" name="amount" required inputmode="decimal" value="${escapeHtml(amountValue)}"></label>
           <label>方向
             <select name="direction" required>
               <option value=""${direction === "unknown" ? " selected" : ""} disabled>请选择收支方向</option>
@@ -278,7 +344,7 @@ export function createFinanceCandidatesController({
           <label>时间<input type="datetime-local" name="occurred" value="${occurredLocalValue(candidate.occurred_at_ms)}"></label>
           <label>备注<input type="text" name="note" maxlength="200" value=""></label>
           <div class="finance-candidate-actions">
-            <button type="submit" data-finance-candidate-save="${escapeHtml(id)}" ${busy ? "disabled" : ""}>保存并确认记账</button>
+            <button type="submit" data-finance-candidate-save="${escapeHtml(id)}" ${busy || isAuth ? "disabled" : ""}>${isAuth ? "预授权不能记账" : "保存并确认记账"}</button>
             <button class="button-ghost" type="button" data-finance-candidate-cancel="${escapeHtml(id)}">取消</button>
           </div>
         </form>
@@ -316,9 +382,22 @@ export function createFinanceCandidatesController({
   /** Only send fields the user actually changed; machine values stay evidence. */
   function buildEdits(candidate, form) {
     const edits = {};
-    const amountValue = Number(form.elements.amount.value);
-    if (Number.isFinite(amountValue) && Math.round(amountValue * 100) !== Number(candidate.amount_minor)) {
-      edits.amount_minor = Math.round(amountValue * 100);
+    const chosenCurrency = String(form.elements.currency?.value || "").trim().toUpperCase();
+    const currency = SUPPORTED_CURRENCIES.includes(chosenCurrency) ? chosenCurrency : (candidate.currency || "CNY");
+    const digits = currencyDigits(currency);
+    const amountText = String(form.elements.amount?.value || "").trim();
+    const amountVal = validateAmountText(amountText, "金额", currency);
+    const newMinor = amountVal.valid ? amountVal.amountMinor : 0;
+    const currencyChanged = currency !== candidate.currency;
+    const amountChanged = newMinor > 0 && newMinor !== Number(candidate.amount_minor);
+
+    if (currencyChanged || candidate.currency_review_required || (currency === "JPY" && candidate.money_unit_status === "review_required")) {
+      edits.currency = currency;
+      edits.amount_minor = newMinor;
+      edits.amount_exponent = digits;
+    } else if (amountChanged) {
+      edits.amount_minor = newMinor;
+      edits.amount_exponent = digits;
     }
     const direction = String(form.elements.direction.value || "");
     if (direction && direction !== String(candidate.direction || "")) edits.direction = direction;
@@ -457,7 +536,15 @@ export function createFinanceCandidatesController({
       onCandidateChanged(confirm ? String(response?.transaction_id || "") : "");
     } catch (error) {
       if (!current()) return;
-      render(currentCandidates, `操作失败：${error?.message || "请稍后重试"}`);
+      if (error?.code === "currency_client_upgrade_required") {
+        render(currentCandidates, "操作需要新版客户端币种能力，请刷新页面或升级客户端后重试。");
+      } else if (error?.code === "payment_lifecycle_not_settled") {
+        render(currentCandidates, "预授权或未完成清算的记录不能记入正式支出。");
+      } else if (error?.code === "currency_amount_confirmation_required") {
+        render(currentCandidates, "更正币种时须重新输入并确认原币金额。");
+      } else {
+        render(currentCandidates, `操作失败：${error?.message || "请稍后重试"}`);
+      }
       trace.mark(INTERACTION_STAGES.STATE_APPLY, "failed");
       trace.mark(INTERACTION_STAGES.RENDER_END, "error");
     } finally {
@@ -488,9 +575,14 @@ export function createFinanceCandidatesController({
     const id = String(form?.dataset.financeCandidateEditor || "");
     const candidate = currentCandidates.find((item) => String(item.id) === id);
     if (!candidate || !form) return;
-    const amount = Number(form.elements.amount.value);
+    if (isCandidateAuthorization(candidate)) {
+      render(currentCandidates, "预授权交易尚未结算，不能记入实际支出。");
+      return;
+    }
+    const chosenCurrency = String(form.elements.currency?.value || candidate.currency || "CNY").trim().toUpperCase();
+    const amountVal = validateAmountText(form.elements.amount?.value, "金额", chosenCurrency);
+    form.elements.amount.setCustomValidity(amountVal.valid ? "" : amountVal.message);
     const direction = String(form.elements.direction.value || "");
-    form.elements.amount.setCustomValidity(Number.isFinite(amount) && amount > 0 ? "" : "请填写大于 0 的金额");
     form.elements.direction.setCustomValidity(VALID_DIRECTIONS.has(direction) ? "" : "请选择收支方向");
     if (!form.reportValidity()) return;
     decide(id, true, buildEdits(candidate, form), trigger);
@@ -545,19 +637,23 @@ export function createFinanceCandidatesController({
     if (confirmButton) {
       const id = confirmButton.dataset.financeCandidateConfirm;
       const candidate = currentCandidates.find((item) => String(item.id) === String(id));
-      // A hint without an amount or without a direction can never be confirmed
-      // as-is: the server rejects it (hint_amount_required /
-      // hint_direction_required). Open the editor so the user supplies the
-      // missing field instead of sending a request that silently fails.
+      if (isCandidateAuthorization(candidate)) {
+        render(currentCandidates, "此记录为预授权控制状态，尚未完成清算，不可记入实际支出。");
+        return;
+      }
+      // A hint without an amount or without a direction or needing currency review
+      // can never be confirmed as-is: open the editor so the user supplies the
+      // missing field instead of sending a request that fails.
       if (candidateNeedsEditor(candidate)) {
         const presentation = candidatePresentation(candidate);
-        // Render first, then reveal the freshly rendered form: render()
-        // rebuilds the list HTML, so revealing the old node had no effect.
-        render(currentCandidates, presentation.evidenceConflict ? "本机与云端证据不一致，请核对并编辑后确认。" : `这笔交易需要补全${presentation.missing.join("和")}后才能确认。`);
+        render(currentCandidates, presentation.evidenceConflict
+          ? "本机与云端证据不一致，请核对并编辑后确认。"
+          : `这笔交易需要补全或核对${presentation.missing.join("和")}后才能确认。`);
         const form = document.querySelector(`[data-finance-candidate-editor="${CSS.escape(id)}"]`);
         if (form) {
           form.classList.remove("hidden");
-          if (presentation.amountUnknown) form.elements.amount?.focus();
+          if (presentation.currencyNeedsReview) form.elements.currency?.focus();
+          else if (presentation.amountUnknown) form.elements.amount?.focus();
           else form.elements.direction?.focus();
         }
         return;
@@ -636,4 +732,4 @@ export function createFinanceCandidatesController({
   const dashboardSummary = () => ({ known: hasCanonicalObservation && renderedForAccount === String(account()?.id || ""), count: currentCandidates.length });
   return Object.freeze({ show, hide, reload, accountUpdated, handleClick, dashboardSummary });
 }
-import { createParkedRows, rowRenderRoot } from "../core/parked-rows.js?release=20261109-aeris-p07-production-r2";
+import { createParkedRows, rowRenderRoot } from "../core/parked-rows.js?release=20261115-aeris-s0-p0-release";

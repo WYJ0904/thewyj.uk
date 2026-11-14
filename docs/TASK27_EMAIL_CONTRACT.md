@@ -58,11 +58,25 @@
 
 ### 1.3 邮箱绑定互操作与投递状态查询
 
-#### `resolveVerifiedUserEmail(db, userId)`
-优先查询 `email_center_bindings`，若不存在则安全兼容检查 `task27_user_security`（忽略表未创建错误），返回 `{ user_id, email, verified, verified_at, source } | null`。
+#### `resolveVerifiedUserEmail(db, userId)` / `getUserEmailBinding(db, userId)`
+优先查询 `email_center_bindings`；当表中无已验证绑定且数据库中存在 Codex Task 27 迁移（`0035_task27_security_center.sql`）创建的 `task27_security` 表时，自动读取 `task27_security.verified_email` 与 `email_verified_at`（同时兼容 `task27_user_security` 兜底表），返回 `{ user_id, email, email_normalized, verified, verified_at, source } | null`。管理后台 `/api/admin/email/overview`、`/api/admin/email/recipients`、`/api/admin/email/preview`、`/api/admin/email/send` 与入站客服发件人匹配均同步识别两处已验证邮箱。
 
 #### `upsertUserEmailBinding(db, { userId, email, verified, actorUserId })`
-当 Codex Task 27 完成用户邮箱绑定验证时，推荐同步调用该函数（或由超级管理员在后台“邮件概览”维护）写入 `email_center_bindings`，使后台收件人筛选、自动安全通知、全站服务通知和客服工单用户关联保持一致。
+写入或更新 `email_center_bindings`；当 `verified = true` 且 `task27_security` 表存在时，会自动同步更新 `task27_security.verified_email` / `email_verified_at`，确保两个工作树间的用户已验证邮箱状态零分裂。
+
+### 1.4 与 `codex/task27-security-center` 的代码级兼容适配与合并边界
+
+1. **函数与签名兼容**：
+   - `EmailServiceError` 同时支持 Codex 的五参构造 `new EmailServiceError(message, status, code, retryable, details)` 与本模块的 `(code, message, status, details)`。
+   - `cleanSingleLineText(val, fieldLabel, maxLen)` 与 `cleanBodyText(val, fieldLabel, maxLen)` 同时支持 Codex 的位置参数调用与对象配置调用。
+   - `emailBindingConfigured(env)` 在 Workers `env.EMAIL` Binding 或 Cloudflare Email REST API（`EMAIL_SEND_API_TOKEN` + `EMAIL_CLOUDFLARE_ACCOUNT_ID`）任一就绪时返回 `true`；同时导出 `emailNativeBindingConfigured(env)` 区分原生绑定与 REST 通道。
+   - `ALLOWED_TRANSACTIONAL_KINDS` 已纳入 `account_security_notice` 与 `owner_ops_test`；`sendTransactionalEmail` 支持 `purpose` 传入中文业务标签（如 `'登录验证'`、`'敏感操作验证'`、`'找回密码'`、`'绑定邮箱'`、`'开启邮箱双重验证'`）并原样脱敏渲染；`sendAccountSecurityNotice(env, { to, eventSummary, occurredAt, ... })` 及别名 `sendVerificationCodeEmail` / `sendLoginMfaCodeEmail` / `sendPasswordResetEmail` / `sendMfaStatusChangeNotice` 均已对齐导出。
+2. **D1 迁移顺序（`0035` vs `0036`）**：
+   - 当前 `main`（S0 PR `#151` 合入后）最新迁移编号为 `0034_finance_ai_assistance.sql`。
+   - Codex 分支新增 `0035_task27_security_center.sql`，本分支新增 `0036_task27_email_center.sql`。
+   - `0036_task27_email_center.sql` 仅引用 `task12_users(id)`，**对 `0035` 无外键或表结构硬依赖**；但在 Production D1 执行迁移时**必须等待 `0035_task27_security_center.sql` 先合入并执行后，再执行 `0036_task27_email_center.sql`**，防止 D1 迁移序号跳号导致 `0035` 无法按序应用。
+3. **路由归属（合并后接入指南）**：
+   - 本分支 `functions/_lib/email-api.mjs` 的 `handleEmailRequest(context)` 完整承担所有 `/api/admin/email/*`（含概览、收件人筛选、草稿、预览、二次确认发送、投递记录、安全重试、客服入站收件与回复、模板、绑定维护、状态与受控测试）权限校验与审计路由；合入 `handleTask27Request(context)` 时，应在 `functions/api/[[path]].js` 中保持 `handleEmailRequest` 优先于 `handleTask27Request`（或在 `task27-api.mjs` 中移除重复的 `/api/admin/email/*` 占位路由）。
 
 #### `getEmailDeliveryStatus(db, { deliveryId, idempotencyKey })`
 供 Task 27 查询某次发信的实际处理状态，返回：

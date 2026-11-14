@@ -14,6 +14,11 @@ const PUBLIC_ROOT_FILES = new Set([
 const PUBLIC_DIRECTORIES = new Set(["assets", "functions", "js", "vendor"]);
 const FORBIDDEN_COMPONENT = /^(?:\..*|private|developer|docs|qa|evidence|migration-evidence|credentials?|data|payment|local-backend|node_modules|__pycache__)$/i;
 const FORBIDDEN_FILE = /(?:^|[._-])(?:credentials?|secrets?|private|developer|evidence|debug)(?:[._-]|$)|\.(?:sqlite3?|db3?|log|trace|jks|keystore|pem|key|p12|pfx|map)$/i;
+const REVIEWED_SOURCE_FILES = new Set([
+  "functions/_lib/notification-cash-evidence.mjs",
+  "functions/_lib/payment-currency-evidence.mjs",
+  "functions/_lib/task21-provider-evidence.mjs",
+]);
 const SECRET_PATTERNS = [
   /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/,
   /\bgh[pousr]_[A-Za-z0-9_]{30,}\b/,
@@ -50,7 +55,7 @@ export async function verifyPagesBuild() {
     const parts = relative.split("/");
     assert.ok(PUBLIC_ROOT_FILES.has(relative) || (parts.length > 1 && PUBLIC_DIRECTORIES.has(parts[0])), `unallowlisted build entry: ${relative}`);
     assert.ok(!parts.some((part) => FORBIDDEN_COMPONENT.test(part)), `private build path: ${relative}`);
-    assert.ok(!FORBIDDEN_FILE.test(parts.at(-1)) || relative === "functions/_lib/notification-cash-evidence.mjs", `private build file: ${relative}`);
+    assert.ok(!FORBIDDEN_FILE.test(parts.at(-1)) || REVIEWED_SOURCE_FILES.has(relative), `private build file: ${relative}`);
     const content = await readFile(path.join(output, relative));
     assert.ok(!SECRET_PATTERNS.some((pattern) => pattern.test(content.toString("utf8"))), `credential material in build: ${relative}`);
     const source = path.join(root, relative);

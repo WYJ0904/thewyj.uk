@@ -20,19 +20,20 @@ globalThis.addEventListener=(kind,callback)=>handlers.set(kind,callback);
 try{
  const controller=createMasteryController({getAccount:()=>({id:accountId}),getLanguage:()=>language,features:{enabled:()=>true,channel:()=> 'experimental'},storage,locks:{request:async(_key,fn)=>fn()},document,
   journal:{put:async()=>{},list:async()=>[],remove:async()=>{}},api:async()=>{throw new Error('Storage notifications must not submit another answer');},apiGet:()=>{requests++;return new Promise(()=>{});}});
- controller.update();await new Promise(resolve=>setTimeout(resolve,0));assert.equal(requests,1,'Initial journal recovery must finish before storage notifications');assert.equal(nodes.masterySubmitBtn.disabled,false);nodes.masteryAnswerInput.value='unfinished draft';
+ await controller.update();assert.equal(requests,0,'Retirement adapter must never fetch or issue a catalog question');
+ assert.equal(controller.pendingQuestion().ticket_id,question.ticket_id);
  const acknowledged=structuredClone(initial);acknowledged.results.english={ticket_id:question.ticket_id,input,receipt};
  storage.setItem(masteryStorageKey(accountId),JSON.stringify(acknowledged));handlers.get('storage')({key:masteryStorageKey(accountId)});
- assert.equal(nodes.masteryResult.classList.contains('hidden'),false,'Another window acknowledgement must hydrate the receipt');
- assert.equal(nodes.masteryAnswerInput.disabled,true,'An already answered ticket cannot become answerable again');
- assert.equal(nodes.masterySubmitBtn.disabled,true);
+ assert.equal(controller.resultFor(question).event_id,input.event_id,'Another window acknowledgement must hydrate the receipt');
+ assert.equal((await controller.submit(question,'water')).event_id,input.event_id,'Completed tickets return their receipt without another submission');
  console.log('PASS: another-window acknowledgement locks the completed ticket and shows its original receipt');
  const next=structuredClone(acknowledged);next.questions.english={question:{...question,ticket_id:crypto.randomUUID(),prompt:'书'},started_at:Date.now(),mode:'adaptive'};
  storage.setItem(masteryStorageKey(accountId),JSON.stringify(next));handlers.get('storage')({key:masteryStorageKey(accountId)});
- assert.equal(nodes.masteryPrompt.textContent,'书');assert.equal(nodes.masteryAnswerInput.value,'','A different ticket must not inherit an old draft');
- assert.equal(nodes.masteryResult.classList.contains('hidden'),true);assert.equal(nodes.masterySubmitBtn.disabled,false);
+ assert.equal(controller.pendingQuestion().prompt,'书');
+ assert.equal(controller.resultFor(controller.pendingQuestion()),null,'A different ticket must not inherit another receipt');
+ await assert.rejects(()=>controller.submit(question,'water'),/其他窗口更新/);
  handlers.get('storage')({key:masteryStorageKey('different-account')});
- await new Promise(resolve=>setTimeout(resolve,10));assert.equal(requests,1,'Storage notifications must not cause cross-window refresh/write loops');
+ await new Promise(resolve=>setTimeout(resolve,10));assert.equal(requests,0,'Storage notifications must not cause cross-window refresh/write loops');
  console.log('PASS: another-window next ticket clears stale drafts without refetch loops or cross-account effects');
  console.log('Task26 multi-window: 2 acceptance groups passed');
 }finally{if(originalListener===undefined)delete globalThis.addEventListener;else globalThis.addEventListener=originalListener;}

@@ -7,6 +7,7 @@ import java.net.URL
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.util.Base64
+import java.util.concurrent.ConcurrentHashMap
 import org.json.JSONObject
 
 data class IngestResponse(val ok: Boolean, val status: Int, val body: String)
@@ -18,6 +19,8 @@ data class QueuedNotificationRequest(
     val attempts: Int = 0,
     /** Server error code/reason of the last rejection, shown to the user. */
     val lastError: String = "",
+    /** Durable one-time retry after upgrading the money transport capability. */
+    val currencyCapabilityRetry: Int = 0,
 )
 
 interface NotificationIngestTransport {
@@ -52,14 +55,26 @@ internal object StructuredEventJson {
             append("\"direction\":\"${if (event.direction == FinanceDirection.UNKNOWN) "" else event.direction.name.lowercase()}\",")
             append("\"amount_minor\":${event.amountMinor},")
             append("\"currency\":\"${escape(event.currency)}\",")
+            if (event.currency == "JPY") append("\"amount_exponent\":${event.amountExponent ?: "null"},")
             append("\"payment_channel\":\"${escape(event.paymentChannel)}\",")
             append("\"provider_reference\":\"${escape(event.providerReference)}\",")
             append("\"lifecycle_identity\":\"${escape(event.lifecycleIdentity)}\",")
+            if (event.financialPhase.isNotBlank() || event.identityReviewReason.isNotBlank() || event.currencyEvidence.isNotBlank() || event.referenceNamespace.isNotBlank()) {
+                append("\"lifecycle_operation\":\"${escape(event.lifecycleOperation)}\",")
+                append("\"lifecycle_revision\":${event.lifecycleRevision},")
+                append("\"financial_phase\":\"${escape(event.financialPhase)}\",")
+                append("\"lifecycle_reference\":\"${escape(event.lifecycleReference)}\",")
+                append("\"reference_namespace\":\"${escape(event.referenceNamespace)}\",")
+                append("\"currency_evidence\":\"${escape(event.currencyEvidence)}\",")
+                append("\"identity_review_reason\":\"${escape(event.identityReviewReason)}\",")
+            }
             append("\"merchant\":\"${escape(event.merchant)}\",")
             append("\"counterparty\":\"${escape(event.counterparty)}\",")
             append("\"confidence\":${event.confidence},")
             append("\"occurred_at_ms\":${event.occurredAtMs},")
             append("\"received_at_ms\":${event.receivedAtMs}")
+            if (event.currencyRolesJson.isNotBlank()) append(",\"currency_roles\":" + uk.thewyj.app.finance.CurrencyDecision.validatedRolesJson(event.currencyRolesJson))
+            if (event.currencyReviewRequired) append(",\"currency_review_required\":true,\"currency_decision_source\":\"account_default\"")
             append("}")
         }
     }
@@ -91,6 +106,8 @@ internal object StructuredEventJson {
         paymentChannel: String = "",
         lifecycleIdentity: String = "",
         occurredAtMs: Long = 0L,
+        amountExponent: Int? = null,
+        currencyReviewRequired: Boolean = false,
     ): String {
         val directionValue = if (direction.isBlank() || direction == "UNKNOWN") "" else direction.lowercase()
         val evidence = buildString {
@@ -115,6 +132,8 @@ internal object StructuredEventJson {
             append("\"direction\":${if (directionValue.isBlank()) "null" else "\"$directionValue\""},")
             append("\"merchant\":\"${escape(merchant)}\",")
             append("\"currency\":\"${escape(currency)}\",")
+            if (currency == "JPY" && amountExponent == 0) append("\"amount_exponent\":0,")
+            if (currencyReviewRequired) append("\"currency_review_required\":true,\"currency_decision_source\":\"account_default\",")
             append("\"confidence\":$confidence,")
             append("\"recognition_status\":\"${escape(recognitionStatus)}\",")
             append("\"evidence\":$evidence")
@@ -148,6 +167,7 @@ class HttpNotificationIngestTransport(
                 connection.connectTimeout = 15_000
                 connection.readTimeout = 20_000
                 connection.setRequestProperty("X-Session-Token", sessionToken)
+                connection.setRequestProperty("X-Finance-Money-Version", "3")
                 configure(connection)
                 val status = connection.responseCode
                 val stream = if (status in 200..299) connection.inputStream else connection.errorStream
@@ -163,7 +183,7 @@ class HttpNotificationIngestTransport(
 }
 
 class OfflineNotificationQueue(private val file: File) {
-    private val lock = Any()
+    private val lock = fileLocks.computeIfAbsent(file.canonicalPath) { Any() }
 
     private fun encode(value: String): String = Base64.getEncoder().encodeToString(value.toByteArray(Charsets.UTF_8))
     private fun decode(value: String): String = String(Base64.getDecoder().decode(value), Charsets.UTF_8)
@@ -280,6 +300,16 @@ class OfflineNotificationQueue(private val file: File) {
 
     fun pendingCount(): Int = synchronized(lock) { readRequestsLocked().size }
 
+    fun retryCurrencyProtocolUpgrades():List<QueuedNotificationRequest> = synchronized(lock) {
+        val entries=readRequestsLocked()
+        val updated=entries.map { current ->
+            if(current.attempts>=MAX_UPLOAD_ATTEMPTS&&current.lastError=="currency_client_upgrade_required"&&current.currencyCapabilityRetry<3)
+                current.copy(attempts=0,lastError="",currencyCapabilityRetry=3) else current
+        }
+        if(updated!=entries)writeAllLocked(updated)
+        updated
+    }
+
     fun clearForAccount(accountId: String) {
         synchronized(lock) {
             writeAllLocked(emptyList())
@@ -299,9 +329,11 @@ class OfflineNotificationQueue(private val file: File) {
                     // attempts/lastError are optional trailing columns so
                     // queues written by older builds keep loading.
                     val attempts = parts.getOrNull(3)?.let { decode(it).toIntOrNull() } ?: 0
-                    val lastError = parts.getOrNull(4)?.let { decode(it) }.orEmpty()
+                    val errorWire = parts.getOrNull(4)?.let { decode(it) }.orEmpty()
+                    val metadata=runCatching{JSONObject(errorWire)}.getOrNull()?.takeIf{it.optInt("currency_capability_retry")==3}
+                    val lastError=metadata?.optString("reason")?:errorWire
                     require(parts.size in 2..5 && path in ALLOWED_PATHS)
-                    QueuedNotificationRequest(operationId, path, body, attempts, lastError)
+                    QueuedNotificationRequest(operationId, path, body, attempts, lastError,metadata?.optInt("currency_capability_retry")?:0)
                 }.getOrNull()
             }
     }
@@ -316,7 +348,7 @@ class OfflineNotificationQueue(private val file: File) {
         val tmp = File(file.parentFile, file.name + ".tmp")
         val content = entries.joinToString("") {
             encode(it.operationId) + "\t" + encode(it.path) + "\t" + encode(it.body) + "\t" +
-                encode(it.attempts.toString()) + "\t" + encode(it.lastError) + "\n"
+                encode(it.attempts.toString()) + "\t" + encode(if(it.currencyCapabilityRetry>0)JSONObject().put("currency_capability_retry",it.currencyCapabilityRetry).put("reason",it.lastError).toString() else it.lastError) + "\n"
         }
         FileOutputStream(tmp).use { output ->
             output.write(content.toByteArray(Charsets.UTF_8))
@@ -339,6 +371,7 @@ class OfflineNotificationQueue(private val file: File) {
     }
 
     companion object {
+        private val fileLocks = ConcurrentHashMap<String, Any>()
         const val MAX_QUEUE_ENTRIES = 500
         /** Rejections before a payload is skipped instead of retried forever. */
         const val MAX_UPLOAD_ATTEMPTS = 5
@@ -346,7 +379,8 @@ class OfflineNotificationQueue(private val file: File) {
         const val DELETE_PATH = "/api/notification/events/delete"
         /** Unified pending-hint endpoint (Task 24.1 P0-3). */
         const val HINTS_PATH = "/api/notification/hints"
-        val ALLOWED_PATHS = setOf(INGEST_PATH, DELETE_PATH, HINTS_PATH)
+        const val CURRENCY_CONFIRM_PATH = "/api/notification/review/confirm"
+        val ALLOWED_PATHS = setOf(INGEST_PATH, DELETE_PATH, HINTS_PATH, CURRENCY_CONFIRM_PATH)
     }
 }
 

@@ -1211,7 +1211,8 @@ body[data-experience="workspace"] .account-badge {
   overflow: hidden;
 }
 .finance-transaction-main small { line-height: 1.5; overflow-wrap: anywhere; }
-.finance-transaction-side { display: grid; justify-items: end; gap: 4px; }
+.finance-transaction-side { display: grid; justify-items: end; gap: 4px; min-width: 0; }
+.finance-transaction-side > small { max-inline-size: min(40vw, 22rem); overflow-wrap: anywhere; }
 .finance-transaction-side > strong { font-variant-numeric: tabular-nums; font-size: 1.0625rem; }
 .finance-row-actions { margin-top: 0; gap: 4px; }
 .finance-row-actions button { min-width: 44px; min-height: 44px; }

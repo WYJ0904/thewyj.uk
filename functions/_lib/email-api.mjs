@@ -18,9 +18,11 @@ import {
   DEFAULT_REPLY_TO_NAME,
   EMAIL_BUILD,
   emailBindingConfigured,
+  emailNativeBindingConfigured,
   emailSendingEnabled,
   EmailServiceError,
   escapeHtml,
+  hasTask27SecurityTable,
   maskEmailAddress,
   parseAllowedTestRecipients,
   renderHtmlEnvelope,
@@ -168,7 +170,8 @@ function statusResponsePayload(env, account) {
     email_sending_enabled: emailSendingEnabled(env),
     support_sender_authorized: supportSenderAuthorized(env),
     transport: resolveEmailTransport(env),
-    binding_configured: emailBindingConfigured(env),
+    binding_configured: emailNativeBindingConfigured(env),
+    any_transport_configured: emailBindingConfigured(env),
     rest_configured: Boolean(
       String(env?.EMAIL_SEND_API_TOKEN || "").trim() &&
       String(env?.EMAIL_CLOUDFLARE_ACCOUNT_ID || "").trim()
@@ -209,16 +212,36 @@ async function resolvePreviewRecipients(db, account, targetMode, rawUserIds) {
   const effective = [];
   const seenEmails = new Set();
 
+  const hasTask27Sec = await hasTask27SecurityTable(db);
+
   if (mode === "all_verified") {
     const rows = (
       await db
         .prepare(
-          `SELECT u.id, u.username, u.role, u.banned, u.deleted, b.email, b.verified
-           FROM task12_users AS u
-           INNER JOIN email_center_bindings AS b ON b.user_id = u.id
-           WHERE u.deleted = 0 AND u.banned = 0 AND b.verified = 1
-           ORDER BY u.created_at ASC
-           LIMIT ?`
+          hasTask27Sec
+            ? `SELECT u.id, u.username, u.role, u.banned, u.deleted,
+                      CASE
+                        WHEN COALESCE(b.verified, 0) = 1 THEN b.email
+                        WHEN COALESCE(s.verified_email, '') <> '' AND COALESCE(s.email_verified_at, '') <> '' THEN LOWER(TRIM(s.verified_email))
+                        ELSE b.email
+                      END AS email,
+                      CASE
+                        WHEN COALESCE(b.verified, 0) = 1 OR (COALESCE(s.verified_email, '') <> '' AND COALESCE(s.email_verified_at, '') <> '') THEN 1
+                        ELSE 0
+                      END AS verified
+               FROM task12_users AS u
+               LEFT JOIN email_center_bindings AS b ON b.user_id = u.id
+               LEFT JOIN task27_security AS s ON s.user_id = u.id
+               WHERE u.deleted = 0 AND u.banned = 0
+                 AND (COALESCE(b.verified, 0) = 1 OR (COALESCE(s.verified_email, '') <> '' AND COALESCE(s.email_verified_at, '') <> ''))
+               ORDER BY u.created_at ASC
+               LIMIT ?`
+            : `SELECT u.id, u.username, u.role, u.banned, u.deleted, b.email, b.verified
+               FROM task12_users AS u
+               INNER JOIN email_center_bindings AS b ON b.user_id = u.id
+               WHERE u.deleted = 0 AND u.banned = 0 AND b.verified = 1
+               ORDER BY u.created_at ASC
+               LIMIT ?`
         )
         .bind(MAX_ALL_VERIFIED_RECIPIENTS + 1)
         .all()
@@ -293,10 +316,25 @@ async function resolvePreviewRecipients(db, account, targetMode, rawUserIds) {
   const userRows = (
     await db
       .prepare(
-        `SELECT u.id, u.username, u.role, u.banned, u.deleted, b.email, b.verified
-         FROM task12_users AS u
-         LEFT JOIN email_center_bindings AS b ON b.user_id = u.id
-         WHERE u.id IN (${placeholders})`
+        hasTask27Sec
+          ? `SELECT u.id, u.username, u.role, u.banned, u.deleted,
+                    CASE
+                      WHEN COALESCE(b.verified, 0) = 1 THEN b.email
+                      WHEN COALESCE(s.verified_email, '') <> '' AND COALESCE(s.email_verified_at, '') <> '' THEN LOWER(TRIM(s.verified_email))
+                      ELSE b.email
+                    END AS email,
+                    CASE
+                      WHEN COALESCE(b.verified, 0) = 1 OR (COALESCE(s.verified_email, '') <> '' AND COALESCE(s.email_verified_at, '') <> '') THEN 1
+                      ELSE 0
+                    END AS verified
+             FROM task12_users AS u
+             LEFT JOIN email_center_bindings AS b ON b.user_id = u.id
+             LEFT JOIN task27_security AS s ON s.user_id = u.id
+             WHERE u.id IN (${placeholders})`
+          : `SELECT u.id, u.username, u.role, u.banned, u.deleted, b.email, b.verified
+             FROM task12_users AS u
+             LEFT JOIN email_center_bindings AS b ON b.user_id = u.id
+             WHERE u.id IN (${placeholders})`
       )
       .bind(...uniqueIds)
       .all()
@@ -535,8 +573,20 @@ export async function handleEmailRequest(context) {
         )
         .first();
 
+      const hasTask27Sec = await hasTask27SecurityTable(db);
       const verifiedUsers = account.is_super_admin
-        ? await db.prepare("SELECT COUNT(*) AS cnt FROM email_center_bindings WHERE verified = 1").first()
+        ? await db
+            .prepare(
+              hasTask27Sec
+                ? `SELECT COUNT(DISTINCT u.id) AS cnt
+                   FROM task12_users AS u
+                   LEFT JOIN email_center_bindings AS b ON b.user_id = u.id
+                   LEFT JOIN task27_security AS s ON s.user_id = u.id
+                   WHERE u.deleted = 0
+                     AND (COALESCE(b.verified, 0) = 1 OR (COALESCE(s.verified_email, '') <> '' AND COALESCE(s.email_verified_at, '') <> ''))`
+                : "SELECT COUNT(*) AS cnt FROM email_center_bindings WHERE verified = 1"
+            )
+            .first()
         : null;
 
       return jsonResponse(
@@ -565,11 +615,23 @@ export async function handleEmailRequest(context) {
       const verifiedFilter = String(url.searchParams.get("verified") || "all").trim().toLowerCase();
       const limit = Math.max(1, Math.min(100, Number(url.searchParams.get("limit") || 40) || 40));
 
+      const hasRoleTable = await tableExists(db, "task18_admin_roles");
+      const hasTask27Sec = await hasTask27SecurityTable(db);
+      const effectiveEmailExpr = hasTask27Sec
+        ? "CASE WHEN COALESCE(b.verified, 0) = 1 THEN b.email WHEN COALESCE(s.verified_email, '') <> '' AND COALESCE(s.email_verified_at, '') <> '' THEN LOWER(TRIM(s.verified_email)) ELSE b.email END"
+        : "b.email";
+      const effectiveVerifiedExpr = hasTask27Sec
+        ? "(CASE WHEN COALESCE(b.verified, 0) = 1 OR (COALESCE(s.verified_email, '') <> '' AND COALESCE(s.email_verified_at, '') <> '') THEN 1 ELSE 0 END)"
+        : "COALESCE(b.verified, 0)";
+      const effectiveVerifiedAtExpr = hasTask27Sec
+        ? "CASE WHEN COALESCE(b.verified, 0) = 1 THEN b.verified_at WHEN COALESCE(s.verified_email, '') <> '' AND COALESCE(s.email_verified_at, '') <> '' THEN s.email_verified_at ELSE NULL END"
+        : "b.verified_at";
+
       const conditions = ["u.deleted = 0"];
       const params = [];
       if (q) {
         if (account.is_super_admin) {
-          conditions.push("(LOWER(u.username) LIKE ? OR LOWER(COALESCE(b.email, '')) LIKE ?)");
+          conditions.push(`(LOWER(u.username) LIKE ? OR LOWER(COALESCE(${effectiveEmailExpr}, '')) LIKE ?)`);
           params.push(`%${q}%`, `%${q}%`);
         } else {
           conditions.push("LOWER(u.username) LIKE ?");
@@ -577,31 +639,31 @@ export async function handleEmailRequest(context) {
         }
       }
       if (verifiedFilter === "verified") {
-        conditions.push("b.verified = 1");
+        conditions.push(`${effectiveVerifiedExpr} = 1`);
       } else if (verifiedFilter === "unverified") {
-        conditions.push("b.email IS NOT NULL AND COALESCE(b.verified, 0) = 0");
+        conditions.push(`${effectiveEmailExpr} IS NOT NULL AND ${effectiveVerifiedExpr} = 0`);
       } else if (verifiedFilter === "unbound") {
-        conditions.push("b.email IS NULL");
+        conditions.push(`${effectiveEmailExpr} IS NULL`);
       }
 
-      const hasRoleTable = await tableExists(db, "task18_admin_roles");
+      const roleSelect = hasRoleTable ? "COALESCE(r.role, u.role) AS role" : "u.role AS role";
+      const roleJoin = hasRoleTable ? "LEFT JOIN task18_admin_roles AS r ON r.user_id = u.id" : "";
+      const secJoin = hasTask27Sec ? "LEFT JOIN task27_security AS s ON s.user_id = u.id" : "";
+
       const rows = (
         await db
           .prepare(
-            hasRoleTable
-              ? `SELECT u.id, u.username, COALESCE(r.role, u.role) AS role, u.banned, b.email, b.verified, b.verified_at
-                 FROM task12_users AS u
-                 LEFT JOIN task18_admin_roles AS r ON r.user_id = u.id
-                 LEFT JOIN email_center_bindings AS b ON b.user_id = u.id
-                 WHERE ${conditions.join(" AND ")}
-                 ORDER BY u.created_at DESC
-                 LIMIT ?`
-              : `SELECT u.id, u.username, u.role, u.banned, b.email, b.verified, b.verified_at
-                 FROM task12_users AS u
-                 LEFT JOIN email_center_bindings AS b ON b.user_id = u.id
-                 WHERE ${conditions.join(" AND ")}
-                 ORDER BY u.created_at DESC
-                 LIMIT ?`
+            `SELECT u.id, u.username, ${roleSelect}, u.banned,
+                    ${effectiveEmailExpr} AS email,
+                    ${effectiveVerifiedExpr} AS verified,
+                    ${effectiveVerifiedAtExpr} AS verified_at
+             FROM task12_users AS u
+             ${roleJoin}
+             LEFT JOIN email_center_bindings AS b ON b.user_id = u.id
+             ${secJoin}
+             WHERE ${conditions.join(" AND ")}
+             ORDER BY u.created_at DESC
+             LIMIT ?`
           )
           .bind(...params, limit)
           .all()
@@ -1382,8 +1444,12 @@ export async function handleEmailRequest(context) {
     return apiError("email_route_not_found", "邮件接口未实现", 404, reqId);
   } catch (error) {
     if (error instanceof EmailServiceError) {
+      const safeDetails = error.details && typeof error.details === "object" ? error.details : {};
       return apiError(error.code, error.message, error.status || 400, reqId, {
         retryable: Boolean(error.retryable),
+        ...(safeDetails.delivery_status ? { delivery_status: safeDetails.delivery_status } : {}),
+        ...(safeDetails.provider_status !== undefined ? { provider_status: safeDetails.provider_status } : {}),
+        ...(safeDetails.provider_code ? { provider_code: safeDetails.provider_code } : {}),
         details: error.details,
       });
     }

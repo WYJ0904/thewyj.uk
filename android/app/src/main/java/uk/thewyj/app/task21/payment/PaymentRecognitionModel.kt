@@ -79,6 +79,16 @@ data class ParsedPaymentMessage(
     val confidence: Int = 0,
     val reasons: List<String> = emptyList(),
     val missingFields: Set<String> = emptySet(),
+    val financialPhase: String = "",
+    val lifecycleReference: String = "",
+    val referenceNamespace: String = "",
+    val currencyEvidence: String = "",
+    val currencyReviewRequired: Boolean = false,
+    val currencyDecisionSource: String = "",
+    val lifecycleOperation: String = "",
+    val lifecycleRevision: Long = 0,
+    val reviewReason: String = "",
+    val currencyRolesJson: String = "",
 ) {
     val isTransactionLike: Boolean
         get() = status == PaymentRecognitionStatus.CONFIRMED_PAYMENT ||
@@ -112,12 +122,17 @@ object PaymentParserRegistry {
         bigText: String = "",
         subText: String = "",
         capturedAtMs: Long,
+        defaultCurrency: String? = null,
+        currencyPolicyVersion: Int = 1,
     ): ParsedPaymentMessage {
         val parser = parserFor(sourcePackage, sourceType)
             ?: return ParsedPaymentMessage(
                 status = PaymentRecognitionStatus.NOT_PAYMENT,
                 reasons = listOf("no_parser_for_source"),
             )
-        return parser.parse(title, text, bigText, subText, capturedAtMs)
+        val parsed = PaymentEventSafety.apply(parser.parse(title, text, bigText, subText, capturedAtMs),
+            sourcePackage, sourceType, title, text, bigText, subText)
+        return uk.thewyj.app.finance.CurrencyDecision.apply(parsed,
+            PaymentText.normalize(title, text, bigText, subText), defaultCurrency, currencyPolicyVersion >= 2)
     }
 }

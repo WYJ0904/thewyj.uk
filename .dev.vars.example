@@ -4,3 +4,10 @@
 WYJ_TASK12_PASSWORD_PEPPER=replace-with-a-random-local-value-at-least-32-characters
 WYJ_TASK14_TEMPORARY_SECRET=replace-with-another-random-local-value-at-least-32-characters
 WYJ_TASK20_DEVICE_SESSION_SECRET=replace-with-an-independent-random-local-value-at-least-32-characters
+
+# Optional Azure Speech F0 test resource. Never commit a real key.
+# Local synthesis also needs TTS_MODE=azure (non-secret config override).
+# Production/Preview: AZURE_SPEECH_KEY must be an encrypted Cloudflare Secret;
+# set AZURE_SPEECH_REGION to the region of that same resource.
+AZURE_SPEECH_KEY=replace-with-your-isolated-azure-speech-key
+AZURE_SPEECH_REGION=replace-with-resource-region

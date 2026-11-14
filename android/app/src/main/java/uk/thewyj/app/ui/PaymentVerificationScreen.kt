@@ -199,7 +199,7 @@ fun PaymentVerificationScreen(
                         }
                         if (item.evidenceConflict) {
                             Text("本机与云端金额或方向不一致，请核对后编辑确认。" +
-                                (item.localAmountMinor?.let { " 本机金额 ¥${PaymentVerificationState.formatMinor(it)}" } ?: ""),
+                                (item.localAmountMinor?.let { " 本机金额 ${uk.thewyj.app.finance.CurrencyMoney.format(it, item.localCurrency)}" } ?: ""),
                                 color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                         } else if (item.localEvidencePending) {
                             Text("本机已识别，等待同步；云端尚未确认。", style = MaterialTheme.typography.bodySmall)
@@ -222,6 +222,9 @@ fun PaymentVerificationScreen(
                         syncLine(item)?.let { line ->
                             Text(line, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
+                        if (!item.hasEdits && !item.remoteOnly) {
+                            Text("页面引用、币种或状态无法逐项核对时，请重新核实或手工确认；不会根据相似字符关联交易。", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                         if (item.remoteOnly) {
                             Text(
                                 "这笔云端待核实交易在本机没有对应识别记录，请在财务页处理。",
@@ -233,12 +236,20 @@ fun PaymentVerificationScreen(
                             OutlinedTextField(
                                 value = state.amountText,
                                 onValueChange = { state.amountText = it.take(12) },
-                                label = { Text("金额（元）") },
+                                label = { Text("金额（${state.currency.ifBlank { "币种待核实" }}）") },
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                 shape = ThewyjRadius.Medium,
                                 modifier = Modifier.fillMaxWidth(),
                             )
+                            Text("原币币种：${state.currency.ifBlank { "待核实" }}")
+                            if (item.currency !in uk.thewyj.app.finance.CurrencyMoney.digits) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(ThewyjSpacing.Xs)) {
+                                    uk.thewyj.app.finance.CurrencyMoney.digits.keys.forEach { code ->
+                                        TextButton(onClick = { state.currency = code; state.amountText = "" }) { Text(code) }
+                                    }
+                                }
+                            }
                             Row(horizontalArrangement = Arrangement.spacedBy(ThewyjSpacing.Sm)) {
                                 DirectionChoice("支出", state.direction == "EXPENSE") { state.direction = "EXPENSE" }
                                 DirectionChoice("收入", state.direction == "INCOME") { state.direction = "INCOME" }
@@ -342,15 +353,17 @@ private fun stateLabel(item: PaymentVerificationCenter.Item): String = when {
 }
 
 private fun amountLine(item: PaymentVerificationCenter.Item): String {
+    if (item.moneyUnitReview) return item.observedAmountDecimal?.let { "候选金额 $it · 币种与单位待确认" } ?: "原币金额单位待核实，请重新填写"
     val amount = item.displayAmountMinor
-    if (amount == null || amount <= 0) return "暂未识别到金额"
+    if (amount == null || amount <= 0) return item.observedAmountDecimal?.let { "候选金额 $it · 币种与单位待确认" } ?: "暂未识别到金额"
     val direction = when (item.displayDirection.name) {
         "INCOME" -> "收入"
         "REFUND" -> "退款"
         "EXPENSE" -> "支出"
         else -> ""
     }
-    return "$direction ¥${PaymentVerificationState.formatMinor(amount)}".trim()
+    return "$direction ${uk.thewyj.app.finance.CurrencyMoney.format(amount, item.displayCurrency)}".trim() +
+        if (item.currencyReviewRequired) " · 默认币种待核实" else ""
 }
 
 private fun sourceLine(item: PaymentVerificationCenter.Item): String {

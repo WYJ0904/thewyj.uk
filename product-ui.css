@@ -5002,3 +5002,6 @@ progress {
   }
   .admin-email-subtabs button { flex: 1 1 120px; }
 }
+
+/* Existing wrong-review and recovery controls share the P07 touch targets. */
+#wrongView button { min-height: 44px; height: auto; white-space: normal; }

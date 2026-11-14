@@ -1,0 +1,38 @@
+{
+  "origin": "https://6d3ca922.thewyj-uk.pages.dev",
+  "baseline": "29bdbb9e3ae4cd88019b6c0046aabc6df574a942",
+  "scope": "owned empty Chrome context; static image control document; API network blocked",
+  "api_attempts": [],
+  "api_responses": [],
+  "module_graph_missing": [
+    "/js/finance/money.js?release=20261109-aeris-p07-production-r2"
+  ],
+  "checks": [
+    {
+      "name": "Hosted SW atomically installs all original 83 required assets",
+      "status": "PASS"
+    },
+    {
+      "name": "actual Hosted cached shell survives offline",
+      "status": "PASS"
+    },
+    {
+      "name": "finance/new module graph fully available offline after fresh install",
+      "status": "FAIL"
+    },
+    {
+      "name": "owned synthetic localStorage and user cache retained",
+      "status": "PASS"
+    }
+  ],
+  "worker_network_block_verified": true,
+  "offline_modules": [
+    {
+      "asset": "/js/finance/money.js?release=20261109-aeris-p07-production-r2",
+      "status": "NETWORK_ERROR",
+      "error": "Failed to fetch"
+    }
+  ],
+  "remote_api_requests": 0,
+  "remote_db_writes": 0
+}

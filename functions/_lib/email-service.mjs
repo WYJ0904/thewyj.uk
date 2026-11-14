@@ -19,8 +19,10 @@ export const ALLOWED_REPLY_TO_ADDRESSES = Object.freeze([
 
 export const ALLOWED_TRANSACTIONAL_KINDS = Object.freeze([
   "security_notice",
+  "account_security_notice",
   "order_status_notice",
   "test_email",
+  "owner_ops_test",
   "verification_code",
   "admin_service_notice",
   "email_bind_verification",
@@ -69,12 +71,32 @@ const EMAIL_PATTERN = /^[a-z0-9.!#$%&'*+/=?^_`{|}~-]{1,64}@[a-z0-9](?:[a-z0-9-]{
 const CONTROL_CHAR_REGEX = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/;
 
 export class EmailServiceError extends Error {
-  constructor(code, message, status = 400, details = {}) {
+  constructor(arg1, arg2, arg3, arg4, arg5) {
+    // Support both Codex/S0 positional form (message, status, code, retryable, details)
+    // and Email Center object form (code, message, status = 400, details = {})
+    if (typeof arg2 === "number") {
+      const message = String(arg1 || "邮件服务异常");
+      const status = Number(arg2) || 400;
+      const code = String(arg3 || "email_invalid_request");
+      const retryable = Boolean(arg4);
+      const details = arg5 && typeof arg5 === "object" ? { ...arg5 } : {};
+      super(message);
+      this.name = "EmailServiceError";
+      this.code = code;
+      this.status = status;
+      this.retryable = retryable;
+      this.details = details;
+      return;
+    }
+    const code = String(arg1 || "email_service_error");
+    const message = String(arg2 || "邮件服务异常");
+    const status = typeof arg3 === "number" ? arg3 : 400;
+    const details = arg4 && typeof arg4 === "object" ? { ...arg4 } : {};
     super(message);
     this.name = "EmailServiceError";
     this.code = code;
     this.status = status;
-    this.retryable = Boolean(details.retryable);
+    this.retryable = Boolean(details.retryable ?? (status >= 500 || status === 429));
     this.details = details;
   }
 }
@@ -87,13 +109,13 @@ export function supportSenderAuthorized(env) {
   return String(env?.EMAIL_SUPPORT_SENDER_AUTHORIZED || "").trim().toLowerCase() === "true";
 }
 
-export function emailBindingConfigured(env) {
+export function emailNativeBindingConfigured(env) {
   return Boolean(env?.EMAIL && typeof env.EMAIL.send === "function");
 }
 
 export function resolveEmailTransport(env) {
   const preference = String(env?.EMAIL_TRANSPORT || "").trim().toLowerCase();
-  const hasBinding = emailBindingConfigured(env);
+  const hasBinding = emailNativeBindingConfigured(env);
   const hasRest = Boolean(
     String(env?.EMAIL_SEND_API_TOKEN || "").trim() &&
     String(env?.EMAIL_CLOUDFLARE_ACCOUNT_ID || "").trim()
@@ -111,6 +133,10 @@ export function resolveEmailTransport(env) {
   if (hasBinding) return "workers_binding";
   if (hasRest) return "cloudflare_rest";
   return "unconfigured";
+}
+
+export function emailBindingConfigured(env) {
+  return resolveEmailTransport(env) !== "unconfigured";
 }
 
 export function cleanEmailAddress(value, fieldName = "email") {
@@ -155,7 +181,10 @@ export function parseAllowedTestRecipients(env) {
   return valid;
 }
 
-export function cleanSingleLineText(value, options = {}) {
+export function cleanSingleLineText(value, optionsOrField = {}, maybeMaxLength = undefined) {
+  const options = typeof optionsOrField === "string"
+    ? { field: optionsOrField, maxLength: Number(maybeMaxLength) || 160, required: true }
+    : (optionsOrField || {});
   const { maxLength = 200, field = "text", required = true, allowEmpty = false } = options;
   if (value === undefined || value === null) {
     if (required && !allowEmpty) {
@@ -179,7 +208,10 @@ export function cleanSingleLineText(value, options = {}) {
   return trimmed;
 }
 
-export function cleanBodyText(value, options = {}) {
+export function cleanBodyText(value, optionsOrField = {}, maybeMaxLength = undefined) {
+  const options = typeof optionsOrField === "string"
+    ? { field: optionsOrField, maxLength: Number(maybeMaxLength) || 12000, required: true }
+    : (optionsOrField || {});
   const { maxLength = 20000, field = "body", required = true } = options;
   if (value === undefined || value === null) {
     if (required) {
@@ -288,13 +320,15 @@ export function renderHtmlEnvelope({ title, eyebrow = "Aeris Mail", subject, par
 }
 
 function purposeText(purpose = "security") {
-  const key = String(purpose || "security").trim().toLowerCase();
+  const raw = String(purpose || "").trim();
+  const key = raw.toLowerCase();
+  if (!raw || key === "security") return "身份安全校验";
   if (key === "bind" || key === "email_bind" || key === "register") return "邮箱绑定与注册确认";
   if (key === "change_bind" || key === "rebind") return "更换绑定邮箱";
   if (key === "login_mfa" || key === "login") return "登录二次认证（MFA）";
   if (key === "mfa_enable" || key === "mfa") return "双因素认证配置";
-  if (key === "recovery" || key === "password_reset") return "账户安全恢复";
-  return "身份安全校验";
+  if (key === "recovery" || key === "password_reset" || key === "reset") return "账户安全恢复";
+  return cleanSingleLineText(raw, { maxLength: 60, field: "purpose" });
 }
 
 export function renderTransactionalEmail(options = {}) {
@@ -378,7 +412,10 @@ export function renderTransactionalEmail(options = {}) {
       detailText || "您的账户双因素认证（MFA / TOTP / 恢复码）配置刚刚发生变更。",
       `如非本人操作，请立即登录账户安全中心核查并联系 ${SUPPORT_FROM_EMAIL}。`,
     ];
-  } else if (kind === "session_security_notice" || kind === "security_notice") {
+  } else if (kind === "session_security_notice" || kind === "security_notice" || kind === "account_security_notice") {
+    const occurredAtText = options.occurredAt
+      ? `发生时间：${cleanSingleLineText(String(options.occurredAt), { maxLength: 64, field: "occurredAt" })}`
+      : "";
     subject = options.subject
       ? cleanSingleLineText(String(options.subject), { maxLength: 180, field: "subject" })
       : "Aeris 安全通知：登录与设备会话状态提醒";
@@ -386,9 +423,10 @@ export function renderTransactionalEmail(options = {}) {
     title = "账户安全与会话状态通知";
     textLines = [
       `您好 ${username}，`,
-      detailText || cleanBodyText(String(options.body || "系统检测到与您账户相关的安全事件或全设备会话注销操作，请确认是否为您本人操作。"), { maxLength: 8000, field: "body" }),
+      detailText || cleanBodyText(String(options.body || options.text || "系统检测到与您账户相关的安全事件或全设备会话注销操作，请确认是否为您本人操作。"), { maxLength: 8000, field: "body" }),
+      occurredAtText,
       `如确认非本人操作，请立即前往账户安全中心修改密码并检查绑定方式，或联系 ${SUPPORT_FROM_EMAIL}。`,
-    ];
+    ].filter(Boolean);
   } else if (kind === "order_status_notice" || kind === "membership_change_notice") {
     subject = options.subject
       ? cleanSingleLineText(String(options.subject), { maxLength: 180, field: "subject" })
@@ -434,15 +472,16 @@ export function renderTransactionalEmail(options = {}) {
       "本邮件为系统自动确认回执，无需重复来信。",
     ].filter(Boolean);
   } else {
-    // admin_service_notice, system_maintenance_notice, test_email
+    // admin_service_notice, system_maintenance_notice, test_email, owner_ops_test
+    const isTestKind = kind === "test_email" || kind === "owner_ops_test";
     subject = cleanSingleLineText(
-      String(options.subject || (kind === "test_email" ? "Aeris Cloudflare Email 连通性测试" : "Aeris 服务与系统通知")),
+      String(options.subject || (isTestKind ? "Aeris Cloudflare Email 连通性测试" : "Aeris 服务与系统通知")),
       { maxLength: 180, field: "subject" }
     );
-    eyebrow = kind === "test_email" ? "Aeris Diagnostics" : "Aeris Service Notice";
+    eyebrow = isTestKind ? "Aeris Diagnostics" : "Aeris Service Notice";
     title = subject;
     const bodyText = cleanBodyText(
-      String(options.body || detailText || "这是一封由 Aeris 邮件中心发送的系统服务通知邮件。"),
+      String(options.body || options.text || detailText || "这是一封由 Aeris 邮件中心发送的系统服务通知邮件。"),
       { maxLength: 20000, field: "body" }
     );
     textLines = bodyText.split("\n");
@@ -545,20 +584,28 @@ export function buildEmailMessage(options = {}, env = {}) {
   };
 }
 
-export function buildCloudflareRestPayload(message) {
+export function buildCloudflareRestPayload(message = {}) {
+  const fromAddress = message.from || message.fromEmail || DEFAULT_FROM_EMAIL;
+  const fromName = message.fromName || (fromAddress === SUPPORT_FROM_EMAIL ? SUPPORT_FROM_NAME : DEFAULT_FROM_NAME);
+  const toAddress = message.to || message.toEmail || message.recipient;
+  const replyToAddress = message.replyTo || message.replyToEmail || DEFAULT_REPLY_TO_EMAIL;
+  const replyToName = message.replyToName || (replyToAddress === DEFAULT_FROM_EMAIL ? DEFAULT_FROM_NAME : DEFAULT_REPLY_TO_NAME);
+  const subject = message.subject ?? message.payload?.subject ?? "";
+  const text = message.text ?? message.payload?.text ?? "";
+  const html = message.html ?? message.payload?.html ?? "";
   const payload = {
     from: {
-      address: message.from,
-      name: message.fromName || DEFAULT_FROM_NAME,
+      address: fromAddress,
+      name: fromName,
     },
-    to: [message.to],
+    to: [toAddress],
     reply_to: {
-      address: message.replyTo || DEFAULT_REPLY_TO_EMAIL,
-      name: message.replyToName || DEFAULT_REPLY_TO_NAME,
+      address: replyToAddress,
+      name: replyToName,
     },
-    subject: message.subject,
-    text: message.text,
-    html: message.html,
+    subject,
+    text,
+    html,
   };
   if (message.headers && Object.keys(message.headers).length > 0) {
     payload.headers = message.headers;
@@ -706,9 +753,10 @@ async function sendViaCloudflareRest(env, message, deliveryId) {
   const endpoint = `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(accountId)}/email/sending/send`;
   const payload = buildCloudflareRestPayload(message);
 
+  const fetchImpl = typeof env?.__EMAIL_FETCH === "function" ? env.__EMAIL_FETCH : fetch;
   let response;
   try {
-    response = await fetch(endpoint, {
+    response = await fetchImpl(endpoint, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -769,25 +817,72 @@ async function tableExists(db, tableName) {
   }
 }
 
+export async function hasTask27SecurityTable(db) {
+  return tableExists(db, "task27_security");
+}
+
 export async function resolveVerifiedUserEmail(db, userId) {
   if (!db || !userId) return null;
   const uid = String(userId).trim();
   if (!uid) return null;
 
+  let unverifiedBinding = null;
   if (await tableExists(db, "email_center_bindings")) {
     const binding = await db
       .prepare("SELECT user_id, email, verified, verified_at, updated_at FROM email_center_bindings WHERE user_id = ? LIMIT 1")
       .bind(uid)
       .first();
     if (binding?.email) {
-      return {
+      const normalized = String(binding.email).trim().toLowerCase();
+      if (Number(binding.verified) === 1) {
+        return {
+          user_id: uid,
+          email: normalized,
+          email_normalized: normalized,
+          verified: true,
+          verified_at: binding.verified_at || null,
+          source: "email_center_bindings",
+          updated_at: binding.updated_at || binding.verified_at || null,
+        };
+      }
+      unverifiedBinding = {
         user_id: uid,
-        email: String(binding.email).trim().toLowerCase(),
-        verified: Number(binding.verified) === 1,
+        email: normalized,
+        email_normalized: normalized,
+        verified: false,
         verified_at: binding.verified_at || null,
         source: "email_center_bindings",
+        updated_at: binding.updated_at || null,
       };
     }
+  }
+
+  if (await hasTask27SecurityTable(db)) {
+    try {
+      const sec = await db
+        .prepare("SELECT user_id, verified_email, email_verified_at FROM task27_security WHERE user_id = ? LIMIT 1")
+        .bind(uid)
+        .first();
+      const verifiedEmail = String(sec?.verified_email || "").trim().toLowerCase();
+      const verifiedAt = String(sec?.email_verified_at || "").trim();
+      if (verifiedEmail && verifiedAt) {
+        return {
+          user_id: uid,
+          email: verifiedEmail,
+          email_normalized: verifiedEmail,
+          verified: true,
+          verified_at: verifiedAt,
+          source: "task27_security",
+          updated_at: verifiedAt,
+        };
+      }
+    } catch {
+      // ignore incompatible schema cleanly
+    }
+  }
+
+  if (unverifiedBinding) {
+    return unverifiedBinding;
   }
 
   if (await tableExists(db, "task27_user_security")) {
@@ -797,12 +892,15 @@ export async function resolveVerifiedUserEmail(db, userId) {
         .bind(uid)
         .first();
       if (sec?.recovery_email) {
+        const normalized = String(sec.recovery_email).trim().toLowerCase();
         return {
           user_id: uid,
-          email: String(sec.recovery_email).trim().toLowerCase(),
+          email: normalized,
+          email_normalized: normalized,
           verified: Number(sec.email_verified) === 1,
           verified_at: sec.email_verified_at || null,
           source: "task27_user_security",
+          updated_at: sec.email_verified_at || null,
         };
       }
     } catch {
@@ -813,7 +911,9 @@ export async function resolveVerifiedUserEmail(db, userId) {
   return null;
 }
 
-export async function upsertUserEmailBinding(db, { userId, email, verified = false, actorUserId = null }) {
+export const getUserEmailBinding = resolveVerifiedUserEmail;
+
+export async function upsertUserEmailBinding(db, { userId, email, verified = false, verifiedAt: customVerifiedAt = null, actorUserId = null }) {
   if (!db) {
     throw new EmailServiceError("email_db_unavailable", "D1 数据库不可用，无法更新邮箱绑定", 503);
   }
@@ -821,7 +921,7 @@ export async function upsertUserEmailBinding(db, { userId, email, verified = fal
   const normalized = cleanEmailAddress(email, "email");
   const isVerified = verified ? 1 : 0;
   const ts = nowIso();
-  const verifiedAt = isVerified ? ts : null;
+  const verifiedAt = isVerified ? (customVerifiedAt || ts) : null;
 
   await db
     .prepare(
@@ -836,6 +936,23 @@ export async function upsertUserEmailBinding(db, { userId, email, verified = fal
     )
     .bind(uid, normalized, isVerified, verifiedAt, actorUserId || uid, ts)
     .run();
+
+  if (isVerified === 1 && (await hasTask27SecurityTable(db))) {
+    try {
+      await db
+        .prepare(
+          `INSERT INTO task27_security (user_id, verified_email, email_verified_at, password_age_start_at)
+           VALUES (?, ?, ?, ?)
+           ON CONFLICT(user_id) DO UPDATE SET
+             verified_email = excluded.verified_email,
+             email_verified_at = excluded.email_verified_at`
+        )
+        .bind(uid, normalized, verifiedAt || ts, ts)
+        .run();
+    } catch {
+      // Preserve binding update even if task27_security schema differs in isolated tests
+    }
+  }
 
   return {
     user_id: uid,
@@ -1353,11 +1470,16 @@ export async function sendSessionSecurityNotice(env, options = {}) {
 export async function sendAccountSecurityNotice(env, options = {}) {
   return sendTransactionalEmail(env, {
     ...options,
-    kind: options.kind || "security_notice",
+    kind: options.kind || "account_security_notice",
     channel: "transactional",
     triggerSource: options.triggerSource || "account_security",
   });
 }
+
+export const sendVerificationCodeEmail = sendVerificationCode;
+export const sendLoginMfaCodeEmail = sendLoginMfaCode;
+export const sendPasswordResetEmail = sendPasswordResetNotice;
+export const sendMfaStatusChangeNotice = sendMfaChangedNotice;
 
 export async function sendOrderStatusNotice(env, options = {}) {
   return sendTransactionalEmail(env, {
