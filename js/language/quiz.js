@@ -102,6 +102,7 @@ export function sanitizeQuestionFeedback(value) {
     accepted: sanitizeAccepted(value.accepted),
     kind: value.kind === "dictation" ? "dictation" : "meaning",
     ai_review: Boolean(value.ai_review),
+    ...(typeof value.recovery_notice==='string'&&value.recovery_notice?{recovery_notice:limitText(value.recovery_notice)}:{}),
   };
 }
 

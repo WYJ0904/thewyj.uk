@@ -1,10 +1,34 @@
-import { randomId as capabilityRandomId } from "../core/capabilities.js?release=20261109-aeris-p07-production-r2";
-import { createFinanceDisclosure } from "./disclosure.js?release=20261109-aeris-p07-production-r2";
-import { mergeLocalNotificationLedger } from "./notification-ledger.js?release=20261109-aeris-p07-production-r2";
-import { reconcileKeyedRows } from "../core/keyed-list.js?release=20261109-aeris-p07-production-r2";
-import { formatFinanceMoney } from "./format.js?release=20261109-aeris-p07-production-r2";
-import { createParkedRows } from "../core/parked-rows.js?release=20261109-aeris-p07-production-r2";
-export { formatFinanceMoney } from "./format.js?release=20261109-aeris-p07-production-r2";
+import { randomId as capabilityRandomId } from "../core/capabilities.js?release=20261115-aeris-s0-p0-release";
+import { createFinanceDisclosure } from "./disclosure.js?release=20261115-aeris-s0-p0-release";
+import { mergeLocalNotificationLedger } from "./notification-ledger.js?release=20261115-aeris-s0-p0-release";
+import { reconcileKeyedRows } from "../core/keyed-list.js?release=20261115-aeris-s0-p0-release";
+import { formatFinanceMoney } from "./format.js?release=20261115-aeris-s0-p0-release";
+import { createParkedRows } from "../core/parked-rows.js?release=20261115-aeris-s0-p0-release";
+import { moneyText, referenceValue, SUPPORTED_CURRENCIES, currencyDigits } from "./money.js?release=20261115-aeris-s0-p0-release";
+export { formatFinanceMoney } from "./format.js?release=20261115-aeris-s0-p0-release";
+// Authorization holds/releases are lifecycle controls, never real spending.
+const AUTHORIZATION_CONTROL_STATES = new Set(["pending_authorization", "authorization_release", "authorization_expired"]);
+const AUTHORIZATION_CONTROL_DIRECTIONS = new Set(["authorization_release", "authorization_expired"]);
+export function isAuthorizationControl(item) {
+  return AUTHORIZATION_CONTROL_STATES.has(item?.reconciliation_state) || AUTHORIZATION_CONTROL_DIRECTIONS.has(item?.direction);
+}
+const MAX_SAFE_MINOR = BigInt(Number.MAX_SAFE_INTEGER);
+const UNCONVERTED_LABELS = Object.freeze({
+  missing_historical_rate: "缺少交易日历史汇率",
+  fx_rate_expired: "历史汇率已过期",
+  currency_unit_review_required: "日元金额单位待复核",
+  currency_unsupported: "币种不受支持",
+  amount_overflow: "金额超出精确范围",
+  fx_snapshot_mismatch: "汇率快照与账目不一致",
+  fx_date_mismatch: "汇率日期与交易日期不符",
+  fx_pair_invalid: "汇率币种对无效",
+});
+function supportedCurrency(value) {
+  return SUPPORTED_CURRENCIES.includes(value);
+}
+function safeMinorNumber(value) {
+  return value <= MAX_SAFE_MINOR && value >= -MAX_SAFE_MINOR ? Number(value) : null;
+}
 const SCHEMA_VERSION = 1;
 const MAX_LOCAL_TRANSACTIONS = 5000;
 const MAX_PENDING_OPERATIONS = 500;
@@ -84,7 +108,10 @@ function monthBounds(value) {
   return { startMs: start.getTime(), endMs: end.getTime(), startDate: `${match[1]}-${match[2]}-01`, endDate };
 }
 
-export function validateAmountText(value, label = "金额") {
+export function validateAmountText(value, label = "金额", currency = "CNY") {
+  let digits;
+  try { digits = currencyDigits(currency); }
+  catch (_) { return { valid: false, message: `请选择支持的${label}币种`, amountMinor: 0 }; }
   const text = String(value || "").trim();
   if (!text) {
     return { valid: false, message: `请输入${label}`, amountMinor: 0 };
@@ -93,24 +120,29 @@ export function validateAmountText(value, label = "金额") {
     return { valid: false, message: `请输入纯数字的有效${label}`, amountMinor: 0 };
   }
   const [whole, fraction = ""] = text.split(".");
-  if (fraction.length > 2) {
+  if (digits === 0 && fraction.length) {
+    return { valid: false, message: `${label}日元不支持小数位`, amountMinor: 0 };
+  }
+  if (fraction.length > digits) {
     return { valid: false, message: `${label}最多支持两位小数`, amountMinor: 0 };
   }
-  if (whole.length > 11) {
-    return { valid: false, message: `${label}超出系统最大上限（最高支持 1000 亿元）`, amountMinor: 0 };
+  const limitMessage = `${label}超出系统最大上限（最高支持 1000 亿${currency === "CNY" ? "元" : ` ${currency}`}）`;
+  if (whole.replace(/^0+(?=\d)/, "").length > 11) {
+    return { valid: false, message: limitMessage, amountMinor: 0 };
   }
-  const amount = Number(whole) * 100 + Number(fraction.padEnd(2, "0"));
-  if (!Number.isSafeInteger(amount) || amount <= 0) {
+  const factor = 10n ** BigInt(digits);
+  const exact = BigInt(whole) * factor + BigInt(fraction.padEnd(digits, "0") || "0");
+  if (exact <= 0n) {
     return { valid: false, message: `请输入大于 0 的有效${label}`, amountMinor: 0 };
   }
-  if (amount > 10_000_000_000_000) {
-    return { valid: false, message: `${label}超出系统最大上限（最高支持 1000 亿元）`, amountMinor: 0 };
+  if (exact > 100_000_000_000n * factor) {
+    return { valid: false, message: limitMessage, amountMinor: 0 };
   }
-  return { valid: true, message: "", amountMinor: amount };
+  return { valid: true, message: "", amountMinor: Number(exact), amountExponent: digits, currency };
 }
 
-export function amountTextToMinor(value) {
-  const res = validateAmountText(value);
+export function amountTextToMinor(value, currency = "CNY") {
+  const res = validateAmountText(value, "金额", currency);
   return res.valid ? res.amountMinor : 0;
 }
 
@@ -123,11 +155,25 @@ function normalizeTransaction(value) {
   if (!/^[A-Za-z0-9._:-]{8,80}$/.test(id) || !VALID_DIRECTIONS.has(direction)
       || !Number.isSafeInteger(amountMinor) || amountMinor <= 0
       || !Number.isSafeInteger(occurredAt) || occurredAt <= 0) return null;
+  const currency = /^[A-Z]{3}$/.test(String(value.currency || "CNY")) ? String(value.currency || "CNY") : "CNY";
+  const exponent = value.amount_exponent === 0 || value.amount_exponent === 2 ? value.amount_exponent : null;
+  // Historical JPY rows without a verified zero exponent stay in unit review;
+  // they are never reinterpreted or folded into totals.
+  const unitStatus = value.money_unit_status === "review_required" || value.money_unit_status === "verified"
+    ? value.money_unit_status
+    : currency === "JPY" ? (exponent === 0 ? "verified" : "review_required") : "";
+  const decisionSource = safeText(value.currency_decision_source, 32);
   return {
+    ...(exponent !== null ? { amount_exponent: exponent } : {}),
+    ...(unitStatus ? { money_unit_status: unitStatus } : {}),
+    ...(decisionSource ? {
+      currency_review_required: value.currency_review_required === true || value.currency_review_required === 1,
+      currency_decision_source: decisionSource,
+    } : {}),
     id,
     direction,
     amount_minor: amountMinor,
-    currency: /^[A-Z]{3}$/.test(String(value.currency || "CNY")) ? String(value.currency || "CNY") : "CNY",
+    currency,
     category_id: safeText(value.category_id, 80),
     merchant: safeText(value.merchant, 160),
     counterparty: safeText(value.counterparty, 160),
@@ -259,20 +305,61 @@ function normalizeStore(value, accountId, deviceId) {
   return result;
 }
 
+/**
+ * Exact per-currency totals plus an optional reference projection.
+ * Original minor units of different currencies are never added together: an
+ * item only contributes to the display total when it is in the display
+ * currency or carries a valid historical reference snapshot. Everything else
+ * is reported in `unconverted`. Single-currency results keep the legacy shape.
+ */
 export function calculateFinanceSummary(transactions, options = {}) {
   const bounds = options.month ? monthBounds(options.month) : null;
   const active = (Array.isArray(transactions) ? transactions : []).filter((item) => {
-    if (!item || item.status === "deleted") return false;
+    if (!item || item.status === "deleted" || isAuthorizationControl(item)) return false;
     if (!bounds) return true;
     return item.occurred_at_ms >= bounds.startMs && item.occurred_at_ms < bounds.endMs;
   });
   const summary = { income_minor: 0, expense_minor: 0, refund_minor: 0, balance_minor: 0, count: active.length };
+  const currencies = [...new Set(active.map((item) => item.currency || "CNY"))];
+  const quote = options.display_currency || (currencies.length === 1 ? currencies[0] : "CNY");
+  const unconverted = [];
+  const byCurrency = {};
+  const exact = { income_minor: 0n, expense_minor: 0n, refund_minor: 0n };
   for (const item of active) {
-    if (item.direction === "income") summary.income_minor += Number(item.amount_minor || 0);
-    if (item.direction === "expense") summary.expense_minor += Number(item.amount_minor || 0);
-    if (item.direction === "refund") summary.refund_minor += Number(item.amount_minor || 0);
+    const currency = item.currency || "CNY";
+    const key = `${item.direction}_minor`;
+    const bucket = byCurrency[currency] ||= { income_minor: 0n, expense_minor: 0n, refund_minor: 0n };
+    if (Object.hasOwn(bucket, key) && Number.isSafeInteger(item.amount_minor)) bucket[key] += BigInt(item.amount_minor);
+    const value = referenceValue(item.currency ? item : { ...item, currency }, quote, options);
+    if (value.status !== "same_currency" && value.status !== "reference") {
+      unconverted.push({ id: item.id, currency, reason: value.status });
+      continue;
+    }
+    if (Object.hasOwn(exact, key)) exact[key] += BigInt(value.amount_minor);
   }
-  summary.balance_minor = summary.income_minor + summary.refund_minor - summary.expense_minor;
+  exact.balance_minor = exact.income_minor + exact.refund_minor - exact.expense_minor;
+  let overflow = false;
+  for (const [key, value] of Object.entries(exact)) {
+    summary[key] = safeMinorNumber(value);
+    if (summary[key] === null) overflow = true;
+  }
+  for (const bucket of Object.values(byCurrency)) {
+    bucket.balance_minor = bucket.income_minor + bucket.refund_minor - bucket.expense_minor;
+    for (const [key, value] of Object.entries(bucket)) {
+      // Exact digits are preserved as a decimal string instead of rounding.
+      bucket[key] = safeMinorNumber(value) ?? value.toString();
+    }
+  }
+  if (currencies.length > 1 || unconverted.length || (currencies.length === 1 && quote !== currencies[0])) {
+    Object.assign(summary, {
+      display_currency: quote,
+      by_currency: byCurrency,
+      unconverted,
+      conversion_status: unconverted.length ? unconverted[0].reason : "reference",
+      reference_only: true,
+    });
+  }
+  if (overflow) Object.assign(summary, { has_overflow: true, conversion_status: "amount_overflow" });
   return summary;
 }
 
@@ -310,16 +397,23 @@ export function applyFinanceChange(store, change) {
   return true;
 }
 
-function transactionPayload(transaction) {
+function exponentFor(currency) {
+  try { return { amount_exponent: currencyDigits(currency) }; } catch (_) { return {}; }
+}
+
+function transactionPayload(transaction, extra = {}) {
   return {
     direction: transaction.direction,
     amount_minor: transaction.amount_minor,
     currency: transaction.currency,
+    // Explicit unit declaration; the server rejects JPY without exponent 0.
+    ...exponentFor(transaction.currency),
     category_id: transaction.category_id,
     merchant: transaction.merchant,
     counterparty: transaction.counterparty,
     note: transaction.note,
     occurred_at_ms: transaction.occurred_at_ms,
+    ...(extra.currency_review_acknowledged === true ? { currency_review_acknowledged: true } : {}),
   };
 }
 
@@ -333,6 +427,7 @@ function budgetPayload(budget) {
     period_type: budget.period_type,
     amount_minor: budget.amount_minor,
     currency: budget.currency,
+    ...exponentFor(budget.currency),
     starts_on: budget.starts_on,
     ends_on: budget.ends_on,
   };
@@ -371,6 +466,15 @@ export function createFinanceController({
   let insightsTimer = 0;
   let insightsFrame = 0;
   let insightsSignature = "";
+  // Currency preferences + historical reference snapshots are account-scoped;
+  // every async result is checked against its owner before it may paint.
+  let currencyPrefs = null; // { account_id, account_currency, display_currency, default_currency, revision, observed }
+  let currencyFetch = null;
+  let currencySaving = null;
+  let currencyMessage = { text: "", tone: "" };
+  let referenceCache = new Map();
+  let referenceUnavailable = new Map();
+  let referenceLoad = null;
 
   const element = (id) => document.getElementById(id);
   const ledgerRows = createParkedRows(() => element("financeTransactionList"));
@@ -394,9 +498,10 @@ export function createFinanceController({
       if (mergeLocalNotificationLedger(store.transactions, globalThis.window?.WYJLocalPaymentLedger, nextAccountId)) persist();
       return store;
     }
-    if (currentAccountId !== nextAccountId) cancelSync();
+    if (currentAccountId !== nextAccountId) { cancelSync(); resetCurrencyState(); }
     currentAccountId = nextAccountId;
     store = normalizeStore(safeJson(storage.getItem(storageKey(nextAccountId)), {}), nextAccountId, deviceId());
+    restoreCachedCurrencyPrefs(nextAccountId);
     if (mergeLocalNotificationLedger(store.transactions, globalThis.window?.WYJLocalPaymentLedger, nextAccountId)) persist();
     return store;
   }
@@ -434,6 +539,236 @@ export function createFinanceController({
     if (!store || !currentAccountId) return;
     storage.setItem(storageKey(currentAccountId), JSON.stringify(store));
     onSummaryChanged();
+  }
+
+  // ---- Currency preferences (/api/finance/currencies, revision CAS) ----
+  const currencyKey = (accountId) => `wyjFinanceCurrency:v1:${encodeURIComponent(String(accountId || "guest"))}`;
+
+  function resetCurrencyState() {
+    currencyPrefs = null;
+    currencyFetch = null;
+    currencySaving = null;
+    currencyMessage = { text: "", tone: "" };
+    referenceCache = new Map();
+    referenceUnavailable = new Map();
+    referenceLoad = null;
+  }
+
+  function cleanPrefs(value, accountId, observed) {
+    if (!value || typeof value !== "object") return null;
+    const revision = Number(value.revision);
+    if (!Number.isSafeInteger(revision) || revision < 0) return null;
+    return {
+      account_id: accountId,
+      account_currency: supportedCurrency(value.account_currency) ? value.account_currency : "CNY",
+      display_currency: supportedCurrency(value.display_currency) ? value.display_currency : "CNY",
+      default_currency: supportedCurrency(value.default_currency) ? value.default_currency : null,
+      revision,
+      observed,
+    };
+  }
+
+  function restoreCachedCurrencyPrefs(accountId) {
+    // Cached values only paint the last known display currency; a save always
+    // waits for a fresh server revision.
+    if (currencyPrefs?.account_id === accountId) return;
+    currencyPrefs = cleanPrefs(safeJson(storage.getItem(currencyKey(accountId)), null), accountId, false);
+  }
+
+  function applyCurrencyPrefs(value, accountId) {
+    if (!accountId || accountId !== currentAccountId) return false;
+    const next = cleanPrefs(value, accountId, true);
+    if (!next) return false;
+    if (currencyPrefs?.account_id === accountId && currencyPrefs.observed && next.revision < currencyPrefs.revision) return false;
+    const quoteChanged = currencyPrefs?.display_currency !== next.display_currency;
+    currencyPrefs = next;
+    try {
+      const { account_id: _account, observed: _observed, ...cached } = next;
+      storage.setItem(currencyKey(accountId), JSON.stringify(cached));
+    } catch (_) {}
+    if (quoteChanged) referenceUnavailable = new Map();
+    return true;
+  }
+
+  function displayCurrency() {
+    return currencyPrefs?.account_id === currentAccountId ? currencyPrefs.display_currency : "CNY";
+  }
+
+  function accountCurrency() {
+    return currencyPrefs?.account_id === currentAccountId ? currencyPrefs.account_currency : "CNY";
+  }
+
+  function setCurrencyMessage(text = "", tone = "") {
+    currencyMessage = { text, tone };
+  }
+
+  function renderCurrencyControls() {
+    const prefs = currencyPrefs?.account_id === currentAccountId ? currencyPrefs : null;
+    const editable = Boolean(prefs?.observed) && !currencySaving && hasAccess();
+    for (const [id, field] of [["financeDisplayCurrency", "display_currency"], ["financeAccountCurrency", "account_currency"], ["financeDefaultCurrency", "default_currency"]]) {
+      const select = element(id);
+      if (!select) continue;
+      const value = field === "default_currency" ? (prefs?.default_currency || "") : (prefs?.[field] || "CNY");
+      if (select.value !== value) select.value = value;
+      select.disabled = !editable;
+      select.setAttribute("aria-busy", String(Boolean(currencySaving)));
+    }
+  }
+
+  async function fetchCurrencyPreferences() {
+    ensureStore();
+    if (!store || !hasAccess() || suspended) return false;
+    if (currencyFetch?.accountId === currentAccountId) return currencyFetch.promise;
+    const owner = readOwner(new AbortController());
+    const promise = (async () => {
+      try {
+        const data = await readForOwner("/api/finance/currencies", owner);
+        if (!applyCurrencyPrefs(data?.preferences, owner.accountId)) return false;
+        if (currencyMessage.tone === "warning") setCurrencyMessage();
+        return true;
+      } catch (error) {
+        if (ownerCurrent(owner) && error?.name !== "AbortError") {
+          setCurrencyMessage(`币种设置暂时无法读取：${safeText(error?.message || "请稍后重试", 120)}`, "warning");
+        }
+        return false;
+      } finally {
+        if (currencyFetch?.owner === owner) currencyFetch = null;
+        if (ownerCurrent(owner)) renderAll();
+      }
+    })();
+    currencyFetch = { accountId: currentAccountId, owner, promise };
+    return promise;
+  }
+
+  async function saveCurrencyPreference(field, rawValue) {
+    ensureStore();
+    if (!store || !hasAccess()) return;
+    if (currencySaving) { renderCurrencyControls(); return; }
+    const value = field === "default_currency" && !rawValue ? null : rawValue;
+    if (value !== null && !supportedCurrency(value)) { renderCurrencyControls(); return; }
+    const token = {};
+    currencySaving = token;
+    const owner = readOwner(new AbortController());
+    setCurrencyMessage("正在保存币种设置…", "info");
+    renderCurrencyControls();
+    renderSummary();
+    try {
+      if (!currencyPrefs?.observed || currencyPrefs.account_id !== owner.accountId) {
+        await fetchCurrencyPreferences();
+        requireOwner(owner);
+        if (!currencyPrefs?.observed) throw Object.assign(new Error("币种设置尚未从云端读取"), { code: "currency_preferences_unavailable" });
+      }
+      if (currencyPrefs[field] === value) { setCurrencyMessage(); return; }
+      const data = await api("/api/finance/currencies", { revision: currencyPrefs.revision, [field]: value }, { controller: owner.controller });
+      requireOwner(owner);
+      applyCurrencyPrefs(data?.preferences, owner.accountId);
+      setCurrencyMessage(field === "default_currency" && value
+        ? `已保存。未标明币种的通知将暂按 ${value} 记录，并保留“默认币种待复核”标记。`
+        : "币种设置已保存。", "success");
+    } catch (error) {
+      if (!ownerCurrent(owner) || error?.name === "AbortError") return;
+      if (error?.code === "currency_preferences_conflict") {
+        setCurrencyMessage("币种设置已在另一设备更新，已重新读取最新设置，请确认后再修改。", "warning");
+        if (currencyPrefs) currencyPrefs = { ...currencyPrefs, observed: false };
+        currencyFetch = null;
+        void fetchCurrencyPreferences();
+      } else {
+        setCurrencyMessage(`币种设置保存失败：${safeText(error?.message || "请稍后重试", 120)}`, "error");
+      }
+    } finally {
+      if (currencySaving === token) currencySaving = null;
+      if (ownerCurrent(owner)) {
+        renderAll();
+        void loadReferences();
+      }
+    }
+  }
+
+  // ---- Historical reference snapshots (/api/finance/references) ----
+  const referenceKey = (item, quote) => `${item.id}:${item.revision || 0}:${quote}`;
+
+  function referenceSnapshots() {
+    return Object.fromEntries(referenceCache);
+  }
+
+  function summaryOptions(month) {
+    return { month, display_currency: displayCurrency(), snapshots: referenceSnapshots() };
+  }
+
+  function referenceWindowStart() {
+    const now = new Date();
+    const trendStart = new Date(now.getFullYear(), now.getMonth() - 5, 1).getTime();
+    const selected = monthBounds(currentMonth())?.startMs ?? trendStart;
+    return Math.min(trendStart, selected);
+  }
+
+  async function loadReferences() {
+    ensureStore();
+    if (!store || !hasAccess() || suspended) return false;
+    const quote = displayCurrency();
+    const loadKey = `${currentAccountId}|${quote}`;
+    if (referenceLoad?.key === loadKey) { referenceLoad.again = true; return referenceLoad.promise; }
+    const owner = readOwner(new AbortController());
+    const state = { key: loadKey, again: false, promise: null };
+    state.promise = (async () => {
+      let changed = false;
+      try {
+        do {
+          state.again = false;
+          const since = referenceWindowStart();
+          const attempted = new Set();
+          for (let batch = 0; batch < 5; batch += 1) {
+            const ids = Object.values(store.transactions)
+              .filter((item) => item.status === "active" && !isAuthorizationControl(item) && item.currency !== quote
+                && supportedCurrency(item.currency) && item.money_unit_status !== "review_required"
+                && item.occurred_at_ms >= since && !attempted.has(item.id)
+                && !referenceCache.has(referenceKey(item, quote)) && !referenceUnavailable.has(referenceKey(item, quote)))
+              .sort((a, b) => b.occurred_at_ms - a.occurred_at_ms)
+              .slice(0, 100);
+            if (!ids.length) break;
+            for (const item of ids) attempted.add(item.id);
+            const query = new URLSearchParams({ ids: ids.map((item) => item.id).join(","), display_currency: quote });
+            const data = await readForOwner(`/api/finance/references?${query}`, owner);
+            if (displayCurrency() !== quote) return changed;
+            for (const [key, snapshot] of Object.entries(data?.references || {})) {
+              if (key.endsWith(`:${quote}`) && snapshot && typeof snapshot === "object") { referenceCache.set(key, snapshot); changed = true; }
+            }
+            for (const row of Array.isArray(data?.unavailable) ? data.unavailable : []) {
+              const item = store.transactions[row?.id];
+              // Deferred/provider failures are retried on the next sync.
+              if (item && row.reason !== "fx_request_deferred" && row.reason !== "fx_provider_unavailable") {
+                referenceUnavailable.set(referenceKey(item, quote), safeText(row.reason, 60));
+              }
+            }
+          }
+        } while (state.again && ownerCurrent(owner));
+      } catch (error) {
+        if (ownerCurrent(owner) && error?.name !== "AbortError") {
+          setCurrencyMessage(`参考汇率暂时无法读取，外币账目保持原币显示：${safeText(error?.message || "请稍后重试", 100)}`, "warning");
+          changed = true;
+        }
+      } finally {
+        if (referenceLoad === state) referenceLoad = null;
+        if (changed && ownerCurrent(owner)) renderAll();
+      }
+      return changed;
+    })();
+    referenceLoad = state;
+    return state.promise;
+  }
+
+  function unconvertedNote(unconverted) {
+    if (!unconverted?.length) return "";
+    const counts = new Map();
+    for (const row of unconverted) counts.set(row.reason, (counts.get(row.reason) || 0) + 1);
+    const parts = [...counts].map(([reason, count]) => `${UNCONVERTED_LABELS[reason] || reason} ${count} 笔`);
+    return `${unconverted.length} 笔未计入合计（${parts.join("、")}），原币金额保持不变。`;
+  }
+
+  function formatSummaryMoney(value, currency) {
+    if (value === null || value === undefined) return "超出精确显示范围";
+    if (typeof value === "string") return `${currency} ${value} 最小单位（超出精确显示范围）`;
+    return formatFinanceMoney(value, currency);
   }
 
   function hasAccess() {
@@ -517,12 +852,35 @@ export function createFinanceController({
 
   function renderSummary() {
     if (!store) return;
-    const summary = calculateFinanceSummary(Object.values(store.transactions), { month: currentMonth() });
-    if (element("financeIncomeTotal")) element("financeIncomeTotal").textContent = formatFinanceMoney(summary.income_minor);
-    if (element("financeExpenseTotal")) element("financeExpenseTotal").textContent = formatFinanceMoney(summary.expense_minor);
-    if (element("financeRefundTotal")) element("financeRefundTotal").textContent = formatFinanceMoney(summary.refund_minor);
-    if (element("financeBalanceTotal")) element("financeBalanceTotal").textContent = formatFinanceMoney(summary.balance_minor);
+    const quote = displayCurrency();
+    const summary = calculateFinanceSummary(Object.values(store.transactions), summaryOptions(currentMonth()));
+    const currency = summary.display_currency || quote;
+    if (element("financeIncomeTotal")) element("financeIncomeTotal").textContent = formatSummaryMoney(summary.income_minor, currency);
+    if (element("financeExpenseTotal")) element("financeExpenseTotal").textContent = formatSummaryMoney(summary.expense_minor, currency);
+    if (element("financeRefundTotal")) element("financeRefundTotal").textContent = formatSummaryMoney(summary.refund_minor, currency);
+    if (element("financeBalanceTotal")) element("financeBalanceTotal").textContent = formatSummaryMoney(summary.balance_minor, currency);
     if (element("financeSummaryPeriod")) element("financeSummaryPeriod").textContent = `${currentMonth().replace("-", " 年 ")} 月`;
+    renderCurrencyControls();
+    const status = element("financeCurrencyStatus");
+    if (status) {
+      const notes = [currencyMessage.text];
+      if (summary.has_overflow) notes.push("合计金额超出可精确显示的范围，未做近似处理。");
+      if (summary.reference_only) notes.push(`合计按 ${currency} 参考折算，仅使用交易日历史汇率快照，不改变原币账目。`);
+      notes.push(unconvertedNote(summary.unconverted));
+      const reviewCount = Object.values(store.transactions).filter((item) => item.status === "active" && item.currency_review_required === true).length;
+      if (reviewCount) notes.push(`${reviewCount} 笔账目按默认币种暂记，需要逐笔复核币种。`);
+      const text = notes.filter(Boolean).join(" ");
+      if (status.textContent !== text) status.textContent = text;
+      status.dataset.tone = summary.has_overflow || summary.unconverted?.length ? "warning" : currencyMessage.tone;
+    }
+    const groups = element("financeCurrencyGroups");
+    if (groups) {
+      const rows = summary.by_currency ? Object.entries(summary.by_currency).map(([code, bucket]) =>
+        `${code}：收入 ${formatSummaryMoney(bucket.income_minor, code)} · 支出 ${formatSummaryMoney(bucket.expense_minor, code)} · 退款 ${formatSummaryMoney(bucket.refund_minor, code)}`) : [];
+      const text = rows.length ? `原币分组 · ${rows.join("；")}` : "";
+      if (groups.textContent !== text) groups.textContent = text;
+      groups.hidden = !text;
+    }
     renderTrendChart();
   }
 
@@ -563,7 +921,7 @@ export function createFinanceController({
   function renderTrendChart() {
     const wrap = element("financeTrendChartWrap");
     if (!wrap || !store) return;
-    const allTx = Object.values(store.transactions).filter((item) => item && item.status !== "deleted");
+    const allTx = Object.values(store.transactions).filter((item) => item && item.status !== "deleted" && !isAuthorizationControl(item));
     if (!allTx.length) {
       wrap.innerHTML = `
         <div class="finance-chart-empty">
@@ -575,24 +933,38 @@ export function createFinanceController({
       return;
     }
 
-    const primaryCurrency = allTx.find((tx) => tx.currency)?.currency || "CNY";
+    // One display currency for the whole chart: original minor units of other
+    // currencies are only plotted through a valid historical reference.
+    const primaryCurrency = displayCurrency();
+    const digits = currencyDigits(primaryCurrency);
+    const unit = 10 ** digits;
+    const snapshots = referenceSnapshots();
     const now = new Date();
     const months = [];
     for (let i = 5; i >= 0; i -= 1) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const mKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
       const label = `${d.getMonth() + 1}月`;
-      months.push({ key: mKey, label, income: 0, expense: 0, hasData: false });
+      months.push({ key: mKey, label, income: 0, expense: 0, incomeMinor: 0n, expenseMinor: 0n, hasData: false });
     }
 
+    let trendUnconverted = 0;
     for (const tx of allTx) {
       const txMonth = monthKey(tx.occurred_at_ms);
       const slot = months.find((m) => m.key === txMonth);
-      if (slot) {
-        slot.hasData = true;
-        if (tx.direction === "income") slot.income += Number(tx.amount_minor || 0) / 100;
-        else if (tx.direction === "expense") slot.expense += Number(tx.amount_minor || 0) / 100;
+      if (!slot || (tx.direction !== "income" && tx.direction !== "expense")) {
+        if (slot) slot.hasData = true;
+        continue;
       }
+      slot.hasData = true;
+      const value = referenceValue(tx, primaryCurrency, { snapshots });
+      if (value.status !== "same_currency" && value.status !== "reference") { trendUnconverted += 1; continue; }
+      if (tx.direction === "income") slot.incomeMinor += BigInt(value.amount_minor);
+      else slot.expenseMinor += BigInt(value.amount_minor);
+    }
+    for (const m of months) {
+      m.income = Number(m.incomeMinor) / unit;
+      m.expense = Number(m.expenseMinor) / unit;
     }
 
     const maxVal = Math.max(...months.map((m) => Math.max(m.income, m.expense)), 100);
@@ -714,7 +1086,7 @@ export function createFinanceController({
       const sign = item.direction === "expense" ? "-" : "+";
       const directionLabel = { income: "收入", expense: "支出", refund: "退款" }[item.direction];
       return `<article class="finance-transaction${item.status === "deleted" ? " is-deleted" : ""}" data-finance-transaction="${escapeHtml(item.id)}">
-        <div class="finance-transaction-main"><span class="finance-direction is-${escapeHtml(item.direction)}">${directionLabel}</span><div><strong title="${escapeHtml(title)}">${escapeHtml(title)}</strong><small>${escapeHtml(categoryName(item.category_id))} · ${escapeHtml(new Date(item.occurred_at_ms).toLocaleString("zh-CN"))}${item.source_kind === "automatic" ? " · Android 自动识别" : ""}${item.native_notification_pending ? " · 等待同步" : ""}${item.status === "deleted" ? " · 已删除" : ""}</small>${item.note ? `<p title="${escapeHtml(item.note)}">${escapeHtml(item.note)}</p>` : ""}</div></div>
+        <div class="finance-transaction-main"><span class="finance-direction is-${escapeHtml(item.direction)}">${directionLabel}</span><div><strong title="${escapeHtml(title)}">${escapeHtml(title)}</strong><small>${escapeHtml(categoryName(item.category_id))} · ${escapeHtml(new Date(item.occurred_at_ms).toLocaleString("zh-CN"))}${item.source_kind === "automatic" ? " · Android 自动识别" : ""}${item.native_notification_pending ? " · 等待同步" : ""}${isAuthorizationControl(item) ? " · 预授权（未结算）" : ""}${item.currency_review_required ? " · 默认币种待复核" : ""}${item.status === "deleted" ? " · 已删除" : ""}</small>${item.note ? `<p title="${escapeHtml(item.note)}">${escapeHtml(item.note)}</p>` : ""}</div></div>
         <div class="finance-transaction-side"><strong class="is-${escapeHtml(item.direction)}">${sign}${escapeHtml(formatFinanceMoney(item.amount_minor, item.currency))}</strong><div class="finance-row-actions">${item.status === "deleted" ? `<button type="button" data-finance-restore="${escapeHtml(item.id)}">恢复</button>` : `<button type="button" data-finance-edit="${escapeHtml(item.id)}">编辑</button><button class="danger-text" type="button" data-finance-delete="${escapeHtml(item.id)}">删除</button>`}</div></div>
       </article>`;
       },
@@ -727,7 +1099,9 @@ export function createFinanceController({
   function categoryExpense(categoryId, budget) {
     const start = budget.starts_on ? new Date(`${budget.starts_on}T00:00:00`).getTime() : 0;
     const end = budget.ends_on ? new Date(`${budget.ends_on}T23:59:59.999`).getTime() : Number.MAX_SAFE_INTEGER;
+    const budgetCurrency = budget.currency || "CNY";
     return Object.values(store.transactions).filter((item) => item.status === "active" && item.direction === "expense"
+      && !isAuthorizationControl(item) && (item.currency || "CNY") === budgetCurrency
       && (!categoryId || item.category_id === categoryId) && item.occurred_at_ms >= start && item.occurred_at_ms <= end)
       .reduce((total, item) => total + item.amount_minor, 0);
   }
@@ -742,10 +1116,11 @@ export function createFinanceController({
       return;
     }
     list.innerHTML = budgets.map((item) => {
+      const currency = item.currency || "CNY";
       const spent = categoryExpense(item.category_id, item);
       const remaining = item.amount_minor - spent;
       const percent = Math.min(100, Math.round(spent / item.amount_minor * 100));
-      return `<article class="finance-budget-status${remaining < 0 ? " is-over" : ""}"><div><strong>${escapeHtml(item.category_id ? categoryName(item.category_id) : "月度总预算")}</strong><span>${remaining < 0 ? `超出 ${formatFinanceMoney(-remaining)}` : `剩余 ${formatFinanceMoney(remaining)}`}</span></div><progress class="finance-progress" max="100" value="${percent}" aria-label="已使用 ${percent}%"></progress><small>已用 ${formatFinanceMoney(spent)} / ${formatFinanceMoney(item.amount_minor)}</small></article>`;
+      return `<article class="finance-budget-status${remaining < 0 ? " is-over" : ""}"><div><strong>${escapeHtml(item.category_id ? categoryName(item.category_id) : "月度总预算")}${currency !== "CNY" ? `（${currency}）` : ""}</strong><span>${remaining < 0 ? `超出 ${formatFinanceMoney(-remaining, currency)}` : `剩余 ${formatFinanceMoney(remaining, currency)}`}</span></div><progress class="finance-progress" max="100" value="${percent}" aria-label="已使用 ${percent}%"></progress><small>已用 ${formatFinanceMoney(spent, currency)} / ${formatFinanceMoney(item.amount_minor, currency)}</small></article>`;
     }).join("");
   }
 
@@ -753,15 +1128,19 @@ export function createFinanceController({
     const list = element("financeCategoryStats");
     if (!list || !store) return;
     const bounds = monthBounds(currentMonth());
+    const quote = displayCurrency();
+    const snapshots = referenceSnapshots();
     const values = new Map();
     for (const item of Object.values(store.transactions)) {
-      if (item.status !== "active" || item.direction !== "expense" || (bounds && (item.occurred_at_ms < bounds.startMs || item.occurred_at_ms >= bounds.endMs))) continue;
+      if (item.status !== "active" || item.direction !== "expense" || isAuthorizationControl(item) || (bounds && (item.occurred_at_ms < bounds.startMs || item.occurred_at_ms >= bounds.endMs))) continue;
+      const ref = referenceValue(item, quote, { snapshots });
+      if (ref.status !== "same_currency" && ref.status !== "reference") continue;
       const key = item.category_id || "uncategorized";
-      values.set(key, (values.get(key) || 0) + item.amount_minor);
+      values.set(key, (values.get(key) || 0) + ref.amount_minor);
     }
     const entries = [...values.entries()].sort((a, b) => b[1] - a[1]);
     const maximum = entries[0]?.[1] || 1;
-    list.innerHTML = entries.length ? entries.slice(0, 8).map(([id, amount]) => `<div class="finance-category-stat"><span>${escapeHtml(id === "uncategorized" ? "未分类" : categoryName(id))}</span><progress max="${maximum}" value="${amount}" aria-label="${escapeHtml(id === "uncategorized" ? "未分类" : categoryName(id))} ${escapeHtml(formatFinanceMoney(amount))}"></progress><strong>${escapeHtml(formatFinanceMoney(amount))}</strong></div>`).join("") : '<p class="finance-empty-inline">本月还没有支出分类数据。</p>';
+    list.innerHTML = entries.length ? entries.slice(0, 8).map(([id, amount]) => `<div class="finance-category-stat"><span>${escapeHtml(id === "uncategorized" ? "未分类" : categoryName(id))}</span><progress max="${maximum}" value="${amount}" aria-label="${escapeHtml(id === "uncategorized" ? "未分类" : categoryName(id))} ${escapeHtml(formatFinanceMoney(amount, quote))}"></progress><strong>${escapeHtml(formatFinanceMoney(amount, quote))}</strong></div>`).join("") : '<p class="finance-empty-inline">本月还没有支出分类数据。</p>';
   }
 
   function cancelDeferredRendering() {
@@ -1101,9 +1480,11 @@ export function createFinanceController({
     ensureStore();
     const item = id ? store.transactions[id] : null;
     if (item?.native_notification_pending) { setMessage("已记账，正在等待云端同步；同步完成后可编辑。", "info"); return; }
+    const currency = item?.currency || accountCurrency();
     element("financeTransactionId").value = item?.id || "";
     element("financeTransactionDirection").value = item?.direction || "expense";
-    element("financeTransactionAmount").value = item ? (item.amount_minor / 100).toFixed(2) : "";
+    if (element("financeTransactionCurrency")) element("financeTransactionCurrency").value = currency;
+    element("financeTransactionAmount").value = item ? moneyText(item.amount_minor, currency) : "";
     element("financeTransactionCategory").value = item?.category_id || "";
     element("financeTransactionMerchant").value = item?.merchant || "";
     element("financeTransactionCounterparty").value = item?.counterparty || "";
@@ -1119,7 +1500,8 @@ export function createFinanceController({
   function submitTransaction(event) {
     event.preventDefault();
     ensureStore();
-    const amountValidation = validateAmountText(element("financeTransactionAmount").value, "金额");
+    const currency = element("financeTransactionCurrency")?.value || "CNY";
+    const amountValidation = validateAmountText(element("financeTransactionAmount").value, "金额", currency);
     if (!amountValidation.valid) return invalidField(element("financeTransactionAmount"), amountValidation.message);
     const amountMinor = amountValidation.amountMinor;
     const occurredAt = new Date(element("financeTransactionTime").value).getTime();
@@ -1130,7 +1512,8 @@ export function createFinanceController({
       id,
       direction: element("financeTransactionDirection").value,
       amount_minor: amountMinor,
-      currency: "CNY",
+      currency,
+      amount_exponent: amountValidation.amountExponent,
       category_id: element("financeTransactionCategory").value,
       merchant: element("financeTransactionMerchant").value,
       counterparty: element("financeTransactionCounterparty").value,
@@ -1144,10 +1527,13 @@ export function createFinanceController({
       created_at: current?.created_at || timestamp(),
       updated_at: timestamp(),
       deleted_at: "",
+      ...(current?.currency_review_required ? { currency_review_required: false, currency_decision_source: "user_confirmed" } : {}),
     });
     if (!item) return setMessage("账目内容无效，请检查后重试。", "error");
     store.transactions[id] = item;
-    queueOperation("transaction.upsert", item, transactionPayload(item));
+    queueOperation("transaction.upsert", item, transactionPayload(item, {
+      currency_review_acknowledged: Boolean(current?.currency_review_required),
+    }));
     closeLayer("financeTransactionModal");
     setMessage(current ? "账目已在本机更新，正在同步。" : "账目已在本机保存，正在同步。", "success");
   }
@@ -1242,7 +1628,10 @@ export function createFinanceController({
     const list = element("financeBudgetManagerList");
     if (!list) return;
     const budgets = activeValues("budgets");
-    list.innerHTML = budgets.length ? budgets.map((item) => `<div class="finance-manager-row"><span><strong>${escapeHtml(item.category_id ? categoryName(item.category_id) : "月度总预算")}</strong><small>${escapeHtml(item.starts_on)} 至 ${escapeHtml(item.ends_on)} · ${escapeHtml(formatFinanceMoney(item.amount_minor))}</small></span><span><button type="button" data-finance-budget-edit="${escapeHtml(item.id)}">编辑</button><button class="danger-text" type="button" data-finance-budget-delete="${escapeHtml(item.id)}">删除</button></span></div>`).join("") : '<p class="finance-empty-inline">还没有预算。</p>';
+    list.innerHTML = budgets.length ? budgets.map((item) => {
+      const currency = item.currency || "CNY";
+      return `<div class="finance-manager-row"><span><strong>${escapeHtml(item.category_id ? categoryName(item.category_id) : "月度总预算")}${currency !== "CNY" ? `（${currency}）` : ""}</strong><small>${escapeHtml(item.starts_on)} 至 ${escapeHtml(item.ends_on)} · ${escapeHtml(formatFinanceMoney(item.amount_minor, currency))}</small></span><span><button type="button" data-finance-budget-edit="${escapeHtml(item.id)}">编辑</button><button class="danger-text" type="button" data-finance-budget-delete="${escapeHtml(item.id)}">删除</button></span></div>`;
+    }).join("") : '<p class="finance-empty-inline">还没有预算。</p>';
   }
 
   function openBudgetManager() {
@@ -1250,6 +1639,7 @@ export function createFinanceController({
     element("financeBudgetAmount").value = "";
     element("financeBudgetMonth").value = monthKey();
     element("financeBudgetCategory").value = "";
+    if (element("financeBudgetCurrency")) element("financeBudgetCurrency").value = accountCurrency();
     renderBudgetManager();
     openLayer("financeBudgetModal");
   }
@@ -1257,8 +1647,10 @@ export function createFinanceController({
   function editBudget(id) {
     const item = store.budgets[id];
     if (!item) return;
+    const currency = item.currency || "CNY";
     element("financeBudgetId").value = item.id;
-    element("financeBudgetAmount").value = (item.amount_minor / 100).toFixed(2);
+    if (element("financeBudgetCurrency")) element("financeBudgetCurrency").value = currency;
+    element("financeBudgetAmount").value = moneyText(item.amount_minor, currency);
     element("financeBudgetMonth").value = item.starts_on?.slice(0, 7) || monthKey();
     element("financeBudgetCategory").value = item.category_id;
     element("financeBudgetAmount").focus();
@@ -1267,13 +1659,15 @@ export function createFinanceController({
   function submitBudget(event) {
     event.preventDefault();
     const bounds = monthBounds(element("financeBudgetMonth").value);
-    const amountValidation = validateAmountText(element("financeBudgetAmount").value, "预算金额");
+    const currency = element("financeBudgetCurrency")?.value || "CNY";
+    const amountValidation = validateAmountText(element("financeBudgetAmount").value, "预算金额", currency);
     if (!bounds) return invalidField(element("financeBudgetMonth"), "请选择有效月份");
     if (!amountValidation.valid) return invalidField(element("financeBudgetAmount"), amountValidation.message);
     const amountMinor = amountValidation.amountMinor;
     const categoryId = element("financeBudgetCategory").value;
     const matching = activeValues("budgets").find((item) => item.category_id === categoryId
-      && item.starts_on === bounds.startDate && item.ends_on === bounds.endDate);
+      && item.starts_on === bounds.startDate && item.ends_on === bounds.endDate
+      && (item.currency || "CNY") === currency);
     const id = element("financeBudgetId").value || matching?.id || randomId("budget");
     const current = store.budgets[id];
     const item = normalizeBudget({
@@ -1281,7 +1675,8 @@ export function createFinanceController({
       category_id: categoryId,
       period_type: "monthly",
       amount_minor: amountMinor,
-      currency: "CNY",
+      currency,
+      amount_exponent: amountValidation.amountExponent,
       starts_on: bounds.startDate,
       ends_on: bounds.endDate,
       status: "active",
@@ -1359,6 +1754,9 @@ export function createFinanceController({
     for (const id of ["financeDirectionFilter", "financeCategoryFilter", "financeStatusFilter"]) {
       element(id)?.addEventListener("change", renderTransactions);
     }
+    element("financeDisplayCurrency")?.addEventListener("change", (e) => saveCurrencyPreference("display_currency", e.target.value));
+    element("financeAccountCurrency")?.addEventListener("change", (e) => saveCurrencyPreference("account_currency", e.target.value));
+    element("financeDefaultCurrency")?.addEventListener("change", (e) => saveCurrencyPreference("default_currency", e.target.value));
     window.addEventListener("online", () => {
       if (!element("financePage")?.classList.contains("hidden")) syncNow();
     });
@@ -1382,6 +1780,8 @@ export function createFinanceController({
     }
     if (element("financeMonthFilter") && !element("financeMonthFilter").value) element("financeMonthFilter").value = monthKey();
     renderAll();
+    void fetchCurrencyPreferences();
+    void loadReferences();
     await syncNow();
     return true;
   }
@@ -1401,6 +1801,7 @@ export function createFinanceController({
   }
 
   function resetAccount() {
+    resetCurrencyState();
     ledgerRows.clear();
     cancelDeferredRendering();
     insightsSignature = "";
@@ -1424,7 +1825,7 @@ export function createFinanceController({
     const value = account();
     if (!value?.id) return { balance_minor: 0, pending: 0, available: false };
     ensureStore();
-    const summary = calculateFinanceSummary(Object.values(store.transactions), { month: monthKey() });
+    const summary = calculateFinanceSummary(Object.values(store.transactions), summaryOptions(monthKey()));
     return { ...summary, pending: store.pending.length, available: hasAccess(), last_sync_at: store.last_sync_at };
   }
 

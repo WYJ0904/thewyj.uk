@@ -1,0 +1,49 @@
+{
+  "recorded_at": "2026-11-12T10:47:50.005Z",
+  "source_code_sha": "902f61fd9939238d6b60db838efa2046d671e82d",
+  "baseline_sha": "29bdbb9e3ae4cd88019b6c0046aabc6df574a942",
+  "azure_api": "AZURE_API_PASS",
+  "local_audio": "LOCAL_AUDIO_PASS",
+  "listening": "LISTENING_PASS_OWNER_CONFIRMED",
+  "android_device": "ANDROID_DEVICE_NOT_TESTED",
+  "hosted_preview": "NOT_TESTED",
+  "production": "NOT_SWITCHED",
+  "resource": {
+    "name": "TTSforwyj",
+    "group": "webtothewyj",
+    "region": "eastasia",
+    "sku": "F0",
+    "management_state_source": "owner reported; no ARM administration performed"
+  },
+  "actual_azure_requests": 4,
+  "synthesis_requests": 3,
+  "voice_list_requests": 1,
+  "cache_extra_synthesis_requests": 0,
+  "samples": [
+    {
+      "language": "en",
+      "locale": "en-US",
+      "voice": "en-US-JennyNeural",
+      "sha256": "8d1594f6d863deb18a6d968a309be4e3d73c9187fbe14c767222beccc1a0ee35",
+      "bytes": 28224,
+      "file": "en.mp3"
+    },
+    {
+      "language": "jp",
+      "locale": "ja-JP",
+      "voice": "ja-JP-NanamiNeural",
+      "sha256": "59e16d0659f480748894b90aab3a77aa94daf587abfa1def73a6378670dab8bd",
+      "bytes": 24480,
+      "file": "jp.mp3"
+    },
+    {
+      "language": "zh",
+      "locale": "zh-CN",
+      "voice": "zh-CN-XiaoxiaoNeural",
+      "sha256": "d348ce95552aeb9509d469e670c5c547d9077739687bade6e86a0162a910b1f8",
+      "bytes": 28080,
+      "file": "zh.mp3"
+    }
+  ],
+  "secret_values_included": false
+}

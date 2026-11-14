@@ -1,10 +1,10 @@
-import { randomId } from "../core/capabilities.js?release=20261109-aeris-p07-production-r2";
-import { ACCOUNT_SESSION_KEY, accountSessionHeaders, isThewyjAndroidApp } from "../core/session.js?release=20261109-aeris-p07-production-r2";
-import { getSafeStorage } from "../core/storage.js?release=20261109-aeris-p07-production-r2";
-import { withInteractionFeedback } from "../core/perf.js?release=20261109-aeris-p07-production-r2";
-import { createTransferUpdateScheduler } from "./updates.js?release=20261109-aeris-p07-production-r2";
-import { putPartWithRecovery } from "./upload-part.js?release=20261109-aeris-p07-production-r2";
-import { reconcileKeyedRows } from "../core/keyed-list.js?release=20261109-aeris-p07-production-r2";
+import { randomId } from "../core/capabilities.js?release=20261115-aeris-s0-p0-release";
+import { ACCOUNT_SESSION_KEY, accountSessionHeaders, isThewyjAndroidApp } from "../core/session.js?release=20261115-aeris-s0-p0-release";
+import { getSafeStorage } from "../core/storage.js?release=20261115-aeris-s0-p0-release";
+import { withInteractionFeedback } from "../core/perf.js?release=20261115-aeris-s0-p0-release";
+import { createTransferUpdateScheduler } from "./updates.js?release=20261115-aeris-s0-p0-release";
+import { putPartWithRecovery } from "./upload-part.js?release=20261115-aeris-s0-p0-release";
+import { reconcileKeyedRows } from "../core/keyed-list.js?release=20261115-aeris-s0-p0-release";
 
 const QUEUE_STORAGE_KEY = "wyjTransferQueue:v1";
 const GUEST_ID_KEY = "wyjTransferGuest:v1";
@@ -201,6 +201,21 @@ export function transferCleanupStorageKey(owner) {
  */
 export function shouldAdoptStoredQueue(currentOwner, loadedOwner) {
   return String(currentOwner || "") !== String(loadedOwner || "");
+}
+
+/**
+ * Resolve the next queue slice when ownership changes. If the new owner has no
+ * valid saved queue (including a mismatched legacy payload), return an empty
+ * queue so the previous account's in-memory items never leak into the new view.
+ */
+export function restoreQueueStateForOwner(owner, primarySaved, legacySaved = null) {
+  const candidate = (!primarySaved?.account || !Array.isArray(primarySaved?.queue)) && legacySaved
+    ? legacySaved
+    : primarySaved;
+  if (candidate?.account === owner && Array.isArray(candidate?.queue)) {
+    return { adopted: true, queue: candidate.queue.map(restoreQueueEntry) };
+  }
+  return { adopted: false, queue: [] };
 }
 
 /**
@@ -492,21 +507,25 @@ export function createTransferController({
       for (const item of queue) {
         if (!item.file) continue;
         item.status = "cancelled";
-        try { item.controller?.abort?.(); } catch (_) { /* controller already settled */ }
+        try {
+          item.controllers?.forEach((controller) => controller.abort());
+          item.controllers?.clear?.();
+          item.controller?.abort?.();
+        } catch (_) { /* controller already settled */ }
       }
       queueOwner = owner;
       activeSession = null;
-      let saved = JSON.parse(storage.getItem(transferQueueStorageKey(owner)) || "{}");
+      const primarySaved = JSON.parse(storage.getItem(transferQueueStorageKey(owner)) || "{}");
       // One-time import of the pre-account-scoping payload, only when it really
       // belongs to this owner (multi-account isolation: another account's queue
       // must never be adopted, and this account's queue must survive a switch).
-      if ((!saved.account || !Array.isArray(saved.queue)) && storage.getItem(QUEUE_STORAGE_KEY)) {
-        saved = JSON.parse(storage.getItem(QUEUE_STORAGE_KEY) || "{}");
-      }
-      if (saved.account === owner && Array.isArray(saved.queue)) {
-        queue = saved.queue.map(restoreQueueEntry);
-        persistQueue();
-      }
+      const legacyRaw = (!primarySaved.account || !Array.isArray(primarySaved.queue))
+        ? storage.getItem(QUEUE_STORAGE_KEY)
+        : "";
+      const legacySaved = legacyRaw ? JSON.parse(legacyRaw || "{}") : null;
+      const restored = restoreQueueStateForOwner(owner, primarySaved, legacySaved);
+      queue = restored.queue;
+      if (restored.adopted) persistQueue();
     } catch (_) {
       queue = [];
     }

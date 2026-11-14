@@ -252,6 +252,18 @@
     if (preferredCorrect || fallbackCorrect) {
       merged.correct_answer = preferredCorrect ? preferred.correct_answer : fallback.correct_answer;
     }
+    if (left.review_id && left.review_id === right.review_id) {
+      const events = new Map();
+      for (const event of [...(Array.isArray(left.review?.events)?left.review.events:[]), ...(Array.isArray(right.review?.events)?right.review.events:[])]) {
+        if (!event || typeof event.id !== 'string' || typeof event.at !== 'string') continue;
+        const previous = events.get(event.id);
+        if (!previous || stableStringify(event) < stableStringify(previous)) events.set(event.id,event);
+      }
+      merged.review = {version:1,algorithm:'wrong-review-v1',base_wrong_count:Math.max(Number(left.review?.base_wrong_count)||0,Number(right.review?.base_wrong_count)||0),
+        truncated:Boolean(left.review?.truncated||right.review?.truncated||events.size>128),events:[...events.values()]
+        .sort((a,b)=>a.at.localeCompare(b.at)||a.id.localeCompare(b.id)).slice(-128)};
+      if(!merged.review.truncated)merged.wrong_count=Math.min(9999,Math.max(merged.wrong_count,merged.review.base_wrong_count+merged.review.events.filter(event=>event.correct===false&&event.kind!=='correction').length));
+    }
     const accepted = mergeUnique(left.accepted, right.accepted, 50);
     if (accepted.length) merged.accepted = accepted;
     const leftRubric = left.rubric && typeof left.rubric === "object" ? left.rubric : {};
@@ -323,6 +335,7 @@
       server_version: serverVersion,
       dirty: raw.dirty === true,
       revision: Math.max(0, Number.parseInt(raw.revision, 10) || 0),
+      restore_revision: Math.max(0, Number.parseInt(raw.restore_revision,10)||0),
     };
   }
 
@@ -634,6 +647,7 @@
         server_version: existing?.server_version || 0,
         dirty: true,
         revision: (existing?.revision || 0) + 1,
+        restore_revision: record.deleted?0:existing?.deleted?existing.revision:existing?.restore_revision||0,
       };
       this.state.records[key] = next;
       this.persist();
@@ -731,9 +745,10 @@
             Date.parse(remote.updated_at) + 1000)).toISOString();
         }
       }
+      const deliberateRestore = local?.restore_revision > 0 && local.restore_revision === submittedRevision;
       if (retryOwnDelete) {
         next = { ...local, server_version: remote.server_version, dirty: true };
-      } else if (local && changedDuringRequest) {
+      } else if (local && changedDuringRequest && (!unseenRemoteDeletion || deliberateRestore)) {
         const mergeable = remote.data_type === "wrong_book" || remote.data_type === "achievement";
         next = {
           ...local,

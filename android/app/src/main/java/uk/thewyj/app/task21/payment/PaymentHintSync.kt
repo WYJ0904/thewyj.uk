@@ -89,6 +89,7 @@ class PaymentHintSync(
         val pendingIds = mutableSetOf<String>()
         var confirmed = 0
         var ignored = 0
+        var currencyReviewUpdated = false
         for (record in summary.records) {
             val ids = (record.eventIds + record.eventId).filter(String::isNotBlank).toSet()
             ids.forEach { states[it] = record.state }
@@ -120,8 +121,17 @@ class PaymentHintSync(
                     ignored += 1
                 }
             }
+            if (record.state == "confirmed" && record.transactionId.isNotBlank() &&
+                record.currencyDecisionSource.isNotBlank() && !record.currencyReviewRequired) {
+                val match = recognitionForCandidate(account, ids)
+                val booking = match?.let { store.localBooking(accountId, PaymentAutoBook.eventId(it)) }
+                if (match?.currencyReviewRequired == true && booking?.transactionId == record.transactionId) {
+                    store.saveRecognition(match.copy(currencyReviewRequired = false))
+                    currencyReviewUpdated = true
+                }
+            }
         }
-        if (previousPending != summary.records.filter { it.state == "pending" }.sortedBy { it.canonicalId }) PaymentReviewSignals.publish()
+        if (currencyReviewUpdated || previousPending != summary.records.filter { it.state == "pending" }.sortedBy { it.canonicalId }) PaymentReviewSignals.publish()
         return Result(
             refreshed = summary.records.size,
             confirmed = confirmed,
@@ -160,6 +170,9 @@ class PaymentHintSync(
             uk.thewyj.app.task21.NotificationCapturePipeline.create(app, sessions).flushDetailed()
         }
         val recognition = runCatching { store.recognition(accountId, recognitionId) }.getOrNull() ?: return false
+        // Money/page evidence cannot silently settle uncertain identity or a hold.
+        // Typed financial operations use their durable ingest event, not a legacy hint.
+        if (recognition.identityReviewReason.isNotBlank() || recognition.financialPhase.isNotBlank()) return false
         val archivedIds = runCatching {
             (archiveSink ?: NotificationArchiveSinkFactory.forContext(app))
                 .structuredEventIdsForRecognition(accountId, recognition.sourceEventId)
@@ -197,7 +210,9 @@ class PaymentHintSync(
             amountMinor = amountMinor?.takeIf { it > 0L },
             direction = direction.takeIf { hasDirection }.orEmpty(),
             merchant = candidate.merchant.ifBlank { recognition.merchant },
-            currency = recognition.currency.ifBlank { "CNY" },
+            currency = recognition.currency.ifBlank { "XXX" },
+            amountExponent = uk.thewyj.app.finance.CurrencyRuntimePreferences.sourceExponent(app,account.accountId,recognition.sourceEventId,recognition.currency),
+            currencyReviewRequired = recognition.currencyReviewRequired,
             confidence = candidate.confidence.coerceIn(0, 1000),
             recognitionStatus = if (settled) "CONFIRMED_PAYMENT" else "PAYMENT_LIKELY",
             reasons = listOf(if (settled) "accessibility_verified_payment" else "accessibility_pending_evidence"),
@@ -314,6 +329,7 @@ class PaymentHintSync(
                 .put("id", hint.optString("id"))
                 .put("event_id", hint.optString("source_event_id"))
                 .put("event_ids", JSONArray().put(hint.optString("source_event_id")))
+                .put("currency", hint.optString("currency", "XXX"))
                 .put("state", hint.optString("state")))
         }
         for (status in listOf("pending", "confirmed", "rejected")) {
@@ -337,6 +353,7 @@ class PaymentHintSync(
                     .put("id", candidate.optString("id"))
                     .put("event_id", candidate.optString("event_id"))
                     .put("event_ids", aliases)
+                    .put("currency", candidate.optString("currency", "XXX"))
                     .put("state", status))
             }
         }
@@ -804,6 +821,9 @@ class PaymentHintSync(
             }.filterKeys(String::isNotBlank).values.filter { it.size > 1 }
             var posted = 0
             for (group in grouped.take(4)) {
+                fun currencyOf(row: JSONObject): String = row.optString("currency").takeIf { it.isNotBlank() && it != "XXX" }
+                    ?: store.recognitionByUploadEvent(account.accountId,row.optString("event_id"))?.currency ?: "XXX"
+                val currencies = group.map(::currencyOf).distinct()
                 val amounts = group.map { it.optLong("amount_minor") }.filter { it > 0L }.distinct()
                 val directions = group.map { it.optString("direction") }
                     .filter { it in setOf("income", "expense", "refund") }.distinct()
@@ -815,7 +835,7 @@ class PaymentHintSync(
                 // The archived notification instance proves continuity even
                 // when both revisions lack an amount. Never use a nearby time
                 // or matching money shape to join different instances.
-                if (amounts.size > 1 || group.none { it.optLong("amount_minor") <= 0L } ||
+                if (currencies.size != 1 || amounts.size > 1 || group.none { it.optLong("amount_minor") <= 0L } ||
                     directions.size > 1 || references.size > 1 ||
                     group.map { it.optString("source_package") }.distinct().size != 1 ||
                     times.any { it <= 0L } ||
@@ -836,7 +856,7 @@ class PaymentHintSync(
                         deviceId = account.deviceId, sourceEventId = row.optString("event_id"),
                         sourceType = "notification", sourcePackage = packageName,
                         appLabel = row.optString("app_label"), amountMinor = amount,
-                        direction = direction, merchant = row.optString("merchant"), currency = "CNY",
+                        direction = direction, merchant = row.optString("merchant"), currency = currencyOf(row),
                         confidence = row.optInt("confidence"),
                         // Historical amount/direction are not settlement proof.
                         recognitionStatus = "PAYMENT_LIKELY",
