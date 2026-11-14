@@ -170,8 +170,10 @@ try {
     amountSummary: "CNY 19.00",
   });
   assert.equal(orderRes.ok, true);
+  assert.equal(orderRes.delivery_status, "accepted");
   assert.equal(orderRes.from, "noreply@thewyj.uk");
   assert.equal(orderRes.reply_to, "support@thewyj.uk");
+  assert.equal(internalCaptured[0].from.email, "noreply@thewyj.uk");
   assert.equal(internalCaptured[0].replyTo.email, "support@thewyj.uk");
 
   // Secret/raw-error sanitization on provider errors
@@ -349,7 +351,7 @@ try {
   );
 
   const restRequests = [];
-  const restOk = await sendTransactionalEmail({
+  const restDelivered = await sendTransactionalEmail({
     EMAIL_SENDING_ENABLED: "true",
     EMAIL_SEND_API_TOKEN: "tok_test",
     EMAIL_CLOUDFLARE_ACCOUNT_ID: validAccountId,
@@ -361,27 +363,95 @@ try {
       }), { status: 200, headers: { "Content-Type": "application/json" } });
     },
   }, { kind: "owner_ops_test", to: "wyj20090904@gmail.com", note: "REST check" });
-  assert.equal(restOk.ok, true);
-  assert.equal(restOk.transport, "cloudflare_rest");
-  assert.equal(restOk.message_id, "rest-msg-1");
+  assert.equal(restDelivered.ok, true);
+  assert.equal(restDelivered.transport, "cloudflare_rest");
+  assert.equal(restDelivered.delivery_status, "delivered");
+  assert.deepEqual(restDelivered.delivered, ["wyj20090904@gmail.com"]);
+  assert.deepEqual(restDelivered.queued, []);
+  assert.equal(restDelivered.message_id, "rest-msg-1");
   assert.equal(restRequests.length, 1);
   assert.equal(restRequests[0].url, `https://api.cloudflare.com/client/v4/accounts/${validAccountId}/email/sending/send`);
-  assert.equal(restRequests[0].body.from.email, "noreply@thewyj.uk");
+  assert.deepEqual(restRequests[0].body.from, { address: "noreply@thewyj.uk", name: "Aeris" });
+  assert.equal("email" in restRequests[0].body.from, false);
   assert.deepEqual(restRequests[0].body.to, ["wyj20090904@gmail.com"]);
-  assert.equal(restRequests[0].body.reply_to.email, "support@thewyj.uk");
+  assert.deepEqual(restRequests[0].body.reply_to, { address: "support@thewyj.uk", name: "Aeris Support" });
+  assert.equal("email" in restRequests[0].body.reply_to, false);
+
+  const restQueued = await sendTransactionalEmail({
+    EMAIL_SENDING_ENABLED: "true",
+    EMAIL_SEND_API_TOKEN: "tok_test",
+    EMAIL_CLOUDFLARE_ACCOUNT_ID: validAccountId,
+    __EMAIL_FETCH: async () => new Response(JSON.stringify({
+      success: true,
+      result: { delivered: [], queued: ["support@thewyj.uk"], permanent_bounces: [], message_id: "rest-msg-2" },
+    }), { status: 200, headers: { "Content-Type": "application/json" } }),
+  }, { kind: "owner_ops_test", to: "support@thewyj.uk" });
+  assert.equal(restQueued.delivery_status, "queued");
+  assert.deepEqual(restQueued.queued, ["support@thewyj.uk"]);
+
+  const restAccepted = await sendTransactionalEmail({
+    EMAIL_SENDING_ENABLED: "true",
+    EMAIL_SEND_API_TOKEN: "tok_test",
+    EMAIL_CLOUDFLARE_ACCOUNT_ID: validAccountId,
+    __EMAIL_FETCH: async () => new Response(JSON.stringify({
+      success: true,
+      result: { message_id: "rest-msg-3" },
+    }), { status: 200, headers: { "Content-Type": "application/json" } }),
+  }, { kind: "owner_ops_test", to: "support@thewyj.uk" });
+  assert.equal(restAccepted.delivery_status, "accepted");
 
   await assert.rejects(
     () => sendTransactionalEmail({
       EMAIL_SENDING_ENABLED: "true",
       EMAIL_SEND_API_TOKEN: "bad_tok",
       EMAIL_CLOUDFLARE_ACCOUNT_ID: validAccountId,
-      __EMAIL_FETCH: async () => new Response(JSON.stringify({ success: false, errors: [{ message: "Invalid access token bad_tok" }] }), {
+      __EMAIL_FETCH: async () => new Response(JSON.stringify({ success: false, errors: [{ code: 10000, message: "Invalid access token bad_tok" }] }), {
         status: 401,
         headers: { "Content-Type": "application/json" },
       }),
     }, { kind: "owner_ops_test", to: "wyj20090904@gmail.com" }),
-    (err) => err.code === "email_credentials_invalid" && err.status === 503 && !err.message.includes("bad_tok"),
+    (err) => err.code === "email_credentials_invalid"
+      && err.status === 503
+      && err.details?.provider_code === "10000"
+      && err.details?.provider_status === 401
+      && !err.message.includes("bad_tok"),
   );
+
+  await assert.rejects(
+    () => sendTransactionalEmail({
+      EMAIL_SENDING_ENABLED: "true",
+      EMAIL_SEND_API_TOKEN: "tok_test",
+      EMAIL_CLOUDFLARE_ACCOUNT_ID: validAccountId,
+      __EMAIL_FETCH: async () => new Response(JSON.stringify({
+        success: false,
+        errors: [{ code: 5501, message: "Sender domain is not verified" }],
+      }), { status: 400, headers: { "Content-Type": "application/json" } }),
+    }, { kind: "owner_ops_test", to: "wyj20090904@gmail.com" }),
+    (err) => err.code === "email_rejected"
+      && err.status === 400
+      && err.details?.delivery_status === "rejected"
+      && err.details?.provider_code === "5501"
+      && err.details?.provider_status === 400,
+  );
+
+  const apiRejected = await callApi(db, "/api/admin/email/test-send", {
+    method: "POST",
+    token: USERS.owner.token,
+    body: { recipient: "wyj20090904@gmail.com", kind: "owner_ops_test" },
+    env: {
+      EMAIL_SEND_API_TOKEN: "tok_test",
+      EMAIL_CLOUDFLARE_ACCOUNT_ID: validAccountId,
+      __EMAIL_FETCH: async () => new Response(JSON.stringify({
+        success: false,
+        errors: [{ code: 5502, message: "sender domain unverified" }],
+      }), { status: 400, headers: { "Content-Type": "application/json" } }),
+    },
+  });
+  assert.equal(apiRejected.status, 400);
+  assert.equal(apiRejected.body.code, "email_rejected");
+  assert.equal(apiRejected.body.provider_code, "5502");
+  assert.equal(apiRejected.body.provider_status, 400);
+  assert.equal(apiRejected.body.delivery_status, "rejected");
 
   await assert.rejects(
     () => sendTransactionalEmail({
@@ -393,7 +463,20 @@ try {
         result: { delivered: [], queued: [], permanent_bounces: ["wyj20090904@gmail.com"] },
       }), { status: 200, headers: { "Content-Type": "application/json" } }),
     }, { kind: "owner_ops_test", to: "wyj20090904@gmail.com" }),
-    (err) => err.code === "email_rejected" && err.status === 400,
+    (err) => err.code === "email_rejected" && err.status === 400 && err.details?.delivery_status === "rejected",
+  );
+
+  await assert.rejects(
+    () => sendTransactionalEmail({
+      EMAIL_SENDING_ENABLED: "true",
+      EMAIL_SEND_API_TOKEN: "tok_test",
+      EMAIL_CLOUDFLARE_ACCOUNT_ID: validAccountId,
+      __EMAIL_FETCH: async () => new Response(JSON.stringify({
+        success: true,
+        result: { delivered: [], queued: [], permanent_bounces: [], suppressed_recipients: ["wyj20090904@gmail.com"] },
+      }), { status: 200, headers: { "Content-Type": "application/json" } }),
+    }, { kind: "owner_ops_test", to: "wyj20090904@gmail.com" }),
+    (err) => err.code === "email_rejected" && err.status === 400 && err.details?.delivery_status === "rejected",
   );
   check("Pages wrangler schema guard and Cloudflare Email Sending REST transport");
 
