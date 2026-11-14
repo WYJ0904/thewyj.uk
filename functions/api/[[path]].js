@@ -13,6 +13,7 @@ import { handleTask25Request } from "../_lib/task25-api.mjs";
 import { handlePublicUiRequest } from "../_lib/p07-ui-api.mjs";
 import { handleTask26Request } from "../_lib/task26-api.mjs";
 import { handleTtsRequest } from "../_lib/tts-api.mjs";
+import { handleEmailRequest } from "../_lib/email-api.mjs";
 import { resolveTask12Account } from "../_lib/task12-auth.mjs";
 import { recordAdminAction } from "../_lib/task18-service.mjs";
 
@@ -36,6 +37,7 @@ const SENSITIVE_ADMIN_ACTIONS = Object.freeze({
   "/api/admin/task16/import": ["task16_import", "migration", "source_key"],
   "/api/admin/task16/import/rollback": ["task16_import_rollback", "migration", "source_key"],
   "/api/admin/task22/cleanup": ["task22_cleanup", "operation", "mode"],
+  "/api/admin/email/test-send": ["email_test_send", "email", "recipient"],
 });
 
 async function auditSensitiveAdminRequest(context, response, bodyRequest, descriptor) {
@@ -84,6 +86,7 @@ export async function onRequest(context) {
     || await handleTask21Request(context)
     || await handleTask22Request(context)
     || await handleTtsRequest(context)
+    || await handleEmailRequest(context)
     || await handleTask13Request(context)
     || await handleTask14Request(context)
     || await handleTask11Request(context)

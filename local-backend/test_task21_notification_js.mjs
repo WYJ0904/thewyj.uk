@@ -5,7 +5,7 @@ import path from "node:path";
 
 import { Miniflare } from "miniflare";
 
-import { handleTask21Request } from "../functions/_lib/task21-api.mjs";
+import { handleTask21Request, __testing as task21ApiTesting } from "../functions/_lib/task21-api.mjs";
 import { handleTask16Request } from "../functions/_lib/task16-api.mjs";
 import { sessionStorageKey } from "../functions/_lib/task12-crypto.mjs";
 import { __testing as task21Testing } from "../functions/_lib/task21-service.mjs";
@@ -1381,7 +1381,40 @@ try {
   assert.equal(oldReplay.payload.operation_results[0].transaction_id, oldManual.payload.transaction_id);
   assert.equal(oldReplay.payload.operation_results[0].receipt_reconciled, true);
 
-  console.log("Task 21 notification checks passed (privacy boundary, entitlement lifecycle, idempotent ingest, dedupe, finance integration, candidate state machine, feature flags, device-booking hint convergence).");
+  // SEC-S0-M01 regression: deeply nested JSON must fail cleanly with 400 (never
+  // 503 stack overflow in containsJpy), while bounded nesting passes and
+  // iterative containsJpy scans deep in-memory structures without throwing.
+  let deep = { leaf: "ok" };
+  for (let i = 0; i < 4000; i += 1) deep = { nested: deep };
+  assert.equal(task21ApiTesting.containsJpy(deep), false);
+  let deepJpy = { currency: "JPY" };
+  for (let i = 0; i < 4000; i += 1) deepJpy = { nested: deepJpy };
+  assert.equal(task21ApiTesting.containsJpy(deepJpy), true);
+
+  const deepReject = await request(db, "/api/notification/ingest", {
+    method: "POST",
+    token: USERS.subscriber.token,
+    body: deep,
+  });
+  assert.equal(deepReject.response.status, 400, JSON.stringify(deepReject.payload));
+  assert.equal(deepReject.payload.code, "json_depth_exceeded");
+
+  let depth32 = { ok: true };
+  for (let i = 1; i < 32; i += 1) depth32 = { nested: depth32 };
+  assert.equal(task21ApiTesting.exceedsJsonDepth(depth32), false);
+  assert.equal(task21ApiTesting.exceedsJsonDepth({ nested: depth32 }), true);
+
+  const validShallow = await request(db, "/api/notification/ingest", {
+    method: "POST",
+    token: USERS.subscriber.token,
+    body: ingestBody("device-task21-000001", "op-shallow-depth-ok", transactionEvent({
+      event_id: "evt-shallow-depth-ok",
+      fingerprint: fingerprint("f475"),
+    })),
+  });
+  assert.equal(validShallow.response.status, 200, JSON.stringify(validShallow.payload));
+
+  console.log("Task 21 notification checks passed (privacy boundary, entitlement lifecycle, idempotent ingest, dedupe, finance integration, candidate state machine, feature flags, device-booking hint convergence, deep-JSON guard).");
 } finally {
   await mf.dispose();
   await rm(runtime, { recursive: true, force: true });

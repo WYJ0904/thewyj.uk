@@ -1,0 +1,1950 @@
+{
+  "oracle": "Python Decimal precision 100; ROUND_HALF_EVEN; one destination rounding",
+  "synthetic_only": true,
+  "cases": [
+    {
+      "id": "CNY-CNY-000",
+      "base": "CNY",
+      "quote": "CNY",
+      "minor": 0,
+      "rate": "7",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "CNY-CNY-001",
+      "base": "CNY",
+      "quote": "CNY",
+      "minor": 1,
+      "rate": "0.5",
+      "expected": 1,
+      "overflow": false
+    },
+    {
+      "id": "CNY-CNY-002",
+      "base": "CNY",
+      "quote": "CNY",
+      "minor": -3,
+      "rate": "0.5",
+      "expected": -3,
+      "overflow": false
+    },
+    {
+      "id": "CNY-CNY-003",
+      "base": "CNY",
+      "quote": "CNY",
+      "minor": 12345,
+      "rate": "7.000000000000000001",
+      "expected": 12345,
+      "overflow": false
+    },
+    {
+      "id": "CNY-CNY-004",
+      "base": "CNY",
+      "quote": "CNY",
+      "minor": -12345,
+      "rate": "1e-18",
+      "expected": -12345,
+      "overflow": false
+    },
+    {
+      "id": "CNY-CNY-005",
+      "base": "CNY",
+      "quote": "CNY",
+      "minor": 9007199254740991,
+      "rate": "1000000000000",
+      "expected": 9007199254740991,
+      "overflow": false
+    },
+    {
+      "id": "CNY-USD-006",
+      "base": "CNY",
+      "quote": "USD",
+      "minor": 0,
+      "rate": "7",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "CNY-USD-007",
+      "base": "CNY",
+      "quote": "USD",
+      "minor": 1,
+      "rate": "0.5",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "CNY-USD-008",
+      "base": "CNY",
+      "quote": "USD",
+      "minor": -3,
+      "rate": "0.5",
+      "expected": -2,
+      "overflow": false
+    },
+    {
+      "id": "CNY-USD-009",
+      "base": "CNY",
+      "quote": "USD",
+      "minor": 12345,
+      "rate": "7.000000000000000001",
+      "expected": 86415,
+      "overflow": false
+    },
+    {
+      "id": "CNY-USD-010",
+      "base": "CNY",
+      "quote": "USD",
+      "minor": -12345,
+      "rate": "1e-18",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "CNY-USD-011",
+      "base": "CNY",
+      "quote": "USD",
+      "minor": 9007199254740991,
+      "rate": "1000000000000",
+      "expected": null,
+      "overflow": true
+    },
+    {
+      "id": "CNY-EUR-012",
+      "base": "CNY",
+      "quote": "EUR",
+      "minor": 0,
+      "rate": "7",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "CNY-EUR-013",
+      "base": "CNY",
+      "quote": "EUR",
+      "minor": 1,
+      "rate": "0.5",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "CNY-EUR-014",
+      "base": "CNY",
+      "quote": "EUR",
+      "minor": -3,
+      "rate": "0.5",
+      "expected": -2,
+      "overflow": false
+    },
+    {
+      "id": "CNY-EUR-015",
+      "base": "CNY",
+      "quote": "EUR",
+      "minor": 12345,
+      "rate": "7.000000000000000001",
+      "expected": 86415,
+      "overflow": false
+    },
+    {
+      "id": "CNY-EUR-016",
+      "base": "CNY",
+      "quote": "EUR",
+      "minor": -12345,
+      "rate": "1e-18",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "CNY-EUR-017",
+      "base": "CNY",
+      "quote": "EUR",
+      "minor": 9007199254740991,
+      "rate": "1000000000000",
+      "expected": null,
+      "overflow": true
+    },
+    {
+      "id": "CNY-HKD-018",
+      "base": "CNY",
+      "quote": "HKD",
+      "minor": 0,
+      "rate": "7",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "CNY-HKD-019",
+      "base": "CNY",
+      "quote": "HKD",
+      "minor": 1,
+      "rate": "0.5",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "CNY-HKD-020",
+      "base": "CNY",
+      "quote": "HKD",
+      "minor": -3,
+      "rate": "0.5",
+      "expected": -2,
+      "overflow": false
+    },
+    {
+      "id": "CNY-HKD-021",
+      "base": "CNY",
+      "quote": "HKD",
+      "minor": 12345,
+      "rate": "7.000000000000000001",
+      "expected": 86415,
+      "overflow": false
+    },
+    {
+      "id": "CNY-HKD-022",
+      "base": "CNY",
+      "quote": "HKD",
+      "minor": -12345,
+      "rate": "1e-18",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "CNY-HKD-023",
+      "base": "CNY",
+      "quote": "HKD",
+      "minor": 9007199254740991,
+      "rate": "1000000000000",
+      "expected": null,
+      "overflow": true
+    },
+    {
+      "id": "CNY-GBP-024",
+      "base": "CNY",
+      "quote": "GBP",
+      "minor": 0,
+      "rate": "7",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "CNY-GBP-025",
+      "base": "CNY",
+      "quote": "GBP",
+      "minor": 1,
+      "rate": "0.5",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "CNY-GBP-026",
+      "base": "CNY",
+      "quote": "GBP",
+      "minor": -3,
+      "rate": "0.5",
+      "expected": -2,
+      "overflow": false
+    },
+    {
+      "id": "CNY-GBP-027",
+      "base": "CNY",
+      "quote": "GBP",
+      "minor": 12345,
+      "rate": "7.000000000000000001",
+      "expected": 86415,
+      "overflow": false
+    },
+    {
+      "id": "CNY-GBP-028",
+      "base": "CNY",
+      "quote": "GBP",
+      "minor": -12345,
+      "rate": "1e-18",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "CNY-GBP-029",
+      "base": "CNY",
+      "quote": "GBP",
+      "minor": 9007199254740991,
+      "rate": "1000000000000",
+      "expected": null,
+      "overflow": true
+    },
+    {
+      "id": "CNY-JPY-030",
+      "base": "CNY",
+      "quote": "JPY",
+      "minor": 0,
+      "rate": "7",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "CNY-JPY-031",
+      "base": "CNY",
+      "quote": "JPY",
+      "minor": 1,
+      "rate": "0.5",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "CNY-JPY-032",
+      "base": "CNY",
+      "quote": "JPY",
+      "minor": -3,
+      "rate": "0.5",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "CNY-JPY-033",
+      "base": "CNY",
+      "quote": "JPY",
+      "minor": 12345,
+      "rate": "7.000000000000000001",
+      "expected": 864,
+      "overflow": false
+    },
+    {
+      "id": "CNY-JPY-034",
+      "base": "CNY",
+      "quote": "JPY",
+      "minor": -12345,
+      "rate": "1e-18",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "CNY-JPY-035",
+      "base": "CNY",
+      "quote": "JPY",
+      "minor": 9007199254740991,
+      "rate": "1000000000000",
+      "expected": null,
+      "overflow": true
+    },
+    {
+      "id": "USD-CNY-036",
+      "base": "USD",
+      "quote": "CNY",
+      "minor": 0,
+      "rate": "7",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "USD-CNY-037",
+      "base": "USD",
+      "quote": "CNY",
+      "minor": 1,
+      "rate": "0.5",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "USD-CNY-038",
+      "base": "USD",
+      "quote": "CNY",
+      "minor": -3,
+      "rate": "0.5",
+      "expected": -2,
+      "overflow": false
+    },
+    {
+      "id": "USD-CNY-039",
+      "base": "USD",
+      "quote": "CNY",
+      "minor": 12345,
+      "rate": "7.000000000000000001",
+      "expected": 86415,
+      "overflow": false
+    },
+    {
+      "id": "USD-CNY-040",
+      "base": "USD",
+      "quote": "CNY",
+      "minor": -12345,
+      "rate": "1e-18",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "USD-CNY-041",
+      "base": "USD",
+      "quote": "CNY",
+      "minor": 9007199254740991,
+      "rate": "1000000000000",
+      "expected": null,
+      "overflow": true
+    },
+    {
+      "id": "USD-USD-042",
+      "base": "USD",
+      "quote": "USD",
+      "minor": 0,
+      "rate": "7",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "USD-USD-043",
+      "base": "USD",
+      "quote": "USD",
+      "minor": 1,
+      "rate": "0.5",
+      "expected": 1,
+      "overflow": false
+    },
+    {
+      "id": "USD-USD-044",
+      "base": "USD",
+      "quote": "USD",
+      "minor": -3,
+      "rate": "0.5",
+      "expected": -3,
+      "overflow": false
+    },
+    {
+      "id": "USD-USD-045",
+      "base": "USD",
+      "quote": "USD",
+      "minor": 12345,
+      "rate": "7.000000000000000001",
+      "expected": 12345,
+      "overflow": false
+    },
+    {
+      "id": "USD-USD-046",
+      "base": "USD",
+      "quote": "USD",
+      "minor": -12345,
+      "rate": "1e-18",
+      "expected": -12345,
+      "overflow": false
+    },
+    {
+      "id": "USD-USD-047",
+      "base": "USD",
+      "quote": "USD",
+      "minor": 9007199254740991,
+      "rate": "1000000000000",
+      "expected": 9007199254740991,
+      "overflow": false
+    },
+    {
+      "id": "USD-EUR-048",
+      "base": "USD",
+      "quote": "EUR",
+      "minor": 0,
+      "rate": "7",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "USD-EUR-049",
+      "base": "USD",
+      "quote": "EUR",
+      "minor": 1,
+      "rate": "0.5",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "USD-EUR-050",
+      "base": "USD",
+      "quote": "EUR",
+      "minor": -3,
+      "rate": "0.5",
+      "expected": -2,
+      "overflow": false
+    },
+    {
+      "id": "USD-EUR-051",
+      "base": "USD",
+      "quote": "EUR",
+      "minor": 12345,
+      "rate": "7.000000000000000001",
+      "expected": 86415,
+      "overflow": false
+    },
+    {
+      "id": "USD-EUR-052",
+      "base": "USD",
+      "quote": "EUR",
+      "minor": -12345,
+      "rate": "1e-18",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "USD-EUR-053",
+      "base": "USD",
+      "quote": "EUR",
+      "minor": 9007199254740991,
+      "rate": "1000000000000",
+      "expected": null,
+      "overflow": true
+    },
+    {
+      "id": "USD-HKD-054",
+      "base": "USD",
+      "quote": "HKD",
+      "minor": 0,
+      "rate": "7",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "USD-HKD-055",
+      "base": "USD",
+      "quote": "HKD",
+      "minor": 1,
+      "rate": "0.5",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "USD-HKD-056",
+      "base": "USD",
+      "quote": "HKD",
+      "minor": -3,
+      "rate": "0.5",
+      "expected": -2,
+      "overflow": false
+    },
+    {
+      "id": "USD-HKD-057",
+      "base": "USD",
+      "quote": "HKD",
+      "minor": 12345,
+      "rate": "7.000000000000000001",
+      "expected": 86415,
+      "overflow": false
+    },
+    {
+      "id": "USD-HKD-058",
+      "base": "USD",
+      "quote": "HKD",
+      "minor": -12345,
+      "rate": "1e-18",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "USD-HKD-059",
+      "base": "USD",
+      "quote": "HKD",
+      "minor": 9007199254740991,
+      "rate": "1000000000000",
+      "expected": null,
+      "overflow": true
+    },
+    {
+      "id": "USD-GBP-060",
+      "base": "USD",
+      "quote": "GBP",
+      "minor": 0,
+      "rate": "7",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "USD-GBP-061",
+      "base": "USD",
+      "quote": "GBP",
+      "minor": 1,
+      "rate": "0.5",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "USD-GBP-062",
+      "base": "USD",
+      "quote": "GBP",
+      "minor": -3,
+      "rate": "0.5",
+      "expected": -2,
+      "overflow": false
+    },
+    {
+      "id": "USD-GBP-063",
+      "base": "USD",
+      "quote": "GBP",
+      "minor": 12345,
+      "rate": "7.000000000000000001",
+      "expected": 86415,
+      "overflow": false
+    },
+    {
+      "id": "USD-GBP-064",
+      "base": "USD",
+      "quote": "GBP",
+      "minor": -12345,
+      "rate": "1e-18",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "USD-GBP-065",
+      "base": "USD",
+      "quote": "GBP",
+      "minor": 9007199254740991,
+      "rate": "1000000000000",
+      "expected": null,
+      "overflow": true
+    },
+    {
+      "id": "USD-JPY-066",
+      "base": "USD",
+      "quote": "JPY",
+      "minor": 0,
+      "rate": "7",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "USD-JPY-067",
+      "base": "USD",
+      "quote": "JPY",
+      "minor": 1,
+      "rate": "0.5",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "USD-JPY-068",
+      "base": "USD",
+      "quote": "JPY",
+      "minor": -3,
+      "rate": "0.5",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "USD-JPY-069",
+      "base": "USD",
+      "quote": "JPY",
+      "minor": 12345,
+      "rate": "7.000000000000000001",
+      "expected": 864,
+      "overflow": false
+    },
+    {
+      "id": "USD-JPY-070",
+      "base": "USD",
+      "quote": "JPY",
+      "minor": -12345,
+      "rate": "1e-18",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "USD-JPY-071",
+      "base": "USD",
+      "quote": "JPY",
+      "minor": 9007199254740991,
+      "rate": "1000000000000",
+      "expected": null,
+      "overflow": true
+    },
+    {
+      "id": "EUR-CNY-072",
+      "base": "EUR",
+      "quote": "CNY",
+      "minor": 0,
+      "rate": "7",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "EUR-CNY-073",
+      "base": "EUR",
+      "quote": "CNY",
+      "minor": 1,
+      "rate": "0.5",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "EUR-CNY-074",
+      "base": "EUR",
+      "quote": "CNY",
+      "minor": -3,
+      "rate": "0.5",
+      "expected": -2,
+      "overflow": false
+    },
+    {
+      "id": "EUR-CNY-075",
+      "base": "EUR",
+      "quote": "CNY",
+      "minor": 12345,
+      "rate": "7.000000000000000001",
+      "expected": 86415,
+      "overflow": false
+    },
+    {
+      "id": "EUR-CNY-076",
+      "base": "EUR",
+      "quote": "CNY",
+      "minor": -12345,
+      "rate": "1e-18",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "EUR-CNY-077",
+      "base": "EUR",
+      "quote": "CNY",
+      "minor": 9007199254740991,
+      "rate": "1000000000000",
+      "expected": null,
+      "overflow": true
+    },
+    {
+      "id": "EUR-USD-078",
+      "base": "EUR",
+      "quote": "USD",
+      "minor": 0,
+      "rate": "7",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "EUR-USD-079",
+      "base": "EUR",
+      "quote": "USD",
+      "minor": 1,
+      "rate": "0.5",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "EUR-USD-080",
+      "base": "EUR",
+      "quote": "USD",
+      "minor": -3,
+      "rate": "0.5",
+      "expected": -2,
+      "overflow": false
+    },
+    {
+      "id": "EUR-USD-081",
+      "base": "EUR",
+      "quote": "USD",
+      "minor": 12345,
+      "rate": "7.000000000000000001",
+      "expected": 86415,
+      "overflow": false
+    },
+    {
+      "id": "EUR-USD-082",
+      "base": "EUR",
+      "quote": "USD",
+      "minor": -12345,
+      "rate": "1e-18",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "EUR-USD-083",
+      "base": "EUR",
+      "quote": "USD",
+      "minor": 9007199254740991,
+      "rate": "1000000000000",
+      "expected": null,
+      "overflow": true
+    },
+    {
+      "id": "EUR-EUR-084",
+      "base": "EUR",
+      "quote": "EUR",
+      "minor": 0,
+      "rate": "7",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "EUR-EUR-085",
+      "base": "EUR",
+      "quote": "EUR",
+      "minor": 1,
+      "rate": "0.5",
+      "expected": 1,
+      "overflow": false
+    },
+    {
+      "id": "EUR-EUR-086",
+      "base": "EUR",
+      "quote": "EUR",
+      "minor": -3,
+      "rate": "0.5",
+      "expected": -3,
+      "overflow": false
+    },
+    {
+      "id": "EUR-EUR-087",
+      "base": "EUR",
+      "quote": "EUR",
+      "minor": 12345,
+      "rate": "7.000000000000000001",
+      "expected": 12345,
+      "overflow": false
+    },
+    {
+      "id": "EUR-EUR-088",
+      "base": "EUR",
+      "quote": "EUR",
+      "minor": -12345,
+      "rate": "1e-18",
+      "expected": -12345,
+      "overflow": false
+    },
+    {
+      "id": "EUR-EUR-089",
+      "base": "EUR",
+      "quote": "EUR",
+      "minor": 9007199254740991,
+      "rate": "1000000000000",
+      "expected": 9007199254740991,
+      "overflow": false
+    },
+    {
+      "id": "EUR-HKD-090",
+      "base": "EUR",
+      "quote": "HKD",
+      "minor": 0,
+      "rate": "7",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "EUR-HKD-091",
+      "base": "EUR",
+      "quote": "HKD",
+      "minor": 1,
+      "rate": "0.5",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "EUR-HKD-092",
+      "base": "EUR",
+      "quote": "HKD",
+      "minor": -3,
+      "rate": "0.5",
+      "expected": -2,
+      "overflow": false
+    },
+    {
+      "id": "EUR-HKD-093",
+      "base": "EUR",
+      "quote": "HKD",
+      "minor": 12345,
+      "rate": "7.000000000000000001",
+      "expected": 86415,
+      "overflow": false
+    },
+    {
+      "id": "EUR-HKD-094",
+      "base": "EUR",
+      "quote": "HKD",
+      "minor": -12345,
+      "rate": "1e-18",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "EUR-HKD-095",
+      "base": "EUR",
+      "quote": "HKD",
+      "minor": 9007199254740991,
+      "rate": "1000000000000",
+      "expected": null,
+      "overflow": true
+    },
+    {
+      "id": "EUR-GBP-096",
+      "base": "EUR",
+      "quote": "GBP",
+      "minor": 0,
+      "rate": "7",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "EUR-GBP-097",
+      "base": "EUR",
+      "quote": "GBP",
+      "minor": 1,
+      "rate": "0.5",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "EUR-GBP-098",
+      "base": "EUR",
+      "quote": "GBP",
+      "minor": -3,
+      "rate": "0.5",
+      "expected": -2,
+      "overflow": false
+    },
+    {
+      "id": "EUR-GBP-099",
+      "base": "EUR",
+      "quote": "GBP",
+      "minor": 12345,
+      "rate": "7.000000000000000001",
+      "expected": 86415,
+      "overflow": false
+    },
+    {
+      "id": "EUR-GBP-100",
+      "base": "EUR",
+      "quote": "GBP",
+      "minor": -12345,
+      "rate": "1e-18",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "EUR-GBP-101",
+      "base": "EUR",
+      "quote": "GBP",
+      "minor": 9007199254740991,
+      "rate": "1000000000000",
+      "expected": null,
+      "overflow": true
+    },
+    {
+      "id": "EUR-JPY-102",
+      "base": "EUR",
+      "quote": "JPY",
+      "minor": 0,
+      "rate": "7",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "EUR-JPY-103",
+      "base": "EUR",
+      "quote": "JPY",
+      "minor": 1,
+      "rate": "0.5",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "EUR-JPY-104",
+      "base": "EUR",
+      "quote": "JPY",
+      "minor": -3,
+      "rate": "0.5",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "EUR-JPY-105",
+      "base": "EUR",
+      "quote": "JPY",
+      "minor": 12345,
+      "rate": "7.000000000000000001",
+      "expected": 864,
+      "overflow": false
+    },
+    {
+      "id": "EUR-JPY-106",
+      "base": "EUR",
+      "quote": "JPY",
+      "minor": -12345,
+      "rate": "1e-18",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "EUR-JPY-107",
+      "base": "EUR",
+      "quote": "JPY",
+      "minor": 9007199254740991,
+      "rate": "1000000000000",
+      "expected": null,
+      "overflow": true
+    },
+    {
+      "id": "HKD-CNY-108",
+      "base": "HKD",
+      "quote": "CNY",
+      "minor": 0,
+      "rate": "7",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "HKD-CNY-109",
+      "base": "HKD",
+      "quote": "CNY",
+      "minor": 1,
+      "rate": "0.5",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "HKD-CNY-110",
+      "base": "HKD",
+      "quote": "CNY",
+      "minor": -3,
+      "rate": "0.5",
+      "expected": -2,
+      "overflow": false
+    },
+    {
+      "id": "HKD-CNY-111",
+      "base": "HKD",
+      "quote": "CNY",
+      "minor": 12345,
+      "rate": "7.000000000000000001",
+      "expected": 86415,
+      "overflow": false
+    },
+    {
+      "id": "HKD-CNY-112",
+      "base": "HKD",
+      "quote": "CNY",
+      "minor": -12345,
+      "rate": "1e-18",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "HKD-CNY-113",
+      "base": "HKD",
+      "quote": "CNY",
+      "minor": 9007199254740991,
+      "rate": "1000000000000",
+      "expected": null,
+      "overflow": true
+    },
+    {
+      "id": "HKD-USD-114",
+      "base": "HKD",
+      "quote": "USD",
+      "minor": 0,
+      "rate": "7",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "HKD-USD-115",
+      "base": "HKD",
+      "quote": "USD",
+      "minor": 1,
+      "rate": "0.5",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "HKD-USD-116",
+      "base": "HKD",
+      "quote": "USD",
+      "minor": -3,
+      "rate": "0.5",
+      "expected": -2,
+      "overflow": false
+    },
+    {
+      "id": "HKD-USD-117",
+      "base": "HKD",
+      "quote": "USD",
+      "minor": 12345,
+      "rate": "7.000000000000000001",
+      "expected": 86415,
+      "overflow": false
+    },
+    {
+      "id": "HKD-USD-118",
+      "base": "HKD",
+      "quote": "USD",
+      "minor": -12345,
+      "rate": "1e-18",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "HKD-USD-119",
+      "base": "HKD",
+      "quote": "USD",
+      "minor": 9007199254740991,
+      "rate": "1000000000000",
+      "expected": null,
+      "overflow": true
+    },
+    {
+      "id": "HKD-EUR-120",
+      "base": "HKD",
+      "quote": "EUR",
+      "minor": 0,
+      "rate": "7",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "HKD-EUR-121",
+      "base": "HKD",
+      "quote": "EUR",
+      "minor": 1,
+      "rate": "0.5",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "HKD-EUR-122",
+      "base": "HKD",
+      "quote": "EUR",
+      "minor": -3,
+      "rate": "0.5",
+      "expected": -2,
+      "overflow": false
+    },
+    {
+      "id": "HKD-EUR-123",
+      "base": "HKD",
+      "quote": "EUR",
+      "minor": 12345,
+      "rate": "7.000000000000000001",
+      "expected": 86415,
+      "overflow": false
+    },
+    {
+      "id": "HKD-EUR-124",
+      "base": "HKD",
+      "quote": "EUR",
+      "minor": -12345,
+      "rate": "1e-18",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "HKD-EUR-125",
+      "base": "HKD",
+      "quote": "EUR",
+      "minor": 9007199254740991,
+      "rate": "1000000000000",
+      "expected": null,
+      "overflow": true
+    },
+    {
+      "id": "HKD-HKD-126",
+      "base": "HKD",
+      "quote": "HKD",
+      "minor": 0,
+      "rate": "7",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "HKD-HKD-127",
+      "base": "HKD",
+      "quote": "HKD",
+      "minor": 1,
+      "rate": "0.5",
+      "expected": 1,
+      "overflow": false
+    },
+    {
+      "id": "HKD-HKD-128",
+      "base": "HKD",
+      "quote": "HKD",
+      "minor": -3,
+      "rate": "0.5",
+      "expected": -3,
+      "overflow": false
+    },
+    {
+      "id": "HKD-HKD-129",
+      "base": "HKD",
+      "quote": "HKD",
+      "minor": 12345,
+      "rate": "7.000000000000000001",
+      "expected": 12345,
+      "overflow": false
+    },
+    {
+      "id": "HKD-HKD-130",
+      "base": "HKD",
+      "quote": "HKD",
+      "minor": -12345,
+      "rate": "1e-18",
+      "expected": -12345,
+      "overflow": false
+    },
+    {
+      "id": "HKD-HKD-131",
+      "base": "HKD",
+      "quote": "HKD",
+      "minor": 9007199254740991,
+      "rate": "1000000000000",
+      "expected": 9007199254740991,
+      "overflow": false
+    },
+    {
+      "id": "HKD-GBP-132",
+      "base": "HKD",
+      "quote": "GBP",
+      "minor": 0,
+      "rate": "7",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "HKD-GBP-133",
+      "base": "HKD",
+      "quote": "GBP",
+      "minor": 1,
+      "rate": "0.5",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "HKD-GBP-134",
+      "base": "HKD",
+      "quote": "GBP",
+      "minor": -3,
+      "rate": "0.5",
+      "expected": -2,
+      "overflow": false
+    },
+    {
+      "id": "HKD-GBP-135",
+      "base": "HKD",
+      "quote": "GBP",
+      "minor": 12345,
+      "rate": "7.000000000000000001",
+      "expected": 86415,
+      "overflow": false
+    },
+    {
+      "id": "HKD-GBP-136",
+      "base": "HKD",
+      "quote": "GBP",
+      "minor": -12345,
+      "rate": "1e-18",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "HKD-GBP-137",
+      "base": "HKD",
+      "quote": "GBP",
+      "minor": 9007199254740991,
+      "rate": "1000000000000",
+      "expected": null,
+      "overflow": true
+    },
+    {
+      "id": "HKD-JPY-138",
+      "base": "HKD",
+      "quote": "JPY",
+      "minor": 0,
+      "rate": "7",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "HKD-JPY-139",
+      "base": "HKD",
+      "quote": "JPY",
+      "minor": 1,
+      "rate": "0.5",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "HKD-JPY-140",
+      "base": "HKD",
+      "quote": "JPY",
+      "minor": -3,
+      "rate": "0.5",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "HKD-JPY-141",
+      "base": "HKD",
+      "quote": "JPY",
+      "minor": 12345,
+      "rate": "7.000000000000000001",
+      "expected": 864,
+      "overflow": false
+    },
+    {
+      "id": "HKD-JPY-142",
+      "base": "HKD",
+      "quote": "JPY",
+      "minor": -12345,
+      "rate": "1e-18",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "HKD-JPY-143",
+      "base": "HKD",
+      "quote": "JPY",
+      "minor": 9007199254740991,
+      "rate": "1000000000000",
+      "expected": null,
+      "overflow": true
+    },
+    {
+      "id": "GBP-CNY-144",
+      "base": "GBP",
+      "quote": "CNY",
+      "minor": 0,
+      "rate": "7",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "GBP-CNY-145",
+      "base": "GBP",
+      "quote": "CNY",
+      "minor": 1,
+      "rate": "0.5",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "GBP-CNY-146",
+      "base": "GBP",
+      "quote": "CNY",
+      "minor": -3,
+      "rate": "0.5",
+      "expected": -2,
+      "overflow": false
+    },
+    {
+      "id": "GBP-CNY-147",
+      "base": "GBP",
+      "quote": "CNY",
+      "minor": 12345,
+      "rate": "7.000000000000000001",
+      "expected": 86415,
+      "overflow": false
+    },
+    {
+      "id": "GBP-CNY-148",
+      "base": "GBP",
+      "quote": "CNY",
+      "minor": -12345,
+      "rate": "1e-18",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "GBP-CNY-149",
+      "base": "GBP",
+      "quote": "CNY",
+      "minor": 9007199254740991,
+      "rate": "1000000000000",
+      "expected": null,
+      "overflow": true
+    },
+    {
+      "id": "GBP-USD-150",
+      "base": "GBP",
+      "quote": "USD",
+      "minor": 0,
+      "rate": "7",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "GBP-USD-151",
+      "base": "GBP",
+      "quote": "USD",
+      "minor": 1,
+      "rate": "0.5",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "GBP-USD-152",
+      "base": "GBP",
+      "quote": "USD",
+      "minor": -3,
+      "rate": "0.5",
+      "expected": -2,
+      "overflow": false
+    },
+    {
+      "id": "GBP-USD-153",
+      "base": "GBP",
+      "quote": "USD",
+      "minor": 12345,
+      "rate": "7.000000000000000001",
+      "expected": 86415,
+      "overflow": false
+    },
+    {
+      "id": "GBP-USD-154",
+      "base": "GBP",
+      "quote": "USD",
+      "minor": -12345,
+      "rate": "1e-18",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "GBP-USD-155",
+      "base": "GBP",
+      "quote": "USD",
+      "minor": 9007199254740991,
+      "rate": "1000000000000",
+      "expected": null,
+      "overflow": true
+    },
+    {
+      "id": "GBP-EUR-156",
+      "base": "GBP",
+      "quote": "EUR",
+      "minor": 0,
+      "rate": "7",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "GBP-EUR-157",
+      "base": "GBP",
+      "quote": "EUR",
+      "minor": 1,
+      "rate": "0.5",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "GBP-EUR-158",
+      "base": "GBP",
+      "quote": "EUR",
+      "minor": -3,
+      "rate": "0.5",
+      "expected": -2,
+      "overflow": false
+    },
+    {
+      "id": "GBP-EUR-159",
+      "base": "GBP",
+      "quote": "EUR",
+      "minor": 12345,
+      "rate": "7.000000000000000001",
+      "expected": 86415,
+      "overflow": false
+    },
+    {
+      "id": "GBP-EUR-160",
+      "base": "GBP",
+      "quote": "EUR",
+      "minor": -12345,
+      "rate": "1e-18",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "GBP-EUR-161",
+      "base": "GBP",
+      "quote": "EUR",
+      "minor": 9007199254740991,
+      "rate": "1000000000000",
+      "expected": null,
+      "overflow": true
+    },
+    {
+      "id": "GBP-HKD-162",
+      "base": "GBP",
+      "quote": "HKD",
+      "minor": 0,
+      "rate": "7",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "GBP-HKD-163",
+      "base": "GBP",
+      "quote": "HKD",
+      "minor": 1,
+      "rate": "0.5",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "GBP-HKD-164",
+      "base": "GBP",
+      "quote": "HKD",
+      "minor": -3,
+      "rate": "0.5",
+      "expected": -2,
+      "overflow": false
+    },
+    {
+      "id": "GBP-HKD-165",
+      "base": "GBP",
+      "quote": "HKD",
+      "minor": 12345,
+      "rate": "7.000000000000000001",
+      "expected": 86415,
+      "overflow": false
+    },
+    {
+      "id": "GBP-HKD-166",
+      "base": "GBP",
+      "quote": "HKD",
+      "minor": -12345,
+      "rate": "1e-18",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "GBP-HKD-167",
+      "base": "GBP",
+      "quote": "HKD",
+      "minor": 9007199254740991,
+      "rate": "1000000000000",
+      "expected": null,
+      "overflow": true
+    },
+    {
+      "id": "GBP-GBP-168",
+      "base": "GBP",
+      "quote": "GBP",
+      "minor": 0,
+      "rate": "7",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "GBP-GBP-169",
+      "base": "GBP",
+      "quote": "GBP",
+      "minor": 1,
+      "rate": "0.5",
+      "expected": 1,
+      "overflow": false
+    },
+    {
+      "id": "GBP-GBP-170",
+      "base": "GBP",
+      "quote": "GBP",
+      "minor": -3,
+      "rate": "0.5",
+      "expected": -3,
+      "overflow": false
+    },
+    {
+      "id": "GBP-GBP-171",
+      "base": "GBP",
+      "quote": "GBP",
+      "minor": 12345,
+      "rate": "7.000000000000000001",
+      "expected": 12345,
+      "overflow": false
+    },
+    {
+      "id": "GBP-GBP-172",
+      "base": "GBP",
+      "quote": "GBP",
+      "minor": -12345,
+      "rate": "1e-18",
+      "expected": -12345,
+      "overflow": false
+    },
+    {
+      "id": "GBP-GBP-173",
+      "base": "GBP",
+      "quote": "GBP",
+      "minor": 9007199254740991,
+      "rate": "1000000000000",
+      "expected": 9007199254740991,
+      "overflow": false
+    },
+    {
+      "id": "GBP-JPY-174",
+      "base": "GBP",
+      "quote": "JPY",
+      "minor": 0,
+      "rate": "7",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "GBP-JPY-175",
+      "base": "GBP",
+      "quote": "JPY",
+      "minor": 1,
+      "rate": "0.5",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "GBP-JPY-176",
+      "base": "GBP",
+      "quote": "JPY",
+      "minor": -3,
+      "rate": "0.5",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "GBP-JPY-177",
+      "base": "GBP",
+      "quote": "JPY",
+      "minor": 12345,
+      "rate": "7.000000000000000001",
+      "expected": 864,
+      "overflow": false
+    },
+    {
+      "id": "GBP-JPY-178",
+      "base": "GBP",
+      "quote": "JPY",
+      "minor": -12345,
+      "rate": "1e-18",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "GBP-JPY-179",
+      "base": "GBP",
+      "quote": "JPY",
+      "minor": 9007199254740991,
+      "rate": "1000000000000",
+      "expected": null,
+      "overflow": true
+    },
+    {
+      "id": "JPY-CNY-180",
+      "base": "JPY",
+      "quote": "CNY",
+      "minor": 0,
+      "rate": "7",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "JPY-CNY-181",
+      "base": "JPY",
+      "quote": "CNY",
+      "minor": 1,
+      "rate": "0.5",
+      "expected": 50,
+      "overflow": false
+    },
+    {
+      "id": "JPY-CNY-182",
+      "base": "JPY",
+      "quote": "CNY",
+      "minor": -3,
+      "rate": "0.5",
+      "expected": -150,
+      "overflow": false
+    },
+    {
+      "id": "JPY-CNY-183",
+      "base": "JPY",
+      "quote": "CNY",
+      "minor": 12345,
+      "rate": "7.000000000000000001",
+      "expected": 8641500,
+      "overflow": false
+    },
+    {
+      "id": "JPY-CNY-184",
+      "base": "JPY",
+      "quote": "CNY",
+      "minor": -12345,
+      "rate": "1e-18",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "JPY-CNY-185",
+      "base": "JPY",
+      "quote": "CNY",
+      "minor": 9007199254740991,
+      "rate": "1000000000000",
+      "expected": null,
+      "overflow": true
+    },
+    {
+      "id": "JPY-USD-186",
+      "base": "JPY",
+      "quote": "USD",
+      "minor": 0,
+      "rate": "7",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "JPY-USD-187",
+      "base": "JPY",
+      "quote": "USD",
+      "minor": 1,
+      "rate": "0.5",
+      "expected": 50,
+      "overflow": false
+    },
+    {
+      "id": "JPY-USD-188",
+      "base": "JPY",
+      "quote": "USD",
+      "minor": -3,
+      "rate": "0.5",
+      "expected": -150,
+      "overflow": false
+    },
+    {
+      "id": "JPY-USD-189",
+      "base": "JPY",
+      "quote": "USD",
+      "minor": 12345,
+      "rate": "7.000000000000000001",
+      "expected": 8641500,
+      "overflow": false
+    },
+    {
+      "id": "JPY-USD-190",
+      "base": "JPY",
+      "quote": "USD",
+      "minor": -12345,
+      "rate": "1e-18",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "JPY-USD-191",
+      "base": "JPY",
+      "quote": "USD",
+      "minor": 9007199254740991,
+      "rate": "1000000000000",
+      "expected": null,
+      "overflow": true
+    },
+    {
+      "id": "JPY-EUR-192",
+      "base": "JPY",
+      "quote": "EUR",
+      "minor": 0,
+      "rate": "7",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "JPY-EUR-193",
+      "base": "JPY",
+      "quote": "EUR",
+      "minor": 1,
+      "rate": "0.5",
+      "expected": 50,
+      "overflow": false
+    },
+    {
+      "id": "JPY-EUR-194",
+      "base": "JPY",
+      "quote": "EUR",
+      "minor": -3,
+      "rate": "0.5",
+      "expected": -150,
+      "overflow": false
+    },
+    {
+      "id": "JPY-EUR-195",
+      "base": "JPY",
+      "quote": "EUR",
+      "minor": 12345,
+      "rate": "7.000000000000000001",
+      "expected": 8641500,
+      "overflow": false
+    },
+    {
+      "id": "JPY-EUR-196",
+      "base": "JPY",
+      "quote": "EUR",
+      "minor": -12345,
+      "rate": "1e-18",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "JPY-EUR-197",
+      "base": "JPY",
+      "quote": "EUR",
+      "minor": 9007199254740991,
+      "rate": "1000000000000",
+      "expected": null,
+      "overflow": true
+    },
+    {
+      "id": "JPY-HKD-198",
+      "base": "JPY",
+      "quote": "HKD",
+      "minor": 0,
+      "rate": "7",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "JPY-HKD-199",
+      "base": "JPY",
+      "quote": "HKD",
+      "minor": 1,
+      "rate": "0.5",
+      "expected": 50,
+      "overflow": false
+    },
+    {
+      "id": "JPY-HKD-200",
+      "base": "JPY",
+      "quote": "HKD",
+      "minor": -3,
+      "rate": "0.5",
+      "expected": -150,
+      "overflow": false
+    },
+    {
+      "id": "JPY-HKD-201",
+      "base": "JPY",
+      "quote": "HKD",
+      "minor": 12345,
+      "rate": "7.000000000000000001",
+      "expected": 8641500,
+      "overflow": false
+    },
+    {
+      "id": "JPY-HKD-202",
+      "base": "JPY",
+      "quote": "HKD",
+      "minor": -12345,
+      "rate": "1e-18",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "JPY-HKD-203",
+      "base": "JPY",
+      "quote": "HKD",
+      "minor": 9007199254740991,
+      "rate": "1000000000000",
+      "expected": null,
+      "overflow": true
+    },
+    {
+      "id": "JPY-GBP-204",
+      "base": "JPY",
+      "quote": "GBP",
+      "minor": 0,
+      "rate": "7",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "JPY-GBP-205",
+      "base": "JPY",
+      "quote": "GBP",
+      "minor": 1,
+      "rate": "0.5",
+      "expected": 50,
+      "overflow": false
+    },
+    {
+      "id": "JPY-GBP-206",
+      "base": "JPY",
+      "quote": "GBP",
+      "minor": -3,
+      "rate": "0.5",
+      "expected": -150,
+      "overflow": false
+    },
+    {
+      "id": "JPY-GBP-207",
+      "base": "JPY",
+      "quote": "GBP",
+      "minor": 12345,
+      "rate": "7.000000000000000001",
+      "expected": 8641500,
+      "overflow": false
+    },
+    {
+      "id": "JPY-GBP-208",
+      "base": "JPY",
+      "quote": "GBP",
+      "minor": -12345,
+      "rate": "1e-18",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "JPY-GBP-209",
+      "base": "JPY",
+      "quote": "GBP",
+      "minor": 9007199254740991,
+      "rate": "1000000000000",
+      "expected": null,
+      "overflow": true
+    },
+    {
+      "id": "JPY-JPY-210",
+      "base": "JPY",
+      "quote": "JPY",
+      "minor": 0,
+      "rate": "7",
+      "expected": 0,
+      "overflow": false
+    },
+    {
+      "id": "JPY-JPY-211",
+      "base": "JPY",
+      "quote": "JPY",
+      "minor": 1,
+      "rate": "0.5",
+      "expected": 1,
+      "overflow": false
+    },
+    {
+      "id": "JPY-JPY-212",
+      "base": "JPY",
+      "quote": "JPY",
+      "minor": -3,
+      "rate": "0.5",
+      "expected": -3,
+      "overflow": false
+    },
+    {
+      "id": "JPY-JPY-213",
+      "base": "JPY",
+      "quote": "JPY",
+      "minor": 12345,
+      "rate": "7.000000000000000001",
+      "expected": 12345,
+      "overflow": false
+    },
+    {
+      "id": "JPY-JPY-214",
+      "base": "JPY",
+      "quote": "JPY",
+      "minor": -12345,
+      "rate": "1e-18",
+      "expected": -12345,
+      "overflow": false
+    },
+    {
+      "id": "JPY-JPY-215",
+      "base": "JPY",
+      "quote": "JPY",
+      "minor": 9007199254740991,
+      "rate": "1000000000000",
+      "expected": 9007199254740991,
+      "overflow": false
+    }
+  ]
+}

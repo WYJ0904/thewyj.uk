@@ -54,13 +54,15 @@ export function mergeLocalNotificationReviews(records, snapshot, accountId) {
     const directions = [...new Set(matches.map(item => direction(item.direction)).filter(Boolean))];
     const localAmount = amounts.length === 1 ? amounts[0] : null;
     const localDirection = directions.length === 1 ? directions[0] : "";
+    const currencies = [...new Set(matches.map(item => item.currency).filter(Boolean))];
+    const currencyConflict = currencies.length > 1 || (server.currency && currencies.length === 1 && server.currency !== currencies[0]);
     const serverAmount = money(server.amount_minor), serverDirection = direction(server.direction);
-    const conflict = amounts.length > 1 || directions.length > 1 ||
+    const conflict = amounts.length > 1 || directions.length > 1 || currencyConflict ||
       (serverAmount !== null && localAmount !== null && serverAmount !== localAmount) ||
       Boolean(serverDirection && localDirection && serverDirection !== localDirection);
     const pending = (serverAmount === null && localAmount !== null) || (!serverDirection && localDirection);
     if (!conflict && !pending) return server;
-    return { ...server, local_evidence: { amount_minor: localAmount, direction: localDirection,
+    return { ...server, local_evidence: { amount_minor: localAmount, direction: localDirection, ...(currencies.length ? { currency: currencies[0] } : {}),
       pending_sync: Boolean(pending), conflict: Boolean(conflict) } };
   });
 }

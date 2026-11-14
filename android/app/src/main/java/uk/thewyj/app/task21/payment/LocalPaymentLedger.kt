@@ -26,8 +26,8 @@ object LocalPaymentLedger {
             // Never guess between multiple archived events. Existing upload identity
             // wins only if the archive does not prove a different unique identity.
             if (exact.size > 1 && record.uploadEventId !in exact) {
-                // Money completeness still books locally. Identity ambiguity
-                // blocks only an unsafe cloud replay, never asks for confirmation.
+                // A paid amount is not a transaction identity. Existing durable
+                // bookings remain, but new ambiguous rows wait for exact proof.
                 if (coordinator.autoBook(accountId, record.recognitionId, syncState = "identity_pending") != null) changed = true
                 continue
             }
@@ -50,6 +50,7 @@ object LocalPaymentLedger {
         }
         if (changed) PaymentReviewSignals.publish()
         val queue = NotificationOfflineQueue.inDirectory(context.filesDir, accountId)
+        PaymentReconciliation(database).recover(accountId, queue)
         for (booking in store.localBookings(accountId).filter { it.syncState == "identity_pending" }) {
             val recognition = store.recognition(accountId, booking.recognitionId) ?: continue
             val aliases = archive.structuredEventIdsForRecognition(accountId, recognition.sourceEventId).distinct()
@@ -77,7 +78,7 @@ object LocalPaymentLedger {
         for (booking in store.localBookings(accountId).filter { it.syncState == "pending" }) {
             val recognition = store.recognition(accountId, booking.recognitionId)
             val proven = recognition?.completionConfirmed == true
-            if (proven) {
+            if (proven && recognition?.financialPhase.isNullOrBlank()) {
                 // A former candidate may already own this event's ingest receipt.
                 // Persist the later settlement independently; retries must survive
                 // process death and close that same canonical event, not fork it.
@@ -101,7 +102,11 @@ object LocalPaymentLedger {
                 parserVersion = if (proven) "local-autobook-v2" else "local-autobook-legacy-review",
                 parseStatus = if (proven) ParseStatus.PARSED else ParseStatus.CANDIDATE,
                 direction = FinanceDirection.valueOf(booking.direction), amountMinor = booking.amountMinor,
-                currency = booking.currency, merchant = booking.merchant, counterparty = booking.merchant,
+                currency = booking.currency, amountExponent = booking.amountExponent, merchant = booking.merchant, counterparty = booking.merchant,
+                lifecycleOperation = recognition?.lifecycleOperation.orEmpty(), lifecycleRevision = recognition?.lifecycleRevision ?: 0,
+                financialPhase = recognition?.financialPhase.orEmpty(), lifecycleReference = recognition?.lifecycleReference.orEmpty(),
+                referenceNamespace = recognition?.referenceNamespace.orEmpty(), currencyEvidence = recognition?.currencyEvidence.orEmpty(),
+                identityReviewReason = recognition?.identityReviewReason.orEmpty(),
                 paymentChannel = booking.paymentChannel, providerReference = booking.providerReference,
                 confidence = store.candidateForRecognition(accountId, booking.recognitionId)?.confidence?.coerceIn(0, 1000) ?: 0,
                 occurredAtMs = booking.occurredAtMs, receivedAtMs = booking.occurredAtMs,
@@ -118,16 +123,23 @@ object LocalPaymentLedger {
         val archive = RoomNotificationStore(NotificationDatabase.get(context))
         val transactions = JSONArray()
         for (booking in store.localBookings(account.accountId)) {
+            val decision = store.recognition(account.accountId, booking.recognitionId)
             val aliases = store.recognition(account.accountId, booking.recognitionId)?.let {
                 archive.structuredEventIdsForRecognition(account.accountId, it.sourceEventId)
-            }.orEmpty() + booking.eventId
+            }.orEmpty() + store.eventAliases(account.accountId, booking.recognitionId).filterNot {
+                it.startsWith("proof:") || it.startsWith("observation:") }.map { it.removePrefix("notification#event#") } + booking.eventId
+            val ownedAliases=aliases.filter { store.eventBelongsToRecognition(account.accountId,booking.recognitionId,it) }
             transactions.put(JSONObject()
-            .put("event_ids", JSONArray(aliases.distinct()))
+            .put("event_ids", JSONArray(ownedAliases.distinct()))
             .put("event_id", booking.eventId).put("sync_state", booking.syncState)
             .put("local_id", PaymentAutoBook.transactionId(booking.accountId, booking.eventId))
             .put("id", booking.transactionId).put("amount_minor", booking.amountMinor)
             .put("source_package", booking.sourcePackage).put("payment_channel", booking.paymentChannel)
             .put("direction", booking.direction.lowercase()).put("currency", booking.currency)
+            .put("currency_review_required", decision?.currencyReviewRequired == true)
+            .put("currency_decision_source", decision?.currencyDecisionSource.orEmpty())
+            .put("amount_exponent", booking.amountExponent ?: JSONObject.NULL)
+            .put("money_unit_status", if (booking.amountExponent == uk.thewyj.app.finance.CurrencyMoney.digits[booking.currency]) "verified" else "review_required")
             .put("merchant", booking.merchant).put("occurred_at_ms", booking.occurredAtMs)
             .put("source_kind", "automatic").put("status", "active").put("reconciliation_state", "automatic"))
         }
@@ -138,14 +150,21 @@ object LocalPaymentLedger {
             val direction = candidate?.effectiveDirection?.takeIf(String::isNotBlank) ?: record.direction
             if (store.localBooking(account.accountId, PaymentAutoBook.eventId(record)) != null) continue
             val id = PaymentAutoBook.eventId(record)
-            val aliases = (archive.structuredEventIdsForRecognition(account.accountId, record.sourceEventId) + id)
-                .filter(String::isNotBlank).distinct()
+            val aliases = (archive.structuredEventIdsForRecognition(account.accountId, record.sourceEventId) +
+                store.eventAliases(account.accountId, record.recognitionId).filterNot { it.startsWith("proof:") || it.startsWith("observation:") }
+                    .map { it.removePrefix("notification#event#") } + id)
+                .filter(String::isNotBlank).distinct().filter { store.eventBelongsToRecognition(account.accountId,record.recognitionId,it) }
             reviews.put(JSONObject().put("id", id).put("event_id", id).put("event_ids", JSONArray(aliases))
                 .put("state", "pending").put("kind", "hint").put("amount_minor", amount ?: JSONObject.NULL)
+                .put("currency", record.currency)
+                .put("currency_review_required", record.currencyReviewRequired)
+                .put("currency_decision_source", record.currencyDecisionSource)
+                .put("amount_exponent", uk.thewyj.app.finance.CurrencyRuntimePreferences.sourceExponent(context,account.accountId,record.sourceEventId,record.currency) ?: JSONObject.NULL)
                 .put("direction", direction.lowercase()).put("merchant", candidate?.effectiveMerchant ?: record.merchant)
                 .put("source_package", record.sourcePackage).put("app_label", PaymentAppLabels.resolve(context, record.sourcePackage))
                 .put("occurred_at_ms", candidate?.effectiveOccurredAtMs ?: record.createdAtMs).put("local_only", true))
         }
-        return JSONObject().put("account_id", account.accountId).put("transactions", transactions).put("reviews", reviews).toString()
+        val references = uk.thewyj.app.finance.CurrencyReferenceRepository(uk.thewyj.app.finance.CurrencyReferenceDatabase.get(context)).projection(account.accountId)
+        return JSONObject().put("account_id", account.accountId).put("transactions", transactions).put("reviews", reviews).put("fx_snapshots", references).toString()
     }
 }

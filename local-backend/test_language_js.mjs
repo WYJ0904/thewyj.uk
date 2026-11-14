@@ -19,7 +19,6 @@ import {
   chooseSpeechEngine,
   cloudSpeechLanguage,
   cloudSpeechUrl,
-  nativeSpeechUrl,
   normalizeSpeechLanguage,
   resetSpeechState,
   speakText,
@@ -101,14 +100,16 @@ assert.equal(adapter.groupPrefix("wrong", "me", "history"), "wrong|me|history|")
 assert.equal(adapter.record("wrong_book", "wrong", ["me", "history", "word"], {}).record_id, "wrong|me|history|word");
 
 // Dictation speech (cross-device): the cloud TTS asset is the normal path on
-// browsers and inside the Android WebView; device engines are only an explicit
-// offline fallback, and a missing voice package must never matter.
+// browsers and inside the Android WebView; device engines are never used.
 assert.equal(normalizeSpeechLanguage("ja-JP"), "ja-JP");
 assert.equal(normalizeSpeechLanguage("ja"), "ja-JP");
 assert.equal(normalizeSpeechLanguage("en-US"), "en-US");
 assert.equal(normalizeSpeechLanguage(""), "en-US");
 assert.equal(cloudSpeechLanguage("ja-JP"), "jp");
 assert.equal(cloudSpeechLanguage("english"), "en");
+assert.equal(cloudSpeechLanguage("zh-CN"), "zh");
+assert.equal(cloudSpeechLanguage("jp"), "jp");
+assert.equal(normalizeSpeechLanguage("中文"), "zh-CN");
 const cloudUrl = cloudSpeechUrl({ text: "お茶を飲む", lang: "ja" });
 assert.ok(cloudUrl.startsWith("/api/tts?"), "the cloud endpoint is the normal path");
 assert.ok(cloudUrl.includes("language=jp"));
@@ -148,10 +149,13 @@ function fakeAudio({ fail = false, state = {} } = {}) {
   };
 }
 
+const fakeFetch = async () => new Response(new Uint8Array([0xff, 0xf3, 0x64, 0xc4]), { headers: { "Content-Type": "audio/mpeg" } });
+
 // 1. Cloud is the normal engine even when the runtime has no speechSynthesis.
 const cloudState = {};
 const cloudGlobal = {
   Audio: function Audio() { return fakeAudio({ state: cloudState }); },
+  fetch: async (url) => { cloudState.requestUrl = url; return fakeFetch(); },
   location: {},
   console: { info() {} },
 };
@@ -161,7 +165,8 @@ assert.equal(cloudResult.ok, true);
 assert.equal(cloudResult.engine, "cloud");
 const cloudFinal = await cloudResult.pending;
 assert.deepEqual(cloudFinal, { ok: true, engine: "cloud", fallback: false, message: "" });
-assert.ok(cloudState.src.startsWith("/api/tts?"), "the cloud asset is played by the shared player");
+assert.ok(cloudState.requestUrl.startsWith("/api/tts?"), "the existing cloud API is requested");
+assert.ok(cloudState.src.startsWith("blob:"), "the checked cloud audio is played by the shared player");
 assert.equal(cloudState.playbackRate, 1.2, "speed is applied with playbackRate");
 assert.equal(resetSpeechState(cloudGlobal) ?? true, true);
 
@@ -169,6 +174,7 @@ assert.equal(resetSpeechState(cloudGlobal) ?? true, true);
 let webSpeakCalls = 0;
 const deviceGlobal = {
   Audio: function Audio() { return fakeAudio(); },
+  fetch: fakeFetch,
   speechSynthesis: { cancel() {}, speak() { webSpeakCalls += 1; } },
   SpeechSynthesisUtterance: function SpeechSynthesisUtterance() { webSpeakCalls += 1; },
   location: {},
@@ -178,36 +184,38 @@ const deviceResult = speakText(deviceGlobal, { text: "world", lang: "ja", rate: 
 await deviceResult.pending;
 assert.equal(webSpeakCalls, 0, "cloud playback must not call the Web Speech API");
 
-// 3. Cloud failure falls back to the device engine and says so.
+// 3. Cloud playback failure never invokes the Android bridge.
 const fallbackNavigations = [];
 const fallbackGlobal = {
   Audio: function Audio() { return fakeAudio({ fail: true }); },
+  fetch: fakeFetch,
   location: { set href(value) { fallbackNavigations.push(value); } },
   console: { info() {} },
 };
 const fallbackResult = speakText(fallbackGlobal, { text: "fallback", lang: "en", rate: 1, native: true });
 const fallbackFinal = await fallbackResult.pending;
-assert.equal(fallbackFinal.ok, true);
-assert.equal(fallbackFinal.engine, "native-offline");
+assert.equal(fallbackFinal.ok, false);
+assert.equal(fallbackFinal.engine, "cloud");
 assert.equal(fallbackFinal.cloudFailed, true);
-assert.match(fallbackFinal.message, /离线/);
-assert.equal(fallbackNavigations.length, 1);
-assert.ok(fallbackNavigations[0].startsWith("thewyj://speech/speak?"));
-assert.ok(fallbackNavigations[0].includes("lang=en-US"));
+assert.equal(fallbackFinal.code, "tts_playback_failed");
+assert.equal(fallbackFinal.fallback, false);
+assert.equal(fallbackNavigations.length, 0);
 
-// 4. Browser offline fallback is reported as offline, never as the normal path.
+// 4. Browser playback failure never invokes the Web Speech API.
 const browserOfflineSpeak = [];
 function OfflineUtterance(value) { this.text = value; }
 const browserOfflineGlobal = {
   Audio: function Audio() { return fakeAudio({ fail: true }); },
+  fetch: fakeFetch,
   speechSynthesis: { cancel() { browserOfflineSpeak.push("cancel"); }, speak(utterance) { browserOfflineSpeak.push(utterance); } },
   SpeechSynthesisUtterance: OfflineUtterance,
   location: {},
   console: { info() {} },
 };
 const browserOfflineFinal = await speakText(browserOfflineGlobal, { text: "world", lang: "ja", rate: 0.8 }).pending;
-assert.equal(browserOfflineFinal.engine, "web-offline");
-assert.equal(browserOfflineSpeak[1].lang, "ja-JP");
+assert.equal(browserOfflineFinal.engine, "cloud");
+assert.equal(browserOfflineFinal.ok, false);
+assert.deepEqual(browserOfflineSpeak, []);
 
 // 5. No playable runtime and no cloud ⇒ explicit user-facing error.
 const noEngine = speakText({}, { text: "hello" });
@@ -215,7 +223,28 @@ assert.equal(noEngine.ok, false);
 assert.equal(noEngine.engine, "none");
 assert.match(noEngine.message, /语音/);
 assert.equal(speakText({}, { text: "   " }).ok, false);
-assert.equal(nativeSpeechUrl({ text: "汉字", lang: "ja", rate: 0.82 }).includes("lang=ja-JP"), true);
+assert.equal(chooseSpeechEngine({ speechSynthesis: { speak() {} } }, { native: true }), "none");
+for (const [status, code] of [[429, "tts_quota_exhausted"], [503, "tts_auth_failed"], [504, "tts_timeout"]]) {
+  const checked = await speakText({ Audio: function Audio() { return fakeAudio(); },
+    fetch: async () => new Response(JSON.stringify({ code, error: `明确错误 ${code}`, retryable: status !== 503 }),
+      { status, headers: { "Retry-After": "60" } }),
+  }, { text: "hello", lang: "zh" }).pending;
+  assert.equal(checked.ok, false);
+  assert.equal(checked.code, code);
+  assert.equal(checked.httpStatus, status);
+  assert.equal(checked.retryAfter, "60");
+  assert.match(checked.message, /明确错误/);
+}
+let resolveLateFetch;
+const lateState = {};
+const lateGlobal = { Audio: function Audio() { return fakeAudio({ state: lateState }); },
+  fetch: () => new Promise((resolve) => { resolveLateFetch = resolve; }) };
+const latePlayback = speakText(lateGlobal, { text: "cancel while loading" });
+stopSpeech(lateGlobal);
+assert.equal((await latePlayback.pending).cancelled, true);
+resolveLateFetch(await fakeFetch());
+await new Promise((resolve) => setTimeout(resolve, 0));
+assert.equal(lateState.src, undefined, "stopped requests cannot start playing later");
 const stopCalls = [];
 // Japanese dictation: kanji surfaces are complete entries. A missing reading
 // must not block the round (real-device 私/人/子供/先生/学生 report), the bound
@@ -254,18 +283,18 @@ resetSpeechState();
 stopSpeech({ location: { set href(value) { stopCalls.push(value); } }, speechSynthesis: { cancel() {} } }, { native: true });
 assert.deepEqual(stopCalls, []);
 
-// Cloud playback only pauses the shared audio element; the native offline
-// fallback still has to tell the Android bridge to stop.
+// Stopping cloud playback never calls a device speech API or native bridge.
 const sharedGlobal = {
   Audio: function Audio() { return fakeAudio({ fail: true }); },
+  fetch: fakeFetch,
   location: { set href(value) { stopCalls.push(value); } },
   speechSynthesis: { cancel() { stopCalls.push("web-cancel"); } },
   console: { info() {} },
 };
 await speakText(sharedGlobal, { text: "hello", native: true }).pending;
 stopSpeech(sharedGlobal, { native: true });
-assert.equal(stopCalls.includes("thewyj://speech/stop"), true);
-assert.equal(stopCalls.includes("web-cancel"), true);
+assert.equal(stopCalls.includes("thewyj://speech/stop"), false);
+assert.equal(stopCalls.includes("web-cancel"), false);
 const afterStop = [];
 stopSpeech({ location: { set href(value) { afterStop.push(value); } }, speechSynthesis: { cancel() {} } }, { native: true });
 assert.deepEqual(afterStop, []);

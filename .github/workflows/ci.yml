@@ -21,7 +21,7 @@ defaults:
 jobs:
   task25-cloud-readiness:
     name: Task 25 cloud credential discovery
-    if: github.ref == 'refs/heads/main' || ((startsWith(github.head_ref, 'codex/task25-') || startsWith(github.head_ref, 'codex/task26-') || github.head_ref == 'codex/aeris-unified-repair-release-b' || github.head_ref == 'codex/android-accessibility-accounting-hotfix') && github.event.pull_request.head.repo.full_name == github.repository)
+    if: github.ref == 'refs/heads/main' || ((startsWith(github.head_ref, 'codex/task25-') || startsWith(github.head_ref, 'codex/task26-') || github.head_ref == 'codex/aeris-unified-repair-release-b' || github.head_ref == 'codex/android-accessibility-accounting-hotfix' || github.head_ref == 'hydrogen/s0-p0-integration') && github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
@@ -245,6 +245,7 @@ jobs:
             node --check local-backend/test_finance_candidates_js.mjs
             node --check local-backend/test_finance_disclosure_js.mjs
             node --check local-backend/test_core_js.mjs
+            node --check local-backend/test_email_js.mjs
             node --check local-backend/test_tts_js.mjs
             node --check local-backend/test_language_js.mjs
             node --check local-backend/test_membership_js.mjs
@@ -369,10 +370,11 @@ jobs:
           node local-backend/test_aeris_p5_js.mjs 2>&1 | tee artifacts/aeris-p5-ownership-unit.log
           node local-backend/test_aeris_public_js.mjs 2>&1 | tee artifacts/aeris-p3-public-unit.log
 
-      - name: Test cloud TTS provider fallback
+      - name: Test Azure cloud TTS and legacy cache compatibility
         run: |
           set -euo pipefail
           node local-backend/test_tts_js.mjs 2>&1 | tee artifacts/cloud-tts.log
+          npm run test:tts:runtime 2>&1 | tee artifacts/cloud-tts-runtime.log
 
       - name: Test language JavaScript modules
         run: |
@@ -405,6 +407,7 @@ jobs:
           set -euo pipefail
           mkdir -p .wrangler
           node local-backend/test_cloudflare_foundation_js.mjs 2>&1 | tee artifacts/cloudflare-foundation.log
+          node local-backend/test_email_js.mjs 2>&1 | tee artifacts/cloudflare-email-sending.log
           npx wrangler types .wrangler/ci-types.d.ts --env preview 2>&1 | tee artifacts/cloudflare-types.log
           npx wrangler pages functions build functions --outdir .wrangler/ci-functions 2>&1 | tee artifacts/cloudflare-functions-build.log
           npx wrangler d1 migrations apply WYJ_DB --local --config wrangler.local.jsonc --persist-to .wrangler/ci-state 2>&1 | tee artifacts/cloudflare-d1-migration.log
@@ -636,7 +639,7 @@ jobs:
 
   task25-android-instrumentation:
     name: Task 25 Android runtime contract
-    if: github.ref == 'refs/heads/main' || startsWith(github.head_ref, 'codex/task25-') || startsWith(github.head_ref, 'codex/task26-') || github.head_ref == 'codex/aeris-unified-repair-release-b' || github.head_ref == 'codex/aeris-ci-release-guards' || github.head_ref == 'codex/android-accessibility-accounting-hotfix'
+    if: github.ref == 'refs/heads/main' || startsWith(github.head_ref, 'codex/task25-') || startsWith(github.head_ref, 'codex/task26-') || github.head_ref == 'codex/aeris-unified-repair-release-b' || github.head_ref == 'codex/aeris-ci-release-guards' || github.head_ref == 'codex/android-accessibility-accounting-hotfix' || github.head_ref == 'hydrogen/s0-p0-integration'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -1128,6 +1131,11 @@ jobs:
         run: |
           set -euo pipefail
           node qa/task26/learning-browser.mjs 2>&1 | tee artifacts/task26-browser.log
+
+      - name: Task 11 fresh profile and canonical offline navigation regression
+        run: |
+          set -euo pipefail
+          node qa/task11/profile-restore-browser.mjs 2>&1 | tee artifacts/task11-profile-restore.log
 
       - name: Safe presentation rollback and roll-forward without clearing user storage
         run: |

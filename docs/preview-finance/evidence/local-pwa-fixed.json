@@ -1,0 +1,37 @@
+{
+  "origin": "http://127.0.0.1:6716",
+  "baseline": "29bdbb9e3ae4cd88019b6c0046aabc6df574a942",
+  "scope": "local candidate only; owned Chrome; hard worker network block",
+  "required_count": 84,
+  "api_attempts": [],
+  "api_responses": [],
+  "module_graph_missing": [],
+  "checks": [
+    {
+      "name": "Local candidate SW atomically installs 84 required assets",
+      "status": "PASS"
+    },
+    {
+      "name": "cached shell survives verified network block",
+      "status": "PASS"
+    },
+    {
+      "name": "finance/new module graph fully available offline after fresh install",
+      "status": "PASS"
+    },
+    {
+      "name": "owned synthetic localStorage and user cache retained",
+      "status": "PASS"
+    }
+  ],
+  "worker_network_block_verified": true,
+  "offline_modules": [
+    {
+      "asset": "/js/finance/money.js?release=20261109-aeris-p07-production-r2",
+      "status": 200,
+      "bytes": 7207
+    }
+  ],
+  "remote_api_requests": 0,
+  "remote_db_writes": 0
+}
