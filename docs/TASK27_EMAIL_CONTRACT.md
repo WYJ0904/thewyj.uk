@@ -135,14 +135,75 @@
 ## 4. 客服入站邮件（`support@thewyj.uk`）与 Gmail 转发说明
 
 1. **优先保留现有转发**：`cloudflare/email-worker/support-inbound-worker.mjs` 在 `handleInboundSupportEmail` 中优先调用 `await message.forward(env.EMAIL_FORWARD_TO_ADDRESS)`，确保运营者私人邮箱继续收到入站邮件；私人邮箱地址仅作为环境变量/Secret 注入，绝不写入仓库代码、前端资源或审计表。
-2. **重要事实澄清**：若运营者直接在普通个人 Gmail 客户端中点“回复”，对外发件地址（`From`）将是个人 Gmail 地址而非 `support@thewyj.uk`（除非运营者额外在 Gmail 中单独配置过通过认证的第三方 SMTP 别名）；**只有通过 Aeris 管理后台“客服邮件及回复”面板发送回复**，用户才能稳定收到来自官方域名（`support@thewyj.uk` 或 `noreply@thewyj.uk` + `Reply-To: support@thewyj.uk`）、经过域名 SPF/DKIM 签名且保留 `In-Reply-To`/`References`/`X-Aeris-Thread` 线索关联的正式回复。
+2. **D1 未迁移期间的安全降级**：`handleInboundSupportEmail` 先完成 `message.forward(...)`，再通过 `tableExists(db, ...)` 检查 `email_center_inbound_threads` / `email_center_inbound_messages` 是否存在；即使 `0036_task27_email_center.sql` 尚未执行，转发给运营者私人 Gmail 的主链路仍正常运行，不会中断收信。
+3. **只读就绪探针**：`cloudflare/email-worker/support-inbound-worker.mjs` 暴露 `GET /health`，仅返回 `d1_bound`、`forward_target_configured`、`email_binding_configured`、`rest_api_configured`、`email_sending_enabled`、`auto_ack_enabled` 六项布尔状态，**绝不返回** `EMAIL_FORWARD_TO_ADDRESS`、`EMAIL_SEND_API_TOKEN` 或 `EMAIL_CLOUDFLARE_ACCOUNT_ID` 明文值。
+4. **重要事实澄清**：若运营者直接在普通个人 Gmail 客户端中点“回复”，对外发件地址（`From`）将是个人 Gmail 地址而非 `support@thewyj.uk`（除非运营者额外在 Gmail 中单独配置过通过认证的第三方 SMTP 别名）；**只有通过 Aeris 管理后台“客服邮件及回复”面板发送回复**，用户才能稳定收到来自官方域名（`support@thewyj.uk` 或 `noreply@thewyj.uk` + `Reply-To: support@thewyj.uk`）、经过域名 SPF/DKIM 签名且保留 `In-Reply-To`/`References`/`X-Aeris-Thread` 线索关联的正式回复。
 
 ---
 
-## 5. 上线前人工 Cloudflare 控制台动作清单
+## 5. 独立 Email Worker 部署与零中断上线清单（Cloudflare 控制台步骤）
 
-本分支仅完成代码、D1 增量迁移文件 `0036_task27_email_center.sql` 及本地仿真验证，**未对 Production 环境执行任何发布或配置切换**。实际启用前，需由仓库/域名所有者手工核对并完成：
-1. 在 Preview / Production D1 执行增量迁移 `cloudflare/migrations/0036_task27_email_center.sql`。
-2. 在 Cloudflare Email Service 控制台确认 `thewyj.uk` 的 `noreply@thewyj.uk`（以及如需要直接以 `support@thewyj.uk` 发信，需同时授权 `support@thewyj.uk` 并将环境变量 `EMAIL_SUPPORT_SENDER_AUTHORIZED` 设为 `"true"`）。
-3. 部署 `cloudflare/email-worker/support-inbound-worker.mjs`（绑定 `WYJ_DB`、`EMAIL` 发送绑定及 Secret `EMAIL_FORWARD_TO_ADDRESS`），并在验证无误后方可将 Email Routing 中 `support@thewyj.uk` 规则由直转升级为绑定该 Email Worker（内置优先 `message.forward` 转发）。
-4. 根据实际灰度节奏，单独决策开启 Production 的 `EMAIL_SENDING_ENABLED="true"`（以及是否需要 `EMAIL_INBOUND_AUTO_ACK_ENABLED="true"`，默认关闭）。
+本分支仅完成代码、Wrangler 独立配置 `wrangler.support-inbound.jsonc`、D1 增量迁移文件 `0036_task27_email_center.sql` 及本地仿真验证，**未对 Production 环境执行任何发布、迁移或路由切换**。在实际切换 `support@thewyj.uk` 之前，现有 Cloudflare Email Routing 至 Gmail 的直转**保持原样不中断**。
+
+### 5.1 前置核查（已完成项）
+- Production `EMAIL_SEND_API_TOKEN`（加密 Secret）与 `EMAIL_CLOUDFLARE_ACCOUNT_ID` 已配置。
+- Production `EMAIL_SENDING_ENABLED="false"` 保持关闭。
+- `support@thewyj.uk` 当前 Email Routing 至运营者 Gmail 转发已验证可用（**在以下 5.2–5.5 完成前切勿修改此规则**）。
+
+### 5.2 步骤 1：创建 / 部署独立 Email Worker（不影响现有路由）
+仓库已提供独立配置文件 `wrangler.support-inbound.jsonc`（入口 `cloudflare/email-worker/support-inbound-worker.mjs`，默认 `EMAIL_SENDING_ENABLED="false"`、`EMAIL_INBOUND_AUTO_ACK_ENABLED="false"`）：
+- **方式 A（本地 Wrangler CLI，推荐）**：
+  - 部署预览环境 Worker：`npx wrangler deploy --config wrangler.support-inbound.jsonc --env preview`（Worker 名：`thewyj-support-inbound-preview`）
+  - 部署生产环境 Worker：`npx wrangler deploy --config wrangler.support-inbound.jsonc --env production`（Worker 名：`thewyj-support-inbound-production`）
+  - 注意：刚部署的 Worker 尚未被 Email Routing 引用，因此**不会拦截或改变**任何线上的 `support@thewyj.uk` 来信。
+- **方式 B（Cloudflare 控制台新建 Worker 后接管）**：
+  - 登录 Cloudflare Dashboard -> **Workers & Pages** -> **Create** -> **Create Worker** -> 命名为 `thewyj-support-inbound-production`（或预览 `thewyj-support-inbound-preview`），完成后再通过方式 A 发布正式代码包以带入 `functions/_lib/email-inbound.mjs` 等共享依赖。
+
+### 5.3 步骤 2：在控制台核对 / 配置三大绑定与 Secret
+进入目标 Worker（先测试 `-preview`，确认无误再配 `-production`）-> **Settings**：
+1. **D1 Database Binding（`Bindings` -> `Add` -> `D1 Database`）**：
+   - Variable name 填写：`WYJ_DB`
+   - Preview 选择：`wyj-cloud-preview`（`a3e6253b-689f-49f3-998b-7c5828ea255a`）
+   - Production 选择：`wyj-cloud-production`（`11c288d8-c584-409f-bb1f-7e7af11793e5`）
+2. **Send Email Binding（`Bindings` -> `Add` -> `Send Email`）**：
+   - Variable name 填写：`EMAIL`
+   - Destination / Scope：建议放行已验证收件人或保持通用 Send Email 绑定（`wrangler.support-inbound.jsonc` 中已声明 `send_email: [{ "name": "EMAIL" }]`）。
+   - 注意：当 `EMAIL_INBOUND_AUTO_ACK_ENABLED="false"` 且 `EMAIL_SENDING_ENABLED="false"` 时，Worker 即使绑定了 `EMAIL` 也不会主动对外发信，仅用于就绪状态验证及未来开启自动回执。
+3. **加密 Secret `EMAIL_FORWARD_TO_ADDRESS`（`Variables and Secrets` -> `Add` -> Type 选 `Secret`）**：
+   - Name 填写：`EMAIL_FORWARD_TO_ADDRESS`
+   - Value 填写：**已在 Cloudflare Email Routing -> Destination addresses 中完成验证的同一个运营者私人 Gmail 地址**（若填入未经 Cloudflare 验证的目标地址，`message.forward()` 将报错）。
+   - 若使用 CLI 设置：`npx wrangler secret put EMAIL_FORWARD_TO_ADDRESS --config wrangler.support-inbound.jsonc --env production`。
+   - **安全要求**：切勿将私人 Gmail 地址提交至仓库、截图或明文写在 `wrangler*.jsonc` 中。
+4. **保持关闭状态的安全开关（Plaintext Variables，默认已在 `wrangler.support-inbound.jsonc` 设为 `"false"`）**：
+   - `EMAIL_SENDING_ENABLED = "false"`
+   - `EMAIL_INBOUND_AUTO_ACK_ENABLED = "false"`
+   - 如需 Worker 作为兜底发信回落也可同时补充 `EMAIL_SEND_API_TOKEN` Secret 与 `EMAIL_CLOUDFLARE_ACCOUNT_ID` 变量（当前 `EMAIL_SENDING_ENABLED="false"` 时非必需）。
+
+### 5.4 步骤 3：切换路由前的只读自检（零风险）
+1. 在 Cloudflare Dashboard -> 该 Worker -> **Preview / Visit `/health`**（或使用受权预览 URL 请求 `/health`）：
+   - 确认返回 HTTP `200` 且 JSON 为：
+     - `service`: `"thewyj-support-inbound"`
+     - `readiness.d1_bound`: `true`
+     - `readiness.forward_target_configured`: `true`
+     - `readiness.email_binding_configured`: `true`
+     - `readiness.email_sending_enabled`: `false`
+     - `readiness.auto_ack_enabled`: `false`
+   - 同时目视确认响应体**不包含**私人邮箱或任何 Token 明文。
+2. 检查 D1 迁移前置条件：确认 Codex `0035_task27_security_center.sql` 已合入并按序在目标库执行完 `0035` 与 `0036_task27_email_center.sql` 后，管理后台才具备入站邮件落库视图；此前请继续保持仅检查 Worker `/health`，**勿跳号单独对 Production 执行 `0036`**。
+
+### 5.5 步骤 4：零中断路由切换与秒级回滚（待正式验收时再执行）
+在确认上述 `5.2`–`5.4` 全部就绪、且正式迁移与功能灰度均已批准后：
+1. **切换路由**：进入 Cloudflare Dashboard -> 域名 `thewyj.uk` -> **Email** -> **Email Routing** -> **Routing rules**，找到 `support@thewyj.uk`，点击 **Edit**：
+   - 将 **Action** 从 `Send to an email` 修改为 **`Send to a Worker`**。
+   - **Destination** 选择 `thewyj-support-inbound-production`。
+   - 保存规则。
+2. **立即实测验证**：使用外部邮箱向 `support@thewyj.uk` 发送一封测试邮件，确认三件事：
+   - 运营者私人 Gmail 在 10–30 秒内正常收到由 Worker `message.forward()` 转发的原信；
+   - 若 D1 `0036` 已就绪，Aeris 管理后台 -> **邮件管理 -> 客服收件与回复** 出现对应线索与发件记录；
+   - Cloudflare Worker Logs 显示 `email` 事件执行成功无未捕获异常。
+3. **秒级回滚预案（如发现转发异常）**：
+   - 立即回到 **Email Routing -> Routing rules -> Edit `support@thewyj.uk`**，将 **Action** 改回 `Send to an email` -> 选择原 Gmail 地址并保存，10 秒内恢复纯直转。
+
+### 5.6 正式启用发信与官方身份授权（后续单独决策）
+1. 在 Cloudflare Email Service 控制台确认 `thewyj.uk` 的 `noreply@thewyj.uk`（如需要直接以 `support@thewyj.uk` 作为 `From` 发信，需同时授权 `support@thewyj.uk` 并将 Pages 与 Worker 的 `EMAIL_SUPPORT_SENDER_AUTHORIZED` 设为 `"true"`）。
+2. 待 Task 27 合并及灰度验收就绪后，再单独决策将 Pages 与 Worker 的 `EMAIL_SENDING_ENABLED` 切为 `"true"`（以及是否开启 `EMAIL_INBOUND_AUTO_ACK_ENABLED="true"`，默认保持关闭）。

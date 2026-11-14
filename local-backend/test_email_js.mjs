@@ -42,6 +42,7 @@ import {
   upsertUserEmailBinding,
 } from "../functions/_lib/email-service.mjs";
 import { handleInboundSupportEmail } from "../functions/_lib/email-inbound.mjs";
+import supportInboundWorker from "../cloudflare/email-worker/support-inbound-worker.mjs";
 import { hashSecret, sessionStorageKey } from "../functions/_lib/task12-crypto.mjs";
 import { onRequest as dispatchApi } from "../functions/api/[[path]].js";
 
@@ -931,6 +932,63 @@ async function run() {
           body: { thread_id: inLoop.thread_id, body: "Should not reply", confirmed: true },
         });
         assert.equal(replyLoopBlocked.status, 400);
+
+        // 6e. Standalone worker wrapper (/health readiness without leaking secrets + email() delegation + safe wrangler flags)
+        const healthRes = await supportInboundWorker.fetch(new Request("https://worker.internal/health"), env);
+        assert.equal(healthRes.status, 200);
+        assert.equal(healthRes.headers.get("Cache-Control"), "no-store");
+        assert.equal(healthRes.headers.get("X-Content-Type-Options"), "nosniff");
+        const healthBodyText = await healthRes.text();
+        assert.equal(healthBodyText.includes(mockForwardTarget), false, "/health must NEVER leak EMAIL_FORWARD_TO_ADDRESS");
+        assert.equal(healthBodyText.includes(String(env.EMAIL_SEND_API_TOKEN || "")), false, "/health must NEVER leak EMAIL_SEND_API_TOKEN");
+        assert.equal(healthBodyText.includes(String(env.EMAIL_CLOUDFLARE_ACCOUNT_ID || "")), false, "/health must NEVER leak EMAIL_CLOUDFLARE_ACCOUNT_ID");
+        const healthData = JSON.parse(healthBodyText);
+        assert.equal(healthData.ok, true);
+        assert.equal(healthData.service, "thewyj-support-inbound");
+        assert.equal(healthData.readiness?.d1_bound, true);
+        assert.equal(healthData.readiness?.forward_target_configured, true);
+        assert.equal(healthData.readiness?.rest_api_configured, true);
+        assert.equal(healthData.readiness?.email_sending_enabled, true);
+        assert.equal(healthData.readiness?.auto_ack_enabled, true);
+
+        const healthNotFound = await supportInboundWorker.fetch(new Request("https://worker.internal/other"), env);
+        assert.equal(healthNotFound.status, 404);
+        const notFoundJson = await healthNotFound.json();
+        assert.equal(notFoundJson.ok, false);
+        assert.equal(notFoundJson.error, "not_found");
+
+        const entryFwd = [];
+        const entryOut = await supportInboundWorker.email(
+          {
+            from: "user1@thewyj.uk",
+            to: "support@thewyj.uk",
+            rawSize: 96,
+            raw: "From: user1@thewyj.uk\r\nTo: support@thewyj.uk\r\nSubject: Worker Entry Check\r\nMessage-ID: <entry-1@example.net>\r\n\r\nWorker entry delegation check.",
+            headers: new Headers({
+              from: "user1@thewyj.uk",
+              to: "support@thewyj.uk",
+              subject: "Worker Entry Check",
+              "message-id": "<entry-1@example.net>",
+            }),
+            async forward(rcpt) {
+              entryFwd.push(rcpt);
+            },
+          },
+          env,
+          {}
+        );
+        assert.equal(entryOut.ok, true);
+        assert.equal(entryOut.forward_status, "forwarded");
+        assert.deepEqual(entryFwd, [mockForwardTarget]);
+
+        const workerCfg = JSON.parse(
+          await readFile(path.resolve(process.cwd(), "wrangler.support-inbound.jsonc"), "utf8")
+        );
+        assert.equal(workerCfg.main, "cloudflare/email-worker/support-inbound-worker.mjs");
+        assert.equal(workerCfg.vars?.EMAIL_SENDING_ENABLED, "false");
+        assert.equal(workerCfg.vars?.EMAIL_INBOUND_AUTO_ACK_ENABLED, "false");
+        assert.equal(workerCfg.env?.preview?.vars?.EMAIL_SENDING_ENABLED, "false");
+        assert.equal(workerCfg.env?.production?.vars?.EMAIL_SENDING_ENABLED, "false");
       } finally {
         mockRest.restore();
       }
