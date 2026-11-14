@@ -5,6 +5,7 @@ import {
   missingPartNumbers,
   resetQueueForStaleSession,
   restoreQueueEntry,
+  restoreQueueStateForOwner,
   sessionIdForQueue,
   shouldAdoptStoredQueue,
   transferQueueStorageKey,
@@ -163,4 +164,26 @@ assert.equal(uploadWorkerCount(2, [], 3), 2, "never more workers than remaining 
 assert.equal(uploadWorkerCount(5, [1, 2, 3, 4, 5], 3), 0, "no workers when nothing is left");
 assert.equal(uploadWorkerCount(8, [1, 2, 3, 4, 5, 6, 7], 3), 1, "the last part still gets one worker");
 
-console.log("Transfer queue isolation checks passed (per-account keys, stable within one account).");
+// SEC-S0-M03 regression: switching from an owner with in-memory items to an
+// owner without a saved queue (or logging out to guest) must clear the queue
+// rather than leaving the previous owner's items in memory.
+assert.deepEqual(
+  restoreQueueStateForOwner("user-B", {}, { account: "user-A", queue: [{ id: "a", name: "secret.pdf", size: 100 }] }),
+  { adopted: false, queue: [] },
+  "switching to an account without a queue clears prior owner state and rejects foreign legacy payloads",
+);
+assert.deepEqual(
+  restoreQueueStateForOwner("guest:g-2", { account: "user-A", queue: [{ id: "a", size: 10 }] }, null),
+  { adopted: false, queue: [] },
+  "logging out into a fresh guest session never retains the previous account queue",
+);
+const restoredForB = restoreQueueStateForOwner(
+  "user-B",
+  { account: "user-B", queue: [{ id: "b-1", name: "report.pdf", size: 512, uploaded: 0, status: "uploading" }] },
+  null,
+);
+assert.equal(restoredForB.adopted, true);
+assert.equal(restoredForB.queue.length, 1);
+assert.equal(restoredForB.queue[0].status, "pending");
+
+console.log("Transfer queue isolation checks passed (per-account keys, stable within one account, clean owner switch).");
