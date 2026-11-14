@@ -1132,6 +1132,11 @@ jobs:
           set -euo pipefail
           node qa/task26/learning-browser.mjs 2>&1 | tee artifacts/task26-browser.log
 
+      - name: Task 11 fresh profile and canonical offline navigation regression
+        run: |
+          set -euo pipefail
+          node qa/task11/profile-restore-browser.mjs 2>&1 | tee artifacts/task11-profile-restore.log
+
       - name: Safe presentation rollback and roll-forward without clearing user storage
         run: |
           set -euo pipefail

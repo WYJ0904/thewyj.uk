@@ -577,9 +577,12 @@ function collectLegacyLearningSyncRecords(account = state.account) {
       aiSuggestion: savedAiSuggestionSettings(language, account),
     }));
   });
-  records.push(learningSyncRecord("learning_config", "config", ["active_profile"], {
-    profile: sanitizeProfile(localStorage.getItem(accountProfileKey(account)) || DEFAULT_PROFILE),
-  }));
+  // An undated legacy preference can seed an empty account, but must not
+  // outrank an existing cloud selection as a new edit on every fresh browser.
+  const legacyProfile = sanitizeProfile(localStorage.getItem(accountProfileKey(account)) || DEFAULT_PROFILE);
+  if (legacyProfile !== DEFAULT_PROFILE) records.push(learningSyncRecord("learning_config", "config", ["active_profile"], {
+    profile: legacyProfile,
+  }, new Date(0).toISOString()));
   return records.filter((record) => record.record_id);
 }
 
@@ -664,7 +667,11 @@ function applyLearningSyncRecord(record) {
         }
       }
     } else if (record.data_type === "learning_config" && parsed.kind === "config" && first === "active_profile" && !record.deleted) {
-      safeStorageSet(localStorage, accountProfileKey(), sanitizeProfile(record.payload.profile));
+      const profile = sanitizeProfile(record.payload.profile);
+      safeStorageSet(localStorage, accountProfileKey(), profile);
+      // Reuse the normal switch while synchronization suppresses new mutations.
+      // A cloud preference must not interrupt an unfinished round.
+      if (!state.roundActive && profile !== state.profile) changeProfile(profile);
     }
   } finally {
     applyingLearningSync = false;
@@ -814,9 +821,13 @@ function queueLanguageSettingsForSync(language = state.quizLanguage) {
 
 function queueActiveProfileForSync() {
   if (!canQueueLearningSync()) return;
-  learningSyncManager.upsert(learningSyncRecord("learning_config", "config", ["active_profile"], {
+  const record = learningSyncRecord("learning_config", "config", ["active_profile"], {
     profile: state.profile,
-  }));
+  });
+  const key = learningSyncApi().recordKey(record.data_type, record.record_id);
+  // Keep a fresh view's implicit default out of the mutation queue.
+  if (state.profile === DEFAULT_PROFILE && !learningSyncManager.state.records[key]) return;
+  learningSyncManager.upsert(record);
 }
 
 async function syncLearningDataNow() {

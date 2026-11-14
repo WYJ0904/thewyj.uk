@@ -1,0 +1,78 @@
+{
+  "at": "2026-11-14T03:11:11.615Z",
+  "base_sha": "72bf8cd0573f87c6bf78f8e31fab97ab966ec99c",
+  "hosted_origin": "https://75752fb7.thewyj-uk.pages.dev",
+  "hosted_status": "TWO_FAILURES_RETAINED_NOT_DEPLOYED",
+  "regression_red": {
+    "scope": "isolated compiled Pages Worker + new local D1/R2 + real Chrome",
+    "failed": 2,
+    "checks": [
+      {
+        "name": "fresh browser restores cloud profile without uploading a default",
+        "status": "FAIL",
+        "error": "timeout waiting for cloud profile in real UI"
+      },
+      {
+        "name": "canonical index redirect supports a real hard offline navigation",
+        "status": "FAIL",
+        "error": "timeout waiting for actual cached HTML document"
+      }
+    ]
+  },
+  "regression_green": {
+    "scope": "isolated compiled Pages Worker + new local D1/R2 + real Chrome",
+    "passed": 4,
+    "failed": 0,
+    "checks": [
+      {
+        "name": "fresh browser restores cloud profile without uploading a default",
+        "status": "PASS"
+      },
+      {
+        "name": "explicit edit syncs and idle remote changes update the real UI",
+        "status": "PASS"
+      },
+      {
+        "name": "canonical index redirect supports a real hard offline navigation",
+        "status": "PASS"
+      },
+      {
+        "name": "fresh defaults preserve an imported profile with an unknown edit time",
+        "status": "PASS"
+      }
+    ]
+  },
+  "sw_units": {
+    "passed": 18,
+    "failed": 0
+  },
+  "sw_browser_cases": [
+    {
+      "name": "normal",
+      "status": "PASS"
+    },
+    {
+      "name": "warm",
+      "status": "PASS"
+    },
+    {
+      "name": "failure-retry",
+      "status": "PASS"
+    }
+  ],
+  "worktree_resources": {
+    "app_sha256": "0109afc5b1209798c3e545bc77745a054f79c220f04acdb1c84c7bb07e324b52",
+    "sw_sha256": "851c3a3a3901c71a09aebb312ff38c2f6a54d6c27c42b9245db294610a2f5bc3",
+    "publication_hash": "bd69344557893f50cb4e71245b8c141df304c77566e1601b408b8173f28e0a6d",
+    "core": 81,
+    "task26": 2,
+    "finance": 1,
+    "required_total": 84,
+    "integrity_entries": 12
+  },
+  "new_test_framework": false,
+  "new_dependencies": false,
+  "production_changed": false,
+  "owner_recovery_repeated": false,
+  "github_ci": "PENDING_NEW_COMMIT"
+}

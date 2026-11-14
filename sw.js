@@ -100,7 +100,7 @@ const REQUIRED_SHELL = [...CORE_SHELL, ...TASK26_SHELL, ...FINANCE_SHELL];
 const TASK26_INTEGRITY = Object.freeze({
   "/": "55cca1f29c039e2954665d108854cd1e8d87678813274303edc82d997111a983",
   "/index.html": "55cca1f29c039e2954665d108854cd1e8d87678813274303edc82d997111a983",
-  "/app.js?release=20261113-aeris-s0-p0-rc1": "64839837237fd78e04a067e42b0dad17ac689618f381ab752f2827b41e3b4e97",
+  "/app.js?release=20261113-aeris-s0-p0-rc1": "0109afc5b1209798c3e545bc77745a054f79c220f04acdb1c84c7bb07e324b52",
   "/learning-sync.js?release=20261113-aeris-s0-p0-rc1": "74ced24b8dab7c8ad16dc6b4b68ff81a89e968d18a607bbba6b066a8bee7727d",
   "/product-ui.css?release=20261113-aeris-s0-p0-rc1": "2afdb61afc1770198569bad4a2afa1c4fe131a5201a688c4e3af40cb96a1e5b8",
   "/js/language/mastery.js?release=20261113-aeris-s0-p0-rc1": "2bdebc9b38191301973bc8dbeb3907af5a091d3b6e7d4f143c958a8ff731ed2b",
@@ -111,7 +111,7 @@ const TASK26_INTEGRITY = Object.freeze({
   "/js/finance/money.js?release=20261113-aeris-s0-p0-rc1": "f1172d6c74835784bd1a6629d48c1884f46c14d9825f9f8308a07d3542214277",
   "/js/language/speech.js?release=20261113-aeris-s0-p0-rc1": "a6c7ab6b03d7e8499abef932670e18e013f0e65cb1a4cf6192e67fe50541bf6c"
 });
-const PUBLICATION_HASH = "acc747238a844ff941f5d77c45fd17d1255d9ba0107cccb7c39f1b040a1ccc07";
+const PUBLICATION_HASH = "bd69344557893f50cb4e71245b8c141df304c77566e1601b408b8173f28e0a6d";
 const PUBLICATION_CACHE = `${CACHE}-task26-${PUBLICATION_HASH.slice(0, 16)}`;
 const PUBLICATION_MARKER = "/__aeris/task26-publication";
 
@@ -280,7 +280,13 @@ self.addEventListener("fetch", (event) => {
           return response;
         } catch (_) {
           const cache = await publicationCache();
-          return (cache && await cache.match("/index.html")) || new Response("网络暂时不可用，请联网后刷新。", {
+          const cached = cache && await cache.match("/index.html");
+          // Pages redirects /index.html to /. Navigation cannot consume the
+          // cached redirected response; preserve its bytes and headers instead.
+          if (cached?.redirected) return new Response(cached.body, {
+            status: cached.status, statusText: cached.statusText, headers: cached.headers,
+          });
+          return cached || new Response("网络暂时不可用，请联网后刷新。", {
             status: 503,
             headers: { "Content-Type": "text/plain; charset=utf-8" },
           });
