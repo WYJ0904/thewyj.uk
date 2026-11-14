@@ -79,12 +79,44 @@ function requestId(context) {
   return context.data?.requestId || "";
 }
 
+const MAX_JSON_DEPTH = 32;
+
 function moneyCapable(context) {
   return moneyCapability(context) >= 2;
 }
 function containsJpy(value) {
   if (!value || typeof value !== 'object') return false;
-  return value.currency === 'JPY' || Object.values(value).some(containsJpy);
+  const stack = [value];
+  const seen = new WeakSet();
+  while (stack.length) {
+    const node = stack.pop();
+    if (!node || typeof node !== 'object' || seen.has(node)) continue;
+    seen.add(node);
+    if (node.currency === 'JPY') return true;
+    const children = Array.isArray(node) ? node : Object.values(node);
+    for (let i = 0; i < children.length; i += 1) {
+      const child = children[i];
+      if (child && typeof child === 'object') stack.push(child);
+    }
+  }
+  return false;
+}
+function exceedsJsonDepth(root, maxDepth = MAX_JSON_DEPTH) {
+  if (!root || typeof root !== 'object') return false;
+  const stack = [[root, 1]];
+  const seen = new WeakSet();
+  while (stack.length) {
+    const [node, depth] = stack.pop();
+    if (depth > maxDepth) return true;
+    if (seen.has(node)) continue;
+    seen.add(node);
+    const children = Array.isArray(node) ? node : Object.values(node);
+    for (let i = 0; i < children.length; i += 1) {
+      const child = children[i];
+      if (child && typeof child === 'object') stack.push([child, depth + 1]);
+    }
+  }
+  return false;
 }
 function response(payload, status, context, headers = {}) {
   if (context.request.method === 'GET') requireMoneyCapability(context,payload,Task21Error);
@@ -98,13 +130,19 @@ async function readJson(request, maximumBytes) {
   if (declared > maximumBytes) throw new Task21Error("请求内容过大", 413, "request_too_large");
   const body = await request.arrayBuffer();
   if (body.byteLength > maximumBytes) throw new Task21Error("请求内容过大", 413, "request_too_large");
+  let payload;
   try {
-    const payload = JSON.parse(new TextDecoder().decode(body) || "{}");
-    if (!payload || typeof payload !== "object" || Array.isArray(payload)) throw new Error("object required");
-    return payload;
+    payload = JSON.parse(new TextDecoder().decode(body) || "{}");
   } catch (_) {
     throw new Task21Error("请求 JSON 格式无效", 400, "invalid_json");
   }
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    throw new Task21Error("请求 JSON 格式无效", 400, "invalid_json");
+  }
+  if (exceedsJsonDepth(payload, MAX_JSON_DEPTH)) {
+    throw new Task21Error("请求 JSON 嵌套层级过深", 400, "json_depth_exceeded");
+  }
+  return payload;
 }
 
 function authenticationError(result, context) {
@@ -334,8 +372,11 @@ export async function handleTask21Request(context) {
 }
 
 export const __testing = Object.freeze({
+  MAX_JSON_DEPTH,
   METHODS_BY_PATH,
   ROUTES,
+  containsJpy,
+  exceedsJsonDepth,
   featureEnabled,
   readJson,
 });

@@ -424,6 +424,11 @@ jobs:
           set -euo pipefail
           node local-backend/test_task12_d1_js.mjs 2>&1 | tee artifacts/task12-cloud-integration.log
 
+      - name: Test Task27 authentication and notification isolation
+        run: |
+          set -euo pipefail
+          npm run test:task27 2>&1 | tee artifacts/task27-isolated-d1-api.log
+
       - name: Test Task 13 membership, payment and private QR integration
         run: |
           set -euo pipefail

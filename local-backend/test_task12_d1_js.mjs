@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { POLICY_VERSIONS } from '../functions/_lib/task27-policy.mjs';
 import { createHmac, pbkdf2Sync, randomBytes } from "node:crypto";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import os from "node:os";
@@ -196,6 +197,9 @@ try {
     "0003_accounts_sessions.sql",
     "0004_session_limit_trigger.sql",
     "0005_session_limit_ordering.sql",
+    '0014_admin_roles_messages.sql',
+    '0015_android_device_sessions.sql',
+    '0035_task27_security_center.sql',
   ]) {
     const sql = await readFile(path.join(ROOT, "cloudflare", "migrations", filename), "utf8");
     await db.exec(sql.replace(/\r?\n/g, " "));
@@ -367,6 +371,7 @@ try {
     env: { WYJ_TASK12_PASSWORD_PEPPER: "" },
     body: {
       username: "task12-no-pepper",
+      terms_accepted:true,policy_versions:POLICY_VERSIONS,
       secret: USER_SECRET,
       confirm_secret: USER_SECRET,
     },
@@ -378,7 +383,7 @@ try {
   const registered = await accountRequest(db, "/api/register", {
     method: "POST",
     ip: "198.51.100.10",
-    body: { username: "task12-user", secret: USER_SECRET, confirm_secret: USER_SECRET },
+    body: { username: "task12-user", secret: USER_SECRET, confirm_secret: USER_SECRET, terms_accepted:true,policy_versions:POLICY_VERSIONS },
   });
   assert.equal(registered.response.status, 201);
   const userId = registered.payload.account.id;

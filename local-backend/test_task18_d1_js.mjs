@@ -7,11 +7,13 @@ import { Miniflare } from "miniflare";
 
 import { onRequest as dispatchApi } from "../functions/api/[[path]].js";
 import { handleTask12Request } from "../functions/_lib/task12-api.mjs";
-import { sessionStorageKey } from "../functions/_lib/task12-crypto.mjs";
+import { sessionStorageKey,hashSecret } from "../functions/_lib/task12-crypto.mjs";
 import { handleTask18Request } from "../functions/_lib/task18-api.mjs";
 import { isAdmin as isClientAdmin, isSuperAdmin as isClientOwner } from "../js/membership/account.js";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
+const FIXTURE_PASSWORD='Task18-Synthetic-Stepup-Password!';
+const FIXTURE_PEPPER='Task18-Synthetic-Stepup-Pepper-0123456789';
 const ENVIRONMENT = Object.freeze({
   CLOUD_FOUNDATION_ENABLED: "true",
   TASK11_CLOUD_READS_ENABLED: "true",
@@ -29,6 +31,7 @@ const ENVIRONMENT = Object.freeze({
   D1_RATE_LIMIT_ENABLED: "false",
   LEGACY_API_FALLBACK_ENABLED: "false",
   WYJ_ENVIRONMENT: "preview",
+  WYJ_TASK12_PASSWORD_PEPPER:FIXTURE_PEPPER,
 });
 
 const USERS = Object.freeze({
@@ -47,8 +50,8 @@ async function insertAccountAndSession(db, user) {
   await db.prepare(`INSERT INTO task12_users (
     id, username, username_normalized, password_hash, password_scheme,
     password_iterations, role, registered_at, created_at, updated_at, source_updated_at
-  ) VALUES (?1, ?2, ?3, '', 'reset_required', 0, ?4, ?5, ?5, ?5, ?5)`)
-    .bind(user.id, user.username, user.username.toLowerCase(), user.role, now).run();
+  ) VALUES (?1, ?2, ?3, ?6, 'pbkdf2_sha256', 310000, ?4, ?5, ?5, ?5, ?5)`)
+    .bind(user.id, user.username, user.username.toLowerCase(), user.role, now,await hashSecret(FIXTURE_PASSWORD,FIXTURE_PEPPER)).run();
   await db.prepare(`INSERT INTO task12_sessions (
     token_digest, user_id, session_version, created_at, last_seen_at, expires_at, client_kind
   ) VALUES (?1, ?2, 1, ?3, ?3, ?4, 'browser')`)
@@ -57,6 +60,13 @@ async function insertAccountAndSession(db, user) {
 
 async function apiRequest(handler, db, route, options = {}) {
   const headers = new Headers(options.headers || {});
+  // Supply the new real step-up precondition while preserving every original
+  // owner/peer/self permission assertion below. No authorization is bypassed.
+  const scope=handler===dispatchApi?new Map([['/api/admin/ban','admin_account'],['/api/admin/membership/manage','admin_entitlements']]).get(route):null;
+  if(scope&&options.token){
+    const proof=await apiRequest(dispatchApi,db,'/api/security/stepup',{method:'POST',token:options.token,body:{password:FIXTURE_PASSWORD,scope}});
+    assert.equal(proof.response.status,200,JSON.stringify(proof.payload));headers.set('X-Aeris-Stepup',proof.payload.grant);
+  }
   if (options.token) headers.set("X-Session-Token", options.token);
   if (options.body !== undefined) headers.set("Content-Type", "application/json");
   const waits = [];

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import {fixtureRequestInit} from '../qa/task27/fixture-request.mjs';
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -90,14 +91,7 @@ async function request(pathname, payload = null, token = "") {
   let lastError = null;
   for (let attempt = 0; attempt < 4; attempt += 1) {
     try {
-      const response = await fetch(`${BASE_URL}${pathname}`, {
-        method: payload === null ? "GET" : "POST",
-        headers: {
-          ...(payload === null ? {} : { "Content-Type": "application/json" }),
-          ...(token ? { "X-Session-Token": token } : {}),
-        },
-        body: payload === null ? undefined : JSON.stringify(payload),
-      });
+      const response = await fetch(`${BASE_URL}${pathname}`, await fixtureRequestInit(BASE_URL,pathname,payload,token));
       return { status: response.status, data: await response.json().catch(() => ({})) };
     } catch (error) {
       lastError = error;

@@ -121,6 +121,8 @@ export function messagePayload(row) {
     requires_confirmation: Boolean(row.requires_confirmation),
     status: String(row.status || "active"),
     target_scope: String(row.target_scope || ""),
+    delivery_channel: String(row.delivery_channel || 'broadcast'),
+    purpose: String(row.purpose || 'general'),
   };
 }
 

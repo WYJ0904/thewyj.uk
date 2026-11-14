@@ -36,6 +36,8 @@ import {
 import { enrichAccountWithTask13, listTask13Audit } from "./task13-service.mjs";
 import { listAdminActionAudit } from "./task18-service.mjs";
 import { listFeedbackAudit } from "./task11-service.mjs";
+import { validateConsent } from './task27-policy.mjs';
+import { hasTask27 } from './task27-store.mjs';
 
 const LOGIN_FAILURE_LIMIT = 8;
 const LOGIN_FAILURE_WINDOW_SECONDS = 300;
@@ -131,7 +133,7 @@ function passwordOptions(context) {
       true,
     );
   }
-  return { passwordPepper };
+  return { passwordPepper, env: context.env, requestId: requestId(context) };
 }
 
 async function businessAccount(context, account, flags) {
@@ -215,13 +217,15 @@ async function executeRoute(context, descriptor, account, flags) {
   }
   const payload = await readJson(context.request, descriptor.body);
   if (path === "/api/register") {
-    requireAllowedFields(payload, new Set(["username", "secret", "confirm_secret"]));
+    requireAllowedFields(payload, new Set(["username", "secret", "confirm_secret", "terms_accepted", "policy_versions"]));
+    validateConsent(payload);
+    if (!await hasTask27(db)) throw new Task12Error('注册政策记录尚未就绪，请稍后重试',503,'task27_policy_schema_not_ready',true);
     if (String(payload.secret || "") !== String(payload.confirm_secret || "")) {
       throw new Task12Error("两次输入的登录密钥不一致", 400, "secret_mismatch");
     }
     return response({
       ok: true,
-      account: await registerAccount(db, payload.username, payload.secret, passwordOptions(context)),
+      account: await registerAccount(db, payload.username, payload.secret, { ...passwordOptions(context), registrationConsent: payload }),
     }, 201, context);
   }
   if (path === "/api/login") {
@@ -237,6 +241,9 @@ async function executeRoute(context, descriptor, account, flags) {
       const result = await loginAccount(
         db, payload.username, payload.secret, context.request, passwordOptions(context),
       );
+      if (result.mfa_required || result.password_change_required) {
+        return response({ok:true,...result},200,context);
+      }
       await clearLoginFailures(context, state);
       await safeLoginAudit(context, payload.username, true, "success", result.account);
       let enriched = result.account;

@@ -2,6 +2,8 @@ package uk.thewyj.app.ui
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.material3.Checkbox
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.Image
@@ -155,6 +157,10 @@ fun ThewyjApp(viewModel: AppViewModel) {
                 onLogin = viewModel::login,
                 onRegister = viewModel::register,
             )
+            is SessionState.VerificationRequired -> AuthenticationVerificationScreen(
+                state = current, busy = authBusy, onVerify = viewModel::verifyAuthentication,
+                onChangePassword = viewModel::completeTemporaryPassword, onCancel = viewModel::cancelAuthentication,
+            )
             is SessionState.Authenticated -> AuthenticatedShell(
                 state = current,
                 destination = destination,
@@ -236,11 +242,13 @@ private fun AuthScreen(
     message: String,
     busy: Boolean,
     onLogin: (String, String) -> Unit,
-    onRegister: (String, String) -> Unit,
+    onRegister: (String, String, Boolean) -> Unit,
 ) {
     var username by remember { mutableStateOf("") }
     var secret by remember { mutableStateOf("") }
     var registerMode by remember { mutableStateOf(false) }
+    var termsAccepted by remember { mutableStateOf(false) }
+    val uriHandler = LocalUriHandler.current
     val valid = AuthInputPolicy.canSubmit(username, secret, registerMode)
 
     Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
@@ -300,14 +308,28 @@ private fun AuthScreen(
                         Spacer(Modifier.height(ThewyjSpacing.Md))
                         StatusPanel(message, "error")
                     }
+                    if (registerMode) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Checkbox(checked = termsAccepted, onCheckedChange = { termsAccepted = it }, enabled = !busy)
+                            Text("我已阅读并同意《Aeris 使用条款》，并已获提供《Aeris 隐私政策》和《Aeris 安全与隐私说明》。", style = MaterialTheme.typography.bodySmall)
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            TextButton(onClick = { uriHandler.openUri("${BuildConfig.THEWYJ_BASE_URL}/terms") }, modifier = Modifier.weight(1f)) { Text("使用条款") }
+                            TextButton(onClick = { uriHandler.openUri("${BuildConfig.THEWYJ_BASE_URL}/privacy") }, modifier = Modifier.weight(1f)) { Text("隐私政策") }
+                            TextButton(onClick = { uriHandler.openUri("${BuildConfig.THEWYJ_BASE_URL}/security-privacy") }, modifier = Modifier.weight(1f)) { Text("安全与隐私") }
+                        }
+                    } else {
+                        TextButton(onClick = { uriHandler.openUri("${BuildConfig.THEWYJ_BASE_URL}/forgot-password") }) { Text("忘记密码或无法使用验证器？") }
+                    }
                     Spacer(Modifier.height(ThewyjSpacing.Xl))
                     ThewyjPrimaryButton(
                         text = { Text(if (registerMode) "注册并登录" else "安全登录") },
                         onClick = {
-                            if (registerMode) onRegister(username, secret) else onLogin(username, secret)
+                            if (registerMode) onRegister(username, secret, termsAccepted) else onLogin(username, secret)
+                            secret = ""
                         },
                         modifier = Modifier.fillMaxWidth().height(ThewyjTouch.Minimum),
-                        enabled = valid && !busy,
+                        enabled = valid && !busy && (!registerMode || termsAccepted),
                     )
                     Spacer(Modifier.height(ThewyjSpacing.Md))
                     Text(
@@ -317,6 +339,43 @@ private fun AuthScreen(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun AuthenticationVerificationScreen(
+    state: SessionState.VerificationRequired,
+    busy: Boolean,
+    onVerify: (String) -> Unit,
+    onChangePassword: (String, String) -> Unit,
+    onCancel: () -> Unit,
+) {
+    var code by remember(state.challenge.token) { mutableStateOf("") }
+    var password by remember(state.challenge.token) { mutableStateOf("") }
+    var confirmation by remember(state.challenge.token) { mutableStateOf("") }
+    val change = state.challenge.passwordChangeRequired
+    BackHandler(enabled = !busy, onBack = onCancel)
+    Surface(Modifier.fillMaxSize()) {
+        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(24.dp), verticalArrangement = Arrangement.Center) {
+            Text(if (change) "设置新的登录密码" else "完成登录双重验证", style = MaterialTheme.typography.headlineSmall)
+            Text(if (change) "临时密码不提供业务访问权限。设置新密码后请重新登录。"
+                else if (state.challenge.method == "email") "请输入绑定邮箱收到的六位验证码。"
+                else "请输入当前 TOTP 验证码，或一个未使用的一次性恢复码。")
+            Spacer(Modifier.height(16.dp))
+            if (change) {
+                OutlinedTextField(value = password, onValueChange = { if (it.length <= 128) password = it }, label = { Text("新密码（至少 7 个字符）") }, visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth(), singleLine = true)
+                OutlinedTextField(value = confirmation, onValueChange = { if (it.length <= 128) confirmation = it }, label = { Text("再次输入新密码") }, visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth(), singleLine = true)
+            } else {
+                OutlinedTextField(value = code, onValueChange = { if (it.length <= 80) code = it }, label = { Text("验证码或恢复码") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+            }
+            if (state.message.isNotBlank()) StatusPanel(state.message, "error")
+            Spacer(Modifier.height(16.dp))
+            ThewyjPrimaryButton(text = { Text(if (change) "设置密码" else "验证并登录") }, enabled = !busy && if (change) password.length >= 7 && password == confirmation else code.isNotBlank(), onClick = {
+                if (change) { onChangePassword(password, confirmation); password = ""; confirmation = "" }
+                else { onVerify(code); code = "" }
+            })
+            TextButton(onClick = onCancel, enabled = !busy) { Text("取消并重新登录") }
         }
     }
 }

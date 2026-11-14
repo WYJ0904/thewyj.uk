@@ -166,6 +166,7 @@ async function main() {
         "#registerSecretInput": USER_SECRET,
         "#registerConfirmInput": USER_SECRET,
       });
+      await click('#registerTermsConsent');
       await click("#registerSubmitBtn");
       await waitFor(
         "location.pathname === '/login' && !document.querySelector('#loginForm')?.classList.contains('hidden')",
@@ -245,6 +246,8 @@ async function main() {
       await click("#grantAdminRoleBtn");
       await waitFor("!document.querySelector('#confirmModal')?.classList.contains('hidden')", 5_000, "grant confirmation");
       await click("#acceptConfirmBtn");
+      await waitFor("document.querySelector('#task27Prompt [name=password]')",8000,'role grant step-up');
+      await setFields({'#task27Prompt [name=password]':ADMIN_SECRET});await click('#task27Prompt button[type=submit]');
       await waitFor(`Boolean(document.querySelector('[data-admin-role-user-id=${JSON.stringify(userId)}]'))`, 12_000, "granted admin row");
       assert.equal((await api("/api/me", null, userSession)).data.account.role, "admin");
 
@@ -263,6 +266,8 @@ async function main() {
       await click(`[data-admin-role-user-id="${userId}"] [data-revoke-admin-role]`);
       await waitFor("!document.querySelector('#confirmModal')?.classList.contains('hidden')", 5_000, "revoke confirmation");
       await click("#acceptConfirmBtn");
+      await waitFor("document.querySelector('#task27Prompt [name=password]')",8000,'role revoke step-up');
+      await setFields({'#task27Prompt [name=password]':ADMIN_SECRET});await click('#task27Prompt button[type=submit]');
       await waitFor(`!document.querySelector('[data-admin-role-user-id=${JSON.stringify(userId)}]')`, 12_000, "admin revoked");
       assert.equal((await api("/api/me", null, userSession)).data.account.role, "user");
     });

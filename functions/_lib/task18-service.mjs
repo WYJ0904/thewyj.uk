@@ -5,6 +5,8 @@ import {
   isOwnerAccount,
 } from "./task12-model.mjs";
 import { userById } from "./task12-service.mjs";
+import { hasTask27 } from './task27-store.mjs';
+import { mfaAdviceBroadcast } from './task27-notifications.mjs';
 import {
   ADMIN_ROLE_POLICY,
   MAX_MESSAGE_RECIPIENTS,
@@ -182,6 +184,11 @@ async function messageTargets(db, messageId) {
 }
 
 function canonicalMessageInput(input, now = new Date()) {
+  const channel=String(input.delivery_channel || 'broadcast');
+  const purpose=String(input.purpose || 'general');
+  if (!['broadcast','inbox'].includes(channel) || !['general','version_update','policy_change'].includes(purpose)) throw new Task18Error('消息投递方式无效',400,'message_channel_invalid');
+  if ((purpose==='version_update' && (channel!=='broadcast' || input.requires_confirmation===true))
+      || (purpose==='policy_change' && channel!=='inbox')) throw new Task18Error('版本更新应为非强制广播，重大政策变更应进入个人收件箱',400,'message_channel_mismatch');
   const scope = cleanMessageScope(input.target_scope);
   const targetIds = [...new Set((Array.isArray(input.target_user_ids) ? input.target_user_ids : [])
     .map(cleanUserId))].sort();
@@ -198,6 +205,7 @@ function canonicalMessageInput(input, now = new Date()) {
     throw new Task18Error("批量或全站消息需要再次确认", 400, "message_bulk_confirmation_required");
   }
   return {
+    channel,purpose,
     title: cleanMessageTitle(input.title),
     body: cleanMessageBody(input.body),
     messageType: cleanMessageType(input.message_type),
@@ -222,7 +230,9 @@ async function verifyMessageTargets(db, targetIds) {
 }
 
 function sameMessage(existing, input, targetIds) {
-  return existing.title === input.title
+  return (existing.delivery_channel || 'broadcast') === input.channel
+    && (existing.purpose || 'general') === input.purpose
+    && existing.title === input.title
     && existing.body === input.body
     && existing.message_type === input.messageType
     && existing.target_scope === input.scope
@@ -234,6 +244,8 @@ function sameMessage(existing, input, targetIds) {
 export async function createAdminMessage(db, actor, rawInput, requestId = "") {
   requireAdmin(actor);
   const input = canonicalMessageInput(rawInput);
+  const task27=await hasTask27(db);
+  if (!task27 && (input.channel!=='broadcast' || input.purpose!=='general')) throw new Task18Error('个人通知数据结构尚未就绪',503,'task27_schema_not_ready');
   const existing = await first(db, `SELECT * FROM admin_messages
     WHERE sender_user_id = ?1 AND idempotency_key = ?2`, [actor.id, input.idempotencyKey]);
   if (existing) {
@@ -253,13 +265,13 @@ export async function createAdminMessage(db, actor, rawInput, requestId = "") {
     db.prepare(`INSERT INTO admin_messages (
       id, title, body, message_type, sender_user_id, sender_username, sender_role,
       target_scope, requires_confirmation, status, expires_at, idempotency_key,
-      recipient_count, request_id, created_at, updated_at
-    ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, 'active', ?10, ?11, ?12, ?13, ?14, ?14)`)
+      recipient_count, request_id, created_at, updated_at${task27?', delivery_channel, purpose':''}
+    ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, 'active', ?10, ?11, ?12, ?13, ?14, ?14${task27?', ?15, ?16':''})`)
       .bind(
         id, input.title, input.body, input.messageType, actor.id, actor.username,
         actorRole(actor), input.scope, input.requiresConfirmation ? 1 : 0,
         input.expiresAt, input.idempotencyKey, recipientCount,
-        String(requestId || "").slice(0, 120), now,
+        String(requestId || "").slice(0, 120), now,...(task27?[input.channel,input.purpose]:[]),
       ),
     ...(input.scope === "all"
       ? [db.prepare(`INSERT INTO admin_message_recipients (message_id, user_id, created_at)
@@ -373,16 +385,18 @@ export async function revokeAdminMessage(db, actor, messageIdValue, requestId = 
   return { changed: true, message: messagePayload(await first(db, "SELECT * FROM admin_messages WHERE id = ?1", [row.id])) };
 }
 
-export async function listPendingMessages(db, account, limit = 20) {
+export async function listPendingMessages(db, account, limit = 20, options = {}) {
   const now = isoNow();
   await expireMessages(db, now);
   const safeLimit = Math.max(1, Math.min(Number(limit || 20), 50));
+  const task27=await hasTask27(db);
   const rows = await all(db, `SELECT messages.*, receipts.first_seen_at,
     receipts.dismissed_at, receipts.acknowledged_at
     FROM admin_messages AS messages
     LEFT JOIN admin_message_receipts AS receipts
       ON receipts.message_id = messages.id AND receipts.user_id = ?1
     WHERE messages.status = 'active'
+      ${task27 ? "AND messages.delivery_channel = 'broadcast' AND messages.audience_condition = ''" : ''}
       AND (messages.expires_at = '' OR messages.expires_at > ?2)
       AND EXISTS (
         SELECT 1 FROM admin_message_recipients AS recipients
@@ -404,17 +418,19 @@ export async function listPendingMessages(db, account, limit = 20) {
       updated_at = excluded.updated_at`)
       .bind(row.id, account.id, now)));
   }
-  return rows.map(messagePayload);
+  const advice=task27&&options.securityAdvice===true?await mfaAdviceBroadcast(db,account):null;
+  return [...rows,...(advice?[advice]:[])].map(messagePayload);
 }
 
 async function eligibleMessage(db, account, messageId, now) {
+  const task27=await hasTask27(db);
   return await first(db, `SELECT messages.* FROM admin_messages AS messages
     WHERE messages.id = ?1 AND messages.status = 'active'
       AND (messages.expires_at = '' OR messages.expires_at > ?3)
-      AND EXISTS (
+      AND (EXISTS (
         SELECT 1 FROM admin_message_recipients AS recipients
         WHERE recipients.message_id = messages.id AND recipients.user_id = ?2
-      )`, [messageId, account.id, now]);
+      )${task27 ? " OR (messages.audience_condition='mfa_disabled' AND EXISTS(SELECT 1 FROM task27_security WHERE user_id=?2 AND mfa_method='none'))" : ''})`, [messageId, account.id, now]);
 }
 
 export async function updateMessageReceipt(db, account, messageIdValue, actionValue) {

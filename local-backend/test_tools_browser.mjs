@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { POLICY_VERSIONS } from '../functions/_lib/task27-policy.mjs';
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import fs from "node:fs";
@@ -122,7 +123,7 @@ async function api(pathname, payload = null, token = "", expected = [200]) {
 }
 
 async function createMember() {
-  await api("/api/register", { username: USERNAME, secret: USER_SECRET, confirm_secret: USER_SECRET }, "", [201]);
+  await api("/api/register", { username: USERNAME, secret: USER_SECRET, confirm_secret: USER_SECRET, terms_accepted:true,policy_versions:POLICY_VERSIONS }, "", [201]);
   const login = await api("/api/login", { username: USERNAME, secret: USER_SECRET });
   const admin = await api("/api/login", { username: ADMIN_USERNAME, secret: ADMIN_SECRET });
   await api("/api/admin/membership/manage", {

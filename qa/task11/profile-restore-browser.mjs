@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {fixtureRequestInit} from '../task27/fixture-request.mjs';
 import {readFile,readdir,mkdir,writeFile,access} from 'node:fs/promises';
 import {execFileSync} from 'node:child_process';
 import {randomUUID} from 'node:crypto';
@@ -20,7 +21,7 @@ const mf=new Miniflare({host:'127.0.0.1',port:0,modules:true,scriptPath:worker,c
   const routes=new Set(['/','/login','/language/english','/language/japanese','/account','/select']),file=routes.has(url.pathname)?'index.html':url.pathname.slice(1);if(!isAllowedPagesFile(file)||file.startsWith('functions/'))return new Response('Not found',{status:404});
   try{const bytes=await readFile(path.join(root,file)),type=file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':file.endsWith('.html')?'text/html':file.endsWith('.png')?'image/png':file.endsWith('.svg')?'image/svg+xml':file.endsWith('.webmanifest')?'application/manifest+json':'application/octet-stream';return new Response(bytes,{headers:{'Content-Type':type,'Content-Security-Policy':csp,'Cache-Control':'no-store','Service-Worker-Allowed':'/'}});}catch{return new Response('Not found',{status:404});}}}});
 let browser,page,session='',userId='',base;const checks=[];const username='profile_'+run.slice(0,8),secret=randomUUID(),remoteProfile='Cloud-'+run.slice(0,8),configId='v1|config|YWN0aXZlX3Byb2ZpbGU';
-async function call(route,body){assert.equal(new URL(base).hostname,'127.0.0.1');const r=await fetch(base+route,{method:body===undefined?'GET':'POST',headers:{'Content-Type':'application/json',...(session?{'X-Session-Token':session}:{})},body:body===undefined?undefined:JSON.stringify(body)});const data=await r.json();assert.ok(r.ok,route+' HTTP '+r.status+' '+(data.code||''));return data;}
+async function call(route,body){assert.equal(new URL(base).hostname,'127.0.0.1');const r=await fetch(base+route,await fixtureRequestInit(base,route,body===undefined?null:body,session));const data=await r.json();assert.ok(r.ok,route+' HTTP '+r.status+' '+(data.code||''));return data;}
 const sync=(changes=[],clientId='profile-regression-'+run)=>call('/api/learning/sync',{schema_version:1,client_id:clientId,client_version:'isolated-regression',since_version:0,changes});
 const last=body=>new Map(body.changes.map(r=>[r.record_id,r])).get(configId);
 async function cloudProfile(value){const old=last(await sync()),time=new Date(Math.max(Date.now(),Date.parse(old?.updated_at||'')+1||0)).toISOString();return sync([{data_type:'learning_config',record_id:configId,payload:{profile:value},updated_at:time,deleted:false,base_server_version:old?.server_version||0}]);}

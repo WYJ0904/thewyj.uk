@@ -1,0 +1,96 @@
+import { Task12Error } from './task12-model.mjs';
+
+const encoder = new TextEncoder();
+const BASE32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+export function equalBytes(a, b) {
+  if (a.length !== b.length) return false;
+  if (crypto.subtle.timingSafeEqual) return crypto.subtle.timingSafeEqual(a, b);
+  let difference = 0;
+  for (let i = 0; i < a.length; i++) difference |= a[i] ^ b[i];
+  return difference === 0;
+}
+export function equalText(a, b) { return equalBytes(encoder.encode(a), encoder.encode(b)); }
+export function randomBytes(length) { return crypto.getRandomValues(new Uint8Array(length)); }
+export function base64url(bytes) {
+  return btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+export function unbase64url(value) {
+  try { return Uint8Array.from(atob(value.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0)); }
+  catch (_) { throw new Task12Error('安全密钥配置无效', 503, 'task27_key_invalid'); }
+}
+export function base32(bytes) {
+  let bits = 0, value = 0, out = '';
+  for (const byte of bytes) {
+    value = (value << 8) | byte; bits += 8;
+    while (bits >= 5) { out += BASE32[(value >>> (bits - 5)) & 31]; bits -= 5; }
+  }
+  if (bits) out += BASE32[(value << (5 - bits)) & 31];
+  return out;
+}
+export function unbase32(text) {
+  let bits = 0, value = 0; const out = [];
+  for (const c of text.replace(/=+$/, '').toUpperCase()) {
+    const part = BASE32.indexOf(c);
+    if (part < 0) throw new Task12Error('验证器配置无效', 503, 'task27_totp_invalid');
+    value = (value << 5) | part; bits += 5;
+    if (bits >= 8) { out.push((value >>> (bits - 8)) & 255); bits -= 8; }
+  }
+  return new Uint8Array(out);
+}
+export function challengeSecret(env) {
+  const value = String(env.WYJ_TASK27_CHALLENGE_SECRET || '');
+  if (encoder.encode(value).length < 32) throw new Task12Error('账户安全服务尚未配置', 503, 'task27_secret_unavailable');
+  return value;
+}
+export async function keyedDigest(env, purpose, value) {
+  const key = await crypto.subtle.importKey('raw', encoder.encode(challengeSecret(env)), { name:'HMAC', hash:'SHA-256' }, false, ['sign']);
+  return base64url(new Uint8Array(await crypto.subtle.sign('HMAC', key, encoder.encode(`${purpose}\0${value}`))));
+}
+export function randomDigits() {
+  const max = 0x100000000 - (0x100000000 % 1000000);
+  let n;
+  do { n = new DataView(randomBytes(4).buffer).getUint32(0); } while (n >= max);
+  return String(n % 1000000).padStart(6, '0');
+}
+export function temporaryPassword() {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@$%*-_';
+  let result = '';
+  const limit = 256 - (256 % alphabet.length);
+  while (result.length < 20) for (const n of randomBytes(32)) {
+    if (n < limit && result.length < 20) result += alphabet[n % alphabet.length];
+  }
+  return result;
+}
+async function encryptionKey(env) {
+  const bytes = unbase64url(String(env.WYJ_TASK27_TOTP_KEY || ''));
+  if (bytes.length !== 32) throw new Task12Error('验证器加密服务尚未配置', 503, 'task27_totp_key_unavailable');
+  return crypto.subtle.importKey('raw', bytes, 'AES-GCM', false, ['encrypt','decrypt']);
+}
+export async function encryptTotp(env, userId, secret) {
+  const iv = randomBytes(12);
+  const cipher = await crypto.subtle.encrypt({name:'AES-GCM',iv,additionalData:encoder.encode(`aeris-task27:v1:${userId}`)}, await encryptionKey(env), encoder.encode(secret));
+  return `v1.${base64url(iv)}.${base64url(new Uint8Array(cipher))}`;
+}
+export async function decryptTotp(env, userId, encoded) {
+  const [version, iv, ciphertext] = String(encoded).split('.');
+  if (version !== 'v1' || !iv || !ciphertext) throw new Task12Error('验证器配置不可用', 503, 'task27_totp_key_unavailable');
+  try {
+    return new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:unbase64url(iv),additionalData:encoder.encode(`aeris-task27:v1:${userId}`)}, await encryptionKey(env), unbase64url(ciphertext)));
+  } catch (_) { throw new Task12Error('验证器配置不可用，请联系支持', 503, 'task27_totp_key_unavailable'); }
+}
+export async function totpAt(secret, step, digits = 6, hash = 'SHA-1') {
+  const counter = new Uint8Array(8);
+  new DataView(counter.buffer).setBigUint64(0, BigInt(step));
+  const key = await crypto.subtle.importKey('raw', unbase32(secret), {name:'HMAC',hash}, false, ['sign']);
+  const digest = new Uint8Array(await crypto.subtle.sign('HMAC', key, counter));
+  const offset = digest.at(-1) & 15;
+  const binary = new DataView(digest.buffer).getUint32(offset) & 0x7fffffff;
+  return String(binary % (10 ** digits)).padStart(digits, '0');
+}
+export async function matchingTotpStep(secret, code, now = Date.now()) {
+  if (typeof code !== 'string' || !/^\d{6}$/.test(code)) return -1;
+  const step = Math.floor(now / 30000);
+  let match = -1;
+  for (const candidate of [step - 1, step, step + 1]) if (equalText(await totpAt(secret, candidate), code)) match = candidate;
+  return match;
+}

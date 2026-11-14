@@ -4901,3 +4901,47 @@ progress {
 
 /* Existing wrong-review and recovery controls share the P07 touch targets. */
 #wrongView button { min-height: 44px; height: auto; white-space: normal; }
+/* Task27 uses the existing palette, controls and dialog system. */
+.task27-bell { position: relative; flex: 0 0 44px; }
+.task27-unread { position: absolute; top: 0; right: -3px; min-width: 18px; padding: 1px 4px; border-radius: 12px; background: #bc253b; color: #fff; font-size: 11px; line-height: 16px; font-weight: 700; }
+.task27-policy-consent { display: grid; grid-template-columns: 22px minmax(0,1fr); gap: 8px; align-items: start; line-height: 1.65; font-size: .875rem; }
+.task27-policy-consent input { width: 20px; height: 20px; margin-top: 4px; }
+.task27-policy-consent a { text-decoration: underline; text-underline-offset: 3px; }
+.task27-panel { width: min(880px,calc(100vw - 32px)); max-height: calc(100dvh - 48px); overflow-y: auto; overflow-x: hidden; }
+#task27Prompt .task27-panel, #task27Secrets .task27-panel { width: min(560px,calc(100vw - 32px)); }
+.task27-modal h2 { padding-right: 36px; }
+.task27-modal h3 { margin: 16px 0 8px; }
+.task27-modal .stack-form { display: grid; gap: 16px; }
+.task27-modal label input:not([type=checkbox]), .task27-modal textarea { width: 100%; min-width: 0; }
+.task27-modal textarea { min-height: 140px; }
+.task27-modal button, .task27-modal select { min-height: 44px; }
+.task27-security-summary { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; }
+.task27-security-summary article, .task27-inbox-list article, .task27-session-list article, .task27-mail-records article { padding: 16px; border: 1px solid var(--border,#85858566); border-radius: 14px; margin: 10px 0; overflow-wrap: anywhere; }
+.task27-security-summary article h3 { margin-top: 0; }
+.task27-session-list article { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.task27-inbox-toolbar { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; align-items: center; }
+.task27-inbox-list .is-unread { border-inline-start: 4px solid var(--accent,#5672b7); }
+.task27-message-body { white-space: pre-wrap; overflow-wrap: anywhere; }
+.task27-codes { max-width: 100%; padding: 16px; border-radius: 12px; background: var(--panel,#8881); overflow-x: auto; line-height: 1.8; font-size: .8rem; user-select: all; }
+.task27-key { overflow-wrap: anywhere; user-select: all; font-family: monospace; }
+.task27-qr { max-width: 220px; margin: 12px auto; background: white; padding: 12px; border-radius: 12px; }
+.task27-qr svg { width: 100%; height: auto; display: block; }
+.task27-footer-brand { font-weight: 700; letter-spacing: .04em; }
+.task27-footer-policies { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 20px; }
+.task27-footer-policies a { display: inline-flex; min-height: 44px; align-items: center; }
+.policy-document { overflow-wrap: anywhere; }
+.policy-nav, .policy-article { max-width: 880px; margin: 0 auto; padding: 24px; }
+.policy-nav { display: flex; gap: 20px; justify-content: space-between; flex-wrap: wrap; align-items: center; }
+.policy-nav nav { display: flex; flex-wrap: wrap; gap: 16px; }
+.policy-nav a { display: inline-flex; min-height: 44px; align-items: center; }
+.policy-article { line-height: 1.85; }
+.policy-article h1 { font-size: clamp(1.7rem,4vw,2.5rem); line-height: 1.35; }
+.policy-article h2 { font-size: 1.25rem; margin-top: 32px; }
+.policy-article p, .policy-article ul, .policy-article ol { margin: 16px 0; }
+@media(max-width:600px) {
+  .task27-security-summary { grid-template-columns: minmax(0,1fr); }
+  .task27-session-list article { align-items: stretch; flex-direction: column; }
+  .task27-panel { padding: 20px; }
+  #v3TopbarContext { max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .task27-modal .action-row { flex-wrap: wrap; }
+}

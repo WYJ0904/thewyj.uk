@@ -29,16 +29,23 @@ export async function assertSourceUnit(db, owner, event, currency, exponent) {
     throw new Task21Error('旧日元来源单位待核实，请重新确认原币金额',409,'currency_unit_review_required');
 }
 export async function projectSourceUnits(db, owner, payload) {
-  const pending=[];
-  function visit(value) {
-    if (!value || typeof value !== 'object') return;
+  const pending = [];
+  const stack = [payload];
+  const seen = new WeakSet();
+  while (stack.length) {
+    const value = stack.pop();
+    if (!value || typeof value !== 'object' || seen.has(value)) continue;
+    seen.add(value);
     // Source markers belong to events/hints. Ledger snapshots already carry
     // their independently verified transaction unit; a missing event key must
     // never erase that unit or reinterpret a nested currency role.
     if (value.currency === 'JPY' && (value.event_id || value.source_event_id)) pending.push(value);
-    for (const child of Object.values(value)) visit(child);
+    const children = Array.isArray(value) ? value : Object.values(value);
+    for (let i = 0; i < children.length; i += 1) {
+      const child = children[i];
+      if (child && typeof child === 'object') stack.push(child);
+    }
   }
-  visit(payload);
   for (const row of pending) {
     const event = row.event_id || row.source_event_id || '';
     row.amount_exponent = await sourceExponent(db,owner,event,'JPY');

@@ -163,6 +163,7 @@ export function createApiClient({
         method: "POST",
         cache: "no-store",
         headers: { "Content-Type": "application/json", ...accountSessionHeaders(owner),
+          ...(options.headers || {}),
           ...(/^\/api\/(finance|notification)\//.test(path) ? { 'X-Finance-Money-Version': '3' } : {}) },
         body: JSON.stringify(body),
         controller: options.controller,

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { POLICY_VERSIONS } from '../functions/_lib/task27-policy.mjs';
 import fs from "node:fs";
 import path from "node:path";
 import vm from "node:vm";
@@ -86,7 +87,7 @@ async function api(pathname, payload = null, token = "", expected = [200]) {
 
 async function createUser(prefix, secret = USER_SECRET) {
   const username = `${prefix}${RUN_ID}`.slice(0, 32);
-  await api("/api/register", { username, secret, confirm_secret: secret }, "", [201]);
+  await api("/api/register", { username, secret, confirm_secret: secret, terms_accepted:true,policy_versions:POLICY_VERSIONS }, "", [201]);
   const login = await api("/api/login", { username, secret });
   return { username, secret, ...login };
 }
@@ -925,6 +926,7 @@ async function main() {
         "#registerSecretInput": USER_SECRET,
         "#registerConfirmInput": USER_SECRET,
       });
+      await click('#registerTermsConsent');
       await click("#registerSubmitBtn");
       await waitFor("document.querySelector('#loginError')?.textContent.includes('注册成功')", 12_000, "registration success");
       assert.equal(await evaluate("location.pathname"), "/login");

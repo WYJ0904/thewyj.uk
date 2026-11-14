@@ -59,6 +59,8 @@ async function readJson(request, maximumBytes) {
 
 function passwordOptions(context) {
   return {
+    env: context.env,
+    requestId: requestId(context),
     passwordPepper: String(context.env.WYJ_TASK12_PASSWORD_PEPPER || ""),
     sessionSecret: String(context.env.WYJ_TASK20_DEVICE_SESSION_SECRET || ""),
   };
@@ -198,6 +200,7 @@ async function executeRoute(context, descriptor, account) {
     requireAllowedFields(payload, new Set(["username", "secret", "device_id", "app_version"]));
     try {
       const result = await loginTask20Device(db, payload, context.request, passwordOptions(context));
+      if (result.mfa_required || result.password_change_required) return response({ok:true,...result},200,context);
       const enriched = await enrichAccountWithTask13(db, result.account);
       await auditLogin(context, payload.username, true, "success", result.account);
       return response(
