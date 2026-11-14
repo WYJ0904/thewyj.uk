@@ -38,6 +38,12 @@ const SENSITIVE_ADMIN_ACTIONS = Object.freeze({
   "/api/admin/task16/import/rollback": ["task16_import_rollback", "migration", "source_key"],
   "/api/admin/task22/cleanup": ["task22_cleanup", "operation", "mode"],
   "/api/admin/email/test-send": ["email_test_send", "email", "recipient"],
+  "/api/admin/email/send": ["email_admin_send", "email_batch", "preview_token"],
+  "/api/admin/email/deliveries/retry": ["email_delivery_retry", "email_delivery", "delivery_id"],
+  "/api/admin/email/inbound/reply": ["email_inbound_reply", "email_thread", "thread_id"],
+  "/api/admin/email/inbound/status": ["email_inbound_status", "email_thread", "thread_id"],
+  "/api/admin/email/templates": ["email_template_update", "email_template", "template_key"],
+  "/api/admin/email/user-binding": ["email_user_binding_update", "user", "user_id"],
 });
 
 async function auditSensitiveAdminRequest(context, response, bodyRequest, descriptor) {
