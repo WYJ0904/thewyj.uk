@@ -16,6 +16,7 @@ import {createAdminMessage} from '../../functions/_lib/task18-service.mjs';
 import {userById} from '../../functions/_lib/task12-service.mjs';
 import {accountPayload} from '../../functions/_lib/task12-model.mjs';
 import {totpAt} from '../../functions/_lib/task27-crypto.mjs';
+import {emailCenterIntegrated} from '../../functions/_lib/task27-email-adapter.mjs';
 
 const root=path.resolve(import.meta.dirname,'../..'),run=crypto.randomUUID();
 const jsQR=createRequire(import.meta.url)(path.join(root,'.wrangler/task27-reference/otpauth-lab/node_modules/jsqr/dist/jsQR.js'));
@@ -27,6 +28,9 @@ const password='Synthetic-Task27-Browser-Password!';
 const env={...config.env.preview.vars,WYJ_DB:db,WYJ_STORAGE:await mf.getR2Bucket('WYJ_STORAGE'),WYJ_ENVIRONMENT:'development',WORKERS_AI_ENABLED:'false',TTS_MODE:'cache-only',TASK27_SECURITY_ENABLED:'true',EMAIL_SENDING_ENABLED:'true',
   WYJ_TASK12_PASSWORD_PEPPER:'task27-browser-synthetic-pepper-0123456789',WYJ_TASK14_TEMPORARY_SECRET:'task27-browser-synthetic-share-secret-0123456789',WYJ_TASK20_DEVICE_SESSION_SECRET:'task27-browser-synthetic-device-0123456789',
   WYJ_TASK27_CHALLENGE_SECRET:'task27-browser-synthetic-challenge-0123456789',WYJ_TASK27_TOTP_KEY:Buffer.alloc(32,7).toString('base64url'),EMAIL:{async send(){return {messageId:crypto.randomUUID(),queued:[{}]};}}};
+// Only this synthetic transport is enabled. A configured Preview recipient
+// allowlist must never be edited in order to run the local fixture.
+env.EMAIL_ALLOWED_TEST_RECIPIENTS='';
 for(const name of (await readdir(path.join(root,'cloudflare/migrations'))).filter(n=>/^\d{4}_.+\.sql$/.test(n)).sort())await db.exec((await readFile(path.join(root,'cloudflare/migrations',name),'utf8')).replace(/\r?\n/g,' '));
 const when=new Date().toISOString();
 for(const [id,role]of [['fixture-owner','super_admin'],['mail-fixture','user']])await db.prepare(`INSERT INTO task12_users(id,username,username_normalized,password_hash,password_scheme,password_iterations,role,registered_at,created_at,updated_at,source_updated_at) VALUES(?1,?1,?1,?2,'pbkdf2_sha256',310000,?3,?4,?4,?4,?4)`).bind(id,await hashSecret(password,env.WYJ_TASK12_PASSWORD_PEPPER),role,when).run();
@@ -161,9 +165,18 @@ try {
   await check('old six-character password stays usable in the actual Web login form without MFA enforcement',async()=>{
     await page.navigate('/login');await page.setFields({'#usernameInput':'legacy-browser','#secretInput':'123456'});await page.click('#loginSubmitBtn');await page.waitFor("location.pathname==='/'&&document.getElementById('notificationBellBtn').checkVisibility()",45000);await closeBroadcast();assert.equal(await page.evaluate("document.querySelector('#task27Prompt')?.checkVisibility() || false"),false);await page.close();page=await openPage({cdpUrl,baseUrl:base,width:1440,height:1000,mobile:false});
   });
-  await check('administrator mail draft, preview, confirmation and queued status work in UI',async()=>{
+  await check('administrator mail draft, preview, confirmation and queued status work in the selected canonical UI',async()=>{
     await page.navigate('/login');await page.setFields({'#usernameInput':'fixture-owner','#secretInput':password});await page.click('#loginSubmitBtn');await page.waitFor("location.pathname==='/'&&document.getElementById('notificationBellBtn').checkVisibility()",45000);await closeBroadcast();
-    await page.navigate('/admin');await page.waitFor("document.getElementById('adminMessagesTab').checkVisibility()",25000);await page.click('#adminMessagesTab');await page.click('#task27MailOpenBtn');await page.waitFor("document.getElementById('task27MailForm')",20000);
+    await page.navigate('/admin');await page.waitFor("document.getElementById('adminMessagesTab').checkVisibility()",25000);
+    if(emailCenterIntegrated()){
+      await page.click('#adminMessagesTab');assert.equal(await page.evaluate("document.getElementById('task27MailOpenBtn').checkVisibility()"),false);
+      await page.click('[data-admin-view="adminEmailView"]');await page.waitFor("document.querySelector('[data-email-subtab=compose]')",20000);await page.click('[data-email-subtab=compose]');
+      await page.waitFor("document.querySelector('[data-select-recipient=mail-fixture]')",20000);await page.click('[data-select-recipient=mail-fixture]');
+      await page.setFields({'#adminEmailSubjectInput':'Synthetic service notice','#adminEmailBodyInput':'Synthetic UI communication only.'});await page.click('#adminEmailSaveDraftBtn');
+      await page.waitFor("document.getElementById('adminEmailCenterStatus').textContent.includes('已保存')",15000);await page.click('#adminEmailPreviewBtn');await page.waitFor("document.getElementById('adminEmailConfirmCheckbox')",15000);await page.click('#adminEmailConfirmCheckbox');await page.click('#adminEmailConfirmSendBtn');await prompt({password});
+      await page.waitFor("document.getElementById('adminEmailCenterStatus').textContent.includes('排队 1')",20000);assert.equal(await page.evaluate("Boolean(document.getElementById('task27MailForm'))"),false);await screenshot('mail-center-desktop');return;
+    }
+    await page.click('#adminMessagesTab');await page.click('#task27MailOpenBtn');await page.waitFor("document.getElementById('task27MailForm')",20000);
     await page.setFields({'#task27MailSearch':'mail-fixture'});await page.click('[data-mail-search]');await page.waitFor("document.querySelector('#task27MailRecipients input')",15000);await page.click('#task27MailRecipients input');
     await page.setFields({'#task27MailForm [name=subject]':'Synthetic service notice','#task27MailForm [name=body]':'Synthetic UI communication only.'});await page.click('#task27MailForm button[type=submit]');await page.waitFor("document.querySelector('[data-mail-preview]')",15000);await page.click('[data-mail-preview]');await page.waitFor("document.querySelector('#task27Prompt input[type=checkbox]')",15000);await page.click('#task27Prompt input[type=checkbox]');await page.click('#task27Prompt button[type=submit]');await prompt({password});
     await page.waitFor("document.querySelector('.task27-mail-records')?.textContent.includes('服务排队中')",20000);assert.ok((await page.evaluate("document.querySelector('#task27Mail').textContent")).includes('发送状态不代表抵达收件箱'));await screenshot('mail-desktop');
