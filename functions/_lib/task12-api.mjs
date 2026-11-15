@@ -33,12 +33,14 @@ import {
   recordLoginEvent,
   registerAccount,
 } from "./task12-service.mjs";
-import { enrichAccountWithTask13, listTask13Audit } from "./task13-service.mjs";
+import { listTask13Audit } from "./task13-service.mjs";
+import { enrichAccountWithTask13 } from "./task13-service.mjs";
 import { listAdminActionAudit } from "./task18-service.mjs";
 import { listFeedbackAudit } from "./task11-service.mjs";
-import { validateConsent } from './task27-policy.mjs';
-import { hasTask27 } from './task27-store.mjs';
-import {reserveLoginAttempt,acceptLoginPassword,settleLoginError,publicLoginError} from './task27-login-guard.mjs';
+import { validateConsent } from "./task27-policy.mjs";
+import { hasTask27 } from "./task27-store.mjs";
+import { reserveLoginAttempt, acceptLoginPassword, settleLoginError, publicLoginError } from "./task27-login-guard.mjs";
+import { EmailServiceError, notifyAutomaticBusinessEmail } from "./email-service.mjs";
 
 const LOGIN_FAILURE_LIMIT = 8;
 const LOGIN_FAILURE_WINDOW_SECONDS = 300;
@@ -234,6 +236,25 @@ async function executeRoute(context, descriptor, account, flags) {
     const state = await loginFailureState(context);
     if (state.limited) {
       await safeLoginAudit(context, payload.username, false, "login_rate_limited");
+      try {
+        const normName = String(payload.username || "").trim().toLowerCase();
+        if (normName) {
+          const targetRow = await db.prepare("SELECT id, username FROM task12_users WHERE username_normalized = ? LIMIT 1").bind(normName).first();
+          if (targetRow?.id) {
+            const bucket = Math.floor(Date.now() / (LOGIN_FAILURE_WINDOW_SECONDS * 1000));
+            await notifyAutomaticBusinessEmail(context, {
+              kind: "session_security_notice",
+              userId: targetRow.id,
+              username: targetRow.username,
+              triggerSource: "login_rate_limited",
+              idempotencyKey: `auto:login_rl:${targetRow.id}:${bucket}`,
+              detail: "检测到您的账户在短时间内多次登录失败并触发了安全限流保护，如非本人操作请及时检查账户安全并修改密码。",
+            });
+          }
+        }
+      } catch {
+        // non-blocking email notification
+      }
       return apiError("login_rate_limited", "登录失败次数过多，请稍后再试", 429, requestId(context), {
         retryable: true, headers: { "Retry-After": String(Math.max(1, state.retryAfter || LOGIN_FAILURE_WINDOW_SECONDS)) },
       });
@@ -275,6 +296,17 @@ async function executeRoute(context, descriptor, account, flags) {
   }
   if (path === "/api/account/logout-all") {
     await logoutAllAccounts(db, account);
+    try {
+      await notifyAutomaticBusinessEmail(context, {
+        kind: "session_security_notice",
+        userId: account.id,
+        username: account.username,
+        triggerSource: "account_logout_all",
+        detail: "您已执行“退出全部设备”操作，名下所有已登录设备会话均已立即注销。",
+      });
+    } catch {
+      // non-blocking
+    }
     return response({ ok: true, session_invalidated: true }, 200, context);
   }
   if (path === "/api/account/secret") {
@@ -283,6 +315,17 @@ async function executeRoute(context, descriptor, account, flags) {
       throw new Task12Error("两次输入的新登录密钥不一致", 400, "secret_mismatch");
     }
     await changeOwnSecret(db, account, payload.current_secret, payload.new_secret, passwordOptions(context));
+    try {
+      await notifyAutomaticBusinessEmail(context, {
+        kind: "password_changed_notice",
+        userId: account.id,
+        username: account.username,
+        triggerSource: "account_secret_change",
+        detail: "您的登录密码刚刚修改成功，原有全部设备会话已注销，请使用新密码重新登录。",
+      });
+    } catch {
+      // non-blocking
+    }
     return response({ ok: true, session_invalidated: true }, 200, context);
   }
   if (path === "/api/account/delete") {
@@ -294,6 +337,19 @@ async function executeRoute(context, descriptor, account, flags) {
   if (path === "/api/admin/secret") {
     requireAllowedFields(payload, new Set(["user_id", "secret"]));
     await adminResetSecret(db, account, userId, payload.secret, passwordOptions(context));
+    try {
+      const targetRow = await db.prepare("SELECT username FROM task12_users WHERE id = ? LIMIT 1").bind(userId).first();
+      await notifyAutomaticBusinessEmail(context, {
+        kind: "password_reset_notice",
+        userId,
+        username: targetRow?.username || "用户",
+        actorUserId: account.id,
+        triggerSource: "admin_secret_reset",
+        detail: "授权管理员为您重置了登录密码并注销旧会话，请使用新凭据重新登录。",
+      });
+    } catch {
+      // non-blocking
+    }
     return response({ ok: true, session_invalidated: true }, 200, context);
   }
   if (path === "/api/admin/ban") {
@@ -304,6 +360,19 @@ async function executeRoute(context, descriptor, account, flags) {
   if (path === "/api/admin/logout-user") {
     requireAllowedFields(payload, new Set(["user_id"]));
     await adminForceLogout(db, account, userId);
+    try {
+      const targetRow = await db.prepare("SELECT username FROM task12_users WHERE id = ? LIMIT 1").bind(userId).first();
+      await notifyAutomaticBusinessEmail(context, {
+        kind: "session_security_notice",
+        userId,
+        username: targetRow?.username || "用户",
+        actorUserId: account.id,
+        triggerSource: "admin_force_logout",
+        detail: "管理员已为您执行强制全端下线，原有设备会话均已失效，请重新登录确认账户安全。",
+      });
+    } catch {
+      // non-blocking
+    }
     return response({ ok: true }, 200, context);
   }
   if (path === "/api/admin/delete-user") {
@@ -369,6 +438,13 @@ export async function handleTask12Request(context) {
   } catch (error) {
     if (error instanceof Task12Error) {
       return apiError(error.code, error.message, error.status, requestId(context), { retryable: error.retryable });
+    }
+    if (error instanceof EmailServiceError) {
+      const status = Number(error.status || 503);
+      return apiError(error.code || "email_service_error", error.message, status, requestId(context), {
+        retryable: Boolean(error.retryable),
+        ...(status === 429 ? { headers: { "Retry-After": String(error?.details?.retry_after || 60) } } : {}),
+      });
     }
     console.error(JSON.stringify({
       event: "task12_cloud_error", request_id: requestId(context), route: url.pathname,

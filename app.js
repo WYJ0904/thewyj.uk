@@ -154,6 +154,7 @@ import {
   rechargeStatusLabel,
 } from "./js/membership/recharge.js?release=20261115-aeris-s0-p0-release";
 import {
+  createAdminEmailCenter,
   loginLocationLabel,
   loginReasonLabel,
   membershipDateValue as membershipDateValueModel,
@@ -7753,6 +7754,19 @@ async function boot() {
   $("siteMessageCloseIcon")?.addEventListener("click", () => { void dismissActiveSiteMessage(); });
   $("siteMessageCloseBtn")?.addEventListener("click", () => { void dismissActiveSiteMessage(); });
   $("siteMessageAcknowledgeBtn")?.addEventListener("click", acknowledgeActiveSiteMessage);
+  let adminEmailCenterController = null;
+  function loadAdminEmailCenter() {
+    if (!isAdmin()) return;
+    if (!adminEmailCenterController) {
+      adminEmailCenterController = createAdminEmailCenter({
+        root: $("adminEmailCenterRoot"),
+        apiGet: (path) => apiGet(path),
+        apiPost: (path, body) => api(path, body),
+        getAccount: () => state.account,
+      });
+    }
+    adminEmailCenterController?.load();
+  }
   document.querySelectorAll("[data-admin-view]").forEach((button) => button.addEventListener("click", () => {
     document.querySelectorAll("[data-admin-view]").forEach((item) => {
       const active = item === button;
@@ -7761,6 +7775,7 @@ async function boot() {
     });
     document.querySelectorAll(".admin-view").forEach((view) => view.classList.toggle("active", view.id === button.dataset.adminView));
     if (button.dataset.adminView === "adminFeedbackView") loadAdminFeedback();
+    if (button.dataset.adminView === "adminEmailView") loadAdminEmailCenter();
   }));
   $("adminFeedbackSearch").addEventListener("input", () => {
     window.clearTimeout(adminFeedbackSearchTimer);

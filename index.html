@@ -1007,6 +1007,7 @@
           <button id="adminToolStatsTab" data-admin-view="adminToolStatsView" type="button" role="tab" aria-controls="adminToolStatsView" aria-selected="false">工具统计</button>
           <button id="adminFeedbackTab" data-admin-view="adminFeedbackView" type="button" role="tab" aria-controls="adminFeedbackView" aria-selected="false">反馈与投票</button>
           <button id="adminMessagesTab" data-admin-view="adminMessagesView" type="button" role="tab" aria-controls="adminMessagesView" aria-selected="false">站内消息</button>
+          <button id="adminEmailTab" data-admin-view="adminEmailView" type="button" role="tab" aria-controls="adminEmailView" aria-selected="false">邮件中心</button>
           <button class="hidden" id="adminRolesTab" data-admin-view="adminRolesView" type="button" role="tab" aria-controls="adminRolesView" aria-selected="false">管理员角色</button>
           <button class="hidden" id="adminFeatureFlagsTab" data-admin-view="adminFeatureFlagsView" type="button" role="tab" aria-controls="adminFeatureFlagsView" aria-selected="false">功能发布</button>
         </div>
@@ -1084,6 +1085,9 @@
           <h2 class="admin-subheading">角色变更审计</h2>
           <div class="admin-user-list" id="adminRoleAuditList"></div>
           <p class="meta-line" id="adminRoleStatus" aria-live="polite"></p>
+        </section>
+        <section class="admin-view" id="adminEmailView" role="tabpanel" aria-labelledby="adminEmailTab">
+          <div class="admin-email-root" id="adminEmailCenterRoot"></div>
         </section>
         <p class="error" id="adminError" aria-live="polite"></p>
       </section>

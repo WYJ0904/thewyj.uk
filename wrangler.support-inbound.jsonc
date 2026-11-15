@@ -1,0 +1,71 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "thewyj-support-inbound",
+  "main": "cloudflare/email-worker/support-inbound-worker.mjs",
+  "compatibility_date": "2026-09-25",
+  "send_metrics": false,
+  "vars": {
+    "WYJ_ENVIRONMENT": "development",
+    "EMAIL_SENDING_ENABLED": "false",
+    "EMAIL_INBOUND_AUTO_ACK_ENABLED": "false",
+    "EMAIL_DEFAULT_FROM": "noreply@thewyj.uk",
+    "EMAIL_DEFAULT_REPLY_TO": "support@thewyj.uk",
+    "EMAIL_SUPPORT_ADDRESS": "support@thewyj.uk",
+    "EMAIL_SUPPORT_SENDER_AUTHORIZED": "false"
+  },
+  "send_email": [
+    {
+      "name": "EMAIL"
+    }
+  ],
+  "env": {
+    "preview": {
+      "name": "thewyj-support-inbound-preview",
+      "vars": {
+        "WYJ_ENVIRONMENT": "preview",
+        "EMAIL_SENDING_ENABLED": "false",
+        "EMAIL_INBOUND_AUTO_ACK_ENABLED": "false",
+        "EMAIL_DEFAULT_FROM": "noreply@thewyj.uk",
+        "EMAIL_DEFAULT_REPLY_TO": "support@thewyj.uk",
+        "EMAIL_SUPPORT_ADDRESS": "support@thewyj.uk",
+        "EMAIL_SUPPORT_SENDER_AUTHORIZED": "false"
+      },
+      "d1_databases": [
+        {
+          "binding": "WYJ_DB",
+          "database_name": "wyj-cloud-preview",
+          "database_id": "a3e6253b-689f-49f3-998b-7c5828ea255a"
+        }
+      ],
+      "send_email": [
+        {
+          "name": "EMAIL"
+        }
+      ]
+    },
+    "production": {
+      "name": "thewyj-support-inbound-production",
+      "vars": {
+        "WYJ_ENVIRONMENT": "production",
+        "EMAIL_SENDING_ENABLED": "false",
+        "EMAIL_INBOUND_AUTO_ACK_ENABLED": "false",
+        "EMAIL_DEFAULT_FROM": "noreply@thewyj.uk",
+        "EMAIL_DEFAULT_REPLY_TO": "support@thewyj.uk",
+        "EMAIL_SUPPORT_ADDRESS": "support@thewyj.uk",
+        "EMAIL_SUPPORT_SENDER_AUTHORIZED": "false"
+      },
+      "d1_databases": [
+        {
+          "binding": "WYJ_DB",
+          "database_name": "wyj-cloud-production",
+          "database_id": "11c288d8-c584-409f-bb1f-7e7af11793e5"
+        }
+      ],
+      "send_email": [
+        {
+          "name": "EMAIL"
+        }
+      ]
+    }
+  }
+}

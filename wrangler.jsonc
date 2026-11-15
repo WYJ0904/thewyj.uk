@@ -111,7 +111,7 @@
         "AZURE_SPEECH_REGION": "eastasia",
         "EMAIL_SENDING_ENABLED": "true",
         "EMAIL_CLOUDFLARE_ACCOUNT_ID": "97c274a981e8dd6703aa6388e11c4614",
-        "EMAIL_TEST_RECIPIENTS": "wyj20090904@gmail.com,support@thewyj.uk"
+        "EMAIL_TEST_RECIPIENTS": "support@thewyj.uk"
       },
       "d1_databases": [
         {
