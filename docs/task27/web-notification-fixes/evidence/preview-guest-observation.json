@@ -1,0 +1,25 @@
+{
+  "scope": "fresh Chromium guest profile, read-only navigation; no login or account write",
+  "base": "https://83bf2e36.thewyj-uk.pages.dev",
+  "actions": [
+    {
+      "selector": "#navLoginBtn",
+      "route": "/login",
+      "rootOpacity": "1",
+      "rootWidth": 1351
+    },
+    {
+      "selector": "#navRegisterBtn",
+      "route": "/register",
+      "rootOpacity": "1",
+      "rootWidth": 1351
+    }
+  ],
+  "initial": {
+    "title": "Aeris — 学习、工具、账本与文件",
+    "p07": "enabled",
+    "controller": null,
+    "session": false
+  },
+  "status": "OBSERVED"
+}

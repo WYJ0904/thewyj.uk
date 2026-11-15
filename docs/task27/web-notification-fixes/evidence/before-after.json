@@ -1,0 +1,361 @@
+{
+  "scope": "actual Chromium, loopback app/API and temporary isolated D1/R2 fixture",
+  "baseline_sha": "54fbf76194f4eeba98ef39e7fb5ff380198abf75",
+  "product_commit": "f3b199f872864d25ac921f659fa1b724e13d2e7f",
+  "before": {
+    "raw_run_status": "FAIL",
+    "note": "Baseline recorded the invalid-ID defect and seven desktop actions, then stopped at the hidden narrow-screen bell; not a passed baseline suite.",
+    "broadcast_failure": {
+      "text": "关闭状态保存失败：消息标识无效",
+      "blocked": true,
+      "receipts": [
+        {
+          "message_id": "task27-mfa-advice-v1",
+          "action": "dismiss"
+        }
+      ]
+    },
+    "after_refresh": {
+      "mfa": {
+        "mfa_broadcast_at": "2026-11-15T09:58:08Z"
+      },
+      "receipt": null
+    },
+    "motion": [
+      {
+        "label": "home-account-menu",
+        "background_width_range_px": {
+          "appShell": 0,
+          "v3AppFrame": 0,
+          "accountBar": 0
+        },
+        "root_min_opacity": 1.0,
+        "animations": []
+      },
+      {
+        "label": "account-settings",
+        "background_width_range_px": {
+          "appShell": 0,
+          "v3AppFrame": 0,
+          "accountBar": 0
+        },
+        "root_min_opacity": 1.0,
+        "animations": [
+          {
+            "id": "",
+            "name": "dsModalPanelIn"
+          }
+        ]
+      },
+      {
+        "label": "security-open",
+        "background_width_range_px": {
+          "appShell": 15,
+          "v3AppFrame": 15,
+          "accountBar": 15
+        },
+        "root_min_opacity": 1.0,
+        "animations": [
+          {
+            "id": "task27Security",
+            "name": "dsModalBackdropIn"
+          },
+          {
+            "id": "",
+            "name": "dsModalPanelIn"
+          }
+        ]
+      },
+      {
+        "label": "security-close",
+        "background_width_range_px": {
+          "appShell": 15,
+          "v3AppFrame": 15,
+          "accountBar": 15
+        },
+        "root_min_opacity": 1.0,
+        "animations": []
+      },
+      {
+        "label": "inbox-open",
+        "background_width_range_px": {
+          "appShell": 15,
+          "v3AppFrame": 15,
+          "accountBar": 15
+        },
+        "root_min_opacity": 1.0,
+        "animations": [
+          {
+            "id": "task27Inbox",
+            "name": "dsModalBackdropIn"
+          },
+          {
+            "id": "",
+            "name": "dsModalPanelIn"
+          }
+        ]
+      },
+      {
+        "label": "inbox-close",
+        "background_width_range_px": {
+          "appShell": 15,
+          "v3AppFrame": 15,
+          "accountBar": 15
+        },
+        "root_min_opacity": 1.0,
+        "animations": []
+      },
+      {
+        "label": "ordinary-password-button",
+        "background_width_range_px": {
+          "appShell": 0,
+          "v3AppFrame": 0,
+          "accountBar": 0
+        },
+        "root_min_opacity": 1.0,
+        "animations": []
+      }
+    ]
+  },
+  "after": {
+    "status": "PASS",
+    "browser": "Chrome/157.0.8103.52",
+    "motion": [
+      {
+        "label": "home-account-menu",
+        "animations": [],
+        "root_min_opacity": 1,
+        "background_width_ranges": {
+          "appShell": 0,
+          "v3AppFrame": 0,
+          "accountBar": 0
+        },
+        "root_mutations": 0
+      },
+      {
+        "label": "account-settings",
+        "animations": [
+          {
+            "id": "",
+            "name": "dsModalPanelIn",
+            "classes": "v3-workspace-content account-workspace-content modal-panel"
+          }
+        ],
+        "root_min_opacity": 1,
+        "background_width_ranges": {
+          "appShell": 0,
+          "v3AppFrame": 0,
+          "accountBar": 0
+        },
+        "root_mutations": 9
+      },
+      {
+        "label": "security-open",
+        "animations": [
+          {
+            "id": "task27Security",
+            "name": "dsModalBackdropIn",
+            "classes": "modal-layer task27-modal"
+          },
+          {
+            "id": "",
+            "name": "dsModalPanelIn",
+            "classes": "modal-panel task27-panel"
+          }
+        ],
+        "root_min_opacity": 1,
+        "background_width_ranges": {
+          "appShell": 0,
+          "v3AppFrame": 0,
+          "accountBar": 0
+        },
+        "root_mutations": 2
+      },
+      {
+        "label": "security-close",
+        "animations": [],
+        "root_min_opacity": 1,
+        "background_width_ranges": {
+          "appShell": 0,
+          "v3AppFrame": 0,
+          "accountBar": 0
+        },
+        "root_mutations": 2
+      },
+      {
+        "label": "inbox-open",
+        "animations": [
+          {
+            "id": "task27Inbox",
+            "name": "dsModalBackdropIn",
+            "classes": "modal-layer task27-modal"
+          },
+          {
+            "id": "",
+            "name": "dsModalPanelIn",
+            "classes": "modal-panel task27-panel"
+          }
+        ],
+        "root_min_opacity": 1,
+        "background_width_ranges": {
+          "appShell": 0,
+          "v3AppFrame": 0,
+          "accountBar": 0
+        },
+        "root_mutations": 2
+      },
+      {
+        "label": "inbox-close",
+        "animations": [],
+        "root_min_opacity": 1,
+        "background_width_ranges": {
+          "appShell": 0,
+          "v3AppFrame": 0,
+          "accountBar": 0
+        },
+        "root_mutations": 2
+      },
+      {
+        "label": "ordinary-password-button",
+        "animations": [],
+        "root_min_opacity": 1,
+        "background_width_ranges": {
+          "appShell": 0,
+          "v3AppFrame": 0,
+          "accountBar": 0
+        },
+        "root_mutations": 3
+      },
+      {
+        "label": "narrow-account-menu",
+        "animations": [],
+        "root_min_opacity": 1,
+        "background_width_ranges": {
+          "appShell": 0,
+          "v3AppFrame": 0,
+          "accountBar": 0
+        },
+        "root_mutations": 0
+      },
+      {
+        "label": "narrow-inbox-open",
+        "animations": [
+          {
+            "id": "task27Inbox",
+            "name": "dsModalBackdropIn",
+            "classes": "modal-layer task27-modal"
+          },
+          {
+            "id": "",
+            "name": "dsModalPanelIn",
+            "classes": "modal-panel task27-panel"
+          }
+        ],
+        "root_min_opacity": 1,
+        "background_width_ranges": {
+          "appShell": 0,
+          "v3AppFrame": 0,
+          "accountBar": 0
+        },
+        "root_mutations": 2
+      },
+      {
+        "label": "narrow-inbox-close",
+        "animations": [],
+        "root_min_opacity": 1,
+        "background_width_ranges": {
+          "appShell": 0,
+          "v3AppFrame": 0,
+          "accountBar": 0
+        },
+        "root_mutations": 2
+      },
+      {
+        "label": "dark-inbox-open",
+        "animations": [
+          {
+            "id": "task27Inbox",
+            "name": "dsModalBackdropIn",
+            "classes": "modal-layer task27-modal"
+          },
+          {
+            "id": "",
+            "name": "dsModalPanelIn",
+            "classes": "modal-panel task27-panel"
+          }
+        ],
+        "root_min_opacity": 1,
+        "background_width_ranges": {
+          "appShell": 0,
+          "v3AppFrame": 0,
+          "accountBar": 0
+        },
+        "root_mutations": 2
+      },
+      {
+        "label": "dark-inbox-close",
+        "animations": [],
+        "root_min_opacity": 1,
+        "background_width_ranges": {
+          "appShell": 0,
+          "v3AppFrame": 0,
+          "accountBar": 0
+        },
+        "root_mutations": 2
+      }
+    ],
+    "persistence_checks": [
+      {
+        "name": "failed close releases page; refresh repeats unsaved broadcast; explicit retry persists; fresh login stays closed",
+        "status": "PASS"
+      },
+      {
+        "name": "required broadcast close failure remains retryable and repeats until explicit acknowledgement",
+        "status": "PASS"
+      },
+      {
+        "name": "dark theme dialogs retain stable background geometry",
+        "status": "PASS"
+      }
+    ],
+    "failure_retry_and_relogin": "PASS",
+    "service_worker": {
+      "controller": null,
+      "registrations": 1
+    },
+    "receipt_requests": [
+      {
+        "message_id": "task27-mfa-advice-v1",
+        "action": "dismiss"
+      },
+      {
+        "message_id": "1c5765c9-c7fe-47cd-a3e4-22477244a7a9",
+        "action": "dismiss"
+      },
+      {
+        "message_id": "1c5765c9-c7fe-47cd-a3e4-22477244a7a9",
+        "action": "dismiss"
+      },
+      {
+        "message_id": "1c5765c9-c7fe-47cd-a3e4-22477244a7a9",
+        "action": "dismiss"
+      },
+      {
+        "message_id": "9f956cbc-7f04-458a-add2-5d176205d4ed",
+        "action": "dismiss"
+      },
+      {
+        "message_id": "9f956cbc-7f04-458a-add2-5d176205d4ed",
+        "action": "dismiss"
+      },
+      {
+        "message_id": "9f956cbc-7f04-458a-add2-5d176205d4ed",
+        "action": "acknowledge"
+      }
+    ]
+  },
+  "shared_preview_writes": 0,
+  "production_operations": 0,
+  "android_operations": 0,
+  "integration_head_observed": "8d562950e1bcf5ff1a99b1931753e516aaf20a0a"
+}

@@ -1,0 +1,102 @@
+[
+  {
+    "path": ".wrangler/web-notification-api.log",
+    "sha256": "50f43c0b8320dc4ee84421a8b2dbe47e673cf1d6df4ab2650affc5bc4a149453",
+    "bytes": 1281
+  },
+  {
+    "path": ".wrangler/web-notification-baseline-v2.log",
+    "sha256": "da161ebab33e269a042f04200aa49e1ed8c0dbc1606b2355573cd6139b93ef5d",
+    "bytes": 1237
+  },
+  {
+    "path": ".wrangler/web-notification-baseline.log",
+    "sha256": "b0773a5dda06174dcbefb8e86dc0d83d7b67c80a0791edce7ef3eb2084a9b5a2",
+    "bytes": 1287
+  },
+  {
+    "path": ".wrangler/web-notification-final-browser-v2.log",
+    "sha256": "bfd5f53f8e3f5bca575f8896af7ac3452b6f8246aad25e88ef250f618fd2d029",
+    "bytes": 3272
+  },
+  {
+    "path": ".wrangler/web-notification-final-browser.log",
+    "sha256": "8bbba89755d256180057ae101fe5fe7fd5f6f2cec7671aff3add6be089f32fbf",
+    "bytes": 3432
+  },
+  {
+    "path": ".wrangler/web-notification-final-pages-build.log",
+    "sha256": "e50835060b3011172de691ae7c3c929aca96d6e4754be465bfd6f1e706e64f63",
+    "bytes": 103
+  },
+  {
+    "path": ".wrangler/web-notification-final-required.log",
+    "sha256": "f8dcf31a6cf875de7929ea83c620065f4e3d6ada0bd1970fdaf50ec1610b06eb",
+    "bytes": 3272
+  },
+  {
+    "path": ".wrangler/web-notification-final-stage.log",
+    "sha256": "69e26a3bd00e30fec554d93a4089aae5e980c2aad3e14ceca57ee1c6e28b7044",
+    "bytes": 98
+  },
+  {
+    "path": ".wrangler/web-notification-final-sw.log",
+    "sha256": "45090aca8cbe3b255d2b53edee9dca7facde5d98edf553ff16a8dc47297c71cc",
+    "bytes": 1901
+  },
+  {
+    "path": ".wrangler/web-notification-fixed-v2.log",
+    "sha256": "9d16d21a8333a40e9dbf9cdd73c990986b3654c17cfed61709fb5b10042754a7",
+    "bytes": 1237
+  },
+  {
+    "path": ".wrangler/web-notification-fixed-v3.log",
+    "sha256": "a7eedfdf824daf2a2103c712dbc08af2747b20f790a81abc3038484b79b55439",
+    "bytes": 3471
+  },
+  {
+    "path": ".wrangler/web-notification-fixed-v4.log",
+    "sha256": "f74ed5d9966ad5afe2aaef08c47a0295c15163f3368c6de36c9a664a43197187",
+    "bytes": 2806
+  },
+  {
+    "path": ".wrangler/web-notification-fixed.log",
+    "sha256": "3933c8c53f14ca8075b3238040bd42e975ec8a595037d5868a86f6f353723578",
+    "bytes": 1513
+  },
+  {
+    "path": ".wrangler/web-notification-functions.log",
+    "sha256": "f473f40ae45bb6aad5e56cc83b186773732f8126bd851f87e3614b52dac02a1c",
+    "bytes": 349
+  },
+  {
+    "path": ".wrangler/web-notification-pages-build.log",
+    "sha256": "3f6865d7d72e7187711e93bb70bd574d31b7e7713cd792e1c60b2b6cefa1508f",
+    "bytes": 103
+  },
+  {
+    "path": ".wrangler/web-notification-repository-audit.log",
+    "sha256": "8bc2c1d51767b085d42b4ef7e415a6fd4fc0ecd62b21cf6d5a11bbcd4940dd66",
+    "bytes": 68
+  },
+  {
+    "path": ".wrangler/web-notification-stage.log",
+    "sha256": "69e26a3bd00e30fec554d93a4089aae5e980c2aad3e14ceca57ee1c6e28b7044",
+    "bytes": 98
+  },
+  {
+    "path": ".wrangler/web-notification-sw.log",
+    "sha256": "630af9be961910b4a09b055401ba5b93c59202db8ddd1bac72f2c7c425602915",
+    "bytes": 1900
+  },
+  {
+    "path": ".wrangler/web-notification-task18.log",
+    "sha256": "c25d685b4d2df3bced33d9528fe2f827717866e36e3748860d0fc9cd3395eadb",
+    "bytes": 717
+  },
+  {
+    "path": ".wrangler/web-notification-task27.log",
+    "sha256": "d86171a276951a2bde62510f2219eaba37613e71b24a25808ce0ad572391a094",
+    "bytes": 3297
+  }
+]

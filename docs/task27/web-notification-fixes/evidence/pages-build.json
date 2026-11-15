@@ -1,0 +1,11 @@
+{
+  "contract": "pages-allowlist-v2",
+  "status": "PASS",
+  "output": ".wrangler/pages-output",
+  "file_count": 191,
+  "total_bytes": 6686972,
+  "tree_sha256": "9d1e13db5822002a806d53c02f0a23d934534fe76a3cd62be0e676aa3a163dfb",
+  "no_workspace_upload": true,
+  "no_private_paths_or_detected_credentials": true,
+  "source_bytes_identical": true
+}
