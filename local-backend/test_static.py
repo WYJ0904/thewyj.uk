@@ -924,7 +924,9 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("function generateSecureSecret", self.app)
         self.assertIn("globalThis.crypto.getRandomValues", self.app)
         self.assertIn('if (id === "adminEditModal") clearAdminSecretEditor();', self.app)
-        self.assertIn('$("adminSecretResultValue").textContent = secret;', self.app)
+        self.assertIn('$("adminSecretResultValue").textContent = supported?result.temporary_password:legacySecret;', self.app)
+        self.assertIn('grant:await task27Ui.stepup(`admin_reset:${userId}`)', self.app)
+        self.assertIn('20 位临时密码，仅本次显示', self.app)
         account_store = (ROOT / "local-backend" / "account_store.py").read_text(encoding="utf-8")
         self.assertNotIn("include_secret", account_store)
 
