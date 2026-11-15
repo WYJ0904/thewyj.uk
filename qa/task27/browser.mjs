@@ -30,7 +30,7 @@ const env={...config.env.preview.vars,WYJ_DB:db,WYJ_STORAGE:await mf.getR2Bucket
   WYJ_TASK27_CHALLENGE_SECRET:'task27-browser-synthetic-challenge-0123456789',WYJ_TASK27_TOTP_KEY:Buffer.alloc(32,7).toString('base64url'),EMAIL:{async send(){return {messageId:crypto.randomUUID(),queued:[{}]};}}};
 // Only this synthetic transport is enabled. A configured Preview recipient
 // allowlist must never be edited in order to run the local fixture.
-env.EMAIL_ALLOWED_TEST_RECIPIENTS='';env.EMAIL_TRANSPORT='binding';
+env.EMAIL_TEST_RECIPIENTS='fixture@example.test';env.EMAIL_TRANSPORT='binding';
 for(const name of (await readdir(path.join(root,'cloudflare/migrations'))).filter(n=>/^\d{4}_.+\.sql$/.test(n)).sort())await db.exec((await readFile(path.join(root,'cloudflare/migrations',name),'utf8')).replace(/\r?\n/g,' '));
 const when=new Date().toISOString();
 for(const [id,role]of [['fixture-owner','super_admin'],['mail-fixture','user']])await db.prepare(`INSERT INTO task12_users(id,username,username_normalized,password_hash,password_scheme,password_iterations,role,registered_at,created_at,updated_at,source_updated_at) VALUES(?1,?1,?1,?2,'pbkdf2_sha256',310000,?3,?4,?4,?4,?4)`).bind(id,await hashSecret(password,env.WYJ_TASK12_PASSWORD_PEPPER),role,when).run();
@@ -53,7 +53,7 @@ const server=createServer(async(req,res)=>{
       if(url.pathname==='/api/register')registerCalls++;
       const response=url.pathname==='/api/status'?await statusRequest(context):url.pathname==='/terms'?policyPage(context,'terms'):url.pathname==='/privacy'?policyPage(context,'privacy'):url.pathname==='/security-privacy'?policyPage(context,'security'):await apiRequest(context);
       if(url.pathname==='/api/security/mfa/start'&&response.ok){const enrollment=await response.clone().json();if(enrollment.method==='totp')lastEnrollment={secret:enrollment.secret,uri:enrollment.otpauth_uri};}
-      if(response.status>=500)apiErrors.push({path:url.pathname,status:response.status});
+      if(response.status>=500)apiErrors.push({path:url.pathname,status:response.status,code:(await response.clone().json()).code});
       res.writeHead(response.status,Object.fromEntries(response.headers));res.end(Buffer.from(await response.arrayBuffer()));await Promise.all(tasks);return;
     }
     const file=spa.has(url.pathname)?'index.html':url.pathname.slice(1);
