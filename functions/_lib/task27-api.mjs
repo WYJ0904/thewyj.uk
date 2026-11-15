@@ -14,6 +14,7 @@ import { beginStepup, challengeRow, createChallenge, requestPasswordReset, secur
 import { authorize, beginEmailBinding, beginMfa, beginMfaRecovery, changePassword, disableMfa, finishEmailBinding, finishMfa, finishMfaRecovery, finishPasswordRecovery, overview, regenerateRecovery, resetOtherPassword, revokeSessions } from './task27-security.mjs';
 import { confirmReadAll, inbox, markRead, previewReadAll } from './task27-notifications.mjs';
 import { listDrafts, mailRecipients, previewDraft, saveDraft, sendDraft } from './task27-mail.mjs';
+import {emailCenterIntegrated,emailCenterReady} from './task27-email-adapter.mjs';
 
 const route=(auth,fields=[],run)=>({auth,fields,run});
 const ROUTES=new Map([
@@ -115,7 +116,7 @@ export async function handleTask27Request(context) {
   const respond=(payload,status=200)=>jsonResponse({ok:true,...payload},status,context.data?.requestId || '',{'Cache-Control':'private, no-store'});
   try {
     if (!sameOriginResult(context.request).allowed) fail('cross_origin_rejected','只接受同源请求',403);
-    if (key==='GET /api/policies') return respond({...publicPolicyConfig(),security_center_ready:await hasTask27(context.env?.WYJ_DB),security_enrollment_enabled:task27EnrollmentEnabled(context.env)});
+    if (key==='GET /api/policies') return respond({...publicPolicyConfig(),security_center_ready:await hasTask27(context.env?.WYJ_DB),security_enrollment_enabled:task27EnrollmentEnabled(context.env),mail_center_integrated:emailCenterIntegrated(),mail_center_ready:emailCenterIntegrated()&&await emailCenterReady(context.env?.WYJ_DB)});
     const ready=await hasTask27(context.env?.WYJ_DB);
     if (!ready&&(legacyScope||LEGACY_OVERRIDES.has(url.pathname))) return null;
     if (!ready) fail('task27_schema_not_ready','账户安全功能尚未开放',503);

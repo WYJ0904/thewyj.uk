@@ -1,3 +1,4 @@
+import {reserveLoginAttempt,acceptLoginPassword,settleLoginError,publicLoginError} from './task27-login-guard.mjs';
 import {
   apiError,
   classifyCloudError,
@@ -198,8 +199,11 @@ async function executeRoute(context, descriptor, account) {
   const payload = await readJson(context.request, descriptor.body);
   if (path === "/api/app/login") {
     requireAllowedFields(payload, new Set(["username", "secret", "device_id", "app_version"]));
+    const identifier=await reserveLoginAttempt(context,payload.username);
+    if(!identifier.allowed)return apiError('login_rate_limited','登录尝试过于频繁，请稍后重试',429,requestId(context),{retryable:true,headers:{'Retry-After':String(identifier.retryAfter)}});
     try {
       const result = await loginTask20Device(db, payload, context.request, passwordOptions(context));
+      await acceptLoginPassword(context,identifier);
       if (result.mfa_required || result.password_change_required) return response({ok:true,...result},200,context);
       const enriched = await enrichAccountWithTask13(db, result.account);
       await auditLogin(context, payload.username, true, "success", result.account);
@@ -210,8 +214,9 @@ async function executeRoute(context, descriptor, account) {
         { "Set-Cookie": task20AccessCookie(result.access_token) },
       );
     } catch (error) {
+      await settleLoginError(context,identifier,error);
       if (error instanceof Task12Error) await auditLogin(context, payload.username, false, error.code);
-      throw error;
+      throw publicLoginError(error);
     }
   }
   if (path === "/api/app/session/refresh") {

@@ -1,10 +1,11 @@
 import { hashSecret, PASSWORD_HASH_ITERATIONS, sessionStorageKey, verifySecret } from './task12-crypto.mjs';
 import { isAdminAccount, isOwnerAccount, validateSecret } from './task12-model.mjs';
 import { task20TokenFromRequest } from './task20-model.mjs';
-import { cleanEmailAddress, sendAccountSecurityNotice,emailSendingEnabled,emailBindingConfigured,EmailServiceError } from './email-service.mjs';
+import { cleanEmailAddress,emailSendingEnabled,emailBindingConfigured,EmailServiceError } from './email-service.mjs';
 import { activeUser, assertion, atomic, changed, DAY, EVENT_TEXT, eventStatements, fail, first, generationAssertion, nowIso, rows, run, securityState, stmt, revokeAllStatements } from './task27-store.mjs';
 import { base32, encryptTotp, randomBytes, randomDigits, temporaryPassword,totpUri } from './task27-crypto.mjs';
 import { challengeAssertion, challengeIdentity, challengeRow, createChallenge, grantStatements, securityRate, sendCode, task27EnrollmentEnabled, verifyChallenge, verifyPassword } from './task27-auth.mjs';
+import {sendTask27SecurityNotice,verifiedEmailSyncStatements} from './task27-email-adapter.mjs';
 
 export async function identity(context,account) {
   const db=context.env.WYJ_DB;
@@ -28,7 +29,7 @@ async function notify(context,userId,event,emailOverride='') {
   const email=emailOverride || state.verified_email;
   if (!email) return {delivery_status:'not_configured',inbox_confirmed:false};
   try {
-    const result=await sendAccountSecurityNotice(context.env,{to:email,eventSummary:EVENT_TEXT[event][1],requestId:context.data?.requestId});
+    const result=await sendTask27SecurityNotice(context.env,{to:email,userId,event,eventSummary:EVENT_TEXT[event][1],requestId:context.data?.requestId,previouslyVerified:Boolean(emailOverride)});
     return {delivery_status:result.delivery_status,inbox_confirmed:false};
   } catch (error) { return {delivery_status:'failed',code:String(error?.code || 'email_unavailable'),inbox_confirmed:false}; }
 }
@@ -97,7 +98,7 @@ export async function beginEmailBinding(context,account,payload) {
   // already associated with another account. Uniqueness is checked on confirm.
   const challenge=await createChallenge(db,{user,state,kind:'email_bind',method:'email',sessionDigest,code,env:context.env,data:{email}});
   let sent;
-  try { sent=await sendCode(context.env,email,code,'绑定邮箱',context.data?.requestId); }
+  try { sent=await sendCode(context.env,email,code,'绑定邮箱',context.data?.requestId,{userId:user.id,challengeDigest:challenge.digest}); }
   catch(error) { await run(db,'UPDATE task27_challenges SET consumed_at=?2 WHERE token_digest=?1',[challenge.digest,nowIso()]);throw error; }
   return {challenge:challenge.token,expires_at:challenge.expires_at,delivery_status:sent.delivery_status,inbox_confirmed:false,message:'验证码已交给邮件服务处理，不代表已抵达收件箱。'};
 }
@@ -106,8 +107,10 @@ export async function finishEmailBinding(context,account,payload) {
   const {user,state,data}=await verifyChallenge(db,context.env,payload.challenge,'email_bind',payload.code,{sessionDigest});
   if (user.id!==account.id) fail();
   try {
+    const when=nowIso();
     await atomic(db,[...generationAssertion(db,user,state),...activeSessionAssertion(db,user,sessionDigest),
-      ...bumpStatements(db,user,state,'verified_email=?,email_verified_at=?',[data.email,nowIso()]),
+      ...bumpStatements(db,user,state,'verified_email=?,email_verified_at=?',[data.email,when]),
+      ...await verifiedEmailSyncStatements(db,user.id,data.email,when),
       ...eventStatements(db,user.id,'email_changed',user.id,context.data?.requestId)]);
   } catch(error) {
     if (/UNIQUE constraint failed: task27_security.verified_email/.test(String(error?.message))) fail('email_verification_unavailable','暂时无法验证该邮箱，请稍后重试');
@@ -126,7 +129,7 @@ export async function beginMfa(context,account,payload) {
   else { if (!state.verified_email) fail('verified_email_required','请先绑定并验证邮箱'); code=randomDigits(); }
   await atomic(db,guards);
   const challenge=await createChallenge(db,{user,state,kind:'mfa_setup',method:payload.method,sessionDigest,code,env:context.env,data});
-  if (payload.method==='email') await sendCode(context.env,state.verified_email,code,'开启邮箱双重验证',context.data?.requestId);
+  if (payload.method==='email') await sendCode(context.env,state.verified_email,code,'开启邮箱双重验证',context.data?.requestId,{userId:user.id,challengeDigest:challenge.digest});
   return {challenge:challenge.token,method:payload.method,expires_at:challenge.expires_at,
     ...(secret?{secret,otpauth_uri:totpUri(user.username,secret)}: {})};
 }

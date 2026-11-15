@@ -14,6 +14,8 @@
     "test:task27:runtime": "npm run cf:check && node qa/task27/workerd.mjs",
     "test:task27:upgrade": "npm run cf:check && node qa/task27/upgrade-and-strength.mjs",
     "test:task27:oracle": "node qa/task27/otpauth-differential.mjs",
+    "test:task27:mail": "node qa/task27/mail-compatibility.mjs",
+    "test:task27:login-guard": "node qa/task27/login-guard.mjs",
     "test:task27:owner": "node qa/task27/operation-owner.mjs",
     "task27:publication": "node scripts/update_task27_publication.mjs",
     "cf:check": "wrangler pages functions build functions --outdir .wrangler/functions-build",

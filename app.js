@@ -4973,6 +4973,9 @@ const task27SensitiveRoutes=new Map([
   ['/api/admin/membership/manage','admin_entitlements'],['/api/admin/membership','admin_entitlements'],['/api/admin/entitlement','admin_entitlements'],
   ['/api/admin/feature-flags','admin_features'],['/api/account/delete','account_delete'],
   ['/api/admin/feature-flags/override','admin_features'],['/api/admin/recharge/process','admin_entitlements'],
+  ['/api/admin/email/test-send','email_center:test'],['/api/admin/email/send','email_center:send'],
+  ['/api/admin/email/deliveries/retry','email_center:retry'],['/api/admin/email/inbound/reply','email_center:reply'],
+  ['/api/admin/email/templates','email_center:templates'],['/api/admin/email/inbound/status','email_center:inbound'],
 ]);
 async function api(path,body={},options={}) {
   const scope=task27SensitiveRoutes.get(path);

@@ -1,7 +1,8 @@
 import { createSessionToken, sessionStorageKey, verifySecret, consumeVerificationWork } from './task12-crypto.mjs';
 import { Task12Error } from './task12-model.mjs';
 import { enforceD1RateLimit,sha256Hex } from './cloudflare-foundation.mjs';
-import { sendTransactionalEmail,emailSendingEnabled,emailBindingConfigured,EmailServiceError } from './email-service.mjs';
+import { emailSendingEnabled,emailBindingConfigured,EmailServiceError } from './email-service.mjs';
+import {sendTask27Code} from './task27-email-adapter.mjs';
 import { equalText, keyedDigest, randomDigits, decryptTotp, matchingTotpStep } from './task27-crypto.mjs';
 import { activeUser, assertion, atomic, changed, eventStatements, fail, first, generationAssertion, hasTask27, nowIso, run, securityState, stmt } from './task27-store.mjs';
 
@@ -27,8 +28,8 @@ export async function createChallenge(db, {user=null,state=null,kind,method='non
     Number(user?.session_version || 0),Number(state?.version || 0),scope,JSON.stringify(data),when,new Date(Date.now()+TTL).toISOString()]);
   return {token,digest,expires_at:new Date(Date.now()+TTL).toISOString()};
 }
-export async function sendCode(env, email, code, purpose, requestId='') {
-  return sendTransactionalEmail(env,{kind:'verification_code',to:email,code,purpose,requestId});
+export async function sendCode(env, email, code, purpose, requestId='',identity={}) {
+  return sendTask27Code(env,{to:email,code,purpose,requestId,...identity});
 }
 export async function challengeRow(db, token, kind, sessionDigest = null) {
   if (typeof token!=='string' || !/^[A-Za-z0-9_-]{43}$/.test(token)) fail();
@@ -92,7 +93,7 @@ export async function beginTask27Login(db,user,request,options={}) {
   const code=method==='email' ? randomDigits() : '';
   const challenge=await createChallenge(db,{user,state,kind,method,code,env,data:{client:options.clientKind==='android_app'?'android':'web',...options.challengeData}});
   if (method==='email') {
-    try { await sendCode(env,state.verified_email,code,'登录验证',options.requestId); }
+    try { await sendCode(env,state.verified_email,code,'登录验证',options.requestId,{userId:user.id,challengeDigest:challenge.digest}); }
     catch(error) { await run(db,'UPDATE task27_challenges SET consumed_at=?2 WHERE token_digest=?1',[challenge.digest,nowIso()]); throw error; }
   }
   if (kind==='password_change') return {password_change_required:true,password_change_token:challenge.token,expires_at:challenge.expires_at};
@@ -106,12 +107,12 @@ export async function verifyPassword(db,env,userId,password) {
 }
 export async function beginStepup(context,account,payload,sessionDigest) {
   const {env,request}=context, db=env.WYJ_DB;
-  if (typeof payload.scope!=='string' || payload.scope.length>200 || /[\u0000-\u001f\u007f]/u.test(payload.scope) || !/^(password_change|email_change|mfa_change|recovery_regenerate|sessions_revoke|account_delete|admin_reset:[^\u0000-\u001f\u007f]{1,80}|admin_roles|admin_account|admin_entitlements|admin_features|email_send:[A-Za-z0-9_-]{1,80}:\d+)$/.test(payload.scope)) fail('stepup_scope_invalid','操作范围无效');
+  if (typeof payload.scope!=='string' || payload.scope.length>200 || /[\u0000-\u001f\u007f]/u.test(payload.scope) || !/^(password_change|email_change|mfa_change|recovery_regenerate|sessions_revoke|account_delete|admin_reset:[^\u0000-\u001f\u007f]{1,80}|admin_roles|admin_account|admin_entitlements|admin_features|email_center:(test|send|retry|reply|templates|inbound)|email_send:[A-Za-z0-9_-]{1,80}:\d+)$/.test(payload.scope)) fail('stepup_scope_invalid','操作范围无效');
   await securityRate(context,'stepup-account',account.id);
   const user=await verifyPassword(db,env,account.id,payload.password), state=await securityState(db,account.id);
   const code=state.mfa_method==='email'?randomDigits():'';
   const challenge=await createChallenge(db,{user,state,kind:'stepup',method:state.mfa_method,sessionDigest,scope:payload.scope,code,env});
-  if (state.mfa_method==='email') await sendCode(env,state.verified_email,code,'敏感操作验证',context.data?.requestId);
+  if (state.mfa_method==='email') await sendCode(env,state.verified_email,code,'敏感操作验证',context.data?.requestId,{userId:user.id,challengeDigest:challenge.digest});
   if (state.mfa_method==='none') {
     await consumePlainChallenge(db,challenge.token,'stepup',sessionDigest);
     const grant=await createChallenge(db,{user,state,kind:'grant',sessionDigest,scope:payload.scope});
@@ -147,7 +148,7 @@ export async function requestPasswordReset(context,username,method='email') {
   const challenge=await createChallenge(db,{user:eligible?user:null,state:eligible?state:null,kind:'password_reset',method,code:eligible&&method==='email'?code:'',env:context.env});
   if (eligible&&method==='email') {
     // Identical public response for nonexistent/unverified accounts and delivery failure.
-    const work=sendCode(context.env,state.verified_email,code,'找回密码',context.data?.requestId).catch(async()=>{
+    const work=sendCode(context.env,state.verified_email,code,'找回密码',context.data?.requestId,{userId:user.id,challengeDigest:challenge.digest}).catch(async()=>{
       await run(db,'UPDATE task27_challenges SET consumed_at=?2 WHERE token_digest=?1',[challenge.digest,nowIso()]);
     });
     if (context.waitUntil) context.waitUntil(work); else await work;

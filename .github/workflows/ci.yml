@@ -428,6 +428,8 @@ jobs:
         run: |
           set -euo pipefail
           npm run test:task27 2>&1 | tee artifacts/task27-isolated-d1-api.log
+          npm run test:task27:mail 2>&1 | tee artifacts/task27-mail-consumer.log
+          npm run test:task27:login-guard 2>&1 | tee artifacts/task27-login-guard.log
           npm run test:task27:owner 2>&1 | tee artifacts/task27-operation-owner.log
           npm install --prefix .wrangler/task27-reference/otpauth-lab --ignore-scripts --no-audit --no-fund --no-save otpauth@9.6.0 jsqr@1.4.0
           npm run cf:check

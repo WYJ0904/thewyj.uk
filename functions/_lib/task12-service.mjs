@@ -175,13 +175,13 @@ export async function loginAccount(db, username, secret, request, options = {}) 
     await consumeVerificationWork(secretText, passwordPepper(options));
     throw new Task12Error("用户名或登录密钥错误", 403, "invalid_credentials");
   }
-  if (row.banned) throw new Task12Error("账户已被封禁", 403, "account_banned");
   if (row.password_scheme !== PASSWORD_HASH_PREFIX || !row.password_hash) {
     await consumeVerificationWork(secretText, passwordPepper(options));
     throw new Task12Error("此账户需要先重置登录密钥", 403, "password_reset_required");
   }
   const verified = await verifyRowSecret(row, secretText, options);
   if (!verified.valid) throw new Task12Error("用户名或登录密钥错误", 403, "invalid_credentials");
+  if (row.banned) throw new Task12Error("账户已被封禁", 403, "account_banned");
   const challenge = await beginTask27Login(db, row, request, options);
   if (challenge) return challenge;
   return issueTask12Session(db, row, request, { ...options, secretText, verified });

@@ -362,7 +362,8 @@ try {
     body: { username: resetRecord.username, secret: "unknown-legacy-secret" },
   });
   assert.equal(resetLogin.response.status, 403);
-  assert.equal(resetLogin.payload.code, "password_reset_required");
+  // Preserve the internal reset-required audit reason without enumerating invalid verifiers publicly.
+  assert.equal(resetLogin.payload.code, "invalid_credentials");
   completed += 1;
 
   const missingPepper = await accountRequest(db, "/api/register", {
