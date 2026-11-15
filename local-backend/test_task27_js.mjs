@@ -277,7 +277,7 @@ try {
     const preview=await call('/api/admin/email/preview',{draft_id:draft.body.draft_id,subject:'Synthetic service notice',body:'<script>synthetic</script>',target_mode:'single',recipient_user_ids:['mail-user']},admin);assert.equal(preview.status,200);assert.ok(!preview.body.html_preview.includes('<script>'));
     const payload={preview_token:preview.body.preview_token,subject:'Synthetic service notice',body:'<script>synthetic</script>',confirmed:true};
     const sent=await call('/api/admin/email/send',payload,admin,{headers:{'X-Aeris-Stepup':await grant(admin,'email_center:send')}});assert.equal(sent.status,200);assert.equal(sent.body.results[0].inbox_delivery_confirmed,false);assert.equal(sent.body.results[0].delivery_status,'queued');
-    assert.equal(messages.at(-1).from.email,'noreply@thewyj.uk');assert.equal(messages.at(-1).replyTo.email,'support@thewyj.uk');assert.ok(!messages.at(-1).html.includes('<script>'));assert.ok(messages.at(-1).headers['X-Aeris-Thread']);
+    assert.equal(messages.at(-1).from.email,'noreply@thewyj.uk');assert.equal(messages.at(-1).replyTo.email,'support@thewyj.uk');assert.ok(!messages.at(-1).html.includes('<script>'));assert.ok(messages.at(-1).headers['X-Aeris-Delivery-Id']);
     const count=messages.length;assert.equal((await call('/api/admin/email/send',payload,admin,{headers:{'X-Aeris-Stepup':await grant(admin,'email_center:send')}})).status,409);assert.equal(messages.length,count);
   });
   await test('mail uncertain outcomes are held and never automatically resent',async()=>{
