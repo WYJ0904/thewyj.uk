@@ -141,6 +141,9 @@ try {
   });
   await check('375px light and dark security layout has no horizontal overflow and passes axe',async()=>{
     await page.click('#task27Inbox [data-task27-close]');await page.navigate('/account');await page.click('#openSecurityCenterBtn');await page.waitFor("document.querySelector('[data-security-mfa=totp]')",20000);
+    await page.click('[data-security-mfa=email]');
+    await page.waitFor("!document.querySelector('#task27Security [data-task27-status]').hidden&&document.querySelector('#task27Security [data-task27-status]').textContent.includes('绑定并验证邮箱')",10000);
+    assert.equal(await page.evaluate("document.querySelector('#task27Prompt')?.checkVisibility() || false"),false);
     await page.send('Emulation.setDeviceMetricsOverride',{width:375,height:900,deviceScaleFactor:1,mobile:true});
     for(const theme of ['light','dark']){
       await page.evaluate(`document.documentElement.dataset.theme=${JSON.stringify(theme)}`);
@@ -167,6 +170,11 @@ try {
     assert.equal(await page.evaluate("document.querySelectorAll('#task27Recovery [data-forgot-password],#task27Recovery [data-lost-mfa]').length"),2);
     await page.click('#task27Recovery [data-forgot-password]');await page.waitFor("document.getElementById('task27ResetMethod')",15000);
     assert.deepEqual(await page.evaluate("[...document.getElementById('task27ResetMethod').options].map(option=>option.value)"),['email','totp','recovery']);
+    assert.equal(await page.evaluate("Boolean(document.querySelector('#task27Prompt [name=email]')?.required&&document.querySelector('#task27Prompt [name=email]')?.checkVisibility())"),true);
+    await page.evaluate("(()=>{const s=document.getElementById('task27ResetMethod');s.value='totp';s.dispatchEvent(new Event('change',{bubbles:true}));})()");
+    assert.equal(await page.evaluate("Boolean(document.querySelector('#task27Prompt [name=email]')?.required||document.querySelector('#task27Prompt [name=email]')?.checkVisibility())"),false);
+    await page.evaluate("(()=>{const s=document.getElementById('task27ResetMethod');s.value='email';s.dispatchEvent(new Event('change',{bubbles:true}));})()");
+    assert.equal(await page.evaluate("Boolean(document.querySelector('#task27Prompt [name=email]')?.required&&document.querySelector('#task27Prompt [name=email]')?.checkVisibility())"),true);
     await screenshot('recovery-route-desktop');await page.close();page=await openPage({cdpUrl,baseUrl:base,width:1440,height:1000,mobile:false});
   });
   await check('old six-character password stays usable in the actual Web login form without MFA enforcement',async()=>{

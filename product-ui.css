@@ -5050,6 +5050,11 @@ progress {
 .policy-article h1 { font-size: clamp(1.7rem,4vw,2.5rem); line-height: 1.35; }
 .policy-article h2 { font-size: 1.25rem; margin-top: 32px; }
 .policy-article p, .policy-article ul, .policy-article ol { margin: 16px 0; }
+.task27-panel [hidden] { display: none; }
+.task27-status { margin: 0 0 14px; padding: 12px 14px; border-radius: 12px; font-size: .92rem; line-height: 1.55; overflow-wrap: anywhere; }
+.task27-status.is-error { color: var(--color-error); border: 1px solid var(--color-error); background: var(--color-surface-subtle); }
+.task27-status.is-info { color: var(--color-text); border: 1px solid var(--color-primary); background: var(--color-surface-subtle); }
+.task27-note { margin: 6px 0 10px; font-size: .88rem; color: var(--color-text-muted); line-height: 1.5; overflow-wrap: anywhere; }
 @media(max-width:600px) {
   .task27-security-summary { grid-template-columns: minmax(0,1fr); }
   .task27-session-list article { align-items: stretch; flex-direction: column; }

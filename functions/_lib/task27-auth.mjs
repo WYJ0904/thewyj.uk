@@ -1,7 +1,7 @@
 import { createSessionToken, sessionStorageKey, verifySecret, consumeVerificationWork } from './task12-crypto.mjs';
 import { Task12Error } from './task12-model.mjs';
 import { enforceD1RateLimit,sha256Hex } from './cloudflare-foundation.mjs';
-import { emailSendingEnabled,emailBindingConfigured,EmailServiceError } from './email-service.mjs';
+import { cleanEmailAddress,emailSendingEnabled,emailBindingConfigured,EmailServiceError } from './email-service.mjs';
 import {sendTask27Code} from './task27-email-adapter.mjs';
 import { equalText, keyedDigest, randomDigits, decryptTotp, matchingTotpStep } from './task27-crypto.mjs';
 import { activeUser, assertion, atomic, changed, eventStatements, fail, first, generationAssertion, hasTask27, nowIso, run, securityState, stmt } from './task27-store.mjs';
@@ -134,24 +134,34 @@ export async function grantStatements(db,token,user,state,sessionDigest,scope) {
     ...assertion(db,`EXISTS(SELECT 1 FROM task12_sessions WHERE token_digest=? AND user_id=? AND revoked=0 AND expires_at>? AND session_version=?)`,[sessionDigest,user.id,nowIso(),Number(user.session_version)]),
     stmt(db,'UPDATE task27_challenges SET consumed_at=?2 WHERE token_digest=?1',[row.token_digest,nowIso()])];
 }
-export async function requestPasswordReset(context,username,method='email') {
+export async function requestPasswordReset(context,username,method='email',email='') {
   const db=context.env.WYJ_DB;
-  if (typeof username!=='string' || username.length>40 || !['email','totp','recovery'].includes(method)) fail('recovery_input_invalid','恢复请求无效');
+  if (typeof username!=='string' || !username.trim() || username.length>40 || !['email','totp','recovery'].includes(method)) fail('recovery_input_invalid','恢复请求无效');
   if(method==='email'&&(!emailSendingEnabled(context.env)||!emailBindingConfigured(context.env)))throw new EmailServiceError('邮件服务尚不可用，验证码未发送；请稍后重试或选择已配置的其他恢复方式',503,'email_sending_unavailable',true);
+  let requestedEmail='';
+  if (method==='email') {
+    if (typeof email!=='string' || !email.trim()) fail('recovery_email_required','使用邮箱找回密码时，请同时填写绑定的邮箱地址');
+    requestedEmail=cleanEmailAddress(email,'绑定邮箱');
+  }
   const normalized=username.trim().toLowerCase().replace(/ß/g,'ss').replace(/ς/g,'σ');
   await securityRate(context,'password-recovery',await sessionStorageKey(normalized),3,900);
+  if (requestedEmail) {
+    await securityRate(context,'password-recovery-email',await sessionStorageKey(requestedEmail),5,900);
+  }
   const found=await first(db,'SELECT id FROM task12_users WHERE username_normalized=?1 AND deleted=0 AND banned=0',[normalized]);
   const user=found?await activeUser(db,found.id):null;
   const state=user ? await securityState(db,user.id) : null;
-  const eligible=Boolean(user && state && (method==='email' ? state.verified_email : state.mfa_method==='totp'));
+  const normalizedVerified=state?.verified_email ? String(state.verified_email).trim().toLowerCase() : '';
+  const emailMatches=Boolean(method==='email' && normalizedVerified && equalText(requestedEmail,normalizedVerified));
+  const eligible=Boolean(user && state && (method==='email' ? emailMatches : state.mfa_method==='totp'));
   const code=randomDigits();
   const challenge=await createChallenge(db,{user:eligible?user:null,state:eligible?state:null,kind:'password_reset',method,code:eligible&&method==='email'?code:'',env:context.env});
   if (eligible&&method==='email') {
-    // Identical public response for nonexistent/unverified accounts and delivery failure.
+    // Identical public response for nonexistent/unverified/mismatched accounts and delivery failure.
     const work=sendCode(context.env,state.verified_email,code,'找回密码',context.data?.requestId,{userId:user.id,challengeDigest:challenge.digest}).catch(async()=>{
       await run(db,'UPDATE task27_challenges SET consumed_at=?2 WHERE token_digest=?1',[challenge.digest,nowIso()]);
     });
     if (context.waitUntil) context.waitUntil(work); else await work;
   }
-  return {challenge:challenge.token,expires_at:challenge.expires_at,request_accepted:true,delivery_status:method==='email'?'not_disclosed':'not_applicable',inbox_confirmed:false,message:'已受理恢复请求，这不表示验证码已发送或送达。如果账户存在且已配置该恢复方式，会尝试处理；邮箱方式请检查绑定邮箱，未收到时可稍后重试或使用其他已配置的恢复方式。'};
+  return {challenge:challenge.token,expires_at:challenge.expires_at,request_accepted:true,delivery_status:method==='email'?'not_disclosed':'not_applicable',inbox_confirmed:false,message:method==='email'?'已受理恢复请求，这不表示验证码已发送或送达。仅当用户名与该账户已验证绑定邮箱完全一致且符合发送条件时，才会尝试发送验证码；未收到时请核对信息或改用 TOTP / 一次性恢复码。':'已受理恢复请求。若账户存在且符合所选验证方式，请继续输入验证码并设置新密码。'};
 }
