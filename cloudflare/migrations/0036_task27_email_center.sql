@@ -21,6 +21,10 @@ CREATE INDEX IF NOT EXISTS idx_email_center_bindings_email
 CREATE INDEX IF NOT EXISTS idx_email_center_bindings_verified
   ON email_center_bindings(verified, email);
 
+CREATE UNIQUE INDEX IF NOT EXISTS idx_email_center_bindings_verified_email_unique
+  ON email_center_bindings(LOWER(email))
+  WHERE verified = 1;
+
 CREATE TABLE IF NOT EXISTS email_center_templates (
   template_id TEXT PRIMARY KEY,
   template_key TEXT NOT NULL UNIQUE,

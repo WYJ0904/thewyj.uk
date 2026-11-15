@@ -405,11 +405,23 @@ async function main() {
       return true;
     })()`);
     await waitFor("Boolean(document.querySelector('#adminEmailPreviewCard')) && document.querySelector('#adminEmailPreviewCard').textContent.includes('QA Browser Manual Notice')", 10_000, "preview rendered");
+    const submitStepup = async () => {
+      await waitFor("Boolean(document.querySelector('#task27Prompt [name=password]'))", 10_000, "Task27 step-up modal");
+      await evaluate(`(() => {
+        const input = document.querySelector('#task27Prompt [name=password]');
+        input.value = ${JSON.stringify(OWNER_PASSWORD)};
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        document.querySelector('#task27Prompt button[type=submit]').click();
+        return true;
+      })()`);
+    };
+
     await evaluate(`(() => {
       document.querySelector('#adminEmailConfirmCheckbox').checked = true;
       document.querySelector('#adminEmailConfirmSendBtn').click();
       return true;
     })()`);
+    await submitStepup();
     await waitFor("document.querySelector('#adminEmailCenterRoot').textContent.includes('最近投递结果回执')", 10_000, "compose send completed");
     process.stdout.write("[email-browser] PASS compose + preview + confirm + send\n");
 
@@ -417,6 +429,7 @@ async function main() {
     await evaluate("document.querySelector('[data-email-subtab=deliveries]').click(); true");
     await waitFor("Boolean(document.querySelector('[data-retry-delivery=\"dlv_qa_retry_1\"]'))", 10_000, "retry button visible");
     await evaluate("document.querySelector('[data-retry-delivery=\"dlv_qa_retry_1\"]').click(); true");
+    await submitStepup();
     await waitFor("document.querySelector('#adminEmailCenterStatus').textContent.includes('delivered')", 10_000, "delivery retry succeeded");
     process.stdout.write("[email-browser] PASS deliveries + safe retry\n");
 
@@ -436,6 +449,7 @@ async function main() {
       document.querySelector('#adminEmailSendReplyBtn').click();
       return true;
     })()`);
+    await submitStepup();
     await waitFor("document.querySelector('#adminEmailCenterRoot').textContent.includes('Official Aeris support reply verified.')", 10_000, "inbound reply visible in timeline");
     process.stdout.write("[email-browser] PASS inbound thread + XSS escape + official reply\n");
 

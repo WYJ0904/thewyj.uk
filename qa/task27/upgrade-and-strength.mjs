@@ -37,8 +37,10 @@ try{
  await run(`INSERT INTO task11_learning_sync_records(user_id,data_type,record_id,payload_json,updated_at,client_id,client_version,created_at,server_updated_at) VALUES('legacy:cf.user@example.test','learning_config','synthetic-profile','{"profile":"Synthetic retained profile"}',?1,'upgrade-fixture','synthetic',?1,?1)`,when);
  for(const table of tables)columns[table]=(await db.prepare(`PRAGMA table_info(${table})`).all()).results.map(row=>row.name);
  const before=await snapshots();
- await check('0035 preserves all existing user, verifier, session, membership, finance and learning columns',async()=>{
+ await check('0035 and 0036 preserve all existing user, verifier, session, membership, finance and learning columns',async()=>{
   await db.exec((await readFile(path.join(root,'cloudflare/migrations/0035_task27_security_center.sql'),'utf8')).replace(/\r?\n/g,' '));
+  assert.deepEqual(await snapshots(),before);
+  await db.exec((await readFile(path.join(root,'cloudflare/migrations/0036_task27_email_center.sql'),'utf8')).replace(/\r?\n/g,' '));
   assert.deepEqual(await snapshots(),before);proof.pre_migration_business_digests=before;
   const state=(await db.prepare('SELECT * FROM task27_security').all()).results;assert.equal(state.length,2);assert.ok(state.every(row=>row.mfa_method==='none'&&row.must_change_password===0&&row.password_changed_at===''));
   assert.equal((await one('SELECT COUNT(*) AS count FROM task27_notifications')).count,0);
@@ -76,7 +78,8 @@ try{
   const scope='admin_reset:legacy:cf.user@example.test',step=await call('/api/security/stepup',{password:oldPassword,scope},ownerSession);assert.equal(step.status,200);
   const reset=await call('/api/admin/secret',{user_id:'legacy:cf.user@example.test',grant:step.body.grant},ownerSession);assert.equal(reset.status,200);assert.equal(reset.body.temporary_password.length,20);
   await run("UPDATE task27_security SET verified_email='retained-fixture@example.test',email_verified_at=?1 WHERE user_id='legacy:cf.user@example.test'",new Date().toISOString());
-  const draft=await call('/api/admin/email/drafts',{subject:'Synthetic existing-ID check',body:'Synthetic service integration',recipient_ids:['legacy:cf.user@example.test']},ownerSession);assert.equal(draft.status,200);
+  const draft=await call('/api/admin/email/drafts',{subject:'Synthetic existing-ID check',body:'Synthetic service integration',recipient_user_ids:['legacy:cf.user@example.test']},ownerSession);assert.equal(draft.status,200);
+  const preview=await call('/api/admin/email/preview',{target_mode:'single',subject:'Synthetic existing-ID check',body:'Synthetic service integration',recipient_user_ids:['legacy:cf.user@example.test']},ownerSession);assert.equal(preview.status,200);assert.equal(preview.body.effective_recipient_count,1);
  });
  await check('unverified email cannot enable email MFA and unavailable mail never reports a sent code',async()=>{
   const login=await call('/api/login',{username:'new-nine',secret:newPassword}),token=login.body.session;

@@ -27,7 +27,14 @@ const api = (route, payload = undefined, session = admin, expected = 200, cookie
   let grant;
   if(task27Config?.security_center_ready&&payload!==undefined&&session){
     const scope=['/api/admin/feature-flags','/api/admin/feature-flags/override'].includes(route)?'admin_features':route==='/api/account/delete'?'account_delete':null;
-    if(scope){const password=scope==='account_delete'?payload.secret:environment==='development'?process.env.WYJ_TEST_ADMIN_SECRET:null;assert.ok(password,'BLOCKED: explicit Task27 step-up is required');grant=api('/api/security/stepup',{password,scope},session).grant;assert.ok(grant,'BLOCKED: fixture MFA requires explicit second-factor verification');}
+    if(scope){
+      const password = scope === 'account_delete'
+        ? payload.secret
+        : (session === token ? fixtureSecret : (environment === 'development' ? process.env.WYJ_TEST_ADMIN_SECRET : null));
+      assert.ok(password,'BLOCKED: explicit Task27 step-up is required');
+      grant=api('/api/security/stepup',{password,scope},session).grant;
+      assert.ok(grant,'BLOCKED: fixture MFA requires explicit second-factor verification');
+    }
   }
   fs.writeFileSync(headerFile, [`Origin: ${origin}`, 'Content-Type: application/json', 'User-Agent: Thewyj-Android/1.3.34',
     ...(session ? [`X-Session-Token: ${session}`] : []), ...(grant?[`X-Aeris-Stepup: ${grant}`]:[]), ...(cookie ? [`Cookie: __Host-wyj_app_access=${cookie}`] : [])].join('\n') + '\n');
@@ -268,6 +275,7 @@ try {
   await adminPage.waitFor("document.getElementById('featureFlagAudit').closest('details').open",5000,'audit disclosure opens after a visible click');
   assert.equal(await adminPage.evaluate("document.getElementById('featureFlagAudit').closest('details').open"), true);
   assert.ok(await adminPage.evaluate(`document.getElementById('featureFlagAudit').textContent.includes(${JSON.stringify(key)})`));
+  stage = 'ordinary_admin_denied';
   api('/api/admin/feature-flags', undefined, token, 403);
   const current = api('/api/admin/feature-flags').flags.find(flag => flag.flag_key === key);
   api('/api/admin/feature-flags', { flag_key: key, description: current.description, enabled: true,

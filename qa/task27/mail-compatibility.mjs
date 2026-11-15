@@ -82,16 +82,19 @@ try{
    assert.equal(sends.filter(result=>result.status===200).length,1,JSON.stringify(sends));assert.equal(messages.length-count,1);
    assert.equal((await one('SELECT COUNT(*) AS n FROM task27_email_drafts')).n,0);
   });
-  await check('source bridge and concurrent-send probes preserve observable producer defects for the separate PR',async()=>{
-   const old=await one("SELECT version FROM task27_security WHERE user_id='mail-other'");await mail.upsertUserEmailBinding(db,{userId:'mail-other',email:'first@example.test',verified:true,actorUserId:'mail-owner'});
+  await check('atomic binding bridge and concurrent identical-idempotency-key protection enforce fixed producer invariants',async()=>{
+   const old=await one("SELECT version FROM task27_security WHERE user_id='mail-other'");
+   await assert.rejects(()=>mail.upsertUserEmailBinding(db,{userId:'mail-other',email:'first@example.test',verified:true,actorUserId:'mail-owner'}),error=>error.code==='email_binding_conflict'&&error.status===409);
    const center=await one("SELECT email,verified FROM email_center_bindings WHERE user_id='mail-other'"),security=await one("SELECT verified_email,version FROM task27_security WHERE user_id='mail-other'");
-   if(center?.email!==security?.verified_email)proof.producer_findings.push({id:'EMAIL-BRIDGE-ATOMICITY',status:'REPRODUCED',detail:'producer bridge persists a verified center row even when authoritative unique email rejects the write; generation unchanged',generation_unchanged:security?.version===old.version});
-   await sql("DELETE FROM email_center_bindings WHERE user_id='mail-other'");
-   let calls=0,release;const barrier=new Promise(resolve=>{release=resolve;}),timer=setTimeout(release,2000);
-   const parallelEnv={...env,EMAIL:{async send(){calls++;if(calls===2)release();await barrier;return {messageId:crypto.randomUUID(),queued:[{}],delivered:[]};}}};
-   const outcomes=await Promise.allSettled([1,2].map(()=>mail.sendTransactionalEmail(parallelEnv,{kind:'account_security_notice',to:'first@example.test',userId:'mail-user',requireVerifiedEmail:true,idempotencyKey:'synthetic-concurrent-probe',eventSummary:'Synthetic idempotency probe'})));clearTimeout(timer);
-   if(calls>1)proof.producer_findings.push({id:'EMAIL-IDEMPOTENCY-RACE',status:'REPRODUCED',provider_calls:calls,settled:outcomes.map(item=>item.status),detail:'concurrent identical idempotency key reaches the provider twice before the unique delivery row is recorded'});
-   assert.ok(calls>=1);proof.producer_probe_completed=true;
+   assert.equal(center,null,'email_center_bindings MUST roll back atomically on unique email conflict');
+   assert.equal(security?.version,old.version,'task27_security.version MUST stay untouched on conflict');
+   let calls=0;
+   const parallelEnv={...env,EMAIL:{async send(){calls++;await new Promise(resolve=>setTimeout(resolve,80));return {messageId:crypto.randomUUID(),queued:[{}],delivered:[]};}}};
+   const outcomes=await Promise.allSettled([1,2].map(()=>mail.sendTransactionalEmail(parallelEnv,{kind:'account_security_notice',to:'first@example.test',userId:'mail-user',requireVerifiedEmail:true,idempotencyKey:'synthetic-concurrent-probe',eventSummary:'Synthetic idempotency probe'})));
+   assert.equal(calls,1,JSON.stringify(outcomes));
+   assert.equal(outcomes.filter(item=>item.status==='fulfilled').length,1);
+   assert.equal(outcomes.filter(item=>item.status==='rejected'&&item.reason?.code==='email_idempotency_in_flight').length,1);
+   proof.producer_probe_completed=true;
   });
  }
  proof.status='PASS';

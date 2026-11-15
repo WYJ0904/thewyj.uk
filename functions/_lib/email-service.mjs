@@ -634,25 +634,103 @@ export function buildWorkersBindingPayload(message) {
   return payload;
 }
 
-export function classifyProviderError({ status = 0, payload = null, error = null }) {
+export function describeDeliverySemantics(status) {
+  const normalized = String(status || "").trim().toLowerCase();
+  if (normalized === "delivered") {
+    return {
+      delivery_stage: "provider_reported_delivered",
+      local_request_created: true,
+      provider_accepted: true,
+      recipient_server_accepted: true,
+      provider_reported_delivered: true,
+      inbox_delivery_confirmed: false,
+    };
+  }
+  if (normalized === "queued") {
+    return {
+      delivery_stage: "provider_accepted",
+      local_request_created: true,
+      provider_accepted: true,
+      recipient_server_accepted: false,
+      provider_reported_delivered: false,
+      inbox_delivery_confirmed: false,
+    };
+  }
+  if (normalized === "sending") {
+    return {
+      delivery_stage: "local_request_created",
+      local_request_created: true,
+      provider_accepted: false,
+      recipient_server_accepted: false,
+      provider_reported_delivered: false,
+      inbox_delivery_confirmed: false,
+    };
+  }
+  if (normalized === "unknown") {
+    return {
+      delivery_stage: "outcome_unknown",
+      local_request_created: true,
+      provider_accepted: null,
+      recipient_server_accepted: null,
+      provider_reported_delivered: false,
+      inbox_delivery_confirmed: false,
+    };
+  }
+  if (normalized === "rejected" || normalized === "suppressed") {
+    return {
+      delivery_stage: normalized === "rejected" ? "provider_rejected" : "provider_suppressed",
+      local_request_created: true,
+      provider_accepted: false,
+      recipient_server_accepted: false,
+      provider_reported_delivered: false,
+      inbox_delivery_confirmed: false,
+    };
+  }
+  return {
+    delivery_stage: "failed",
+    local_request_created: true,
+    provider_accepted: false,
+    recipient_server_accepted: false,
+    provider_reported_delivered: false,
+    inbox_delivery_confirmed: false,
+  };
+}
+
+function extractRetryAfter(headers, error) {
+  const raw =
+    typeof headers?.get === "function"
+      ? headers.get("retry-after")
+      : headers?.["retry-after"] || headers?.["Retry-After"] || error?.retryAfter || error?.retry_after || "";
+  const cleaned = String(raw || "").trim();
+  return cleaned ? cleaned.slice(0, 64) : null;
+}
+
+export function classifyProviderError({ status = 0, payload = null, error = null, headers = null, ambiguousAfterDispatch = false }) {
   const errors = Array.isArray(payload?.errors) ? payload.errors : [];
   const firstCode = errors[0]?.code ? String(errors[0].code) : "";
   const rawMsg = errors[0]?.message || payload?.error || error?.message || "邮件服务商请求失败";
   const safeMsg = cleanSingleLineText(String(rawMsg).slice(0, 220), { maxLength: 240, field: "error_message", required: false }) || "邮件服务商请求失败";
+  const retryAfter = extractRetryAfter(headers, error);
+  const retryAfterDetail = retryAfter ? { retry_after: retryAfter } : {};
 
   if (error && !payload) {
     const errorText = String(error?.message || "");
     if (/rate[\s_-]?limit|too many requests|\b429\b/i.test(errorText)) {
       return new EmailServiceError("email_provider_rate_limited", "邮件发送触发 Cloudflare 速率限制，请稍后重试", 429, {
         retryable: true,
+        delivery_status: "failed",
+        outcome_unknown: false,
         provider_status: 429,
         provider_code: firstCode || "E_RATE_LIMITED",
         provider_message: safeMsg,
+        ...retryAfterDetail,
       });
     }
     if (/unauthorized|forbidden|invalid.?token|auth.*fail|\b(401|403)\b/i.test(errorText)) {
       return new EmailServiceError("email_provider_auth_failed", "Cloudflare 邮件发送凭据或权限校验失败", 502, {
         retryable: false,
+        delivery_status: "failed",
+        outcome_unknown: false,
         provider_status: status || 401,
         provider_code: firstCode || "E_UNAUTHORIZED",
         provider_message: safeMsg,
@@ -661,16 +739,29 @@ export function classifyProviderError({ status = 0, payload = null, error = null
     if (/reject|bounce|suppressed|invalid.?recipient|\b(400|422)\b/i.test(errorText)) {
       return new EmailServiceError("email_provider_rejected", "邮件服务商拒绝该收件请求，请核对地址或内容格式", 422, {
         retryable: false,
+        delivery_status: "failed",
+        outcome_unknown: false,
         provider_status: 422,
         provider_code: firstCode || "E_REJECTED",
         provider_message: safeMsg,
       });
     }
+    // Generic transport exception after calling provider: outcome cannot be safely determined
+    return new EmailServiceError("email_delivery_status_unknown", `邮件发信响应未知，为防止重复发送禁止自动重试：${safeMsg}`, 503, {
+      retryable: false,
+      delivery_status: "unknown",
+      outcome_unknown: true,
+      provider_status: status || 0,
+      provider_code: firstCode || "E_OUTCOME_UNKNOWN",
+      provider_message: safeMsg,
+    });
   }
 
   if (status === 401 || status === 403 || firstCode === "10000" || firstCode === "E_UNAUTHORIZED") {
     return new EmailServiceError("email_provider_auth_failed", `Cloudflare 邮件鉴权失败 (${status || firstCode || "auth"})`, 502, {
       retryable: false,
+      delivery_status: "failed",
+      outcome_unknown: false,
       provider_status: status,
       provider_code: firstCode,
     });
@@ -678,26 +769,54 @@ export function classifyProviderError({ status = 0, payload = null, error = null
   if (status === 429 || firstCode === "E_RATE_LIMITED") {
     return new EmailServiceError("email_provider_rate_limited", "Cloudflare 邮件通道触发速率限制，请稍后重试", 429, {
       retryable: true,
+      delivery_status: "failed",
+      outcome_unknown: false,
       provider_status: status,
       provider_code: firstCode,
+      ...retryAfterDetail,
     });
   }
   if (status >= 400 && status < 500) {
     return new EmailServiceError("email_provider_rejected", `Cloudflare 拒绝发信请求：${safeMsg}`, 400, {
       retryable: false,
+      delivery_status: "failed",
+      outcome_unknown: false,
       provider_status: status,
       provider_code: firstCode,
     });
   }
-  if (status >= 500 || error?.name === "AbortError" || /timeout|network|fetch/i.test(String(error?.message || ""))) {
+  if (
+    ambiguousAfterDispatch ||
+    status === 0 ||
+    status === 502 ||
+    status === 504 ||
+    (status >= 500 && !payload) ||
+    error?.name === "AbortError" ||
+    /timeout|network|fetch/i.test(String(error?.message || ""))
+  ) {
+    return new EmailServiceError("email_delivery_status_unknown", `发信结果未知（网关超时或响应不可解析），禁止自动重试：${safeMsg}`, status === 504 ? 504 : 503, {
+      retryable: false,
+      delivery_status: "unknown",
+      outcome_unknown: true,
+      provider_status: status,
+      provider_code: firstCode || "E_OUTCOME_UNKNOWN",
+      ...retryAfterDetail,
+    });
+  }
+  if (status >= 500) {
     return new EmailServiceError("email_provider_unavailable", `Cloudflare 邮件服务暂时不可用：${safeMsg}`, 503, {
       retryable: true,
+      delivery_status: "failed",
+      outcome_unknown: false,
       provider_status: status,
       provider_code: firstCode,
+      ...retryAfterDetail,
     });
   }
   return new EmailServiceError("email_send_failed", safeMsg, 502, {
     retryable: true,
+    delivery_status: "failed",
+    outcome_unknown: false,
     provider_status: status,
     provider_code: firstCode,
   });
@@ -722,7 +841,6 @@ function normalizeCloudflareDeliveryResult(rawResult, message, transport, delive
 
   let deliveryStatus = "queued";
   let ok = true;
-  let inboxDeliveryConfirmed = false;
   let errorCode = null;
   let errorMessage = null;
   let retryable = false;
@@ -738,13 +856,12 @@ function normalizeCloudflareDeliveryResult(rawResult, message, transport, delive
     errorCode = "email_recipient_suppressed";
     errorMessage = "收件地址处于服务商抑制名单（Suppressed）";
   } else if (delivered.length > 0 && queued.length === 0) {
+    // Provider reported delivery event; never equate provider telemetry with verified user inbox receipt.
     deliveryStatus = "delivered";
     ok = true;
-    inboxDeliveryConfirmed = true;
   } else if (queued.length > 0 || messageId) {
     deliveryStatus = "queued";
     ok = true;
-    inboxDeliveryConfirmed = false;
   }
 
   return {
@@ -752,7 +869,7 @@ function normalizeCloudflareDeliveryResult(rawResult, message, transport, delive
     transport,
     delivery_id: deliveryId,
     delivery_status: deliveryStatus,
-    inbox_delivery_confirmed: inboxDeliveryConfirmed,
+    ...describeDeliverySemantics(deliveryStatus),
     delivered,
     queued,
     permanent_bounces: permanentBounces,
@@ -793,7 +910,7 @@ async function sendViaCloudflareRest(env, message, deliveryId) {
       body: JSON.stringify(payload),
     });
   } catch (error) {
-    throw classifyProviderError({ status: 0, error });
+    throw classifyProviderError({ status: 0, error, ambiguousAfterDispatch: true });
   }
 
   let parsed = null;
@@ -803,8 +920,22 @@ async function sendViaCloudflareRest(env, message, deliveryId) {
     parsed = null;
   }
 
+  if (response.ok && !parsed) {
+    throw classifyProviderError({
+      status: response.status,
+      error: new Error("Cloudflare Email REST returned unparseable 2xx response"),
+      headers: response.headers,
+      ambiguousAfterDispatch: true,
+    });
+  }
+
   if (!response.ok || parsed?.success === false) {
-    throw classifyProviderError({ status: response.status, payload: parsed });
+    throw classifyProviderError({
+      status: response.status,
+      payload: parsed,
+      headers: response.headers,
+      ambiguousAfterDispatch: response.status === 502 || response.status === 504 || (response.status >= 500 && !parsed),
+    });
   }
 
   return normalizeCloudflareDeliveryResult(parsed, message, "cloudflare_rest", deliveryId);
@@ -816,7 +947,7 @@ async function sendViaWorkersBinding(env, message, deliveryId) {
   try {
     result = await env.EMAIL.send(payload);
   } catch (error) {
-    throw classifyProviderError({ status: 502, error });
+    throw classifyProviderError({ status: 502, error, ambiguousAfterDispatch: true });
   }
   return normalizeCloudflareDeliveryResult(result, message, "workers_binding", deliveryId);
 }
@@ -965,6 +1096,21 @@ export async function resolveVerifiedUserEmail(db, userId) {
 
 export const getUserEmailBinding = resolveVerifiedUserEmail;
 
+async function hasTask27SecurityVersionColumn(db) {
+  if (!db) return false;
+  try {
+    const info = await db.prepare("PRAGMA table_info(task27_security)").all();
+    return Boolean((info?.results || []).some((col) => String(col?.name || "").toLowerCase() === "version"));
+  } catch {
+    return false;
+  }
+}
+
+function isUniqueConstraintError(error) {
+  const text = String(error?.message || error?.cause?.message || error || "").toLowerCase();
+  return text.includes("unique") || text.includes("constraint");
+}
+
 export async function upsertUserEmailBinding(db, { userId, email, verified = false, verifiedAt: customVerifiedAt = null, actorUserId = null }) {
   if (!db) {
     throw new EmailServiceError("email_db_unavailable", "D1 数据库不可用，无法更新邮箱绑定", 503);
@@ -975,35 +1121,80 @@ export async function upsertUserEmailBinding(db, { userId, email, verified = fal
   const ts = nowIso();
   const verifiedAt = isVerified ? (customVerifiedAt || ts) : null;
 
-  await db
-    .prepare(
-      `INSERT INTO email_center_bindings (user_id, email, verified, verified_at, updated_by, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?)
-       ON CONFLICT(user_id) DO UPDATE SET
-         email = excluded.email,
-         verified = excluded.verified,
-         verified_at = CASE WHEN excluded.verified = 1 THEN COALESCE(email_center_bindings.verified_at, excluded.verified_at) ELSE NULL END,
-         updated_by = excluded.updated_by,
-         updated_at = excluded.updated_at`
-    )
-    .bind(uid, normalized, isVerified, verifiedAt, actorUserId || uid, ts)
-    .run();
+  const statements = [
+    db
+      .prepare(
+        `INSERT INTO email_center_bindings (user_id, email, verified, verified_at, updated_by, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?)
+         ON CONFLICT(user_id) DO UPDATE SET
+           email = excluded.email,
+           verified = excluded.verified,
+           verified_at = CASE
+             WHEN excluded.verified = 1 AND LOWER(email_center_bindings.email) = LOWER(excluded.email) AND email_center_bindings.verified = 1
+               THEN COALESCE(email_center_bindings.verified_at, excluded.verified_at)
+             WHEN excluded.verified = 1 THEN excluded.verified_at
+             ELSE NULL
+           END,
+           updated_by = excluded.updated_by,
+           updated_at = excluded.updated_at`
+      )
+      .bind(uid, normalized, isVerified, verifiedAt, actorUserId || uid, ts),
+  ];
 
-  if (isVerified === 1 && (await hasTask27SecurityTable(db))) {
-    try {
-      await db
-        .prepare(
-          `INSERT INTO task27_security (user_id, verified_email, email_verified_at, password_age_start_at)
-           VALUES (?, ?, ?, ?)
-           ON CONFLICT(user_id) DO UPDATE SET
-             verified_email = excluded.verified_email,
-             email_verified_at = excluded.email_verified_at`
-        )
-        .bind(uid, normalized, verifiedAt || ts, ts)
-        .run();
-    } catch {
-      // Preserve binding update even if task27_security schema differs in isolated tests
+  const hasSecTable = await hasTask27SecurityTable(db);
+  if (isVerified === 1 && hasSecTable) {
+    const hasVersion = await hasTask27SecurityVersionColumn(db);
+    if (hasVersion) {
+      statements.push(
+        db
+          .prepare(
+            `INSERT INTO task27_security (user_id, verified_email, email_verified_at, password_age_start_at, version)
+             VALUES (?, ?, ?, ?, 1)
+             ON CONFLICT(user_id) DO UPDATE SET
+               verified_email = excluded.verified_email,
+               email_verified_at = excluded.email_verified_at,
+               version = CASE
+                 WHEN LOWER(COALESCE(task27_security.verified_email, '')) != LOWER(excluded.verified_email)
+                   THEN task27_security.version + 1
+                 ELSE task27_security.version
+               END`
+          )
+          .bind(uid, normalized, verifiedAt || ts, ts)
+      );
+    } else {
+      statements.push(
+        db
+          .prepare(
+            `INSERT INTO task27_security (user_id, verified_email, email_verified_at, password_age_start_at)
+             VALUES (?, ?, ?, ?)
+             ON CONFLICT(user_id) DO UPDATE SET
+               verified_email = excluded.verified_email,
+               email_verified_at = excluded.email_verified_at`
+          )
+          .bind(uid, normalized, verifiedAt || ts, ts)
+      );
     }
+  } else if (isVerified === 0 && hasSecTable) {
+    const existingSec = await db
+      .prepare("SELECT verified_email FROM task27_security WHERE user_id = ? LIMIT 1")
+      .bind(uid)
+      .first();
+    if (existingSec?.verified_email) {
+      throw new EmailServiceError("email_binding_verified_protected", "该账户已在安全中心绑定已验证邮箱，不允许降级为未验证状态", 409);
+    }
+  }
+
+  try {
+    await db.batch(statements);
+  } catch (error) {
+    if (isUniqueConstraintError(error)) {
+      throw new EmailServiceError("email_binding_conflict", "该邮箱已被其他账户验证绑定，拒绝写入并已保持双表一致性", 409, {
+        cause: String(error?.message || "unique_constraint_failed").slice(0, 160),
+      });
+    }
+    throw error instanceof EmailServiceError
+      ? error
+      : new EmailServiceError("email_binding_failed", error?.message || "更新邮箱绑定失败", 500);
   }
 
   return {
@@ -1116,6 +1307,108 @@ export async function recordEmailDelivery(db, record) {
   return record.delivery_id;
 }
 
+async function claimEmailDelivery(db, record) {
+  if (!db || !(await tableExists(db, "email_center_deliveries"))) {
+    return { claimed: true, persisted: false, existing: null };
+  }
+  const ts = nowIso();
+  const redacted = Boolean(record.body_redacted);
+  const safeSubject = redactSensitiveText(record.subject || "", redacted).slice(0, 200);
+  const safePreview = redactSensitiveText(record.body_preview || "", redacted).slice(0, 260);
+
+  const insertRes = await db
+    .prepare(
+      `INSERT OR IGNORE INTO email_center_deliveries (
+        delivery_id, idempotency_key, kind, channel, trigger_source,
+        actor_user_id, actor_role, target_user_id, recipient_email,
+        from_email, reply_to, subject, body_preview, body_redacted,
+        status, transport, provider_message_id, error_code, error_message,
+        retryable, retry_count, max_retries, parent_delivery_id,
+        batch_id, thread_id, inbound_message_id, metadata_json,
+        sent_at, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    .bind(
+      record.delivery_id,
+      record.idempotency_key || null,
+      record.kind,
+      record.channel || "transactional",
+      record.trigger_source || "system_event",
+      record.actor_user_id || null,
+      record.actor_role || null,
+      record.target_user_id || null,
+      record.recipient_email,
+      record.from_email,
+      record.reply_to || null,
+      safeSubject,
+      safePreview,
+      redacted ? 1 : 0,
+      record.status || "sending",
+      record.transport || null,
+      record.provider_message_id || null,
+      record.error_code || null,
+      record.error_message ? String(record.error_message).slice(0, 240) : null,
+      record.retryable ? 1 : 0,
+      Number(record.retry_count || 0),
+      Number(record.max_retries || 3),
+      record.parent_delivery_id || null,
+      record.batch_id || null,
+      record.thread_id || null,
+      record.inbound_message_id || null,
+      sanitizeMetadataForStorage(record.metadata),
+      record.sent_at || null,
+      ts,
+      ts
+    )
+    .run();
+
+  const changes = Number(insertRes?.meta?.changes ?? insertRes?.changes ?? 0);
+  if (changes >= 1) {
+    return { claimed: true, persisted: true, existing: null };
+  }
+  if (record.idempotency_key) {
+    const existing = await db
+      .prepare("SELECT * FROM email_center_deliveries WHERE idempotency_key = ? LIMIT 1")
+      .bind(record.idempotency_key)
+      .first();
+    if (existing) {
+      return { claimed: false, persisted: true, existing };
+    }
+  }
+  return { claimed: true, persisted: false, existing: null };
+}
+
+async function finalizeEmailDelivery(db, deliveryId, patch = {}) {
+  if (!db || !(await tableExists(db, "email_center_deliveries"))) return null;
+  const ts = nowIso();
+  await db
+    .prepare(
+      `UPDATE email_center_deliveries
+       SET status = ?,
+           transport = COALESCE(?, transport),
+           provider_message_id = ?,
+           error_code = ?,
+           error_message = ?,
+           retryable = ?,
+           sent_at = ?,
+           updated_at = ?
+       WHERE delivery_id = ?`
+    )
+    .bind(
+      patch.status,
+      patch.transport || null,
+      patch.provider_message_id || null,
+      patch.error_code || null,
+      patch.error_message ? String(patch.error_message).slice(0, 240) : null,
+      patch.retryable ? 1 : 0,
+      patch.sent_at || null,
+      ts,
+      deliveryId
+    )
+    .run();
+  return deliveryId;
+}
+
 export async function getEmailDeliveryStatus(db, { deliveryId = null, idempotencyKey = null } = {}) {
   if (!db || !(await tableExists(db, "email_center_deliveries"))) return null;
   let row = null;
@@ -1142,12 +1435,12 @@ export async function getEmailDeliveryStatus(db, { deliveryId = null, idempotenc
     from_email: row.from_email,
     reply_to: row.reply_to,
     delivery_status: row.status,
-    inbox_delivery_confirmed: row.status === "delivered",
+    ...describeDeliverySemantics(row.status),
     transport: row.transport,
     message_id: row.provider_message_id,
     error_code: row.error_code,
     error_message: row.error_message,
-    retryable: Number(row.retryable) === 1,
+    retryable: Number(row.retryable) === 1 && row.status === "failed",
     retry_count: Number(row.retry_count || 0),
     max_retries: Number(row.max_retries || 3),
     batch_id: row.batch_id,
@@ -1155,6 +1448,70 @@ export async function getEmailDeliveryStatus(db, { deliveryId = null, idempotenc
     sent_at: row.sent_at,
     created_at: row.created_at,
     updated_at: row.updated_at,
+  };
+}
+
+function buildIdempotentReplayResult(existing) {
+  const status = String(existing?.status || "failed");
+  if (status === "sending") {
+    throw new EmailServiceError("email_idempotency_in_flight", "相同幂等键的邮件正在发送中，请勿并发重复发送", 409, {
+      retryable: false,
+      duplicate_prevented: true,
+      delivery_id: existing.delivery_id,
+      delivery_status: "sending",
+      ...describeDeliverySemantics("sending"),
+    });
+  }
+  if (status === "unknown") {
+    throw new EmailServiceError(
+      "email_delivery_status_unknown",
+      "相同幂等键的上次发信结果未知，为防止重复投递禁止自动重发，请人工核查或使用新请求",
+      409,
+      {
+        retryable: false,
+        outcome_unknown: true,
+        duplicate_prevented: true,
+        delivery_id: existing.delivery_id,
+        delivery_status: "unknown",
+        ...describeDeliverySemantics("unknown"),
+      }
+    );
+  }
+  if (status === "failed") {
+    throw new EmailServiceError(
+      existing.error_code || "email_idempotency_already_failed",
+      existing.error_message || "该幂等键对应的发信请求已失败，禁止自动重放同一幂等键",
+      409,
+      {
+        retryable: false,
+        duplicate_prevented: true,
+        delivery_id: existing.delivery_id,
+        delivery_status: "failed",
+        ...describeDeliverySemantics("failed"),
+      }
+    );
+  }
+  return {
+    ok: status === "delivered" || status === "queued",
+    idempotent_reused: true,
+    duplicate_prevented: true,
+    delivery_id: existing.delivery_id,
+    transport: existing.transport || "cached",
+    delivery_status: status,
+    ...describeDeliverySemantics(status),
+    delivered: status === "delivered" ? [existing.recipient_email] : [],
+    queued: status === "queued" ? [existing.recipient_email] : [],
+    permanent_bounces: status === "rejected" ? [existing.recipient_email] : [],
+    suppressed_recipients: status === "suppressed" ? [existing.recipient_email] : [],
+    message_id: existing.provider_message_id || existing.delivery_id,
+    from: existing.from_email,
+    reply_to: existing.reply_to || DEFAULT_REPLY_TO_EMAIL,
+    kind: existing.kind,
+    recipient: existing.recipient_email,
+    sent_at: existing.sent_at || existing.created_at,
+    error_code: existing.error_code || null,
+    error_message: existing.error_message || null,
+    retryable: Number(existing.retryable) === 1 && status === "failed",
   };
 }
 
@@ -1167,37 +1524,6 @@ export async function sendTransactionalEmail(env, options = {}) {
   const idempotencyKey = options.idempotencyKey
     ? cleanSingleLineText(String(options.idempotencyKey), { maxLength: 140, field: "idempotencyKey" })
     : null;
-
-  if (idempotencyKey && db && (await tableExists(db, "email_center_deliveries"))) {
-    const existing = await db
-      .prepare("SELECT * FROM email_center_deliveries WHERE idempotency_key = ? LIMIT 1")
-      .bind(idempotencyKey)
-      .first();
-    if (existing) {
-      return {
-        ok: existing.status === "delivered" || existing.status === "queued",
-        idempotent_reused: true,
-        duplicate_prevented: true,
-        delivery_id: existing.delivery_id,
-        transport: existing.transport || "cached",
-        delivery_status: existing.status,
-        inbox_delivery_confirmed: existing.status === "delivered",
-        delivered: existing.status === "delivered" ? [existing.recipient_email] : [],
-        queued: existing.status === "queued" ? [existing.recipient_email] : [],
-        permanent_bounces: existing.status === "rejected" ? [existing.recipient_email] : [],
-        suppressed_recipients: existing.status === "suppressed" ? [existing.recipient_email] : [],
-        message_id: existing.provider_message_id || existing.delivery_id,
-        from: existing.from_email,
-        reply_to: existing.reply_to || DEFAULT_REPLY_TO_EMAIL,
-        kind: existing.kind,
-        recipient: existing.recipient_email,
-        sent_at: existing.sent_at || existing.created_at,
-        error_code: existing.error_code || null,
-        error_message: existing.error_message || null,
-        retryable: Number(existing.retryable) === 1,
-      };
-    }
-  }
 
   const message = buildEmailMessage({ ...options, deliveryId }, env);
 
@@ -1223,6 +1549,80 @@ export async function sendTransactionalEmail(env, options = {}) {
     );
   }
 
+  const initialTransport = resolveEmailTransport(env);
+  const claim = await claimEmailDelivery(db, {
+    delivery_id: deliveryId,
+    idempotency_key: idempotencyKey,
+    kind: message.kind,
+    channel: options.channel || "transactional",
+    trigger_source: options.triggerSource || "system_event",
+    actor_user_id: options.actorUserId || null,
+    actor_role: options.actorRole || null,
+    target_user_id: options.userId || options.targetUserId || null,
+    recipient_email: message.to,
+    from_email: message.from,
+    reply_to: message.replyTo,
+    subject: message.subject,
+    body_preview: message.text.slice(0, 240),
+    body_redacted: message.sensitiveOtp,
+    status: "sending",
+    transport: initialTransport,
+    retryable: false,
+    retry_count: Number(options.retryCount || 0),
+    parent_delivery_id: options.parentDeliveryId || null,
+    batch_id: options.batchId || null,
+    thread_id: options.threadId || null,
+    inbound_message_id: options.inboundMessageId || null,
+    metadata: options.metadata,
+  });
+
+  if (!claim.claimed && claim.existing) {
+    return buildIdempotentReplayResult(claim.existing);
+  }
+
+  const persistFailure = async (err, status = "failed") => {
+    const finalStatus = status === "unknown" ? "unknown" : "failed";
+    const retryableFlag = finalStatus === "unknown" ? false : Boolean(err.retryable);
+    if (claim.persisted) {
+      await finalizeEmailDelivery(db, deliveryId, {
+        status: finalStatus,
+        transport: resolveEmailTransport(env),
+        error_code: err.code,
+        error_message: err.message,
+        retryable: retryableFlag,
+        sent_at: null,
+      });
+    } else {
+      await recordEmailDelivery(db, {
+        delivery_id: deliveryId,
+        idempotency_key: idempotencyKey,
+        kind: message.kind,
+        channel: options.channel || "transactional",
+        trigger_source: options.triggerSource || "system_event",
+        actor_user_id: options.actorUserId || null,
+        actor_role: options.actorRole || null,
+        target_user_id: options.userId || options.targetUserId || null,
+        recipient_email: message.to,
+        from_email: message.from,
+        reply_to: message.replyTo,
+        subject: message.subject,
+        body_preview: message.text.slice(0, 240),
+        body_redacted: message.sensitiveOtp,
+        status: finalStatus,
+        transport: resolveEmailTransport(env),
+        error_code: err.code,
+        error_message: err.message,
+        retryable: retryableFlag,
+        retry_count: Number(options.retryCount || 0),
+        parent_delivery_id: options.parentDeliveryId || null,
+        batch_id: options.batchId || null,
+        thread_id: options.threadId || null,
+        inbound_message_id: options.inboundMessageId || null,
+        metadata: options.metadata,
+      });
+    }
+  };
+
   if (options.enforceRateLimit !== false && db) {
     const maxCount = OTP_REDACTED_KINDS.has(message.kind)
       ? Math.max(1, Number(env?.EMAIL_OTP_RATE_LIMIT_MAX || 5) || 5)
@@ -1240,6 +1640,51 @@ export async function sendTransactionalEmail(env, options = {}) {
         limit: rate.limit,
         window_seconds: rate.window_seconds,
       });
+      await persistFailure(rateErr, "failed");
+      rateErr.details = { ...(rateErr.details || {}), delivery_id: deliveryId, delivery_status: "failed", ...describeDeliverySemantics("failed") };
+      throw rateErr;
+    }
+  }
+
+  if (!emailSendingEnabled(env)) {
+    const disabledErr = new EmailServiceError("email_sending_disabled", "当前环境未开启 EMAIL_SENDING_ENABLED", 503, {
+      retryable: true,
+    });
+    await persistFailure(disabledErr, "failed");
+    disabledErr.details = { ...(disabledErr.details || {}), delivery_id: deliveryId, delivery_status: "failed", ...describeDeliverySemantics("failed") };
+    throw disabledErr;
+  }
+
+  const transport = resolveEmailTransport(env);
+  if (transport === "unconfigured") {
+    const cfgErr = new EmailServiceError(
+      "email_transport_unconfigured",
+      "未配置 Workers EMAIL Binding 或 Cloudflare Email REST 凭据",
+      503,
+      { retryable: true }
+    );
+    await persistFailure(cfgErr, "failed");
+    cfgErr.details = { ...(cfgErr.details || {}), delivery_id: deliveryId, delivery_status: "failed", ...describeDeliverySemantics("failed") };
+    throw cfgErr;
+  }
+
+  try {
+    const result =
+      transport === "workers_binding"
+        ? await sendViaWorkersBinding(env, message, deliveryId)
+        : await sendViaCloudflareRest(env, message, deliveryId);
+
+    if (claim.persisted) {
+      await finalizeEmailDelivery(db, deliveryId, {
+        status: result.delivery_status,
+        transport: result.transport,
+        provider_message_id: result.message_id,
+        error_code: result.error_code,
+        error_message: result.error_message,
+        retryable: false,
+        sent_at: result.ok ? result.sent_at : null,
+      });
+    } else {
       await recordEmailDelivery(db, {
         delivery_id: deliveryId,
         idempotency_key: idempotencyKey,
@@ -1255,163 +1700,44 @@ export async function sendTransactionalEmail(env, options = {}) {
         subject: message.subject,
         body_preview: message.text.slice(0, 240),
         body_redacted: message.sensitiveOtp,
-        status: "failed",
-        transport: resolveEmailTransport(env),
-        error_code: rateErr.code,
-        error_message: rateErr.message,
-        retryable: true,
+        status: result.delivery_status,
+        transport: result.transport,
+        provider_message_id: result.message_id,
+        error_code: result.error_code,
+        error_message: result.error_message,
+        retryable: false,
+        retry_count: Number(options.retryCount || 0),
         parent_delivery_id: options.parentDeliveryId || null,
         batch_id: options.batchId || null,
         thread_id: options.threadId || null,
         inbound_message_id: options.inboundMessageId || null,
         metadata: options.metadata,
+        sent_at: result.ok ? result.sent_at : null,
       });
-      throw rateErr;
     }
-  }
-
-  if (!emailSendingEnabled(env)) {
-    const disabledErr = new EmailServiceError("email_sending_disabled", "当前环境未开启 EMAIL_SENDING_ENABLED", 503, {
-      retryable: true,
-    });
-    await recordEmailDelivery(db, {
-      delivery_id: deliveryId,
-      idempotency_key: idempotencyKey,
-      kind: message.kind,
-      channel: options.channel || "transactional",
-      trigger_source: options.triggerSource || "system_event",
-      actor_user_id: options.actorUserId || null,
-      actor_role: options.actorRole || null,
-      target_user_id: options.userId || options.targetUserId || null,
-      recipient_email: message.to,
-      from_email: message.from,
-      reply_to: message.replyTo,
-      subject: message.subject,
-      body_preview: message.text.slice(0, 240),
-      body_redacted: message.sensitiveOtp,
-      status: "failed",
-      transport: resolveEmailTransport(env),
-      error_code: disabledErr.code,
-      error_message: disabledErr.message,
-      retryable: true,
-      parent_delivery_id: options.parentDeliveryId || null,
-      batch_id: options.batchId || null,
-      thread_id: options.threadId || null,
-      inbound_message_id: options.inboundMessageId || null,
-      metadata: options.metadata,
-    });
-    throw disabledErr;
-  }
-
-  const transport = resolveEmailTransport(env);
-  if (transport === "unconfigured") {
-    const cfgErr = new EmailServiceError(
-      "email_transport_unconfigured",
-      "未配置 Workers EMAIL Binding 或 Cloudflare Email REST 凭据",
-      503,
-      { retryable: true }
-    );
-    await recordEmailDelivery(db, {
-      delivery_id: deliveryId,
-      idempotency_key: idempotencyKey,
-      kind: message.kind,
-      channel: options.channel || "transactional",
-      trigger_source: options.triggerSource || "system_event",
-      actor_user_id: options.actorUserId || null,
-      actor_role: options.actorRole || null,
-      target_user_id: options.userId || options.targetUserId || null,
-      recipient_email: message.to,
-      from_email: message.from,
-      reply_to: message.replyTo,
-      subject: message.subject,
-      body_preview: message.text.slice(0, 240),
-      body_redacted: message.sensitiveOtp,
-      status: "failed",
-      transport,
-      error_code: cfgErr.code,
-      error_message: cfgErr.message,
-      retryable: true,
-      parent_delivery_id: options.parentDeliveryId || null,
-      batch_id: options.batchId || null,
-      thread_id: options.threadId || null,
-      inbound_message_id: options.inboundMessageId || null,
-      metadata: options.metadata,
-    });
-    throw cfgErr;
-  }
-
-  try {
-    const result =
-      transport === "workers_binding"
-        ? await sendViaWorkersBinding(env, message, deliveryId)
-        : await sendViaCloudflareRest(env, message, deliveryId);
-
-    await recordEmailDelivery(db, {
-      delivery_id: deliveryId,
-      idempotency_key: idempotencyKey,
-      kind: message.kind,
-      channel: options.channel || "transactional",
-      trigger_source: options.triggerSource || "system_event",
-      actor_user_id: options.actorUserId || null,
-      actor_role: options.actorRole || null,
-      target_user_id: options.userId || options.targetUserId || null,
-      recipient_email: message.to,
-      from_email: message.from,
-      reply_to: message.replyTo,
-      subject: message.subject,
-      body_preview: message.text.slice(0, 240),
-      body_redacted: message.sensitiveOtp,
-      status: result.delivery_status,
-      transport: result.transport,
-      provider_message_id: result.message_id,
-      error_code: result.error_code,
-      error_message: result.error_message,
-      retryable: false,
-      retry_count: Number(options.retryCount || 0),
-      parent_delivery_id: options.parentDeliveryId || null,
-      batch_id: options.batchId || null,
-      thread_id: options.threadId || null,
-      inbound_message_id: options.inboundMessageId || null,
-      metadata: options.metadata,
-      sent_at: result.ok ? result.sent_at : null,
-    });
 
     return result;
   } catch (error) {
     const serviceErr =
       error instanceof EmailServiceError
         ? error
-        : new EmailServiceError("email_send_failed", error?.message || "发信失败", 502, { retryable: true });
+        : classifyProviderError({ status: 0, error, ambiguousAfterDispatch: true });
+    const isUnknownOutcome =
+      Boolean(serviceErr.details?.outcome_unknown) || serviceErr.details?.delivery_status === "unknown";
+    const finalStatus = isUnknownOutcome ? "unknown" : "failed";
+    if (isUnknownOutcome) {
+      serviceErr.retryable = false;
+    }
 
-    await recordEmailDelivery(db, {
+    await persistFailure(serviceErr, finalStatus);
+
+    serviceErr.details = {
+      ...(serviceErr.details || {}),
       delivery_id: deliveryId,
-      idempotency_key: idempotencyKey,
-      kind: message.kind,
-      channel: options.channel || "transactional",
-      trigger_source: options.triggerSource || "system_event",
-      actor_user_id: options.actorUserId || null,
-      actor_role: options.actorRole || null,
-      target_user_id: options.userId || options.targetUserId || null,
-      recipient_email: message.to,
-      from_email: message.from,
-      reply_to: message.replyTo,
-      subject: message.subject,
-      body_preview: message.text.slice(0, 240),
-      body_redacted: message.sensitiveOtp,
-      status: "failed",
-      transport,
-      error_code: serviceErr.code,
-      error_message: serviceErr.message,
-      retryable: serviceErr.retryable,
-      retry_count: Number(options.retryCount || 0),
-      parent_delivery_id: options.parentDeliveryId || null,
-      batch_id: options.batchId || null,
-      thread_id: options.threadId || null,
-      inbound_message_id: options.inboundMessageId || null,
-      metadata: options.metadata,
-    });
-
-    serviceErr.details = { ...(serviceErr.details || {}), delivery_id: deliveryId };
+      delivery_status: finalStatus,
+      outcome_unknown: isUnknownOutcome,
+      ...describeDeliverySemantics(finalStatus),
+    };
     throw serviceErr;
   }
 }
@@ -1427,11 +1753,12 @@ export async function safeSendTransactionalEmail(env, options = {}) {
     const err = error instanceof EmailServiceError
       ? error
       : new EmailServiceError("email_send_failed", error?.message || "邮件投递失败", 502, { retryable: true });
+    const finalStatus = err.details?.delivery_status || (err.details?.outcome_unknown ? "unknown" : "failed");
     return {
       ok: false,
       delivery_id: err.details?.delivery_id || deliveryId,
-      delivery_status: "failed",
-      inbox_delivery_confirmed: false,
+      delivery_status: finalStatus,
+      ...describeDeliverySemantics(finalStatus),
       delivered: [],
       queued: [],
       permanent_bounces: [],
@@ -1439,7 +1766,9 @@ export async function safeSendTransactionalEmail(env, options = {}) {
       error_code: err.code,
       error_message: err.message,
       status_code: err.status,
-      retryable: Boolean(err.retryable),
+      retryable: finalStatus === "unknown" ? false : Boolean(err.retryable),
+      outcome_unknown: finalStatus === "unknown",
+      retry_after: err.details?.retry_after || null,
       transport: resolveEmailTransport(env),
       kind: options.kind || "security_notice",
       recipient: options.to || options.recipient || null,

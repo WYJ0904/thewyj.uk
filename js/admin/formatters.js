@@ -36,11 +36,13 @@ function escapeHtml(value) {
 
 function deliveryStatusBadge(status) {
   const map = {
-    delivered: ["已送达", "is-success"],
+    sending: ["发送中", "is-queued"],
+    delivered: ["服务商报告已投递（未确认收件箱）", "is-success"],
     queued: ["已排队等待投递（非最终送达）", "is-queued"],
     failed: ["发送失败", "is-error"],
     rejected: ["永久拒收/退信", "is-error"],
     suppressed: ["服务商抑制", "is-warn"],
+    unknown: ["投递结果未知（禁止自动重发）", "is-warn"],
   };
   const [label, cls] = map[String(status || "")] || [String(status || "未知"), "is-muted"];
   return `<span class="admin-email-badge ${cls}">${escapeHtml(label)}</span>`;
@@ -367,7 +369,7 @@ export function createAdminEmailCenter({ root, apiGet, apiPost, getAccount }) {
         ${state.sendResult ? `
           <div class="admin-email-card">
             <h3>最近投递结果回执（批次 ${escapeHtml(state.sendResult.batch_id || "-")}）</h3>
-            <p class="meta-line">总计：${Number(state.sendResult.summary?.total || 0)} · 已送达：${Number(state.sendResult.summary?.delivered || 0)} · 排队中：${Number(state.sendResult.summary?.queued || 0)} · 拒收/抑制：${Number(state.sendResult.summary?.rejected || 0) + Number(state.sendResult.summary?.suppressed || 0)} · 失败：${Number(state.sendResult.summary?.failed || 0)}</p>
+            <p class="meta-line">总计：${Number(state.sendResult.summary?.total || 0)} · 服务商报告已投递（未确认收件箱）：${Number(state.sendResult.summary?.delivered || 0)} · 排队中：${Number(state.sendResult.summary?.queued || 0)} · 拒收/抑制：${Number(state.sendResult.summary?.rejected || 0) + Number(state.sendResult.summary?.suppressed || 0)} · 失败：${Number(state.sendResult.summary?.failed || 0)}</p>
             <div class="admin-email-card-list">
               ${(state.sendResult.results || []).map((r) => `
                 <div class="admin-email-row-item">
@@ -389,8 +391,10 @@ export function createAdminEmailCenter({ root, apiGet, apiPost, getAccount }) {
           <input id="adminEmailDeliverySearch" type="search" value="${escapeHtml(state.deliverySearch)}" placeholder="搜索主题、收件人或记录 ID" />
           <select id="adminEmailDeliveryStatusFilter">
             <option value="">全部投递状态</option>
-            <option value="delivered" ${state.deliveryStatusFilter === "delivered" ? "selected" : ""}>已送达 (delivered)</option>
+            <option value="delivered" ${state.deliveryStatusFilter === "delivered" ? "selected" : ""}>服务商报告已投递 (delivered)</option>
             <option value="queued" ${state.deliveryStatusFilter === "queued" ? "selected" : ""}>队列中 (queued)</option>
+            <option value="sending" ${state.deliveryStatusFilter === "sending" ? "selected" : ""}>发送中 (sending)</option>
+            <option value="unknown" ${state.deliveryStatusFilter === "unknown" ? "selected" : ""}>结果未知 (unknown)</option>
             <option value="failed" ${state.deliveryStatusFilter === "failed" ? "selected" : ""}>发送失败 (failed)</option>
             <option value="rejected" ${state.deliveryStatusFilter === "rejected" ? "selected" : ""}>永久拒收 (rejected)</option>
           </select>

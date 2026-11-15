@@ -181,6 +181,18 @@ async function callApi(env, pathname, { method = "GET", body = null, token = "",
   return { status: capturedRes.status, headers: capturedRes.headers, data };
 }
 
+async function issueStepup(env, token, password, scope, ip = "127.0.0.1") {
+  const res = await callApi(env, "/api/security/stepup", {
+    method: "POST",
+    token,
+    ip,
+    body: { password, scope },
+  });
+  assert.equal(res.status, 200, `Step-up grant failed for scope=${scope}: ${JSON.stringify(res.data)}`);
+  assert.ok(res.data?.grant, `Missing step-up grant for scope=${scope}`);
+  return res.data.grant;
+}
+
 function mockCloudflareRestFetch(modeOrHandler = "delivered") {
   const originalFetch = globalThis.fetch;
   const calls = [];
@@ -367,7 +379,10 @@ async function run() {
         });
         assert.equal(mfaRes.ok, true);
         assert.equal(mfaRes.delivery_status, "delivered");
-        assert.equal(mfaRes.inbox_delivery_confirmed, true);
+        assert.equal(mfaRes.delivery_stage, "provider_reported_delivered");
+        assert.equal(mfaRes.provider_accepted, true);
+        assert.equal(mfaRes.provider_reported_delivered, true);
+        assert.equal(mfaRes.inbox_delivery_confirmed, false, "Cloudflare REST delivered telemetry MUST NOT claim confirmed user inbox receipt");
         assert.equal(mockRest.calls.length, 1);
 
         // Idempotent replay does NOT call Cloudflare REST a second time!
@@ -378,6 +393,7 @@ async function run() {
           idempotencyKey: "t27:mfa:req-001",
         });
         assert.equal(mfaReplay.idempotent_reused, true);
+        assert.equal(mfaReplay.inbox_delivery_confirmed, false);
         assert.equal(mockRest.calls.length, 1);
 
         const dlvRow = await db.prepare("SELECT * FROM email_center_deliveries WHERE delivery_id = ?").bind(mfaRes.delivery_id).first();
@@ -388,7 +404,8 @@ async function run() {
         // Safe status query helper for Task27
         const statusInfo = await getEmailDeliveryStatus(db, { idempotencyKey: "t27:mfa:req-001" });
         assert.equal(statusInfo.delivery_status, "delivered");
-        assert.equal(statusInfo.inbox_delivery_confirmed, true);
+        assert.equal(statusInfo.delivery_stage, "provider_reported_delivered");
+        assert.equal(statusInfo.inbox_delivery_confirmed, false);
 
         // Login MFA rejected for unverified user!
         const unvMfa = await sendLoginMfaCode(env, {
@@ -460,14 +477,27 @@ async function run() {
       }
     });
 
-    await suite("4. Automatic non-blocking business emails in Task12 & Task13 APIs", async () => {
-      // Case A: Mail disabled / provider network down MUST NOT break password change!
+    await suite("4. Automatic non-blocking business emails in Task12, Task13 & Task27 Step-up APIs", async () => {
+      // Case A: Mail disabled / provider network down MUST NOT break password change under Task27 Step-up contract!
       const failingMailEnv = makeEnv(db, { EMAIL_SENDING_ENABLED: "false" });
+
+      // Missing step-up grant MUST be rejected (never bypass Task27 step-up)
+      const pwWithoutStepup = await callApi(failingMailEnv, "/api/account/secret", {
+        method: "POST",
+        token: verifiedUser.token,
+        body: {
+          new_secret: "AliceNewSecret-2026!",
+          confirm_secret: "AliceNewSecret-2026!",
+        },
+      });
+      assert.ok([400, 403].includes(pwWithoutStepup.status), `Expected 400/403 without Task27 stepup, got ${pwWithoutStepup.status}`);
+
+      const pwGrant = await issueStepup(failingMailEnv, verifiedUser.token, verifiedUser.password, "password_change");
       const pwRes = await callApi(failingMailEnv, "/api/account/secret", {
         method: "POST",
         token: verifiedUser.token,
         body: {
-          current_secret: verifiedUser.password,
+          grant: pwGrant,
           new_secret: "AliceNewSecret-2026!",
           confirm_secret: "AliceNewSecret-2026!",
         },
@@ -484,21 +514,59 @@ async function run() {
       verifiedUser.token = loginOk.data.session;
       verifiedUser.password = "AliceNewSecret-2026!";
 
-      // Case B: Enable sending + mock REST, verify automatic security & billing emails fire and record
+      // Case B: Enable sending + mock REST, verify automatic security & billing emails fire and record under Task27 contracts
       const env = makeEnv(db);
       const mockRest = mockCloudflareRestFetch("queued");
       try {
         await callApi(env, "/api/account/logout-all", { method: "POST", token: verifiedUser.token });
-        await callApi(env, "/api/admin/secret", {
+
+        // Admin secret reset rejects caller-supplied secret and requires single-use admin_reset:<user_id> step-up grant
+        const adminResetGrant = await issueStepup(env, superAdmin.token, superAdmin.password, `admin_reset:${verifiedUser.id}`);
+        const adminResetRes = await callApi(env, "/api/admin/secret", {
           method: "POST",
           token: superAdmin.token,
-          body: { user_id: verifiedUser.id, secret: "AliceAdminReset-2026!" },
+          body: { user_id: verifiedUser.id, grant: adminResetGrant },
         });
-        await callApi(env, "/api/admin/logout-user", {
+        assert.equal(adminResetRes.status, 200);
+        assert.equal(adminResetRes.data.display_once, true);
+        const resetSecRow = await db.prepare("SELECT must_change_password FROM task27_security WHERE user_id = ?").bind(verifiedUser.id).first();
+        assert.equal(Number(resetSecRow?.must_change_password), 1);
+        assert.ok(String(adminResetRes.data.temporary_password || "").length >= 9);
+
+        // Complete mandatory password change after temporary reset so verifiedUser keeps a valid session for later suites
+        const tempLogin = await callApi(env, "/api/login", {
+          method: "POST",
+          body: { username: verifiedUser.username, secret: adminResetRes.data.temporary_password },
+        });
+        assert.equal(tempLogin.status, 200);
+        assert.equal(tempLogin.data.password_change_required, true);
+        assert.equal(tempLogin.data.session, undefined);
+        assert.ok(tempLogin.data.password_change_token);
+        const completeReset = await callApi(env, "/api/security/password/complete", {
+          method: "POST",
+          body: {
+            challenge: tempLogin.data.password_change_token,
+            new_secret: "AliceRecovered-2026!",
+            confirm_secret: "AliceRecovered-2026!",
+          },
+        });
+        assert.equal(completeReset.status, 200);
+        verifiedUser.password = "AliceRecovered-2026!";
+        const reLoginAfterReset = await callApi(env, "/api/login", {
+          method: "POST",
+          body: { username: verifiedUser.username, secret: verifiedUser.password },
+        });
+        assert.equal(reLoginAfterReset.status, 200);
+        verifiedUser.token = reLoginAfterReset.data.session;
+
+        const logoutGrant = await issueStepup(env, superAdmin.token, superAdmin.password, "admin_account");
+        const logoutUserRes = await callApi(env, "/api/admin/logout-user", {
           method: "POST",
           token: superAdmin.token,
+          headers: { "X-Aeris-Stepup": logoutGrant },
           body: { user_id: verifiedUser2.id },
         });
+        assert.equal(logoutUserRes.status, 200);
 
         // Login rate-limit triggers automatic session_security_notice
         for (let i = 0; i < 9; i += 1) {
@@ -509,23 +577,25 @@ async function run() {
           });
         }
 
-        // Admin membership manage fires membership_change_notice
+        // Admin membership manage fires membership_change_notice under Task27 admin_entitlements step-up
+        const entGrant = await issueStepup(env, superAdmin.token, superAdmin.password, "admin_entitlements");
         const memRes = await callApi(env, "/api/admin/membership/manage", {
           method: "POST",
           token: superAdmin.token,
+          headers: { "X-Aeris-Stepup": entGrant },
           body: { user_id: verifiedUser.id, action: "grant", plan_code: "dual_language_monthly" },
         });
         assert.equal(memRes.status, 200);
 
-        const autoKinds = (
+        const autoRows = (
           await db
-            .prepare("SELECT DISTINCT kind FROM email_center_deliveries WHERE target_user_id IN (?, ?)")
+            .prepare("SELECT kind, subject FROM email_center_deliveries WHERE target_user_id IN (?, ?) AND status IN ('delivered', 'queued')")
             .bind(verifiedUser.id, verifiedUser2.id)
             .all()
-        ).results.map((r) => r.kind);
+        ).results || [];
+        const autoKinds = autoRows.map((r) => r.kind);
 
-        assert.ok(autoKinds.includes("password_changed_notice"));
-        assert.ok(autoKinds.includes("password_reset_notice"));
+        assert.ok(autoKinds.includes("account_security_notice"), `Expected Task27 security event notice, got ${JSON.stringify(autoKinds)}`);
         assert.ok(autoKinds.includes("session_security_notice"));
         assert.ok(autoKinds.includes("membership_change_notice"));
       } finally {
@@ -544,9 +614,11 @@ async function run() {
         assert.equal(userRes.status, 403);
 
         // Regular admin denied on super_admin endpoints & all_verified
+        const adminTestGrant = await issueStepup(env, regularAdmin.token, regularAdmin.password, "email_center:test");
         const adminTestSend = await callApi(env, "/api/admin/email/test-send", {
           method: "POST",
           token: regularAdmin.token,
+          headers: { "X-Aeris-Stepup": adminTestGrant },
           body: { recipient: OWNER_TEST_EMAIL },
         });
         assert.equal(adminTestSend.status, 403);
@@ -583,9 +655,11 @@ async function run() {
         assert.equal(multiPreview.data.excluded_count, 3);
 
         // Tampering body after preview fails!
+        const tamperSendGrant = await issueStepup(env, regularAdmin.token, regularAdmin.password, "email_center:send");
         const tamperedSend = await callApi(env, "/api/admin/email/send", {
           method: "POST",
           token: regularAdmin.token,
+          headers: { "X-Aeris-Stepup": tamperSendGrant },
           body: {
             preview_token: multiPreview.data.preview_token,
             confirmed: true,
@@ -596,9 +670,11 @@ async function run() {
         assert.equal(tamperedSend.status, 409);
 
         // Valid confirmed send succeeds once; replay blocked (409)!
+        const validSendGrant = await issueStepup(env, regularAdmin.token, regularAdmin.password, "email_center:send");
         const validSend = await callApi(env, "/api/admin/email/send", {
           method: "POST",
           token: regularAdmin.token,
+          headers: { "X-Aeris-Stepup": validSendGrant },
           body: {
             preview_token: multiPreview.data.preview_token,
             confirmed: true,
@@ -608,10 +684,14 @@ async function run() {
         });
         assert.equal(validSend.status, 200);
         assert.equal(validSend.data.summary.delivered, 2);
+        assert.equal(validSend.data.results[0].inbox_delivery_confirmed, false);
+        assert.equal(validSend.data.results[0].delivery_stage, "provider_reported_delivered");
 
+        const replaySendGrant = await issueStepup(env, regularAdmin.token, regularAdmin.password, "email_center:send");
         const replaySend = await callApi(env, "/api/admin/email/send", {
           method: "POST",
           token: regularAdmin.token,
+          headers: { "X-Aeris-Stepup": replaySendGrant },
           body: { preview_token: multiPreview.data.preview_token, confirmed: true },
         });
         assert.equal(replaySend.status, 409);
@@ -639,9 +719,11 @@ async function run() {
         assert.equal(allPreview.status, 200);
         assert.equal(allPreview.data.high_risk_all_verified, true);
 
+        const wrongPhraseGrant = await issueStepup(env, superAdmin.token, superAdmin.password, "email_center:send");
         const wrongPhrase = await callApi(env, "/api/admin/email/send", {
           method: "POST",
           token: superAdmin.token,
+          headers: { "X-Aeris-Stepup": wrongPhraseGrant },
           body: {
             preview_token: allPreview.data.preview_token,
             confirmed: true,
@@ -651,9 +733,11 @@ async function run() {
         });
         assert.equal(wrongPhrase.status, 400);
 
+        const wrongPassGrant = await issueStepup(env, superAdmin.token, superAdmin.password, "email_center:send");
         const wrongPass = await callApi(env, "/api/admin/email/send", {
           method: "POST",
           token: superAdmin.token,
+          headers: { "X-Aeris-Stepup": wrongPassGrant },
           body: {
             preview_token: allPreview.data.preview_token,
             confirmed: true,
@@ -663,9 +747,11 @@ async function run() {
         });
         assert.equal(wrongPass.status, 403);
 
+        const okBulkGrant = await issueStepup(env, superAdmin.token, superAdmin.password, "email_center:send");
         const okBulk = await callApi(env, "/api/admin/email/send", {
           method: "POST",
           token: superAdmin.token,
+          headers: { "X-Aeris-Stepup": okBulkGrant },
           body: {
             preview_token: allPreview.data.preview_token,
             confirmed: true,
@@ -682,9 +768,11 @@ async function run() {
           token: superAdmin.token,
           body: { target_mode: "all_verified", subject: "Duplicate bulk", body: "Again" },
         });
+        const cooldownGrant = await issueStepup(env, superAdmin.token, superAdmin.password, "email_center:send");
         const cooldownRes = await callApi(env, "/api/admin/email/send", {
           method: "POST",
           token: superAdmin.token,
+          headers: { "X-Aeris-Stepup": cooldownGrant },
           body: {
             preview_token: allPreview2.data.preview_token,
             confirmed: true,
@@ -703,21 +791,26 @@ async function run() {
             token: regularAdmin.token,
             body: { target_mode: "single", recipient_user_ids: [verifiedUser.id], subject: "Retryable Mail", body: "Check status" },
           });
+          const failSendGrant = await issueStepup(env, regularAdmin.token, regularAdmin.password, "email_center:send");
           const failSend = await callApi(env, "/api/admin/email/send", {
             method: "POST",
             token: regularAdmin.token,
+            headers: { "X-Aeris-Stepup": failSendGrant },
             body: { preview_token: singlePrev.data.preview_token, confirmed: true },
           });
           assert.equal(failSend.status, 502);
           const failedId = failSend.data.results[0].delivery_id;
 
+          const retryGrant = await issueStepup(env, regularAdmin.token, regularAdmin.password, "email_center:retry");
           const retryRes = await callApi(env, "/api/admin/email/deliveries/retry", {
             method: "POST",
             token: regularAdmin.token,
+            headers: { "X-Aeris-Stepup": retryGrant },
             body: { delivery_id: failedId },
           });
           assert.equal(retryRes.status, 200);
           assert.equal(retryRes.data.retry_result.delivery_status, "delivered");
+          assert.equal(retryRes.data.retry_result.inbox_delivery_confirmed, false);
         } finally {
           failThenRecover.restore();
         }
@@ -880,9 +973,11 @@ async function run() {
         assert.ok(rejectedReason.length > 0);
 
         // 6f. Admin panel reply uses official domain (noreply + Reply-To when unauthorized, support@ when authorized!)
+        const replyGrant1 = await issueStepup(env, regularAdmin.token, regularAdmin.password, "email_center:reply");
         const replyUnauthorized = await callApi(env, "/api/admin/email/inbound/reply", {
           method: "POST",
           token: regularAdmin.token,
+          headers: { "X-Aeris-Stepup": replyGrant1 },
           body: {
             thread_id: in1.thread_id,
             from_mode: "support",
@@ -892,9 +987,11 @@ async function run() {
         });
         assert.equal(replyUnauthorized.status, 403);
 
+        const replyGrant2 = await issueStepup(env, regularAdmin.token, regularAdmin.password, "email_center:reply");
         const replyAuto = await callApi(env, "/api/admin/email/inbound/reply", {
           method: "POST",
           token: regularAdmin.token,
+          headers: { "X-Aeris-Stepup": replyGrant2 },
           body: {
             thread_id: in1.thread_id,
             from_mode: "auto",
@@ -926,9 +1023,11 @@ async function run() {
         assert.equal(threadDetail.data.inbound_messages.length, 2);
         assert.ok(threadDetail.data.outbound_replies.length >= 1);
 
+        const replyGrant3 = await issueStepup(env, regularAdmin.token, regularAdmin.password, "email_center:reply");
         const replyLoopBlocked = await callApi(env, "/api/admin/email/inbound/reply", {
           method: "POST",
           token: regularAdmin.token,
+          headers: { "X-Aeris-Stepup": replyGrant3 },
           body: { thread_id: inLoop.thread_id, body: "Should not reply", confirmed: true },
         });
         assert.equal(replyLoopBlocked.status, 400);
@@ -1156,6 +1255,200 @@ async function run() {
       assert.equal(bindingRateErr?.code, "email_provider_rate_limited");
       assert.equal(bindingRateErr?.status, 429);
       assert.equal(bindingRateErr?.retryable, true);
+    });
+
+    await suite("8. P0-1/P0-2/P0-3 regressions: atomic email binding, idempotency concurrency, unknown status & delivery stage semantics", async () => {
+      // P0-1: Atomic dual-table write + explicit conflict rejection + version untouched on rollback + concurrent claim
+      const bindOwner = await seedAccount(db, { id: "u_p01_owner", username: "p01_owner", role: "user" });
+      const bindChallenger = await seedAccount(db, { id: "u_p01_chal", username: "p01_chal", role: "user" });
+      const bindRace1 = await seedAccount(db, { id: "u_p01_r1", username: "p01_r1", role: "user" });
+      const bindRace2 = await seedAccount(db, { id: "u_p01_r2", username: "p01_r2", role: "user" });
+
+      await db.prepare("INSERT INTO task27_security (user_id, verified_email, email_verified_at, password_age_start_at, version) VALUES (?, 'p01-initial@thewyj.uk', '2026-11-15T00:00:00.000Z', '2026-11-15T00:00:00.000Z', 1)").bind(bindOwner.id).run();
+      await db.prepare("INSERT INTO task27_security (user_id, verified_email, email_verified_at, password_age_start_at, version) VALUES (?, 'p01-chal@thewyj.uk', '2026-11-15T00:00:00.000Z', '2026-11-15T00:00:00.000Z', 3)").bind(bindChallenger.id).run();
+      await upsertUserEmailBinding(db, { userId: bindChallenger.id, email: "p01-chal@thewyj.uk", verified: true, actorUserId: superAdmin.id });
+
+      // Valid update bumps task27_security.version atomically across both tables
+      await upsertUserEmailBinding(db, { userId: bindOwner.id, email: "p01-shared@thewyj.uk", verified: true, actorUserId: bindOwner.id });
+      const ownerSec = await db.prepare("SELECT verified_email, version FROM task27_security WHERE user_id = ?").bind(bindOwner.id).first();
+      const ownerBind = await db.prepare("SELECT email, verified FROM email_center_bindings WHERE user_id = ?").bind(bindOwner.id).first();
+      assert.equal(ownerSec?.verified_email, "p01-shared@thewyj.uk");
+      assert.equal(ownerSec?.version, 2);
+      assert.equal(ownerBind?.email, "p01-shared@thewyj.uk");
+      assert.equal(ownerBind?.verified, 1);
+
+      // Unique conflict MUST reject explicitly AND leave email_center_bindings + task27_security + version untouched
+      await assert.rejects(
+        () => upsertUserEmailBinding(db, { userId: bindChallenger.id, email: "p01-shared@thewyj.uk", verified: true, actorUserId: superAdmin.id }),
+        (err) => err?.code === "email_binding_conflict" && err?.status === 409
+      );
+      const chalSecAfter = await db.prepare("SELECT verified_email, version FROM task27_security WHERE user_id = ?").bind(bindChallenger.id).first();
+      const chalBindAfter = await db.prepare("SELECT email, verified FROM email_center_bindings WHERE user_id = ?").bind(bindChallenger.id).first();
+      assert.equal(chalSecAfter?.verified_email, "p01-chal@thewyj.uk");
+      assert.equal(chalSecAfter?.version, 3, "Version must not drift on conflict rollback");
+      assert.equal(chalBindAfter?.email, "p01-chal@thewyj.uk", "Center table must roll back atomically on unique conflict");
+
+      // Concurrent binding race for the same email: at most one succeeds, the other fails cleanly with conflict
+      const raceBindResults = await Promise.allSettled([
+        upsertUserEmailBinding(db, { userId: bindRace1.id, email: "p01-race@thewyj.uk", verified: true, actorUserId: superAdmin.id }),
+        upsertUserEmailBinding(db, { userId: bindRace2.id, email: "p01-race@thewyj.uk", verified: true, actorUserId: superAdmin.id }),
+      ]);
+      assert.equal(raceBindResults.filter((r) => r.status === "fulfilled").length, 1);
+      assert.equal(raceBindResults.filter((r) => r.status === "rejected" && r.reason?.code === "email_binding_conflict").length, 1);
+
+      // Admin binding endpoint remains hard-blocked when task27_security exists (even with direct bypass attempt)
+      const adminBindBlock = await callApi(makeEnv(db), "/api/admin/email/user-binding", {
+        method: "POST",
+        token: superAdmin.token,
+        body: { user_id: bindRace1.id, email: "bypass@thewyj.uk", verified: true },
+      });
+      assert.equal(adminBindBlock.status, 403);
+      assert.equal(adminBindBlock.data?.code, "email_binding_security_center_required");
+
+      // P0-2: Atomic idempotency claim prevents concurrent duplicate sends while distinct keys send independently
+      let parallelProviderCalls = 0;
+      let releaseBarrier;
+      const barrier = new Promise((resolve) => {
+        releaseBarrier = resolve;
+      });
+      let enteredSend;
+      const sendStarted = new Promise((resolve) => {
+        enteredSend = resolve;
+      });
+      const safetyTimer = setTimeout(() => {
+        enteredSend?.();
+        releaseBarrier?.();
+      }, 5000);
+      const concurrentEnv = makeEnv(db, {
+        EMAIL_TEST_RECIPIENTS: "p01-shared@thewyj.uk",
+        EMAIL: {
+          async send(msg) {
+            parallelProviderCalls += 1;
+            enteredSend();
+            await barrier;
+            return { messageId: `conc-${parallelProviderCalls}`, delivered: [msg.to[0].email], queued: [] };
+          },
+        },
+      });
+      const concPromises = [1, 2, 3].map(() =>
+        sendTransactionalEmail(concurrentEnv, {
+          kind: "account_security_notice",
+          to: "p01-shared@thewyj.uk",
+          userId: bindOwner.id,
+          requireVerifiedEmail: true,
+          idempotencyKey: "p02:concurrent:same-key",
+          eventSummary: "Concurrent idempotency protection check",
+        }).then(
+          (value) => ({ status: "fulfilled", value }),
+          (reason) => ({ status: "rejected", reason })
+        )
+      );
+      // Wait until the winning caller has atomically claimed status='sending' in D1 and entered provider send()
+      await sendStarted;
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      const inFlightRow = await db.prepare("SELECT status FROM email_center_deliveries WHERE idempotency_key = ?").bind("p02:concurrent:same-key").first();
+      assert.equal(inFlightRow?.status, "sending");
+      releaseBarrier();
+      clearTimeout(safetyTimer);
+      const concOutcomes = await Promise.all(concPromises);
+      assert.equal(parallelProviderCalls, 1, "Provider MUST be invoked strictly once for concurrent identical idempotency key");
+      assert.equal(concOutcomes.filter((x) => x.status === "fulfilled" && x.value?.delivery_status === "delivered").length, 1);
+      assert.equal(concOutcomes.filter((x) => x.status === "rejected" && x.reason?.code === "email_idempotency_in_flight").length, 2);
+
+      // Distinct idempotency keys still send independently!
+      const distinctA = await sendTransactionalEmail(concurrentEnv, {
+        kind: "account_security_notice",
+        to: "p01-shared@thewyj.uk",
+        userId: bindOwner.id,
+        requireVerifiedEmail: true,
+        idempotencyKey: "p02:distinct:key-a",
+        eventSummary: "Distinct key A",
+      });
+      const distinctB = await sendTransactionalEmail(concurrentEnv, {
+        kind: "account_security_notice",
+        to: "p01-shared@thewyj.uk",
+        userId: bindOwner.id,
+        requireVerifiedEmail: true,
+        idempotencyKey: "p02:distinct:key-b",
+        eventSummary: "Distinct key B",
+      });
+      assert.equal(distinctA.delivery_status, "delivered");
+      assert.equal(distinctB.delivery_status, "delivered");
+      assert.notEqual(distinctA.delivery_id, distinctB.delivery_id);
+      assert.equal(parallelProviderCalls, 3);
+
+      // Ambiguous network timeout -> status='unknown', retryable=false, auto-replay blocked, admin manual retry blocked!
+      let unknownProviderCalls = 0;
+      const unknownEnv = makeEnv(db, {
+        EMAIL_TEST_RECIPIENTS: "p01-shared@thewyj.uk",
+        EMAIL: {
+          async send() {
+            unknownProviderCalls += 1;
+            const err = new Error("socket hang up during transmit");
+            err.name = "AbortError";
+            throw err;
+          },
+        },
+      });
+      const unknownErr = await sendTransactionalEmail(unknownEnv, {
+        kind: "admin_service_notice",
+        to: "p01-shared@thewyj.uk",
+        userId: bindOwner.id,
+        actorUserId: superAdmin.id,
+        actorRole: "super_admin",
+        channel: "admin_manual",
+        subject: "Timeout unknown probe",
+        body: "Network aborted after POST",
+        idempotencyKey: "p02:unknown:timeout-1",
+      }).then(() => null, (e) => e);
+      assert.equal(unknownErr?.code, "email_delivery_status_unknown");
+      assert.equal(unknownErr?.retryable, false);
+      assert.equal(unknownErr?.details?.delivery_status, "unknown");
+      assert.equal(unknownErr?.details?.inbox_delivery_confirmed, false);
+      assert.equal(unknownProviderCalls, 1);
+
+      const unknownStatus = await getEmailDeliveryStatus(db, { idempotencyKey: "p02:unknown:timeout-1" });
+      assert.equal(unknownStatus?.delivery_status, "unknown");
+      assert.equal(unknownStatus?.delivery_stage, "outcome_unknown");
+      assert.equal(unknownStatus?.retryable, false);
+      assert.equal(unknownStatus?.inbox_delivery_confirmed, false);
+
+      // Replaying same idempotencyKey after 'unknown' MUST NOT call provider again!
+      const unknownReplayErr = await sendTransactionalEmail(unknownEnv, {
+        kind: "admin_service_notice",
+        to: "p01-shared@thewyj.uk",
+        userId: bindOwner.id,
+        actorUserId: superAdmin.id,
+        subject: "Timeout unknown probe",
+        body: "Network aborted after POST",
+        idempotencyKey: "p02:unknown:timeout-1",
+      }).then(() => null, (e) => e);
+      assert.equal(unknownReplayErr?.code, "email_delivery_status_unknown");
+      assert.equal(unknownProviderCalls, 1, "Unknown delivery outcome MUST NEVER be auto-retried");
+
+      // Admin retry endpoint MUST reject status='unknown'
+      const unknownRetryGrant = await issueStepup(unknownEnv, superAdmin.token, superAdmin.password, "email_center:retry");
+      const unknownRetryRes = await callApi(unknownEnv, "/api/admin/email/deliveries/retry", {
+        method: "POST",
+        token: superAdmin.token,
+        headers: { "X-Aeris-Stepup": unknownRetryGrant },
+        body: { delivery_id: unknownStatus.delivery_id },
+      });
+      assert.equal(unknownRetryRes.status, 409);
+
+      // P0-3: Verify /api/admin/email/deliveries exposes distinct stages and NEVER sets inbox_delivery_confirmed=true
+      const deliveriesList = await callApi(makeEnv(db), "/api/admin/email/deliveries?limit=20", { token: superAdmin.token });
+      assert.equal(deliveriesList.status, 200);
+      assert.equal(
+        deliveriesList.data.deliveries.some((d) => d.inbox_delivery_confirmed === true),
+        false,
+        "No delivery record may assert inbox_delivery_confirmed=true without real inbox receipt proof"
+      );
+      const deliveredItem = deliveriesList.data.deliveries.find((d) => d.delivery_status === "delivered");
+      assert.ok(deliveredItem);
+      assert.equal(deliveredItem.delivery_stage, "provider_reported_delivered");
+      assert.equal(deliveredItem.provider_reported_delivered, true);
+      assert.equal(deliveredItem.inbox_delivery_confirmed, false);
     });
 
     process.stdout.write(`Cloudflare Email Center tests passed: ${passedSuites} suites\n`);

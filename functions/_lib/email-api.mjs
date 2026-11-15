@@ -16,6 +16,7 @@ import {
   DEFAULT_FROM_NAME,
   DEFAULT_REPLY_TO_EMAIL,
   DEFAULT_REPLY_TO_NAME,
+  describeDeliverySemantics,
   EMAIL_BUILD,
   emailBindingConfigured,
   emailNativeBindingConfigured,
@@ -50,6 +51,7 @@ const RESTRICTED_ADMIN_KINDS = new Set([
   "password_reset_notice",
   "password_changed_notice",
   "mfa_changed_notice",
+  "account_security_notice",
 ]);
 
 const ROUTES = new Map([
@@ -964,7 +966,7 @@ export async function handleEmailRequest(context) {
           recipient_masked: rcpt.email_masked,
           delivery_id: res.delivery_id || null,
           delivery_status: st,
-          inbox_delivery_confirmed: Boolean(res.inbox_delivery_confirmed),
+          ...describeDeliverySemantics(st),
           message_id: res.message_id || null,
           error_code: res.error_code || null,
           error_message: res.error_message || null,
@@ -1005,7 +1007,7 @@ export async function handleEmailRequest(context) {
       const params = [];
       if (!account.is_super_admin) {
         conditions.push(
-          "(actor_user_id = ? OR channel = 'support_reply') AND kind NOT IN ('verification_code','email_bind_verification','login_mfa_code','password_reset_notice','password_changed_notice','mfa_changed_notice')"
+          "(actor_user_id = ? OR channel = 'support_reply') AND kind NOT IN ('verification_code','email_bind_verification','login_mfa_code','password_reset_notice','password_changed_notice','mfa_changed_notice','account_security_notice')"
         );
         params.push(account.id);
       }
@@ -1054,7 +1056,7 @@ export async function handleEmailRequest(context) {
         body_preview: row.body_preview,
         body_redacted: Number(row.body_redacted) === 1,
         delivery_status: row.status,
-        inbox_delivery_confirmed: row.status === "delivered",
+        ...describeDeliverySemantics(row.status),
         transport: row.transport,
         provider_message_id: row.provider_message_id,
         error_code: row.error_code,
@@ -1413,6 +1415,13 @@ export async function handleEmailRequest(context) {
     }
 
     if (path === "/api/admin/email/user-binding") {
+      if (await hasTask27SecurityTable(db)) {
+        throw new EmailServiceError(
+          "email_binding_security_center_required",
+          "邮箱验证与变更必须由账户安全中心通过所有权验证码完成，管理后台不得绕过校验",
+          403
+        );
+      }
       const payload = await readJson(context.request, descriptor.body);
       const userId = cleanSingleLineText(String(payload.user_id || ""), { maxLength: 80, field: "user_id" });
       const userRow = await db.prepare("SELECT id, username, deleted FROM task12_users WHERE id = ? LIMIT 1").bind(userId).first();
@@ -1432,12 +1441,21 @@ export async function handleEmailRequest(context) {
   } catch (error) {
     if (error instanceof EmailServiceError) {
       const safeDetails = error.details && typeof error.details === "object" ? error.details : {};
-      return apiError(error.code, error.message, error.status || 400, reqId, {
+      const errStatus = error.status || 400;
+      const errHeaders =
+        errStatus === 429
+          ? { "Retry-After": String(safeDetails.retry_after || "60") }
+          : {};
+      return apiError(error.code, error.message, errStatus, reqId, {
         retryable: Boolean(error.retryable),
-        ...(safeDetails.delivery_status ? { delivery_status: safeDetails.delivery_status } : {}),
-        ...(safeDetails.provider_status !== undefined ? { provider_status: safeDetails.provider_status } : {}),
-        ...(safeDetails.provider_code ? { provider_code: safeDetails.provider_code } : {}),
-        details: error.details,
+        headers: errHeaders,
+        details: {
+          ...(safeDetails.delivery_status ? { delivery_status: safeDetails.delivery_status } : {}),
+          ...(safeDetails.provider_status !== undefined ? { provider_status: safeDetails.provider_status } : {}),
+          ...(safeDetails.provider_code ? { provider_code: safeDetails.provider_code } : {}),
+          ...(safeDetails.retry_after ? { retry_after: safeDetails.retry_after } : {}),
+          details: error.details,
+        },
       });
     }
     return apiError("email_internal_error", error?.message || "邮件管理服务异常", 500, reqId, { retryable: true });
