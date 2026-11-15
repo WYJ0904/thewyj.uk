@@ -409,8 +409,10 @@ export async function listPendingMessages(db, account, limit = 20, options = {})
           AND COALESCE(receipts.acknowledged_at, '') = '')
       )
     ORDER BY messages.created_at ASC, messages.id ASC LIMIT ?3`, [account.id, now, safeLimit]);
-  if (rows.length) {
-    await requireDatabase(db).batch(rows.map((row) => db.prepare(`INSERT INTO admin_message_receipts (
+  const advice=task27&&options.securityAdvice===true?await mfaAdviceBroadcast(db,account):null;
+  const pending=[...rows,...(advice?[advice]:[])];
+  if (pending.length) {
+    await requireDatabase(db).batch(pending.map((row) => db.prepare(`INSERT INTO admin_message_receipts (
       message_id, user_id, first_seen_at, dismissed_at, acknowledged_at, updated_at
     ) VALUES (?1, ?2, ?3, '', '', ?3)
     ON CONFLICT(message_id, user_id) DO UPDATE SET
@@ -418,8 +420,7 @@ export async function listPendingMessages(db, account, limit = 20, options = {})
       updated_at = excluded.updated_at`)
       .bind(row.id, account.id, now)));
   }
-  const advice=task27&&options.securityAdvice===true?await mfaAdviceBroadcast(db,account):null;
-  return [...rows,...(advice?[advice]:[])].map(messagePayload);
+  return pending.map(messagePayload);
 }
 
 async function eligibleMessage(db, account, messageId, now) {
@@ -444,6 +445,9 @@ export async function updateMessageReceipt(db, account, messageIdValue, actionVa
   const message = await eligibleMessage(db, account, messageId, now);
   if (!message) throw new Task18Error("站内消息不存在或已失效", 404, "message_not_available");
   const acknowledge = action === "acknowledge";
+  if (!acknowledge && message.delivery_channel === 'inbox') {
+    throw new Task18Error('个人通知请使用收件箱的阅读或确认操作',400,'message_dismiss_not_broadcast');
+  }
   await run(db, `INSERT INTO admin_message_receipts (
     message_id, user_id, first_seen_at, dismissed_at, acknowledged_at, updated_at
     ) VALUES (?1, ?2, ?3, ?4, ?5, ?3)

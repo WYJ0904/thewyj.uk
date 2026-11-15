@@ -9,6 +9,7 @@
     "test:tts:runtime": "npm run cf:check && node qa/tts/workerd.mjs",
     "test:tts:live": "node qa/tts/live-azure.mjs",
     "test:email": "node local-backend/test_email_js.mjs",
+    "test:task27:web-notifications": "node local-backend/test_task27_web_notification_js.mjs && node qa/task27/web-notification-browser.mjs",
     "test:task27": "node local-backend/test_task27_js.mjs",
     "test:task27:browser": "node qa/task27/browser.mjs",
     "test:task27:runtime": "npm run cf:check && node qa/task27/workerd.mjs",
