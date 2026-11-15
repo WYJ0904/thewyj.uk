@@ -1,0 +1,79 @@
+{
+  "status": "completed",
+  "conclusion": "failure",
+  "headSha": "c697f011a017ee6bc2beaadb3371ffbd1864abd3",
+  "jobs": [
+    {
+      "name": "Python syntax and unittest (ubuntu-latest)",
+      "conclusion": "success",
+      "status": "completed",
+      "url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/43682374162/job/132715616755",
+      "failed_steps": []
+    },
+    {
+      "name": "Python syntax and unittest (windows-latest)",
+      "conclusion": "success",
+      "status": "completed",
+      "url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/43682374162/job/132715616940",
+      "failed_steps": []
+    },
+    {
+      "name": "Sensitive files and static naming",
+      "conclusion": "success",
+      "status": "completed",
+      "url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/43682374162/job/132715616953",
+      "failed_steps": []
+    },
+    {
+      "name": "Android unit, lint and APK",
+      "conclusion": "success",
+      "status": "completed",
+      "url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/43682374162/job/132715616972",
+      "failed_steps": []
+    },
+    {
+      "name": "Pages build and publish allowlist",
+      "conclusion": "success",
+      "status": "completed",
+      "url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/43682374162/job/132715617006",
+      "failed_steps": []
+    },
+    {
+      "name": "JavaScript and static site checks",
+      "conclusion": "success",
+      "status": "completed",
+      "url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/43682374162/job/132715617009",
+      "failed_steps": []
+    },
+    {
+      "name": "Task 25 cloud credential discovery",
+      "conclusion": "skipped",
+      "status": "completed",
+      "url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/43682374162/job/132715617482",
+      "failed_steps": []
+    },
+    {
+      "name": "Task 25 Android runtime contract",
+      "conclusion": "skipped",
+      "status": "completed",
+      "url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/43682374162/job/132715644659",
+      "failed_steps": []
+    },
+    {
+      "name": "Browser flow (application)",
+      "conclusion": "success",
+      "status": "completed",
+      "url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/43682374162/job/132717059487",
+      "failed_steps": []
+    },
+    {
+      "name": "Cloud-only browser, canonical session and toolbox",
+      "conclusion": "failure",
+      "status": "completed",
+      "url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/43682374162/job/132717059497",
+      "failed_steps": [
+        "Aeris P1 route coalescing and inactive rendering contract"
+      ]
+    }
+  ]
+}

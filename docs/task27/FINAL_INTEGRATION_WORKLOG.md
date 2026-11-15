@@ -101,3 +101,15 @@ passed; the SW publication hash was regenerated.
 Run 43681806574 tested the previous head and its six base jobs had passed. The
 known product correction is pushed for a fresh complete run; this previous
 in-progress run is not used as a PASS or as a replacement for final-head CI.
+
+## Fourth CI: application fixed; old PWA required-list assertion
+
+Run 43682374162 at `c697f011` passed seven jobs including the complete legacy
+application browser. Its cloud browser passed real SW installation, transfer
+responsive layout and interaction feedback before failing the old 84-resource
+P5 PWA assertion. The fix retains the exact 81-resource fingerprint and the
+84-resource base-layer assertion, verifies the five explicit Task27 module URLs
+and their integrity digests, and requires all 89 assets. Local metadata contract
+execution and all 20 SW tests pass; the full browser rerun remains required.
+Run 43681806574 was cancelled by the normal new-head concurrency policy and is
+recorded as cancelled, never PASS.

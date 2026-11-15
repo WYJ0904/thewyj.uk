@@ -448,5 +448,23 @@
     "path": ".wrangler/task27-final-pages-build-badge-fix.log",
     "bytes": 103,
     "sha256": "1074be3d6dc8c9da75adae5bf2b712adbeb2857e5706af52b19b616b584cd9a5"
+  },
+  {
+    "scope": "Task27 PWA browser contract repair",
+    "path": ".wrangler/task27-final/ci-fourth-failure.log",
+    "bytes": 61978,
+    "sha256": "107777695bc903718f154f97289932bfd01695d0615e94949baf71c87007edfb"
+  },
+  {
+    "scope": "Task27 PWA browser contract repair",
+    "path": ".wrangler/task27-final-pwa-metadata-pass.log",
+    "bytes": 128,
+    "sha256": "79d3e303f0dce190de15fe3a5cdeb96d40b7b839d14b33e842a5ab6a8ee11c5e"
+  },
+  {
+    "scope": "Task27 PWA browser contract repair",
+    "path": ".wrangler/task27-final-sw-pwa-metadata.log",
+    "bytes": 1897,
+    "sha256": "a21a41b0e66ae4024e83d01236d66084705dd228611fa3dd211adc1afc27e217"
   }
 ]
