@@ -87,3 +87,17 @@ assertion remains. The cloud registration fixture also actively checks the
 terms box after asserting it starts unchecked. These are QA-only changes;
 product permissions and consent requirements remain unchanged. Original second
 CI logs/receipt remain available; full browser success awaits the next real run.
+
+## Legacy badge polling correction
+
+The second application's final network assertion also contained unexpected
+`/api/notifications?filter=unread` 404s. These are not added to an ignore list.
+The product now checks Task27 capability and the account identity before private
+badge polling; missing/unavailable/late capability cannot trigger an old-account
+request. Supported-backend polling remains verified. Four owner/capability
+checks, the current 11-check Chrome suite, 20 SW tests and the staged byte audit
+passed; the SW publication hash was regenerated.
+
+Run 43681806574 tested the previous head and its six base jobs had passed. The
+known product correction is pushed for a fresh complete run; this previous
+in-progress run is not used as a PASS or as a replacement for final-head CI.

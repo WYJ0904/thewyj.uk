@@ -110,7 +110,7 @@ const TASK26_INTEGRITY = Object.freeze({
   "/js/language/wrong-review-sync.js?release=20261115-aeris-s0-p0-release": "ba39af72a5c22e6390cb2d53582c4c0f4534521d321b8c2f00644636f67bd02f",
   "/js/finance/money.js?release=20261115-aeris-s0-p0-release": "f1172d6c74835784bd1a6629d48c1884f46c14d9825f9f8308a07d3542214277",
   "/js/language/speech.js?release=20261115-aeris-s0-p0-release": "a6c7ab6b03d7e8499abef932670e18e013f0e65cb1a4cf6192e67fe50541bf6c",
-  "/js/account/security-center.js?release=20261115-aeris-s0-p0-release": "e6e5a461be84c65c87df83d569f39cbf47dccb030cee632f85c68e878786840c",
+  "/js/account/security-center.js?release=20261115-aeris-s0-p0-release": "e71c63d9989612c634bde4e51aa1820fb03fd4d243f18ca6eb654ff616f1583d",
   "/js/account/policy-page.js?release=20261115-aeris-s0-p0-release": "7d54511a956995afc6065f27ccac275dfb6657b3040f51d51ea4d8b8334562da",
   "/js/core/api.js?release=20261115-aeris-s0-p0-release": "b5307cc74077a630ee33b202b476c30bbfd66b4f2f2b24592cc25f9791ceb470",
   "/js/core/router.js?release=20261115-aeris-s0-p0-release": "382cf576cd3a5e65e5b6e7646c816f52e6efcb35bdf5851297c071230f1767f9",
@@ -119,7 +119,7 @@ const TASK26_INTEGRITY = Object.freeze({
   "/js/account/password-policy.js?release=20261115-aeris-s0-p0-release": "48fd3d494120682e5b8baac8c73fb6ff68714cbc89d567318e9ea39549c80c56",
   "/js/account/password-fields.js?release=20261115-aeris-s0-p0-release": "58f2161ba98c1cb07025c6884a3c32acb522cddc634eb2499127a88e7a3614e4"
 });
-const PUBLICATION_HASH = "fc83cf50a88914e58c3a8abab14161939e35c3e84fdc9a81118320551b764207";
+const PUBLICATION_HASH = "3172f72155d872cbd334b308b4e18ab4730e2ee43a27e0395693bfb7b4236b36";
 const PUBLICATION_CACHE = `${CACHE}-task26-${PUBLICATION_HASH.slice(0, 16)}`;
 const PUBLICATION_MARKER = "/__aeris/task26-publication";
 

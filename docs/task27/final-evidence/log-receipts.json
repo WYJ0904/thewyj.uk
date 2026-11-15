@@ -424,5 +424,29 @@
     "path": ".wrangler/task27-final-browser-harness-ci-fix.log",
     "bytes": 379,
     "sha256": "5ccdcdd70f3ec7afc1a5d4d8dfd9b68b82b673466de822c98a0c1e456bc7afa9"
+  },
+  {
+    "scope": "Task27 legacy badge compatibility fix",
+    "path": ".wrangler/task27-final-owner-v2.log",
+    "bytes": 920,
+    "sha256": "ffb7a37139c07b941a9bd4489e21183c1c744d33c2606e9c4d1461914e8a18ef"
+  },
+  {
+    "scope": "Task27 legacy badge compatibility fix",
+    "path": ".wrangler/task27-final-sw-badge-fix.log",
+    "bytes": 1897,
+    "sha256": "d67335987bd577d42e50adef64759d833d266354e3ea886716f6753715d831f4"
+  },
+  {
+    "scope": "Task27 legacy badge compatibility fix",
+    "path": ".wrangler/task27-final-browser-v4.log",
+    "bytes": 1846,
+    "sha256": "fa3bb0f71bfb2645a4d37e3d76d5a967fca5237f21dd5f2544ba4906e52d0684"
+  },
+  {
+    "scope": "Task27 legacy badge compatibility fix",
+    "path": ".wrangler/task27-final-pages-build-badge-fix.log",
+    "bytes": 103,
+    "sha256": "1074be3d6dc8c9da75adae5bf2b712adbeb2857e5706af52b19b616b584cd9a5"
   }
 ]

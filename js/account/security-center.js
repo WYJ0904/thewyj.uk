@@ -130,6 +130,9 @@ export function createSecurityCenter({api,apiGet,publicApi,getSession,getAccount
   function setBadge(count){const bell=$('notificationBellBtn'),badge=$('notificationUnreadCount');if(!bell||!badge)return;const n=Math.max(0,Number(count)||0);badge.textContent=n>99?'99+':String(n);badge.classList.toggle('hidden',!n);bell.classList.toggle('has-unread',n>0);bell.setAttribute('aria-label',n?`个人通知，${n} 条未读`:'个人通知，无未读消息');}
   async function refreshBadge(force=false) {
     if(!getSession()||!getAccount()||document.hidden)return;
+    const capabilityOwner=key();
+    let supported;try{supported=await isSupported();}catch(_){return;}
+    if(!supported||capabilityOwner!==key()||!getSession()||!getAccount())return;
     if(badgePromise)return badgePromise;if(!force&&Date.now()-badgeAt<30000)return;
     const snapshot=key();badgeAt=Date.now();
     badgePromise=apiGet('/api/notifications?filter=unread').then(data=>{if(snapshot===key())setBadge(data.unread_count);}).catch(()=>{}).finally(()=>{badgePromise=null;});return badgePromise;

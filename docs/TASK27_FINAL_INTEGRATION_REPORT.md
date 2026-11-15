@@ -7,7 +7,7 @@
 
 - 交付分支：`codex/task27-security-center`。
 - 首轮最终本地受测源码/测试头：`12a70019869432fbab581f2200e528326a6c88b2`；
-  后续 CI 适配只补 QA 路由/浏览器覆盖与报告，不改变产品树。最终 GitHub 交付 HEAD 由 Draft PR 的 head SHA 记录。
+  后续 CI 适配补 QA 路由/浏览器覆盖，并窄修复旧后端角标能力门禁（见第7节）；安全认证后端不变。最终 GitHub 交付 HEAD 由 Draft PR 的 head SHA 记录。
 - 原实现 `4167af98`、产品完善 `3b1ff9d7`、原报告 `d06e50eb` 均在提交链上。
 - main 新鲜核对：`7766b80eb2c9e448dc08a3a4b317bfa62e0dff6e`；
   以普通 merge `434642223e57517cb4f81b0423980f00cad6471e` 合入，没有 rebase 或重置。
@@ -43,7 +43,7 @@ Azure TTS、0026–0034、Android 权限/本地数据/发布元数据没有替�
 | --- | --- |
 | `task27-login-guard.mjs`、`task12-api.mjs`、`task20-api.mjs`、`task12-service.mjs` | M02 账户/IP 组合与跨 IP 账户预算、失败响应统一 |
 | `task27-email-adapter.mjs`、`task27-email-gateway.mjs`、`task27-auth.mjs`、`task27-security.mjs` | 失败安全、合同参数、双表事务同步、完整中心路由所有权和 Step-up |
-| `task27-api.mjs`、`functions/api/[[path]].js`、`app.js`、`security-center.js` | 能力发现、唯一管理邮件入口、旧 UI 隐藏/委托、管理请求授权 |
+| `task27-api.mjs`、`functions/api/[[path]].js`、`app.js`、`security-center.js` | 能力发现、唯一管理邮件入口、旧 UI 隐藏/委托、管理请求授权；旧后端无Task27时不轮询私有通知，能力响应迟到须仍属于当前账户 |
 | `sw.js`、两个 P07 harness | main 集成、完整性摘要、原有 Retry-After 与 Task27 夹具同时保留 |
 | `qa/task27/*`、Task12/静态测试、`ci.yml`、`package.json` | 新增限流/合同验收和 CI 入口，现有断言适配新临时密码/失败契约 |
 | 本报告、邮件复核、`docs/task27/final-evidence/` | 新受测版本证据，与原验收分开 |
@@ -90,6 +90,7 @@ Azure TTS、0026–0034、Android 权限/本地数据/发布元数据没有替�
 | Task27 D1/API | 31 组 PASS：MFA、TOTP、恢复、防重放、临时密码、会话、消息等 |
 | 旧用户升级及新密码 | 11 项 PASS，实际编译 worker 与预置业务摘要 |
 | M02 账户限流 | 9 项 PASS |
+| 私有响应/旧后端角标能力 | 4 项 PASS，包含切换账户期间能力请求迟到和服务不可用 |
 | 独立 Task27 邮件消费 | 6 项 PASS |
 | PR153 组合合同 | 10 项 PASS，包含成功复现生产者缺陷的诊断；风险仍 OPEN |
 | 真实 workerd 安全流程 | 5 项 PASS |
@@ -135,7 +136,7 @@ Task27专项本身已成功，失败发生在完整功能审计：QA矩阵缺少
 独立Chrome 11项通过。第二轮 [Core CI 43680878033](https://github.com/WYJ0904/thewyj.uk/actions/runs/43680878033)
 针对 `9b1ea84a4d1ac95b90b17ba82a8b36fe8fb807c7`，6个基础jobs均通过、2个Task25 jobs按规则跳过，
 2个浏览器jobs失败。完整功能矩阵已通过；失败是传输布局夹具缺少实际Step-up、
-以及Python旧后端浏览器验收把新增可选 `/api/policies` 的404当作异常。
+以及Python旧后端浏览器验收发现新增 `/api/policies` 404和不应发出的私有通知轮询404。
 应用24项业务流程本身全部完成，但其最终网络错误断言失败，不能记整套PASS。
 [第二轮完整收据](task27/final-evidence/ci-second-43680878033.json) 保留。
 
@@ -144,7 +145,16 @@ Task27专项本身已成功，失败发生在完整功能审计：QA矩阵缺少
 仅把旧Python后端已明确不支持的 `/api/policies` 404纳入该旧后端矩阵的预期回退，
 其余HTTP错误与断言原样保留。同时补齐Cloud-only注册UI夹具的主动勾选，先断言默认未勾选。
 语法、功能矩阵与共享harness回归通过；完整浏览器结果等待新的真实CI，不用静态检查替代。
-最终状态由PR当前head的检查和后续CI收据记录。
+进一步逐项查看网络断言发现 `/api/notifications?filter=unread` 也在旧后端收到404。
+这不是应忽略的私有API错误，而是角标未先检查Task27能力的产品兼容问题。
+修复在轮询前等待能力确认，并验证能力请求前后账户一致；能力缺失/暂不可用不发私有请求。
+4项针对性检查、当前源码Chrome 11项和SW20项通过，重算完整性摘要；原网络断言保留。
+[角标复核](task27/final-evidence/badge-owner-compatibility.json) 与
+[当前浏览器结果](task27/final-evidence/browser-badge-compatibility.json) 分开留证。
+
+第三轮 [43681806574](https://github.com/WYJ0904/thewyj.uk/actions/runs/43681806574)
+验证 `73be6f8d`，6个基础jobs已成功；发现上述确定问题后，推送修复后的head继续完整CI。
+该轮未被当作成功证据，最终状态由PR当前head的检查和后续CI收据记录。
 
 ## 8. 所有者真实验收与发布步骤
 
