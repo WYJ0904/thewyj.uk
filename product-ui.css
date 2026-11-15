@@ -4984,9 +4984,13 @@ progress {
 .admin-email-thread-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .admin-email-thread-item strong, .admin-email-thread-item small { overflow-wrap: anywhere; }
 .admin-email-timeline { display: grid; gap: var(--space-2); }
-.admin-email-msg { border: 1px solid var(--color-border); border-radius: var(--radius-control); padding: var(--space-2); display: grid; gap: 6px; }
+.admin-email-msg { border: 1px solid var(--color-border); border-radius: var(--radius-control); padding: var(--space-2); display: grid; gap: 6px; min-width: 0; }
 .admin-email-msg.is-outbound { border-left: 3px solid var(--color-primary); }
 .admin-email-msg-meta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px; font-size: 0.85rem; }
+.admin-email-quote { border-top: 1px dashed var(--color-border); padding-top: 6px; min-width: 0; }
+.admin-email-quote > summary { cursor: pointer; font-size: 0.82rem; color: var(--color-muted); user-select: none; }
+.admin-email-quote[open] > summary { margin-bottom: 6px; }
+.admin-email-pre-quoted { opacity: 0.85; border-left: 2px solid var(--color-border); padding-left: 8px; }
 .admin-email-reply-box { display: grid; gap: var(--space-2); padding-top: var(--space-2); border-top: 1px solid var(--color-border); }
 .admin-email-root, .admin-email-dual-cards, .admin-email-form-grid, .admin-email-card-list, .admin-email-thread-detail { min-width: 0; }
 .admin-email-root p, .admin-email-root dd, .admin-email-root label { overflow-wrap: anywhere; }

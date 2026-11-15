@@ -479,7 +479,62 @@ async function main() {
     })()`);
     await submitStepup();
     await waitFor("document.querySelector('#adminEmailCenterRoot').textContent.includes('Official Aeris support reply verified.')", 10_000, "inbound reply visible in timeline");
-    process.stdout.write("[email-browser] PASS inbound thread + XSS escape + official reply\n");
+
+    // 5b. Follow-up inbound message -> chronological ascending timeline + collapsed quote history
+    await delay(30);
+    await handleInboundSupportEmail(
+      {
+        from: "alice-qa@thewyj.uk",
+        to: "support@thewyj.uk",
+        rawSize: 360,
+        raw: [
+          "From: alice-qa@thewyj.uk",
+          "Subject: Re: QA Support XSS Check",
+          "Message-ID: <qa-followup-2@example.net>",
+          "In-Reply-To: <qa-xss-1@example.net>",
+          "",
+          "Follow-up new message only.",
+          "",
+          "Aeris <noreply@thewyj.uk> 于 2026年11月15日周日 下午10:28写道：",
+          "",
+          "> Official Aeris support reply verified.",
+          "> Older quoted line.",
+        ].join("\r\n"),
+        headers: new Headers({
+          from: "alice-qa@thewyj.uk",
+          subject: "Re: QA Support XSS Check",
+          "message-id": "<qa-followup-2@example.net>",
+          "in-reply-to": "<qa-xss-1@example.net>",
+        }),
+        async forward() {},
+      },
+      inboundWorkerEnv
+    );
+    await evaluate("document.querySelector('[data-open-thread]')?.click(); true");
+    await waitFor("document.querySelectorAll('.admin-email-timeline .admin-email-msg').length === 3", 10_000, "follow-up inbound message added chronologically");
+    const timelineCheck = await evaluate(`(() => {
+      const msgs = [...document.querySelectorAll('.admin-email-timeline .admin-email-msg')];
+      const thirdQuote = msgs[2]?.querySelector('.admin-email-quote');
+      return {
+        kinds: msgs.map((el) => (el.classList.contains('is-outbound') ? 'outbound' : 'inbound')),
+        firstMain: msgs[0]?.querySelector(':scope > .admin-email-pre')?.textContent || '',
+        secondMain: msgs[1]?.querySelector(':scope > .admin-email-pre')?.textContent || '',
+        thirdMain: msgs[2]?.querySelector(':scope > .admin-email-pre')?.textContent || '',
+        hasQuote: Boolean(thirdQuote),
+        quoteOpenBefore: Boolean(thirdQuote?.open),
+        quotedText: thirdQuote?.querySelector('.admin-email-pre-quoted')?.textContent || '',
+      };
+    })()`);
+    assert.deepEqual(timelineCheck.kinds, ["inbound", "outbound", "inbound"], "timeline must interleave inbound & outbound in chronological ascending order");
+    assert.equal(timelineCheck.firstMain.includes("Need assistance"), true, "oldest inbound message must stay at top");
+    assert.equal(timelineCheck.secondMain.includes("Official Aeris support reply verified."), true, "admin reply must stay between first inbound and follow-up");
+    assert.equal(timelineCheck.thirdMain, "Follow-up new message only.", "follow-up must show only newly added text by default");
+    assert.equal(timelineCheck.hasQuote, true, "historical quote block must be rendered in <details>");
+    assert.equal(timelineCheck.quoteOpenBefore, false, "historical quote block must be collapsed by default");
+    assert.equal(timelineCheck.quotedText.includes("Older quoted line."), true, "full historical quote must remain expandable");
+    await evaluate("document.querySelectorAll('.admin-email-timeline .admin-email-msg')[2].querySelector('.admin-email-quote > summary').click(); true");
+    assert.equal(await evaluate("Boolean(document.querySelectorAll('.admin-email-timeline .admin-email-msg')[2].querySelector('.admin-email-quote')?.open)"), true, "clicking quote summary must expand historical text");
+    process.stdout.write("[email-browser] PASS inbound thread + XSS escape + official reply + chronological order + quote collapse\n");
 
     // 6. Templates subtab
     await evaluate("document.querySelector('[data-email-subtab=templates]').click(); true");

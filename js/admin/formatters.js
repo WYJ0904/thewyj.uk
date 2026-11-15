@@ -80,6 +80,105 @@ function formatTime(iso) {
   }
 }
 
+function parseTimelineTimestamp(iso) {
+  if (!iso) return 0;
+  const ms = Date.parse(String(iso));
+  return Number.isFinite(ms) ? ms : 0;
+}
+
+export function buildInboundTimeline(inboundMessages = [], outboundReplies = []) {
+  const items = [];
+  (Array.isArray(inboundMessages) ? inboundMessages : []).forEach((item, index) => {
+    items.push({
+      kind: "inbound",
+      kindOrder: 0,
+      index,
+      timeMs: parseTimelineTimestamp(item?.received_at),
+      item,
+    });
+  });
+  (Array.isArray(outboundReplies) ? outboundReplies : []).forEach((item, index) => {
+    items.push({
+      kind: "outbound",
+      kindOrder: 1,
+      index,
+      timeMs: parseTimelineTimestamp(item?.created_at || item?.sent_at),
+      item,
+    });
+  });
+  items.sort((a, b) => {
+    if (a.timeMs !== b.timeMs) return a.timeMs - b.timeMs;
+    if (a.kindOrder !== b.kindOrder) return a.kindOrder - b.kindOrder;
+    return a.index - b.index;
+  });
+  return items;
+}
+
+export function splitQuotedEmailBody(rawText) {
+  const normalized = String(rawText ?? "").replace(/\r\n?/g, "\n");
+  if (!normalized.trim()) {
+    return { mainText: normalized.trimEnd(), quotedText: "", hasQuote: false };
+  }
+  const lines = normalized.split("\n");
+  let splitIndex = -1;
+
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i].trim();
+    const next = i + 1 < lines.length ? lines[i + 1].trim() : "";
+    const next2 = i + 2 < lines.length ? lines[i + 2].trim() : "";
+    if (!line) continue;
+
+    const isZhAttribution =
+      /^.{1,160}(?:于|於)\s*\d{4}\s*年.{0,80}(?:写道|寫道)[:：]\s*$/.test(line)
+      || (/^.{1,160}(?:于|於)\s*\d{4}\s*年.{0,80}$/.test(line) && /^.{0,80}(?:写道|寫道)[:：]\s*$/.test(next))
+      || /^在\s*\d{4}.{0,120}(?:写道|寫道)[:：]\s*$/.test(line);
+
+    const isEnAttribution =
+      /^On\s+.{4,180}\bwrote:\s*$/i.test(line)
+      || (/^On\s+(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun|\d{4}|.{0,80}<[^>]+>|.{0,80}\d{1,2}:\d{2}).{0,180}$/i.test(line)
+        && /^.{0,120}\bwrote:\s*$/i.test(next));
+
+    const isDividerHeader =
+      /^-{2,}\s*(?:Original Message|Forwarded message|原始邮件|转发的邮件)\s*-{2,}\s*$/i.test(line)
+      || (/^_{10,}\s*$/.test(line) && /^(?:From|Sent|Date|发件人|发送时间|日期)\s*[:：]/i.test(next || next2))
+      || (/^(?:From|发件人)\s*[:：]\s*.+$/i.test(line) && /^(?:Sent|Date|发送时间|日期)\s*[:：]\s*.+$/i.test(next || next2));
+
+    if (isZhAttribution || isEnAttribution || isDividerHeader) {
+      if (!lines.slice(0, i).join("\n").trim()) {
+        return { mainText: normalized.trimEnd(), quotedText: "", hasQuote: false };
+      }
+      splitIndex = i;
+      break;
+    }
+  }
+
+  if (splitIndex < 0) {
+    let trailingQuoteStart = -1;
+    for (let i = lines.length - 1; i >= 1; i -= 1) {
+      const trimmed = lines[i].trim();
+      if (!trimmed) continue;
+      if (/^>/.test(trimmed)) {
+        trailingQuoteStart = i;
+      } else {
+        break;
+      }
+    }
+    if (trailingQuoteStart > 0 && lines.slice(0, trailingQuoteStart).join("\n").trim()) {
+      splitIndex = trailingQuoteStart;
+    }
+  }
+
+  if (splitIndex > 0) {
+    const mainText = lines.slice(0, splitIndex).join("\n").trimEnd();
+    const quotedText = lines.slice(splitIndex).join("\n").trim();
+    if (mainText.trim() && quotedText) {
+      return { mainText, quotedText, hasQuote: true };
+    }
+  }
+
+  return { mainText: normalized.trimEnd(), quotedText: "", hasQuote: false };
+}
+
 export function createAdminEmailCenter({ root, apiGet, apiPost, getAccount }) {
   if (!root) return null;
 
@@ -491,24 +590,34 @@ export function createAdminEmailCenter({ root, apiGet, apiPost, getAccount }) {
                   </div>
                 </header>
                 <div class="admin-email-timeline">
-                  ${(detail.inbound_messages || []).map((m) => `
+                  ${buildInboundTimeline(detail.inbound_messages, detail.outbound_replies).map((entry) => {
+                    if (entry.kind === "outbound") {
+                      const r = entry.item;
+                      return `
+                    <div class="admin-email-msg is-outbound">
+                      <div class="admin-email-msg-meta">
+                        <strong>正式回复 · ${escapeHtml(r.from_email)} (Reply-To: ${escapeHtml(r.reply_to || "support@thewyj.uk")})</strong>
+                        <span>${deliveryStatusBadge(r.status)} · ${escapeHtml(formatTime(r.created_at || r.sent_at))}</span>
+                      </div>
+                      <pre class="admin-email-pre">${escapeHtml(r.body_preview)}</pre>
+                    </div>`;
+                    }
+                    const m = entry.item;
+                    const parsedBody = splitQuotedEmailBody(m.text_excerpt);
+                    return `
                     <div class="admin-email-msg is-inbound">
                       <div class="admin-email-msg-meta">
                         <strong>用户来信 · ${escapeHtml(m.sender_email)}</strong>
                         <span>${escapeHtml(securityStatusLabel(m.security_status))} · Gmail 转发: ${escapeHtml(m.forward_status)}${m.forward_error ? ` (${escapeHtml(m.forward_error)})` : ""} · ${escapeHtml(formatTime(m.received_at))}</span>
                       </div>
-                      <pre class="admin-email-pre">${escapeHtml(m.text_excerpt)}</pre>
-                    </div>
-                  `).join("")}
-                  ${(detail.outbound_replies || []).map((r) => `
-                    <div class="admin-email-msg is-outbound">
-                      <div class="admin-email-msg-meta">
-                        <strong>正式回复 · ${escapeHtml(r.from_email)} (Reply-To: ${escapeHtml(r.reply_to || "support@thewyj.uk")})</strong>
-                        <span>${deliveryStatusBadge(r.status)} · ${escapeHtml(formatTime(r.created_at))}</span>
-                      </div>
-                      <pre class="admin-email-pre">${escapeHtml(r.body_preview)}</pre>
-                    </div>
-                  `).join("")}
+                      <pre class="admin-email-pre">${escapeHtml(parsedBody.mainText)}</pre>
+                      ${parsedBody.hasQuote ? `
+                      <details class="admin-email-quote">
+                        <summary>展开历史引用原文</summary>
+                        <pre class="admin-email-pre admin-email-pre-quoted">${escapeHtml(parsedBody.quotedText)}</pre>
+                      </details>` : ""}
+                    </div>`;
+                  }).join("")}
                 </div>
                 <div class="admin-email-reply-box">
                   <h4>正式域名人工回复</h4>
