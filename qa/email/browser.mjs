@@ -192,6 +192,9 @@ async function main() {
       EMAIL_CLOUDFLARE_ACCOUNT_ID: "acc_qa_test",
       EMAIL_SEND_API_TOKEN: "tok_qa_test",
       EMAIL_TEST_RECIPIENTS: "owner-test@thewyj.uk,alice-qa@thewyj.uk,support@thewyj.uk",
+    };
+    const inboundWorkerEnv = {
+      ...env,
       EMAIL_FORWARD_TO_ADDRESS: "private-qa-forward.invalid",
     };
 
@@ -232,7 +235,7 @@ async function main() {
         headers: new Headers({ from: "alice-qa@thewyj.uk", subject: "QA Support XSS Check", "message-id": "<qa-xss-1@example.net>" }),
         async forward() {},
       },
-      env
+      inboundWorkerEnv
     );
 
     server = http.createServer(async (req, res) => {
@@ -385,11 +388,25 @@ async function main() {
     // 2. Open 邮件中心 -> Overview
     await evaluate("document.querySelector('#adminEmailTab').click(); true");
     await waitFor("Boolean(document.querySelector('[data-email-subtab=overview]')) && document.querySelectorAll('.admin-email-stat-card').length >= 8", 15_000, "overview loaded");
+    const overviewText = await evaluate("document.querySelector('#adminEmailCenterRoot').textContent || ''");
+    assert.equal(overviewText.includes("待配置"), false, "BUG-11: Overview must never falsely display '待配置' when Pages env lacks standalone Worker secret");
     process.stdout.write("[email-browser] PASS overview\n");
 
-    // 3. Compose -> filter verified recipient -> preview -> confirm & send
+    // 3. Compose -> filter verified recipient -> verify template isolation & interpolation -> preview -> confirm & send
     await evaluate("document.querySelector('[data-email-subtab=compose]').click(); true");
     await waitFor("Boolean(document.querySelector('#adminEmailRecipientList')) && document.querySelectorAll('[data-select-recipient]').length >= 1", 10_000, "compose recipients loaded");
+    const composeTplKeys = await evaluate("[...document.querySelectorAll('#adminEmailTemplateFill option')].map((o) => o.value)");
+    assert.equal(composeTplKeys.includes("system_maintenance_notice"), true, "admin_service template must appear in compose");
+    assert.equal(composeTplKeys.includes("support_reply"), false, "BUG-09: support_reply template MUST be excluded from general compose");
+    await evaluate(`(() => {
+      const sel = document.querySelector('#adminEmailTemplateFill');
+      sel.value = 'system_maintenance_notice';
+      sel.dispatchEvent(new Event('change', { bubbles: true }));
+      return true;
+    })()`);
+    const filledComposeState = await evaluate("({ subject: document.querySelector('#adminEmailSubjectInput')?.value || '', body: document.querySelector('#adminEmailBodyInput')?.value || '' })");
+    assert.equal(/\{\{[^}]+\}\}/.test(filledComposeState.subject) || /\{\{[^}]+\}\}/.test(filledComposeState.body), false, "BUG-09: template fill must not leave raw {{...}} placeholders");
+    assert.equal(filledComposeState.body.includes("\\n"), false, "BUG-09: template fill must not show literal \\\\n");
     await evaluate(`(() => {
       const cb = document.querySelector('[data-select-recipient="u_qa_alice"]');
       if (!cb) throw new Error('missing verified user u_qa_alice');
@@ -439,6 +456,17 @@ async function main() {
     await evaluate("document.querySelector('[data-open-thread]').click(); true");
     await waitFor("Boolean(document.querySelector('#adminEmailReplyBody'))", 10_000, "inbound thread detail opened");
     assert.equal(await evaluate("typeof window.__qaInboundXss"), "undefined", "Inbound <script> MUST NOT execute in admin UI");
+    await evaluate(`(() => {
+      const tplSel = document.querySelector('#adminEmailReplyTemplateFill');
+      if (tplSel) {
+        tplSel.value = 'support_reply';
+        tplSel.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      return true;
+    })()`);
+    const supportFilled = await evaluate("document.querySelector('#adminEmailReplyBody')?.value || ''");
+    assert.equal(/\{\{[^}]+\}\}/.test(supportFilled), false, "Inbound support_reply fill must resolve placeholders");
+    assert.equal(supportFilled.includes("thr_"), true, "Inbound support_reply fill must bind real thread_id");
     await evaluate(`(() => {
       const rb = document.querySelector('#adminEmailReplyBody');
       rb.value = 'Official Aeris support reply verified.';

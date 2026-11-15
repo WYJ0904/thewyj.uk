@@ -1466,6 +1466,333 @@ async function run() {
       assert.equal(deliveredItem.inbox_delivery_confirmed, false);
     });
 
+    await suite("9. BUG-09 regressions: template newline hygiene, category isolation, placeholder validation & unified preview/send", async () => {
+      // 9a. 0037 cleaned seeded system templates without overwriting custom non-system templates
+      const sysSupportTpl = await db
+        .prepare("SELECT subject_template, body_template, category, updated_by FROM email_center_templates WHERE template_key = 'support_reply'")
+        .first();
+      assert.equal(sysSupportTpl?.category, "support_reply");
+      assert.equal(sysSupportTpl?.updated_by, "system");
+      assert.equal(sysSupportTpl.body_template.includes("\\n"), false, "0037 must replace literal \\n escapes in seeded system templates");
+      assert.equal(sysSupportTpl.body_template.includes("\n"), true);
+
+      const sysMaintTpl = await db
+        .prepare("SELECT subject_template, body_template, category FROM email_center_templates WHERE template_key = 'system_maintenance_notice'")
+        .first();
+      assert.equal(sysMaintTpl?.category, "admin_service");
+      assert.equal(sysMaintTpl.body_template.includes("\\n"), false);
+      assert.equal(sysMaintTpl.body_template.includes("\n"), true);
+
+      const tsCustom = new Date().toISOString();
+      await db
+        .prepare(
+          `INSERT INTO email_center_templates (
+            template_id, template_key, title, category, subject_template, body_template,
+            is_system, enabled, updated_by, created_at, updated_at
+          ) VALUES ('tpl_custom_preserve', 'custom_preserve_check', 'Custom Preserve', 'admin_service', 'Custom Subject', 'Keep custom \\n escape', 0, 1, 'custom_owner', ?, ?)`
+        )
+        .bind(tsCustom, tsCustom)
+        .run();
+      const migration0037Sql = await readFile(path.join(REPO_ROOT, "cloudflare", "migrations", "0037_task27_email_template_newlines.sql"), "utf8");
+      await db.exec(migration0037Sql.replace(/\r?\n/g, " "));
+      const customAfter = await db
+        .prepare("SELECT body_template FROM email_center_templates WHERE template_key = 'custom_preserve_check'")
+        .first();
+      assert.equal(customAfter?.body_template, "Keep custom \\n escape", "0037 must NEVER overwrite custom user-edited templates");
+
+      // 9b. Block support-only template & placeholders in general /preview and /send
+      const previewSupportBlock = await callApi(makeEnv(db), "/api/admin/email/preview", {
+        method: "POST",
+        token: superAdmin.token,
+        body: {
+          template_key: "support_reply",
+          target_mode: "single",
+          recipient_user_ids: ["u_p01_owner"],
+          subject: "Re: {{subject}}",
+          body: "联系 {{support_email}} 会话 {{thread_id}} 正文 {{body}}",
+        },
+      });
+      assert.equal(previewSupportBlock.status, 400);
+      assert.equal(previewSupportBlock.data?.code, "email_support_template_context_required");
+
+      const previewSupportVarBlock = await callApi(makeEnv(db), "/api/admin/email/preview", {
+        method: "POST",
+        token: superAdmin.token,
+        body: {
+          target_mode: "single",
+          recipient_user_ids: ["u_p01_owner"],
+          subject: "Re: Test",
+          body: "未经会话上下文的 {{thread_id}}",
+        },
+      });
+      assert.equal(previewSupportVarBlock.status, 400);
+      assert.equal(previewSupportVarBlock.data?.code, "email_support_template_context_required");
+
+      // 9c. Reject unresolved {{...}} placeholders in general /preview and in renderTransactionalEmail defense-in-depth
+      const unresolvedPreview = await callApi(makeEnv(db), "/api/admin/email/preview", {
+        method: "POST",
+        token: superAdmin.token,
+        body: {
+          template_key: "system_maintenance_notice",
+          target_mode: "single",
+          recipient_user_ids: ["u_p01_owner"],
+          subject: sysMaintTpl.subject_template,
+          body: sysMaintTpl.body_template,
+        },
+      });
+      assert.equal(unresolvedPreview.status, 400);
+      assert.equal(unresolvedPreview.data?.code, "email_unresolved_template_variables");
+      assert.ok(unresolvedPreview.data?.details?.unresolved_variables?.includes("body"));
+
+      assert.throws(
+        () =>
+          renderTransactionalEmail({
+            kind: "admin_service_notice",
+            subject: "Notice {{missing_var}}",
+            body: "Hello {{body}}",
+          }),
+        (err) => err instanceof EmailServiceError && err.code === "email_unresolved_template_variables"
+      );
+
+      // 9d. Valid template interpolation, XSS HTML escaping, newline rendering & preview-to-send parity
+      const capturedEmails = [];
+      const renderEnv = makeEnv(db, {
+        EMAIL_TRANSPORT: "binding",
+        EMAIL_TEST_RECIPIENTS: "p01-shared@thewyj.uk",
+        EMAIL: {
+          async send(msg) {
+            capturedEmails.push(msg);
+            return { messageId: `bug09-${capturedEmails.length}`, delivered: [msg.to[0].email], queued: [] };
+          },
+        },
+      });
+
+      const validPreview = await callApi(renderEnv, "/api/admin/email/preview", {
+        method: "POST",
+        token: superAdmin.token,
+        body: {
+          template_key: "system_maintenance_notice",
+          target_mode: "single",
+          recipient_user_ids: ["u_p01_owner"],
+          subject: sysMaintTpl.subject_template,
+          body: sysMaintTpl.body_template,
+          variables: {
+            body: "维护时间：今晚 23:00\\n影响模块：<script>alert(1)</script>",
+          },
+        },
+      });
+      assert.equal(validPreview.status, 200);
+      assert.equal(/\{\{[^}]+\}\}/.test(validPreview.data.subject), false);
+      assert.equal(/\{\{[^}]+\}\}/.test(validPreview.data.body), false);
+      assert.equal(validPreview.data.body.includes("\\n"), false);
+      assert.equal(validPreview.data.body.includes("support@thewyj.uk"), true);
+      assert.equal(validPreview.data.html_preview.includes("<script>"), false);
+      assert.equal(validPreview.data.html_preview.includes("&lt;script&gt;alert(1)&lt;/script&gt;"), true);
+      assert.equal(validPreview.data.text_preview.includes("\\n"), false);
+
+      const sendStepup = await issueStepup(renderEnv, superAdmin.token, superAdmin.password, "email_center:send");
+      const validSend = await callApi(renderEnv, "/api/admin/email/send", {
+        method: "POST",
+        token: superAdmin.token,
+        headers: { "X-Aeris-Stepup": sendStepup },
+        body: {
+          preview_token: validPreview.data.preview_token,
+          template_key: "system_maintenance_notice",
+          confirmed: true,
+          subject: validPreview.data.subject,
+          body: validPreview.data.body,
+        },
+      });
+      assert.equal(validSend.status, 200);
+      assert.equal(capturedEmails.length, 1);
+      assert.equal(/\{\{[^}]+\}\}/.test(capturedEmails[0].html), false);
+      assert.equal(/\{\{[^}]+\}\}/.test(capturedEmails[0].text), false);
+      assert.equal(capturedEmails[0].text.includes("\\n"), false);
+      assert.equal(capturedEmails[0].html.includes("<script>"), false);
+      assert.equal(capturedEmails[0].html.includes("&lt;script&gt;alert(1)&lt;/script&gt;"), true);
+      assert.equal(capturedEmails[0].text, validPreview.data.text_preview);
+    });
+
+    await suite("10. BUG-10 & BUG-11 regressions: Pages vs Worker overview status, nested multipart MIME & external unregistered threading", async () => {
+      // 10a. Before inbound emails arrive and without Worker env EMAIL_FORWARD_TO_ADDRESS on Pages, overview MUST report 'unverified', NOT false/待配置
+      const cleanInboundDb = await mf.getD1Database("WYJ_DB");
+      assert.equal(cleanInboundDb, db);
+      const ovEnvBefore = makeEnv(db, {
+        EMAIL_FORWARD_TO_ADDRESS: undefined,
+      });
+      const ovBefore = await callApi(ovEnvBefore, "/api/admin/email/overview", { token: superAdmin.token });
+      assert.equal(ovBefore.status, 200);
+      // Clear pre-existing synthetic inbound records check: inspect exact state fields based on current DB telemetry
+      assert.equal("inbound_forwarding_state" in ovBefore.data.status, true);
+      assert.equal("inbound_routing_state" in ovBefore.data.status, true);
+      assert.equal("inbound_forwarding_summary" in ovBefore.data.status, true);
+
+      // Simulate isolated Pages env with empty inbound tables to guarantee exact unverified semantics
+      const forwardedTargets = [];
+      const nestedMixedRaw = [
+        'From: "External Customer" <unregistered-guest@example.org>',
+        "To: support@thewyj.uk",
+        "Subject: Nested MIME Help Needed",
+        "Message-ID: <nested-mime-001@example.org>",
+        'Content-Type: multipart/mixed; boundary="outer_b"',
+        "",
+        "--outer_b",
+        'Content-Type: multipart/alternative; boundary="inner_b"',
+        "",
+        "--inner_b",
+        'Content-Type: text/plain; charset="utf-8"',
+        "",
+        "First line from unregistered external user.",
+        "Second paragraph in nested multipart/mixed.",
+        "--inner_b",
+        'Content-Type: text/html; charset="utf-8"',
+        "",
+        "<p>First line from unregistered external user.</p><script>alert(1)</script>",
+        "--inner_b--",
+        "--outer_b",
+        'Content-Type: application/octet-stream; name="report.pdf"',
+        'Content-Disposition: attachment; filename="report.pdf"',
+        "",
+        "JVBERi0xLjQK",
+        "--outer_b--",
+      ].join("\r\n");
+
+      const inboundWorkerEnv = makeEnv(db, {
+        EMAIL_FORWARD_TO_ADDRESS: "private-qa-forward.invalid",
+      });
+      await supportInboundWorker.email(
+        {
+          from: "unregistered-guest@example.org",
+          to: "support@thewyj.uk",
+          rawSize: Buffer.byteLength(nestedMixedRaw, "utf8"),
+          raw: nestedMixedRaw,
+          headers: new Headers({
+            from: '"External Customer" <unregistered-guest@example.org>',
+            subject: "Nested MIME Help Needed",
+            "message-id": "<nested-mime-001@example.org>",
+          }),
+          async forward(target) {
+            forwardedTargets.push(target);
+          },
+        },
+        inboundWorkerEnv
+      );
+      assert.deepEqual(forwardedTargets, ["private-qa-forward.invalid"]);
+
+      const ovAfter = await callApi(ovEnvBefore, "/api/admin/email/overview", { token: superAdmin.token });
+      assert.equal(ovAfter.status, 200);
+      assert.equal(ovAfter.data.status.inbound_worker_state, "verified_via_db");
+      assert.equal(ovAfter.data.status.inbound_routing_state, "verified_via_db");
+      assert.equal(ovAfter.data.status.inbound_forwarding_state, "observed_forwarded");
+      assert.equal(ovAfter.data.status.inbound_forwarding_configured, true);
+      assert.match(ovAfter.data.status.inbound_forwarding_summary, /^已验证（已转发 \d+ 封）$/);
+
+      // Verify clean DB with 0 inbound messages reports 'unverified' (NEVER 'false' / '待配置')
+      const mfZero = new Miniflare({
+        modules: true,
+        script: "export default { async fetch() { return new Response('ok'); } }",
+        d1Databases: { WYJ_DB: "wyj-zero-inbound-test" },
+      });
+      try {
+        const zeroDb = await mfZero.getD1Database("WYJ_DB");
+        await applyAllMigrations(zeroDb);
+        const zeroAdmin = await seedAccount(zeroDb, { id: "u_zero_sa", username: "zero_sa", role: "super_admin", password: "ZeroSuperPass-2026!" });
+        const zeroOv = await callApi(makeEnv(zeroDb, { EMAIL_FORWARD_TO_ADDRESS: undefined }), "/api/admin/email/overview", { token: zeroAdmin.token });
+        assert.equal(zeroOv.status, 200);
+        assert.equal(zeroOv.data.status.inbound_worker_state, "unverified");
+        assert.equal(zeroOv.data.status.inbound_routing_state, "unverified");
+        assert.equal(zeroOv.data.status.inbound_forwarding_state, "unverified");
+        assert.equal(zeroOv.data.status.inbound_forwarding_configured, null);
+        assert.equal(zeroOv.data.status.inbound_forwarding_summary, "未验证（独立 Worker 托管）");
+      } finally {
+        await mfZero.dispose().catch(() => {});
+      }
+
+      const threadRow = await db
+        .prepare("SELECT * FROM email_center_inbound_threads WHERE sender_email = 'unregistered-guest@example.org' ORDER BY created_at DESC LIMIT 1")
+        .first();
+      assert.ok(threadRow, "Unregistered external sender MUST still create inbound support thread");
+      assert.equal(threadRow.matched_user_id, null);
+
+      const inboundDetail = await callApi(
+        ovEnvBefore,
+        `/api/admin/email/inbound?thread_id=${encodeURIComponent(threadRow.thread_id)}`,
+        { token: superAdmin.token }
+      );
+      assert.equal(inboundDetail.status, 200);
+      assert.equal(inboundDetail.data.inbound_messages[0].text_excerpt.includes("Second paragraph in nested multipart/mixed."), true);
+      assert.equal(inboundDetail.data.inbound_messages[0].sanitize_flags.includes("attachment_stripped"), true);
+      assert.equal(inboundDetail.data.inbound_messages[0].sanitize_flags.includes("active_html_stripped"), true);
+
+      // 10b. Admin reply using support_reply resolves thread_id, support_email & sets In-Reply-To
+      const replyCaptures = [];
+      const replyEnv = makeEnv(db, {
+        EMAIL_TRANSPORT: "binding",
+        EMAIL_TEST_RECIPIENTS: "unregistered-guest@example.org",
+        EMAIL: {
+          async send(msg) {
+            replyCaptures.push(msg);
+            return { messageId: "outbound-reply-id-999", delivered: [msg.to[0].email], queued: [] };
+          },
+        },
+      });
+      const replyGrant = await issueStepup(replyEnv, superAdmin.token, superAdmin.password, "email_center:reply");
+      const replyRes = await callApi(replyEnv, "/api/admin/email/inbound/reply", {
+        method: "POST",
+        token: superAdmin.token,
+        headers: { "X-Aeris-Stepup": replyGrant },
+        body: {
+          thread_id: threadRow.thread_id,
+          template_key: "support_reply",
+          body: "We verified your nested attachment report and resolved the issue.",
+          confirmed: true,
+        },
+      });
+      assert.equal(replyRes.status, 200);
+      assert.equal(replyCaptures.length, 1);
+      assert.equal(/\{\{[^}]+\}\}/.test(replyCaptures[0].text), false);
+      assert.equal(replyCaptures[0].text.includes(threadRow.thread_id), true);
+      assert.equal(replyCaptures[0].text.includes("support@thewyj.uk"), true);
+      assert.equal(replyCaptures[0].headers["In-Reply-To"], "<nested-mime-001@example.org>");
+
+      // 10c. Subsequent reply matching bare provider_message_id (with angle brackets added by mail client) attaches to SAME thread!
+      const followUpRaw = [
+        "From: unregistered-guest@example.org",
+        "To: support@thewyj.uk",
+        "Subject: Re: Completely Different Followup Subject",
+        "Message-ID: <followup-002@example.org>",
+        "In-Reply-To: <outbound-reply-id-999>",
+        "",
+        "Thank you, follow-up verified!",
+      ].join("\r\n");
+
+      await supportInboundWorker.email(
+        {
+          from: "unregistered-guest@example.org",
+          to: "support@thewyj.uk",
+          rawSize: Buffer.byteLength(followUpRaw, "utf8"),
+          raw: followUpRaw,
+          headers: new Headers({
+            from: "unregistered-guest@example.org",
+            subject: "Re: Completely Different Followup Subject",
+            "message-id": "<followup-002@example.org>",
+            "in-reply-to": "<outbound-reply-id-999>",
+          }),
+          async forward() {},
+        },
+        inboundWorkerEnv
+      );
+
+      const followMsgs = (
+        await db
+          .prepare("SELECT rfc_message_id FROM email_center_inbound_messages WHERE thread_id = ? ORDER BY received_at ASC")
+          .bind(threadRow.thread_id)
+          .all()
+      ).results;
+      assert.equal(followMsgs.length, 2, "Follow-up referencing <outbound-reply-id-999> must attach to existing thread");
+      assert.equal(followMsgs[1].rfc_message_id, "<followup-002@example.org>");
+    });
+
     process.stdout.write(`Cloudflare Email Center tests passed: ${passedSuites} suites\n`);
   } finally {
     await mf.dispose();

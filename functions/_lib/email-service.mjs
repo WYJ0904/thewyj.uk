@@ -244,6 +244,107 @@ export function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
+const SUPPORT_ONLY_TEMPLATE_KEYS = new Set(["thread_id", "thread_subject", "inbound_id"]);
+
+export function normalizeTemplateText(value) {
+  return String(value ?? "")
+    .replace(/\\r\\n/g, "\n")
+    .replace(/\\n/g, "\n")
+    .replace(/\r\n?/g, "\n");
+}
+
+export function extractTemplatePlaceholders(value) {
+  const keys = [];
+  const seen = new Set();
+  const text = String(value ?? "");
+  for (const match of text.matchAll(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g)) {
+    const key = String(match[1] || "").trim();
+    if (key && !seen.has(key)) {
+      seen.add(key);
+      keys.push(key);
+    }
+  }
+  return keys;
+}
+
+export function resolveAdminEmailTemplate({
+  subject = "",
+  body = "",
+  templateCategory = "",
+  threadId = "",
+  variables = {},
+  allowPerRecipientUsername = false,
+} = {}) {
+  const normalizedSubject = normalizeTemplateText(subject).trim();
+  const normalizedBody = normalizeTemplateText(body).trim();
+  const isSupportContext = Boolean(String(threadId || "").trim());
+
+  if (!isSupportContext && String(templateCategory || "").trim().toLowerCase() === "support_reply") {
+    throw new EmailServiceError(
+      "email_support_template_context_required",
+      "客服工单回复模板（support_reply）仅可在「客服邮件及回复」工单会话中使用，不能直接用于普通通知发信",
+      400
+    );
+  }
+
+  const allKeys = extractTemplatePlaceholders(`${normalizedSubject}\n${normalizedBody}`);
+  const blockedSupportKeys = !isSupportContext
+    ? allKeys.filter((k) => SUPPORT_ONLY_TEMPLATE_KEYS.has(k))
+    : [];
+  if (blockedSupportKeys.length > 0) {
+    throw new EmailServiceError(
+      "email_support_template_context_required",
+      `当前并非真实客服工单会话上下文，禁止发送包含客服专用变量（${blockedSupportKeys.map((k) => `{{${k}}}`).join("、")}）的邮件`,
+      400,
+      { placeholders: blockedSupportKeys }
+    );
+  }
+
+  const varMap = new Map();
+  varMap.set("support_email", SUPPORT_FROM_EMAIL);
+  if (isSupportContext) {
+    varMap.set("thread_id", String(threadId).trim());
+  }
+  if (variables && typeof variables === "object") {
+    for (const [rawKey, rawVal] of Object.entries(variables)) {
+      if (rawVal === undefined || rawVal === null) continue;
+      const val = normalizeTemplateText(rawVal).trim();
+      if (!val) continue;
+      varMap.set(String(rawKey).trim(), val);
+    }
+  }
+
+  const replaceVars = (input) =>
+    String(input || "").replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (full, key) => {
+      const cleanKey = String(key || "").trim();
+      if (varMap.has(cleanKey)) {
+        return varMap.get(cleanKey);
+      }
+      return full;
+    });
+
+  const resolvedSubject = replaceVars(normalizedSubject).replace(/\r?\n+/g, " ").trim();
+  const resolvedBody = replaceVars(normalizedBody).trim();
+
+  const unresolved = extractTemplatePlaceholders(`${resolvedSubject}\n${resolvedBody}`).filter(
+    (k) => !(allowPerRecipientUsername && k === "username")
+  );
+  if (unresolved.length > 0) {
+    throw new EmailServiceError(
+      "email_unresolved_template_variables",
+      `邮件内容包含未解析的模板变量（${unresolved.map((k) => `{{${k}}}`).join("、")}），请先填写完整后再预览或发送`,
+      400,
+      { unresolved_variables: unresolved }
+    );
+  }
+
+  return {
+    subject: resolvedSubject,
+    body: resolvedBody,
+    uses_per_recipient_username: allowPerRecipientUsername && extractTemplatePlaceholders(`${resolvedSubject}\n${resolvedBody}`).includes("username"),
+  };
+}
+
 export function maskEmailAddress(email) {
   const raw = String(email || "").trim().toLowerCase();
   const at = raw.indexOf("@");
@@ -348,6 +449,7 @@ export function renderTransactionalEmail(options = {}) {
 
   let subject = "";
   let textLines = [];
+  let plainTextOverride = null;
   let eyebrow = "Aeris Transactional Mail";
   let title = "";
   let sensitiveOtp = OTP_REDACTED_KINDS.has(kind);
@@ -452,13 +554,24 @@ export function renderTransactionalEmail(options = {}) {
     eyebrow = "Aeris Support Reply";
     title = subject;
     const bodyText = cleanBodyText(String(options.body || ""), { maxLength: 20000, field: "body" });
+    const unresolved = extractTemplatePlaceholders(`${subject}\n${bodyText}`);
+    if (unresolved.length > 0) {
+      throw new EmailServiceError(
+        "email_unresolved_template_variables",
+        `客服回复仍包含未解析变量：${unresolved.map((k) => `{{${k}}}`).join("、")}`,
+        400,
+        { unresolved_variables: unresolved }
+      );
+    }
     const threadNote = options.threadId ? `会话参考号：${cleanSingleLineText(String(options.threadId), { maxLength: 80, field: "threadId" })}` : "";
+    const closingNote = `如需继续沟通，请直接回复本邮件至 ${SUPPORT_FROM_EMAIL}。`;
     textLines = [
       "您好，",
       ...bodyText.split("\n"),
-      threadNote,
-      `如需继续咨询，请直接回复本邮件至 ${SUPPORT_FROM_EMAIL}。`,
-    ].filter(Boolean);
+      ...(threadNote ? ["", threadNote] : []),
+      closingNote,
+    ];
+    plainTextOverride = ["您好，", bodyText, threadNote, closingNote].filter(Boolean).join("\n\n");
   } else if (kind === "support_auto_ack") {
     const baseSubject = options.subject
       ? cleanSingleLineText(String(options.subject), { maxLength: 180, field: "subject" })
@@ -485,10 +598,20 @@ export function renderTransactionalEmail(options = {}) {
       String(options.body || options.text || detailText || "这是一封由 Aeris 邮件中心发送的系统服务通知邮件。"),
       { maxLength: 20000, field: "body" }
     );
+    const unresolved = extractTemplatePlaceholders(`${subject}\n${bodyText}`);
+    if (unresolved.length > 0) {
+      throw new EmailServiceError(
+        "email_unresolved_template_variables",
+        `邮件内容包含未解析的模板变量：${unresolved.map((k) => `{{${k}}}`).join("、")}`,
+        400,
+        { unresolved_variables: unresolved }
+      );
+    }
     textLines = bodyText.split("\n");
+    plainTextOverride = bodyText;
   }
 
-  const text = textLines.join("\n\n");
+  const text = plainTextOverride !== null ? plainTextOverride : textLines.join("\n\n");
   const footer = kind === "support_reply"
     ? `Aeris 客服支持 · ${SUPPORT_FROM_EMAIL}`
     : `此邮件由 Aeris 系统发出；如需联系人工客服，请致信 ${SUPPORT_FROM_EMAIL}。`;

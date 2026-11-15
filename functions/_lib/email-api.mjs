@@ -23,10 +23,14 @@ import {
   emailSendingEnabled,
   EmailServiceError,
   escapeHtml,
+  extractTemplatePlaceholders,
   hasTask27SecurityTable,
   maskEmailAddress,
+  normalizeTemplateText,
   parseAllowedTestRecipients,
   renderHtmlEnvelope,
+  renderTransactionalEmail,
+  resolveAdminEmailTemplate,
   resolveEmailTransport,
   safeSendTransactionalEmail,
   sendSupportReplyEmail,
@@ -164,8 +168,38 @@ function resolveRequestedSender(payload, env, account) {
   return { fromEmail, replyTo };
 }
 
-function statusResponsePayload(env, account) {
+function statusResponsePayload(env, account, inboundTelemetry = {}) {
   const allowedTests = parseAllowedTestRecipients(env);
+  const envForwardConfigured = Boolean(String(env?.EMAIL_FORWARD_TO_ADDRESS || "").trim());
+  const forwardedCount = Number(inboundTelemetry?.forwarded_count || 0);
+  const inboundTotal = Number(inboundTelemetry?.inbound_messages_total || 0);
+
+  let inboundWorkerState = "unverified";
+  let inboundRoutingState = "unverified";
+  let inboundForwardingState = "unverified";
+  let inboundForwardingSummary = "未验证（独立 Worker 托管）";
+  let inboundForwardingConfigured = null;
+
+  if (envForwardConfigured) {
+    inboundWorkerState = "verified_via_env";
+    inboundRoutingState = "verified_via_env";
+    inboundForwardingState = "configured";
+    inboundForwardingSummary = "已配置保留";
+    inboundForwardingConfigured = true;
+  } else if (forwardedCount > 0) {
+    inboundWorkerState = "verified_via_db";
+    inboundRoutingState = "verified_via_db";
+    inboundForwardingState = "observed_forwarded";
+    inboundForwardingSummary = `已验证（已转发 ${forwardedCount} 封）`;
+    inboundForwardingConfigured = true;
+  } else if (inboundTotal > 0) {
+    inboundWorkerState = "verified_via_db";
+    inboundRoutingState = "verified_via_db";
+    inboundForwardingState = "unverified";
+    inboundForwardingSummary = "已收信（转发未核实）";
+    inboundForwardingConfigured = null;
+  }
+
   return {
     ok: true,
     build: EMAIL_BUILD,
@@ -184,7 +218,11 @@ function statusResponsePayload(env, account) {
       (addr) => addr !== SUPPORT_FROM_EMAIL || supportSenderAuthorized(env)
     ),
     allowed_reply_to: ALLOWED_REPLY_TO_ADDRESSES,
-    inbound_forwarding_configured: Boolean(String(env?.EMAIL_FORWARD_TO_ADDRESS || "").trim()),
+    inbound_forwarding_configured: inboundForwardingConfigured,
+    inbound_worker_state: inboundWorkerState,
+    inbound_routing_state: inboundRoutingState,
+    inbound_forwarding_state: inboundForwardingState,
+    inbound_forwarding_summary: inboundForwardingSummary,
     inbound_auto_ack_enabled: String(env?.EMAIL_INBOUND_AUTO_ACK_ENABLED || "").trim().toLowerCase() === "true",
     test_recipients: allowedTests,
     test_recipients_restricted: allowedTests.length > 0,
@@ -567,6 +605,15 @@ export async function handleEmailRequest(context) {
         )
         .first();
 
+      const inboundTelemetry = await db
+        .prepare(
+          `SELECT
+            COUNT(*) AS inbound_messages_total,
+            SUM(CASE WHEN forward_status = 'forwarded' THEN 1 ELSE 0 END) AS forwarded_count
+          FROM email_center_inbound_messages`
+        )
+        .first();
+
       const hasTask27Sec = await hasTask27SecurityTable(db);
       const verifiedUsers = account.is_super_admin
         ? await db
@@ -586,7 +633,7 @@ export async function handleEmailRequest(context) {
       return jsonResponse(
         {
           ok: true,
-          status: statusResponsePayload(env, account),
+          status: statusResponsePayload(env, account, inboundTelemetry || {}),
           stats: {
             deliveries_total: Number(totals?.total || 0),
             delivered: Number(totals?.delivered || 0),
@@ -747,8 +794,31 @@ export async function handleEmailRequest(context) {
         );
       }
 
-      const subject = cleanSingleLineText(String(payload.subject || ""), { maxLength: 180, field: "subject" });
-      const body = cleanBodyText(String(payload.body || ""), { maxLength: 20000, field: "body" });
+      let templateRow = null;
+      const requestedTemplateKey = payload.template_key
+        ? cleanSingleLineText(String(payload.template_key), { maxLength: 80, field: "template_key" })
+        : "";
+      if (requestedTemplateKey) {
+        templateRow = await db
+          .prepare("SELECT template_key, category, subject_template, body_template, enabled FROM email_center_templates WHERE template_key = ? LIMIT 1")
+          .bind(requestedTemplateKey)
+          .first();
+        if (!templateRow) {
+          throw new EmailServiceError("email_template_not_found", `找不到邮件模板：${requestedTemplateKey}`, 404);
+        }
+        if (Number(templateRow.enabled) === 0) {
+          throw new EmailServiceError("email_template_disabled", `邮件模板 ${requestedTemplateKey} 已停用`, 400);
+        }
+      }
+
+      const rawSubject = cleanSingleLineText(
+        normalizeTemplateText(payload.subject ?? templateRow?.subject_template ?? ""),
+        { maxLength: 180, field: "subject" }
+      );
+      const rawBody = cleanBodyText(
+        normalizeTemplateText(payload.body ?? templateRow?.body_template ?? ""),
+        { maxLength: 20000, field: "body" }
+      );
       const { fromEmail, replyTo } = resolveRequestedSender(payload, env, account);
       const resolution = await resolvePreviewRecipients(db, account, payload.target_mode, payload.recipient_user_ids);
 
@@ -760,6 +830,28 @@ export async function handleEmailRequest(context) {
           { excluded_recipients: resolution.excluded }
         );
       }
+
+      const singleRecipientUsername =
+        resolution.mode === "single" || resolution.effective.length === 1
+          ? resolution.effective[0]?.username || ""
+          : "";
+      const rawVarsInput = payload.template_vars && typeof payload.template_vars === "object"
+        ? payload.template_vars
+        : (payload.variables && typeof payload.variables === "object" ? payload.variables : {});
+      const templateVars = {
+        ...rawVarsInput,
+        ...(singleRecipientUsername ? { username: singleRecipientUsername } : {}),
+      };
+      const resolvedTemplate = resolveAdminEmailTemplate({
+        subject: rawSubject,
+        body: rawBody,
+        templateCategory: templateRow?.category || "",
+        variables: templateVars,
+        allowPerRecipientUsername: resolution.effective.length > 1,
+      });
+
+      const subject = cleanSingleLineText(resolvedTemplate.subject, { maxLength: 180, field: "subject" });
+      const body = cleanBodyText(resolvedTemplate.body, { maxLength: 20000, field: "body" });
 
       const previewToken = generateId("prv");
       const effectiveIds = resolution.effective.map((item) => item.user_id);
@@ -799,13 +891,20 @@ export async function handleEmailRequest(context) {
         )
         .run();
 
-      const htmlPreview = renderHtmlEnvelope({
-        title: subject,
-        eyebrow: resolution.mode === "all_verified" ? "Aeris System Service Notice" : "Aeris Service Notice",
-        subject,
-        paragraphs: body.split("\n"),
-        footer: `Aeris 系统通知 · 回复联系 ${DEFAULT_REPLY_TO_EMAIL}`,
+      const previewRenderSample = resolvedTemplate.uses_per_recipient_username
+        ? resolveAdminEmailTemplate({
+            subject,
+            body,
+            variables: { username: resolution.effective[0]?.username || "用户" },
+          })
+        : { subject, body };
+      const previewKind = resolution.mode === "all_verified" ? "system_maintenance_notice" : "admin_service_notice";
+      const renderedPreview = renderTransactionalEmail({
+        kind: previewKind,
+        subject: previewRenderSample.subject,
+        body: previewRenderSample.body,
       });
+      const htmlPreview = renderedPreview.html;
 
       return jsonResponse(
         {
@@ -817,6 +916,7 @@ export async function handleEmailRequest(context) {
           reply_to: replyTo,
           subject,
           body,
+          text_preview: renderedPreview.text,
           html_preview: htmlPreview,
           effective_recipient_count: resolution.effective.length,
           requested_count: resolution.requestedCount,
@@ -932,6 +1032,11 @@ export async function handleEmailRequest(context) {
       const triggerSource = preview.target_mode === "all_verified" ? "admin_all_verified" : "admin_manual_send";
 
       for (const rcpt of resolvedRecipients) {
+        const renderedForRcpt = resolveAdminEmailTemplate({
+          subject: preview.subject,
+          body: preview.body,
+          variables: { username: rcpt.username || "用户" },
+        });
         const res = await safeSendTransactionalEmail(env, {
           to: rcpt.email,
           userId: rcpt.user_id,
@@ -941,8 +1046,8 @@ export async function handleEmailRequest(context) {
           fromName: preview.from_email === SUPPORT_FROM_EMAIL ? "Aeris Support" : DEFAULT_FROM_NAME,
           replyTo: preview.reply_to,
           replyToName: DEFAULT_REPLY_TO_NAME,
-          subject: preview.subject,
-          body: preview.body,
+          subject: renderedForRcpt.subject,
+          body: renderedForRcpt.body,
           channel: "admin_manual",
           triggerSource,
           actorUserId: account.id,
@@ -1207,7 +1312,7 @@ export async function handleEmailRequest(context) {
             outbound_replies: outboundReplies,
           },
           200,
-          { reqId }
+          reqId
         );
       }
 
@@ -1249,7 +1354,14 @@ export async function handleEmailRequest(context) {
         throw new EmailServiceError("email_confirmation_required", "回复客服邮件前请先预览并确认发送", 400);
       }
       const threadId = cleanSingleLineText(String(payload.thread_id || ""), { maxLength: 80, field: "thread_id" });
-      const body = cleanBodyText(String(payload.body || ""), { maxLength: 20000, field: "body" });
+      const templateKey = payload.template_key
+        ? cleanSingleLineText(String(payload.template_key), { maxLength: 80, field: "template_key" })
+        : "";
+      const rawUserBody = cleanBodyText(String(payload.body || ""), {
+        maxLength: 20000,
+        field: "body",
+        required: !templateKey,
+      });
 
       const thread = await db
         .prepare("SELECT * FROM email_center_inbound_threads WHERE thread_id = ? LIMIT 1")
@@ -1275,6 +1387,63 @@ export async function handleEmailRequest(context) {
         );
       }
 
+      let rawSubjectInput = payload.subject
+        ? cleanSingleLineText(String(payload.subject), { maxLength: 180, field: "subject" })
+        : `Re: ${thread.normalized_subject}`;
+      let rawBodyInput = rawUserBody;
+      let templateCategory = "support_reply";
+
+      if (templateKey) {
+        const tplRow = await db
+          .prepare("SELECT template_key, category, subject_template, body_template, enabled FROM email_center_templates WHERE template_key = ? LIMIT 1")
+          .bind(templateKey)
+          .first();
+        if (!tplRow || Number(tplRow.enabled) === 0) {
+          throw new EmailServiceError("email_template_unavailable", "所选客服模板不存在或已停用", 400);
+        }
+        if (String(tplRow.category || "") !== "support_reply") {
+          throw new EmailServiceError("email_invalid_support_template", "客服回复只能使用 support_reply 分类模板", 400);
+        }
+        templateCategory = String(tplRow.category);
+        if (!payload.subject) {
+          rawSubjectInput = tplRow.subject_template || rawSubjectInput;
+        }
+        rawBodyInput = tplRow.body_template || rawUserBody;
+      }
+
+      let matchedUsername = "";
+      if (thread.matched_user_id) {
+        const userRow = await db
+          .prepare("SELECT username FROM task12_users WHERE id = ? LIMIT 1")
+          .bind(thread.matched_user_id)
+          .first();
+        matchedUsername = String(userRow?.username || "").trim();
+      }
+
+      const resolvedReply = resolveAdminEmailTemplate({
+        subject: rawSubjectInput,
+        body: rawBodyInput,
+        templateCategory,
+        threadId,
+        variables: {
+          subject: cleanSingleLineText(String(thread.original_subject || thread.normalized_subject || "Aeris 客服回复"), {
+            maxLength: 180,
+            field: "thread_subject",
+          }),
+          thread_subject: thread.original_subject || thread.normalized_subject || "",
+          body: rawUserBody,
+          support_email: SUPPORT_FROM_EMAIL,
+          username: matchedUsername,
+          ...(payload.template_vars && typeof payload.template_vars === "object" ? payload.template_vars : {}),
+          ...(payload.variables && typeof payload.variables === "object" ? payload.variables : {}),
+        },
+        allowPerRecipientUsername: false,
+      });
+
+      if (!String(resolvedReply.body || "").trim()) {
+        throw new EmailServiceError("email_body_required", "客服回复正文不能为空", 400);
+      }
+
       const fromMode = String(payload.from_mode || "auto").trim().toLowerCase();
       let fromAddress = undefined;
       if (fromMode === "support") {
@@ -1283,9 +1452,8 @@ export async function handleEmailRequest(context) {
         fromAddress = DEFAULT_FROM_EMAIL;
       }
 
-      const subject = payload.subject
-        ? cleanSingleLineText(String(payload.subject), { maxLength: 180, field: "subject" })
-        : `Re: ${thread.normalized_subject}`;
+      const subject = resolvedReply.subject;
+      const body = resolvedReply.body;
 
       const referencesChain = [latestInbound?.references_header, latestInbound?.rfc_message_id]
         .filter(Boolean)
@@ -1327,7 +1495,7 @@ export async function handleEmailRequest(context) {
           delivery: replyRes,
         },
         replyRes.ok ? 200 : 502,
-        { reqId }
+        reqId
       );
     }
 
@@ -1362,7 +1530,17 @@ export async function handleEmailRequest(context) {
       const rows = (
         await db.prepare("SELECT * FROM email_center_templates ORDER BY is_system DESC, template_key ASC").all()
       ).results || [];
-      return jsonResponse({ ok: true, templates: rows }, 200, reqId);
+      const templates = rows.map((row) => {
+        const subject_template = normalizeTemplateText(row.subject_template || "");
+        const body_template = normalizeTemplateText(row.body_template || "");
+        return {
+          ...row,
+          subject_template,
+          body_template,
+          placeholders: extractTemplatePlaceholders(`${subject_template}\n${body_template}`),
+        };
+      });
+      return jsonResponse({ ok: true, templates }, 200, reqId);
     }
 
     if (path === "/api/admin/email/templates" && method === "POST") {
@@ -1373,8 +1551,12 @@ export async function handleEmailRequest(context) {
       }
       const title = cleanSingleLineText(String(payload.title || templateKey), { maxLength: 100, field: "title" });
       const category = cleanSingleLineText(String(payload.category || "admin_service"), { maxLength: 60, field: "category" });
-      const subjectTemplate = cleanSingleLineText(String(payload.subject_template || ""), { maxLength: 180, field: "subject_template" });
-      const bodyTemplate = cleanBodyText(String(payload.body_template || ""), { maxLength: 20000, field: "body_template" });
+      const subjectTemplate = normalizeTemplateText(
+        cleanSingleLineText(String(payload.subject_template || ""), { maxLength: 180, field: "subject_template" })
+      );
+      const bodyTemplate = normalizeTemplateText(
+        cleanBodyText(String(payload.body_template || ""), { maxLength: 20000, field: "body_template" })
+      );
       const enabled = payload.enabled === false ? 0 : 1;
       const ts = nowIso();
 

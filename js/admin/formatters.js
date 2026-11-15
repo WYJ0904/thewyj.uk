@@ -92,6 +92,7 @@ export function createAdminEmailCenter({ root, apiGet, apiPost, getAccount }) {
     selectedRecipients: new Map(),
     targetMode: "single",
     senderKind: "noreply",
+    composeTemplateKey: "",
     subject: "",
     body: "",
     draftId: "",
@@ -105,6 +106,7 @@ export function createAdminEmailCenter({ root, apiGet, apiPost, getAccount }) {
     inboundStatusFilter: "",
     inboundSearch: "",
     activeThreadDetail: null,
+    replyTemplateKey: "",
     replySubject: "",
     replyBody: "",
     replyFromMode: "auto",
@@ -168,6 +170,7 @@ export function createAdminEmailCenter({ root, apiGet, apiPost, getAccount }) {
     if (!threadId) return;
     const data = await apiGet(`/api/admin/email/inbound?thread_id=${encodeURIComponent(threadId)}`);
     state.activeThreadDetail = data;
+    state.replyTemplateKey = "";
     state.replySubject = data?.thread?.normalized_subject
       ? `Re: ${data.thread.normalized_subject}`
       : "Re: Aeris 客服回复";
@@ -194,7 +197,10 @@ export function createAdminEmailCenter({ root, apiGet, apiPost, getAccount }) {
       } else if (state.tab === "deliveries") {
         await loadDeliveries();
       } else if (state.tab === "inbound") {
-        await loadInboundList();
+        await Promise.all([
+          loadInboundList(),
+          state.templates.length ? Promise.resolve() : loadTemplates(),
+        ]);
         if (state.activeThreadDetail?.thread?.thread_id) {
           await loadInboundThread(state.activeThreadDetail.thread.thread_id);
         }
@@ -209,17 +215,30 @@ export function createAdminEmailCenter({ root, apiGet, apiPost, getAccount }) {
     }
   }
 
+  function normalizeEditorTemplateText(value) {
+    return String(value ?? "")
+      .replace(/\\r\\n/g, "\n")
+      .replace(/\\n/g, "\n")
+      .replace(/\r\n/g, "\n");
+  }
+
   function renderOverview() {
     const st = state.overview?.status || {};
     const stats = state.overview?.stats || {};
     const superAdmin = isSuperAdmin();
+    const inboundSummary = st.inbound_forwarding_summary
+      || (st.inbound_forwarding_configured === true
+        ? "已配置保留"
+        : st.inbound_forwarding_configured === false
+          ? "未验证"
+          : "未验证（独立 Worker 托管）");
     return `
       <div class="admin-email-section">
         <div class="admin-email-stats-grid">
           <div class="admin-email-stat-card"><span>发送开关</span><strong>${st.email_sending_enabled ? "已开启" : "已关闭"}</strong></div>
           <div class="admin-email-stat-card"><span>发信传输通道</span><strong>${escapeHtml(st.transport || "unconfigured")}</strong></div>
           <div class="admin-email-stat-card"><span>support@ 授权发信</span><strong>${st.support_sender_authorized ? "已授权" : "未授权（仅 Reply-To）"}</strong></div>
-          <div class="admin-email-stat-card"><span>Gmail 入站转发</span><strong>${st.inbound_forwarding_configured ? "已配置保留" : "待配置"}</strong></div>
+          <div class="admin-email-stat-card"><span>入站路由与转发</span><strong>${escapeHtml(inboundSummary)}</strong></div>
         </div>
         <div class="admin-email-stats-grid">
           <div class="admin-email-stat-card"><span>已送达 (delivered)</span><strong>${Number(stats.delivered || 0)}</strong></div>
@@ -228,6 +247,7 @@ export function createAdminEmailCenter({ root, apiGet, apiPost, getAccount }) {
           <div class="admin-email-stat-card"><span>客服待处理 / 总会话</span><strong>${Number(stats.inbound_open_threads || 0)} / ${Number(stats.inbound_threads_total || 0)}</strong></div>
         </div>
         <p class="meta-line">投递状态说明：Cloudflare 返回 <code>queued</code> 表示已接收进入异步投递队列，不等同于用户收件箱最终送达；OTP 与安全验证码日志均自动脱敏。</p>
+        <p class="meta-line">配置边界说明：发信能力由 Pages 环境管理；客服入站接收、Email Routing 规则与 Gmail 转发目标由独立 Email Worker（<code>thewyj-support-inbound</code>）托管，当前入站观测状态为 <code>${escapeHtml(st.inbound_routing_state || "unverified")}</code> / <code>${escapeHtml(st.inbound_forwarding_state || "unverified")}</code>（Pages 侧无法直接读取外部 Worker 私密转发地址时显示「未验证」，不代表缺失配置）。</p>
         ${superAdmin ? `
           <div class="admin-email-dual-cards">
             <div class="admin-email-card">
@@ -259,7 +279,7 @@ export function createAdminEmailCenter({ root, apiGet, apiPost, getAccount }) {
     const supportAllowed = Boolean(state.overview?.status?.support_sender_authorized && superAdmin);
     const senderEmail = state.senderKind === "support" && supportAllowed ? "support@thewyj.uk" : "noreply@thewyj.uk";
     const selectedList = Array.from(state.selectedRecipients.values());
-    const serviceTemplates = state.templates.filter((t) => t.enabled !== 0 && !String(t.category || "").includes("auth"));
+    const serviceTemplates = state.templates.filter((t) => t.enabled !== 0 && String(t.category || "") === "admin_service");
 
     return `
       <div class="admin-email-section">
@@ -322,10 +342,10 @@ export function createAdminEmailCenter({ root, apiGet, apiPost, getAccount }) {
           <h3>2. 编辑邮件正文与预览</h3>
           <div class="admin-email-form-grid">
             <label class="field-label">
-              <span>套用常用模板（可选）</span>
+              <span>套用管理员通知模板（仅服务通知类，不含客服回复模板）</span>
               <select id="adminEmailTemplateFill">
                 <option value="">-- 自定义正文 --</option>
-                ${serviceTemplates.map((t) => `<option value="${escapeHtml(t.template_key)}">${escapeHtml(t.title)} (${escapeHtml(t.template_key)})</option>`).join("")}
+                ${serviceTemplates.map((t) => `<option value="${escapeHtml(t.template_key)}" ${state.composeTemplateKey === t.template_key ? "selected" : ""}>${escapeHtml(t.title)} (${escapeHtml(t.template_key)})</option>`).join("")}
               </select>
             </label>
             <label class="field-label">
@@ -353,7 +373,7 @@ export function createAdminEmailCenter({ root, apiGet, apiPost, getAccount }) {
               <dt>预览有效收件对象</dt><dd>${(state.preview.recipients_preview || []).map((r) => `${escapeHtml(r.username)} (${escapeHtml(r.email_masked)})`).join("、") || "-"}</dd>
               <dt>邮件主题</dt><dd>${escapeHtml(state.preview.subject)}</dd>
             </dl>
-            <div class="admin-email-body-preview">${escapeHtml(state.preview.body).replace(/\n/g, "<br>")}</div>
+            <div class="admin-email-body-preview" style="white-space: pre-wrap;">${escapeHtml(state.preview.body).replace(/\n/g, "<br>")}</div>
             ${state.preview.excluded_recipients?.length ? `<p class="meta-line">已过滤收件人原因：${state.preview.excluded_recipients.map((e) => `${escapeHtml(e.username || e.user_id)}:${escapeHtml(e.reason)}`).join(", ")}</p>` : ""}
             <label class="admin-checkbox"><input id="adminEmailConfirmCheckbox" type="checkbox" /> 我已核对发件身份、有效人数与邮件内容，确认立即发送</label>
             ${state.preview.high_risk_all_verified ? `
@@ -492,6 +512,18 @@ export function createAdminEmailCenter({ root, apiGet, apiPost, getAccount }) {
                 </div>
                 <div class="admin-email-reply-box">
                   <h4>正式域名人工回复</h4>
+                  ${(() => {
+                    const supportTemplates = state.templates.filter((t) => t.enabled !== 0 && String(t.category || "") === "support_reply");
+                    return supportTemplates.length ? `
+                      <label class="field-label">
+                        <span>套用客服回复模板（可选，自动绑定当前会话编号与支持邮箱）</span>
+                        <select id="adminEmailReplyTemplateFill">
+                          <option value="">-- 手动填写回复 --</option>
+                          ${supportTemplates.map((t) => `<option value="${escapeHtml(t.template_key)}" ${state.replyTemplateKey === t.template_key ? "selected" : ""}>${escapeHtml(t.title)} (${escapeHtml(t.template_key)})</option>`).join("")}
+                        </select>
+                      </label>
+                    ` : "";
+                  })()}
                   <div class="admin-email-form-grid">
                     <label class="field-label">
                       <span>发件身份策略</span>
@@ -633,10 +665,16 @@ export function createAdminEmailCenter({ root, apiGet, apiPost, getAccount }) {
       });
       root.querySelector("#adminEmailTemplateFill")?.addEventListener("change", (e) => {
         const key = e.target.value;
-        const tpl = state.templates.find((t) => t.template_key === key);
+        state.composeTemplateKey = key || "";
+        const tpl = state.templates.find((t) => t.template_key === key && String(t.category || "") === "admin_service");
         if (tpl) {
-          state.subject = tpl.subject_template || state.subject;
-          state.body = tpl.body_template || state.body;
+          const existingBody = normalizeEditorTemplateText(state.body || "").trim();
+          const rawSub = normalizeEditorTemplateText(tpl.subject_template || state.subject || "");
+          const rawBody = normalizeEditorTemplateText(tpl.body_template || state.body || "");
+          state.subject = rawSub.replace(/\{\{\s*support_email\s*\}\}/gi, "support@thewyj.uk");
+          state.body = rawBody
+            .replace(/\{\{\s*support_email\s*\}\}/gi, "support@thewyj.uk")
+            .replace(/\{\{\s*body\s*\}\}/gi, existingBody || "请在此填写通知正文内容。");
           state.preview = null;
           render();
         }
@@ -669,6 +707,7 @@ export function createAdminEmailCenter({ root, apiGet, apiPost, getAccount }) {
         try {
           const preview = await apiPost("/api/admin/email/preview", {
             draft_id: state.draftId || undefined,
+            template_key: state.composeTemplateKey || undefined,
             target_mode: state.targetMode,
             recipient_user_ids: Array.from(state.selectedRecipients.keys()),
             sender_kind: state.senderKind,
@@ -692,6 +731,7 @@ export function createAdminEmailCenter({ root, apiGet, apiPost, getAccount }) {
         try {
           const res = await apiPost("/api/admin/email/send", {
             preview_token: state.preview.preview_token,
+            template_key: state.composeTemplateKey || undefined,
             confirmed: true,
             subject: state.preview.subject,
             body: state.preview.body,
@@ -780,6 +820,27 @@ export function createAdminEmailCenter({ root, apiGet, apiPost, getAccount }) {
             setFeedback({ error: err?.message || "更新工单状态失败" });
           }
         });
+      });
+      root.querySelector("#adminEmailReplyTemplateFill")?.addEventListener("change", (e) => {
+        const key = e.target.value;
+        state.replyTemplateKey = key || "";
+        const thread = state.activeThreadDetail?.thread;
+        const tpl = state.templates.find((t) => t.template_key === key && String(t.category || "") === "support_reply");
+        if (tpl && thread) {
+          const existingReply = normalizeEditorTemplateText(state.replyBody || "").trim();
+          const baseSubject = thread.original_subject || thread.normalized_subject || "Aeris 客服回复";
+          state.replySubject = normalizeEditorTemplateText(tpl.subject_template || "Re: {{subject}}")
+            .replace(/\{\{\s*subject\s*\}\}/gi, baseSubject)
+            .replace(/\{\{\s*thread_id\s*\}\}/gi, thread.thread_id || "")
+            .replace(/\{\{\s*support_email\s*\}\}/gi, "support@thewyj.uk");
+          state.replyBody = normalizeEditorTemplateText(tpl.body_template || "{{body}}")
+            .replace(/\{\{\s*thread_id\s*\}\}/gi, thread.thread_id || "")
+            .replace(/\{\{\s*subject\s*\}\}/gi, baseSubject)
+            .replace(/\{\{\s*support_email\s*\}\}/gi, "support@thewyj.uk")
+            .replace(/\{\{\s*body\s*\}\}/gi, existingReply || "您好，感谢联系 Aeris。");
+          state.replyPreviewConfirmed = false;
+          render();
+        }
       });
       root.querySelector("#adminEmailReplyFromMode")?.addEventListener("change", (e) => {
         state.replyFromMode = e.target.value;

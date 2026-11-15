@@ -201,64 +201,65 @@ function decodePartBody(bodyText, transferEncoding = "") {
   return bodyText;
 }
 
+function collectMimeParts(rawBody, headers, flags, state, depth = 0) {
+  const contentType = String(headers?.["content-type"] || "text/plain");
+  const lowerType = contentType.toLowerCase();
+  const disp = String(headers?.["content-disposition"] || "");
+  const boundaryMatch = contentType.match(/boundary=(?:"([^"]+)"|([^\s;]+))/i);
+
+  if (boundaryMatch && lowerType.includes("multipart/") && depth < 4) {
+    const boundary = boundaryMatch[1] || boundaryMatch[2];
+    const parts = String(rawBody || "").split(`--${boundary}`);
+    for (const part of parts) {
+      const trimmed = part.trim();
+      if (!trimmed || trimmed === "--") continue;
+      const pSep = part.indexOf("\n\n");
+      if (pSep < 0) continue;
+      const partHeaders = parseRawMimeHeaders(part.slice(0, pSep));
+      const rawPartBody = part.slice(pSep + 2).replace(/\n--$/, "");
+      collectMimeParts(rawPartBody, partHeaders, flags, state, depth + 1);
+    }
+    return;
+  }
+
+  if (/filename=/i.test(disp) || /name=/i.test(lowerType) || /attachment/i.test(disp)) {
+    const fnameMatch = `${disp} ${contentType}`.match(/(?:file)?name\*?=(?:"([^"]+)"|([^\s;]+))/i);
+    const fname = fnameMatch ? (fnameMatch[1] || fnameMatch[2]) : "attachment";
+    if (DANGEROUS_ATTACHMENT_EXT_REGEX.test(fname)) {
+      flags.push("dangerous_attachment_blocked");
+    } else {
+      flags.push("attachment_stripped");
+    }
+    return;
+  }
+
+  const decoded = decodePartBody(rawBody, headers?.["content-transfer-encoding"] || "");
+  if (lowerType.includes("text/plain")) {
+    if (!state.chosenPlain) {
+      state.chosenPlain = decoded;
+    }
+  } else if (lowerType.includes("text/html")) {
+    if (/<script\b|javascript:|on(?:error|load|click)\s*=/i.test(decoded)) {
+      flags.push("active_html_stripped");
+    }
+    if (!state.chosenHtml) {
+      state.chosenHtml = decoded;
+    }
+  } else if (!lowerType.includes("multipart/")) {
+    flags.push("non_text_part_skipped");
+  }
+}
+
 function extractBodyParts(rawText, topHeaders) {
   const flags = [];
   const normalized = String(rawText || "").replace(/\r\n/g, "\n");
   const sepIdx = normalized.indexOf("\n\n");
   const rawBody = sepIdx >= 0 ? normalized.slice(sepIdx + 2) : normalized;
-  const contentType = String(topHeaders["content-type"] || "text/plain");
-  const boundaryMatch = contentType.match(/boundary=(?:"([^"]+)"|([^\s;]+))/i);
+  const state = { chosenPlain: "", chosenHtml: "" };
 
-  let chosenPlain = "";
-  let chosenHtml = "";
+  collectMimeParts(rawBody, topHeaders, flags, state, 0);
 
-  if (boundaryMatch) {
-    const boundary = boundaryMatch[1] || boundaryMatch[2];
-    const parts = rawBody.split(`--${boundary}`);
-    for (const part of parts) {
-      if (!part || part.trim() === "--" || part.trim() === "") continue;
-      const pSep = part.indexOf("\n\n");
-      if (pSep < 0) continue;
-      const partHeaders = parseRawMimeHeaders(part.slice(0, pSep));
-      const pContentType = String(partHeaders["content-type"] || "text/plain").toLowerCase();
-      const pDisp = String(partHeaders["content-disposition"] || "");
-      const pEncoding = String(partHeaders["content-transfer-encoding"] || "");
-      const rawPartBody = part.slice(pSep + 2).replace(/\n--$/, "");
-
-      if (/filename=/i.test(pDisp) || /name=/i.test(pContentType)) {
-        const fnameMatch = (pDisp + " " + pContentType).match(/(?:file)?name=(?:"([^"]+)"|([^\s;]+))/i);
-        const fname = fnameMatch ? (fnameMatch[1] || fnameMatch[2]) : "attachment";
-        if (DANGEROUS_ATTACHMENT_EXT_REGEX.test(fname)) {
-          flags.push("dangerous_attachment_blocked");
-        } else {
-          flags.push("attachment_stripped");
-        }
-        continue;
-      }
-
-      const decoded = decodePartBody(rawPartBody, pEncoding);
-      if (pContentType.includes("text/plain") && !chosenPlain) {
-        chosenPlain = decoded;
-      } else if (pContentType.includes("text/html") && !chosenHtml) {
-        if (/<script\b|javascript:|on(?:error|load|click)\s*=/i.test(decoded)) {
-          flags.push("active_html_stripped");
-        }
-        chosenHtml = decoded;
-      }
-    }
-  } else {
-    const decoded = decodePartBody(rawBody, topHeaders["content-transfer-encoding"] || "");
-    if (contentType.toLowerCase().includes("text/html")) {
-      if (/<script\b|javascript:|on(?:error|load|click)\s*=/i.test(decoded)) {
-        flags.push("active_html_stripped");
-      }
-      chosenHtml = decoded;
-    } else {
-      chosenPlain = decoded;
-    }
-  }
-
-  let plain = chosenPlain || (chosenHtml ? stripHtmlToPlainText(chosenHtml) : "");
+  let plain = state.chosenPlain || (state.chosenHtml ? stripHtmlToPlainText(state.chosenHtml) : "");
   if (/<script\b|javascript:|<iframe\b|on(?:error|load|click)\s*=/i.test(plain)) {
     flags.push("script_pattern_neutralized");
     plain = stripHtmlToPlainText(plain);
@@ -340,6 +341,18 @@ async function matchVerifiedUser(db, senderEmail) {
   return null;
 }
 
+function buildMessageIdCandidates(rawValue) {
+  const clean = String(rawValue || "").trim();
+  if (!clean) return [];
+  const bare = clean.replace(/^<+|>+$/g, "").trim();
+  const candidates = new Set([clean]);
+  if (bare) {
+    candidates.add(bare);
+    candidates.add(`<${bare}>`);
+  }
+  return Array.from(candidates);
+}
+
 async function resolveThreadId(db, { senderEmail, normalizedSubject, xAerisThread, inReplyTo, referencesHeader }) {
   if (!db || !(await tableExists(db, "email_center_inbound_threads"))) {
     return generateId("thr");
@@ -358,17 +371,19 @@ async function resolveThreadId(db, { senderEmail, normalizedSubject, xAerisThrea
     .filter(Boolean);
 
   for (const ref of refIds) {
-    const msgRow = await db
-      .prepare("SELECT thread_id FROM email_center_inbound_messages WHERE rfc_message_id = ? LIMIT 1")
-      .bind(ref)
-      .first();
-    if (msgRow?.thread_id) return msgRow.thread_id;
+    for (const candidate of buildMessageIdCandidates(ref)) {
+      const msgRow = await db
+        .prepare("SELECT thread_id FROM email_center_inbound_messages WHERE rfc_message_id = ? LIMIT 1")
+        .bind(candidate)
+        .first();
+      if (msgRow?.thread_id) return msgRow.thread_id;
 
-    const dlvRow = await db
-      .prepare("SELECT thread_id FROM email_center_deliveries WHERE provider_message_id = ? AND thread_id IS NOT NULL LIMIT 1")
-      .bind(ref)
-      .first();
-    if (dlvRow?.thread_id) return dlvRow.thread_id;
+      const dlvRow = await db
+        .prepare("SELECT thread_id FROM email_center_deliveries WHERE provider_message_id = ? AND thread_id IS NOT NULL LIMIT 1")
+        .bind(candidate)
+        .first();
+      if (dlvRow?.thread_id) return dlvRow.thread_id;
+    }
   }
 
   const subjectMatch = await db
@@ -550,7 +565,10 @@ export async function handleInboundSupportEmail(message, env = {}, ctx = null) {
     }
   }
 
-  const threadMatchHint = (rawSubject.match(/\[(?:Thread|会话)[:：\s]+([a-z0-9_]+)\]/i) || [])[1] || "";
+  const threadMatchHint =
+    (rawSubject.match(/\[(?:Thread|会话)[:：\s]+([a-z0-9_]+)\]/i) || [])[1] ||
+    (String(textExcerpt || "").match(/会话(?:编号|参考号)[:：\s]+(thr_[a-z0-9_]+)/i) || [])[1] ||
+    "";
   const matchedUserId = await matchVerifiedUser(db, senderEmail);
   const threadId = await resolveThreadId(db, {
     senderEmail,
