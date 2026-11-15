@@ -10,8 +10,8 @@ import { handleTask12Request } from '../functions/_lib/task12-api.mjs';
 import { handleTask20Request } from '../functions/_lib/task20-api.mjs';
 import { handleTask18Request } from '../functions/_lib/task18-api.mjs';
 import { hashSecret,sessionStorageKey } from '../functions/_lib/task12-crypto.mjs';
-import { base32,encryptTotp,totpAt } from '../functions/_lib/task27-crypto.mjs';
-import { POLICY_VERSIONS } from '../functions/_lib/task27-policy.mjs';
+import { base32,decryptTotp,encryptTotp,totpAt } from '../functions/_lib/task27-crypto.mjs';
+import { POLICY_VERSIONS,policyPage } from '../functions/_lib/task27-policy.mjs';
 import { DAY } from '../functions/_lib/task27-store.mjs';
 
 const root=path.resolve(import.meta.dirname,'..');
@@ -338,6 +338,19 @@ try {
     assert.equal((await call('/api/policies/accept',{terms_accepted:true,policy_versions:POLICY_VERSIONS},token)).status,200);
     assert.equal((await call('/api/me',undefined,token)).status,200);
     await sql("UPDATE task12_metadata SET value='0' WHERE key='task27_require_policy_reaccept'");
+  });
+  await test('formal 2026-11-16 policies are published and TOTP rotation fallback decrypts prior key',async()=>{
+    const pub=await call('/api/policies');assert.equal(pub.status,200);assert.equal(pub.body.status,'published');assert.equal(pub.body.effective_date,'2026-11-16');
+    assert.deepEqual(pub.body.versions,{terms:'2026-11-16-v1',privacy:'2026-11-16-v1',security:'2026-11-16-v1'});
+    const currentPage=await (await policyPage({request:new Request('https://isolated.example/terms')},'terms')).text();
+    assert.ok(currentPage.includes('2026-11-16-v1'));assert.ok(!currentPage.includes('当前为待正式发布草案'));
+    const archivedPage=await (await policyPage({request:new Request('https://isolated.example/terms?version=2026-11-14-v1')},'terms')).text();
+    assert.ok(archivedPage.includes('2026-11-14-v1'));
+    const oldKey=Buffer.alloc(32,19).toString('base64url'), newKey=Buffer.alloc(32,29).toString('base64url');
+    const sampleSecret=base32(crypto.getRandomValues(new Uint8Array(20)));
+    const encrypted=await encryptTotp({WYJ_TASK27_TOTP_KEY:oldKey},'rotation-user',sampleSecret);
+    assert.equal(await decryptTotp({WYJ_TASK27_TOTP_KEY:newKey,WYJ_TASK27_TOTP_PREVIOUS_KEYS:oldKey},'rotation-user',encrypted),sampleSecret);
+    await assert.rejects(()=>decryptTotp({WYJ_TASK27_TOTP_KEY:newKey},'rotation-user',encrypted));
   });
   await test('cross-origin and oversized or wrong-type inputs fail closed',async()=>{
     const token=(await login('alice')).session;

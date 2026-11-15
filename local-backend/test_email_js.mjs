@@ -263,7 +263,9 @@ async function run() {
     const wranglerText = await readFile(path.join(REPO_ROOT, "wrangler.jsonc"), "utf8");
     assert.equal(FORBIDDEN_PERSONAL_EMAIL_RE.test(wranglerText), false, "wrangler.jsonc must not contain personal Gmail");
     assert.equal(FORBIDDEN_GMAIL_RE.test(wranglerText), false, "wrangler.jsonc must not contain any gmail address");
-    assert.match(wranglerText, /"production"\s*:\s*\{[\s\S]*"EMAIL_SENDING_ENABLED"\s*:\s*"false"/);
+    assert.match(wranglerText, /"production"\s*:\s*\{[\s\S]*"TASK27_SECURITY_ENABLED"\s*:\s*"true"/);
+    assert.match(wranglerText, /"production"\s*:\s*\{[\s\S]*"EMAIL_SENDING_ENABLED"\s*:\s*"true"/);
+    assert.doesNotMatch(wranglerText, /"production"\s*:\s*\{[\s\S]*"EMAIL_TEST_RECIPIENTS"/);
 
     const filesToScan = [
       "index.html",

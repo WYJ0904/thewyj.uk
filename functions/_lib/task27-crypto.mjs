@@ -64,10 +64,27 @@ export function totpUri(username,secret) {
   if(!/^[A-Z2-7]{32}$/.test(secret))throw new TypeError('Invalid TOTP enrollment secret');
   return `otpauth://totp/Aeris:${encodeURIComponent(username)}?secret=${secret}&issuer=Aeris&algorithm=SHA1&digits=6&period=30`;
 }
+async function importAesGcmKey(rawSecret, usages) {
+  const bytes = unbase64url(String(rawSecret || '').trim());
+  if (bytes.length !== 32) return null;
+  return crypto.subtle.importKey('raw', bytes, 'AES-GCM', false, usages);
+}
 async function encryptionKey(env) {
-  const bytes = unbase64url(String(env.WYJ_TASK27_TOTP_KEY || ''));
-  if (bytes.length !== 32) throw new Task12Error('验证器加密服务尚未配置', 503, 'task27_totp_key_unavailable');
-  return crypto.subtle.importKey('raw', bytes, 'AES-GCM', false, ['encrypt','decrypt']);
+  const key = await importAesGcmKey(env.WYJ_TASK27_TOTP_KEY, ['encrypt','decrypt']);
+  if (!key) throw new Task12Error('验证器加密服务尚未配置', 503, 'task27_totp_key_unavailable');
+  return key;
+}
+async function decryptionKeys(env) {
+  const primary = await encryptionKey(env);
+  const candidates = [primary];
+  const fallbackRaw = String(env.WYJ_TASK27_TOTP_PREVIOUS_KEYS || '').trim();
+  if (fallbackRaw) {
+    for (const part of fallbackRaw.split(',')) {
+      const key = await importAesGcmKey(part, ['decrypt']);
+      if (key) candidates.push(key);
+    }
+  }
+  return candidates;
 }
 export async function encryptTotp(env, userId, secret) {
   const iv = randomBytes(12);
@@ -77,9 +94,15 @@ export async function encryptTotp(env, userId, secret) {
 export async function decryptTotp(env, userId, encoded) {
   const [version, iv, ciphertext] = String(encoded).split('.');
   if (version !== 'v1' || !iv || !ciphertext) throw new Task12Error('验证器配置不可用', 503, 'task27_totp_key_unavailable');
-  try {
-    return new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:unbase64url(iv),additionalData:encoder.encode(`aeris-task27:v1:${userId}`)}, await encryptionKey(env), unbase64url(ciphertext)));
-  } catch (_) { throw new Task12Error('验证器配置不可用，请联系支持', 503, 'task27_totp_key_unavailable'); }
+  const keys = await decryptionKeys(env);
+  const ivBytes = unbase64url(iv), cipherBytes = unbase64url(ciphertext);
+  const additionalData = encoder.encode(`aeris-task27:v1:${userId}`);
+  for (const key of keys) {
+    try {
+      return new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:ivBytes,additionalData}, key, cipherBytes));
+    } catch (_) { /* Try next configured rotation key before failing. */ }
+  }
+  throw new Task12Error('验证器配置不可用，请联系支持', 503, 'task27_totp_key_unavailable');
 }
 export async function totpAt(secret, step, digits = 6, hash = 'SHA-1') {
   const counter = new Uint8Array(8);
