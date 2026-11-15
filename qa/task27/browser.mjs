@@ -139,17 +139,36 @@ try {
     await page.click('#task27Prompt input[type=checkbox]');await page.click('#task27Prompt button[type=submit]');await page.waitFor("document.querySelector('#task27Inbox .task27-inbox-list')&&!document.querySelector('#task27Inbox .is-unread')",15000);
     assert.ok(await page.evaluate("Boolean(document.querySelector('[data-ack-id]'))"));const receipt=await db.prepare("SELECT acknowledged_at,read_at FROM admin_message_receipts WHERE user_id=?1 AND read_at!='' LIMIT 1").bind(user.id).first();assert.equal(receipt.acknowledged_at,'');await screenshot('inbox-desktop');
   });
-  await check('375px light and dark security layout has no horizontal overflow and passes axe',async()=>{
+  await check('375px and 390px light and dark security layout wraps full status banner with zero clipping or horizontal overflow and passes axe',async()=>{
     await page.click('#task27Inbox [data-task27-close]');await page.navigate('/account');await page.click('#openSecurityCenterBtn');await page.waitFor("document.querySelector('[data-security-mfa=totp]')",20000);
     await page.click('[data-security-mfa=email]');
     await page.waitFor("!document.querySelector('#task27Security [data-task27-status]').hidden&&document.querySelector('#task27Security [data-task27-status]').textContent.includes('绑定并验证邮箱')",10000);
     assert.equal(await page.evaluate("document.querySelector('#task27Prompt')?.checkVisibility() || false"),false);
+    const assertStatusGeometry=async()=>{
+      const geom=await page.evaluate(`(()=>{
+        const box=document.querySelector('#task27Security [data-task27-status]'),panel=document.querySelector('#task27Security .task27-panel'),cs=getComputedStyle(box),br=box.getBoundingClientRect(),pr=panel.getBoundingClientRect();
+        return{text:box.textContent.trim(),scrollW:box.scrollWidth,clientW:box.clientWidth,scrollH:box.scrollHeight,clientH:box.clientHeight,height:br.height,lineH:parseFloat(cs.lineHeight)||16,whiteSpace:cs.whiteSpace,textOverflow:cs.textOverflow,rightOk:br.right<=pr.right+1,leftOk:br.left>=pr.left-1};
+      })()`);
+      assert.equal(geom.whiteSpace,'normal');assert.equal(geom.textOverflow,'clip');
+      assert.ok(geom.scrollW<=geom.clientW+1,'status banner must not horizontally clip');
+      assert.ok(geom.scrollH<=geom.clientH+1,'status banner must not vertically clip');
+      assert.ok(geom.height>geom.lineH*1.6,'long status banner must wrap across multiple lines');
+      assert.ok(geom.rightOk&&geom.leftOk,'status banner must fit inside panel bounds');
+      assert.ok(!geom.text.endsWith('…')&&!geom.text.endsWith('...'),'status banner must not end with truncation ellipsis');
+    };
+    await assertStatusGeometry();
+    await page.send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});
+    await assertStatusGeometry();await screenshot('security-status-390-light');
     await page.send('Emulation.setDeviceMetricsOverride',{width:375,height:900,deviceScaleFactor:1,mobile:true});
     for(const theme of ['light','dark']){
       await page.evaluate(`document.documentElement.dataset.theme=${JSON.stringify(theme)}`);
       await page.evaluate("(async()=>{await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));await Promise.all(document.getElementById('task27Security').getAnimations({subtree:true}).filter(animation=>Number.isFinite(animation.effect?.getComputedTiming().endTime)).map(animation=>animation.finished.catch(()=>{})));return true;})()");
       const colors=await page.evaluate("(()=>{const button=document.querySelector('[data-security-password]'),style=getComputedStyle(button);return{theme:document.documentElement.dataset.theme,color:style.color,background:style.backgroundColor};})()");(proof.theme_states||=[]).push(colors);
       assert.equal(await page.evaluate("document.documentElement.scrollWidth>innerWidth+1"),false);
+      await assertStatusGeometry();
+      await page.evaluate("(()=>{const box=document.querySelector('#task27Security [data-task27-status]');box.dataset.orig=box.textContent;box.textContent='步骤 2/3：已完成身份验证，正在向已验证邮箱 very.long.qa.verification+task27@example.test 请求发送开启验证码（当前双重验证方式尚未变更），请稍候。';return true;})()");
+      await assertStatusGeometry();
+      await page.evaluate("(()=>{const box=document.querySelector('#task27Security [data-task27-status]');if(box.dataset.orig){box.textContent=box.dataset.orig;delete box.dataset.orig;}return true;})()");
       await page.evaluate(await readFile(path.join(root,'qa/p07-f/vendor/axe.min.js'),'utf8'));
       const axe=await page.evaluate("axe.run(document.querySelector('#task27Security')).then(r=>r.violations.map(v=>({id:v.id,impact:v.impact,targets:v.nodes.map(n=>n.target)})))");assert.deepEqual(axe,[]);await screenshot('security-mobile-'+theme);
     }

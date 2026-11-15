@@ -30,7 +30,7 @@ export function createSecurityCenter({api,apiGet,publicApi,getSession,getAccount
     return node;
   }
   const body=node=>node.querySelector('[data-task27-body]');
-  const status=(node,text,tone='error')=>{const box=node?.querySelector?.('[data-task27-status]');if(!box)return;box.textContent=text||'';box.dataset.tone=tone;box.className=tone==='info'?'task27-status is-info':'error task27-status is-error';box.hidden=!text;if(text&&typeof box.scrollIntoView==='function')box.scrollIntoView({block:'nearest'});};
+  const status=(node,text,tone='error')=>{const box=node?.querySelector?.('[data-task27-status]');if(!box)return;box.textContent=text||'';box.dataset.tone=tone;box.className=tone==='info'?'task27-status is-info':'error task27-status is-error';box.hidden=!text;if(text){const panel=node.querySelector('.modal-panel');if(panel)panel.scrollTop=0;if(typeof box.scrollIntoView==='function')box.scrollIntoView({block:'nearest'});}};
   function bind(node,selector,callback) {node.querySelectorAll(selector).forEach(button=>button.addEventListener('click',async()=>{if(button.disabled)return;button.disabled=true;status(node,'');try{await callback(button);}catch(error){const cancelled=error?.message==='操作已取消';status(node,cancelled?'已取消当前验证步骤，未保存任何更改（当前登录状态保持不变）。':(error?.message||'操作失败'),cancelled?'info':'error');}finally{if(button.isConnected)button.disabled=false;}}));}
   async function prompt(title,fields,{message='',content='',button='继续',onMount=null}={}) {
     if(pendingPrompt){pendingPrompt.reject(new Error('操作已取消'));pendingPrompt=null;}
@@ -89,7 +89,7 @@ export function createSecurityCenter({api,apiGet,publicApi,getSession,getAccount
         const allowlistHint=data.email_test_allowlist_active?'步骤 1/3：请输入要绑定的邮箱。完成身份验证并输入 6 位邮箱验证码前，邮箱不会保存。（注意：当前测试环境启用了收件人白名单限制，仅授权测试邮箱可收信。）':'步骤 1/3：请输入要绑定的邮箱。完成身份验证并输入 6 位邮箱验证码前，邮箱不会保存。';
         const email=(await prompt('绑定并验证邮箱',[{name:'email',label:'新邮箱地址',type:'email',autocomplete:'email'}],{message:allowlistHint,button:'下一步：验证身份'})).email;
         const grant=await stepup('email_change');
-        status(node,`步骤 2/3：已完成身份验证，正在向 ${email} 请求发送 6 位验证码（尚未绑定邮箱）…`,'info');
+        status(node,`步骤 2/3：已完成身份验证，正在向 ${email} 请求发送 6 位验证码（当前尚未绑定邮箱），请稍候。`,'info');
         const start=await api('/api/security/email/start',{email,grant});
         const sentHint=`步骤 3/3：验证码已提交邮件服务（状态：${start.delivery_status||'accepted'}，尚未确认送达收件箱）。请输入发往 ${email} 的 6 位数字验证码确认绑定；取消不会保存。`;
         status(node,sentHint,'info');
@@ -100,7 +100,7 @@ export function createSecurityCenter({api,apiGet,publicApi,getSession,getAccount
         const method=button.dataset.securityMfa;
         if(method==='email'&&!data.email){status(node,'无法切换为邮箱双重验证：请先点击“绑定并验证邮箱”。现有双重验证保持不变，请勿提前删除验证器。','error');return;}
         const grant=await stepup('mfa_change');
-        if(method==='email')status(node,`步骤 2/3：已完成身份验证，正在向已验证邮箱 ${data.email} 发送开启验证码（当前双重验证方式尚未变更）…`,'info');
+        if(method==='email')status(node,`步骤 2/3：已完成身份验证，正在向已验证邮箱 ${data.email} 请求发送开启验证码（当前双重验证方式尚未变更），请稍候。`,'info');
         const start=await api('/api/security/mfa/start',{method,grant});
         let code;
         if(method==='totp') {

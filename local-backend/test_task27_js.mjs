@@ -185,8 +185,27 @@ try {
     const unverified=await call('/api/security/password/request',{username:'bob',email:'wrong@example.test',method:'email'});assert.equal(unverified.status,200);assert.equal(unverified.body.message,mismatch.body.message);assert.equal(messages.length,mailCountBefore);
     const missing=await call('/api/security/password/request',{username:'no-such-account',email:'synthetic@example.test',method:'email'});assert.equal(missing.status,200);assert.equal(missing.body.message,mismatch.body.message);assert.equal(messages.length,mailCountBefore);
     const request=await call('/api/security/password/request',{username:'email-user',email:'SYNTHETIC@example.test',method:'email'});const code=lastCode();assert.equal(messages.length,mailCountBefore+1);assert.equal(request.body.message,mismatch.body.message);
+    const delivery=await one("SELECT kind,trigger_source,status FROM email_center_deliveries WHERE target_user_id='email-user' AND kind='verification_code' ORDER BY created_at DESC LIMIT 1");assert.equal(delivery.trigger_source,'task27_password_reset');assert.equal(delivery.status,'queued');
     const result=await call('/api/security/password/reset',{challenge:request.body.challenge,code,new_secret:password,confirm_secret:password});assert.equal(result.status,200);assert.equal(result.body.mfa_preserved,true);
+    assert.notEqual((await call('/api/security/password/reset',{challenge:request.body.challenge,code,new_secret:password,confirm_secret:password})).status,200);
     assert.equal((await one("SELECT mfa_method FROM task27_security WHERE user_id='email-user'")).mfa_method,'email');assert.equal((await login('email-user')).mfa_required,true);
+  });
+  await test('prior login MFA email bursts do not starve password recovery OTP, and provider failures log sanitized context and invalidate challenge',async()=>{
+    for(let i=0;i<5;i++){await sql(`INSERT INTO email_center_deliveries(delivery_id,kind,channel,trigger_source,target_user_id,recipient_email,from_email,subject,body_preview,body_redacted,status,created_at,updated_at) VALUES(?1,'login_mfa_code','transactional','task27_login_mfa','email-user','synthetic@example.test','noreply@thewyj.uk','Aeris login OTP','[REDACTED]',1,'queued',?2,?2)`,`dlv-mfa-burst-${i}`,new Date().toISOString());}
+    const beforeBurst=messages.length;
+    const reqAfterBurst=await call('/api/security/password/request',{username:'email-user',email:'synthetic@example.test',method:'email'});assert.equal(reqAfterBurst.status,200);assert.equal(messages.length,beforeBurst+1);
+    const resetOk=await call('/api/security/password/reset',{challenge:reqAfterBurst.body.challenge,code:lastCode(),new_secret:password,confirm_secret:password});assert.equal(resetOk.status,200);assert.equal(resetOk.body.mfa_preserved,true);
+    await sql('DELETE FROM cloud_rate_limit_windows');
+    const logs=[];const origErr=console.error;console.error=(...args)=>logs.push(args.join(' '));
+    try{
+      transport='rate';
+      const failedReq=await call('/api/security/password/request',{username:'email-user',email:'synthetic@example.test',method:'email'});
+      assert.equal(failedReq.status,200);assert.equal(failedReq.body.message,reqAfterBurst.body.message);
+      const tokenHash=await sessionStorageKey(failedReq.body.challenge);
+      const ch=await one('SELECT consumed_at FROM task27_challenges WHERE token_digest=?1',tokenHash);assert.ok(ch.consumed_at!=='');
+      assert.notEqual((await call('/api/security/password/reset',{challenge:failedReq.body.challenge,code:'000000',new_secret:password,confirm_secret:password})).status,200);
+      assert.ok(logs.some(line=>line.includes('task27_password_reset_delivery_failed')&&line.includes('delivery_id')&&!line.includes('synthetic@example.test')&&!line.includes('email-user')));
+    }finally{transport='queued';console.error=origErr;await sql('DELETE FROM cloud_rate_limit_windows');}
   });
   await test('administrator temporary password still requires original MFA before restricted password change',async()=>{
     const admin=(await login('admin-a')).session;

@@ -34,7 +34,7 @@ async function requireAuthoritativeBinding(env,userId,to) {
 }
 function requireAccepted(result) {
   const value=Number(result?.status_code),status=Number.isInteger(value)&&value>=400&&value<=599?value:503;
-  if(result?.ok!==true)throw new mail.EmailServiceError('验证码或安全邮件未被邮件服务接受',status,String(result?.error_code || 'email_delivery_failed'),Boolean(result?.retryable));
+  if(result?.ok!==true)throw new mail.EmailServiceError('验证码或安全邮件未被邮件服务接受',status,String(result?.error_code || 'email_delivery_failed'),Boolean(result?.retryable),{delivery_id:result?.delivery_id||null,delivery_status:result?.delivery_status||null});
   return {...result,inbox_confirmed:false,inbox_delivery_confirmed:false};
 }
 export async function sendTask27Code(env,{to,code,purpose,userId,challengeDigest,requestId=''}) {

@@ -327,6 +327,7 @@ function purposeText(purpose = "security") {
   if (key === "change_bind" || key === "rebind") return "更换绑定邮箱";
   if (key === "login_mfa" || key === "login") return "登录二次认证（MFA）";
   if (key === "mfa_enable" || key === "mfa") return "双因素认证配置";
+  if (key === "step_up") return "敏感操作身份校验";
   if (key === "recovery" || key === "password_reset" || key === "reset") return "账户安全恢复";
   return cleanSingleLineText(raw, { maxLength: 60, field: "purpose" });
 }
@@ -1214,10 +1215,10 @@ async function checkD1RateLimit(db, { recipientEmail, kind, targetUserId, window
     countRow = await db
       .prepare(
         `SELECT COUNT(*) AS cnt FROM email_center_deliveries
-         WHERE recipient_email = ? AND kind IN ('verification_code', 'email_bind_verification', 'login_mfa_code')
+         WHERE recipient_email = ? AND kind = ?
            AND created_at >= ? AND status IN ('delivered', 'queued')`
       )
-      .bind(recipientEmail, threshold)
+      .bind(recipientEmail, kind, threshold)
       .first();
   } else if (targetUserId) {
     countRow = await db
@@ -1805,10 +1806,24 @@ export async function sendVerificationCode(env, options = {}) {
   if (purpose === "bind" || purpose === "change_bind" || purpose === "register") {
     return sendEmailBindingCode(env, options);
   }
-  return sendLoginMfaCode(env, {
+  if (purpose === "login_mfa" || purpose === "login") {
+    return sendLoginMfaCode(env, options);
+  }
+  const triggerSource =
+    options.triggerSource ||
+    (purpose === "recovery" || purpose === "password_reset" || purpose === "reset"
+      ? "task27_password_reset"
+      : purpose === "mfa_enable" || purpose === "mfa"
+        ? "task27_mfa_enable"
+        : "task27_verification");
+  return safeSendTransactionalEmail(env, {
     ...options,
     kind: options.kind || "verification_code",
+    channel: "transactional",
+    triggerSource,
+    purpose: options.purpose || "security",
     requireVerifiedEmail: options.requireVerifiedEmail !== false,
+    redactSensitiveBody: true,
   });
 }
 

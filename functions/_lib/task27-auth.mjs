@@ -158,7 +158,8 @@ export async function requestPasswordReset(context,username,method='email',email
   const challenge=await createChallenge(db,{user:eligible?user:null,state:eligible?state:null,kind:'password_reset',method,code:eligible&&method==='email'?code:'',env:context.env});
   if (eligible&&method==='email') {
     // Identical public response for nonexistent/unverified/mismatched accounts and delivery failure.
-    const work=sendCode(context.env,state.verified_email,code,'找回密码',context.data?.requestId,{userId:user.id,challengeDigest:challenge.digest}).catch(async()=>{
+    const work=sendCode(context.env,state.verified_email,code,'找回密码',context.data?.requestId,{userId:user.id,challengeDigest:challenge.digest}).catch(async error=>{
+      console.error(JSON.stringify({event:'task27_password_reset_delivery_failed',request_id:String(context.data?.requestId || ''),error_code:String(error?.code || 'email_delivery_failed'),status_code:Number(error?.status || 503),delivery_id:error?.details?.delivery_id || null,retryable:Boolean(error?.retryable)}));
       await run(db,'UPDATE task27_challenges SET consumed_at=?2 WHERE token_digest=?1',[challenge.digest,nowIso()]);
     });
     if (context.waitUntil) context.waitUntil(work); else await work;

@@ -457,6 +457,21 @@ async function run() {
         assert.equal(blockedOtp.ok, false);
         assert.equal(blockedOtp.error_code, "email_rate_limited");
 
+        // Recovery OTP uses its own kind bucket ('verification_code') so bind/login MFA bursts do not block password reset
+        const recoveryOtp = await sendVerificationCode(limitedEnv, {
+          to: "external@example.org",
+          code: "100004",
+          purpose: "recovery",
+          requireVerifiedEmail: false,
+        });
+        assert.equal(recoveryOtp.ok, true);
+        const recoveryRow = await db
+          .prepare("SELECT kind, trigger_source FROM email_center_deliveries WHERE delivery_id = ?")
+          .bind(recoveryOtp.delivery_id)
+          .first();
+        assert.equal(recoveryRow?.kind, "verification_code");
+        assert.equal(recoveryRow?.trigger_source, "task27_password_reset");
+
         // Workers Binding transport works too
         let bindingCalled = 0;
         const bindingEnv = makeEnv(db, {
