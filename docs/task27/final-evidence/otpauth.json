@@ -1,0 +1,27 @@
+{
+  "reference": "https://github.com/hectorm/otpauth",
+  "version": "9.6.0",
+  "license": "MIT",
+  "production_dependency_added": false,
+  "checks": [
+    {
+      "name": "Web Crypto vs OTPAuth independent generation and validation",
+      "status": "PASS",
+      "vectors": 256
+    },
+    {
+      "name": "existing QR encoder independently decoded; URI/link/manual configurations equivalent",
+      "status": "PASS",
+      "cases": 4,
+      "decoder": "jsQR 1.4.0 (MIT), isolated test tool only"
+    },
+    {
+      "name": "OTPAuth default browser ESM evaluated in actual workerd",
+      "status": "PASS",
+      "compatibility_date": "2026-08-06",
+      "esm_sha256": "45ab6c2d2378a8f3bf825474c3b307baa8beb71b57b6931183afb5893cd78c52"
+    }
+  ],
+  "real_authenticator_apps": "OWNER_NOT_TESTED",
+  "status": "PASS"
+}

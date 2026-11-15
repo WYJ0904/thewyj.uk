@@ -1,0 +1,60 @@
+{
+  "scope": "synthetic pre-0035 D1 records upgraded once; actual compiled Pages worker; no real accounts or remote data",
+  "checks": [
+    {
+      "name": "0035 preserves all existing user, verifier, session, membership, finance and learning columns",
+      "status": "PASS"
+    },
+    {
+      "name": "existing Web session and finance membership survive without re-registration or MFA enrollment",
+      "status": "PASS"
+    },
+    {
+      "name": "existing Android refresh credential survives the additive upgrade",
+      "status": "PASS"
+    },
+    {
+      "name": "six-character legacy PBKDF2 and Cloudflare verifiers still authenticate in workerd",
+      "status": "PASS"
+    },
+    {
+      "name": "direct registration API rejects eight characters, every missing class, common weak passwords and overlength",
+      "status": "PASS"
+    },
+    {
+      "name": "nine-character compliant, Unicode and 128-character passwords register successfully",
+      "status": "PASS"
+    },
+    {
+      "name": "old password can authorize a voluntary change, while the newly chosen password must satisfy new policy",
+      "status": "PASS"
+    },
+    {
+      "name": "every server-generated 20-character temporary password includes all four required classes",
+      "status": "PASS"
+    },
+    {
+      "name": "legacy opaque IDs remain valid step-up/reset targets and verified-mail recipients",
+      "status": "PASS"
+    },
+    {
+      "name": "unverified email cannot enable email MFA and unavailable mail never reports a sent code",
+      "status": "PASS"
+    },
+    {
+      "name": "voluntary password operations leave membership, finance and learning content unchanged",
+      "status": "PASS"
+    }
+  ],
+  "production": "NOT_TESTED",
+  "room_or_phone_operations": 0,
+  "pre_migration_business_digests": {
+    "task12_users": "8e96cdd174e24161f035f25a8c983c3d68ab1c3c917051716a780169b48acd17",
+    "task12_sessions": "732f38e30b2ea6d2d4be5f0e691f973d47a7e2f730a01832d997273bf6c8a3ae",
+    "task20_device_sessions": "f71e452de32391e6e538b45efb3e967da7b6a444c08f498326a86769a15e2d3f",
+    "task13_user_memberships": "022b20dde9786847b40afffa70b1a4afebeceaa06763681f0324112da41c7df4",
+    "task16_finance_transactions": "fe7d74c7fc92cdee83a219395a0d934d52b0773693a1a153a5f223cd9230d443",
+    "task11_learning_sync_records": "7344e8dafbe46b9821e84794c9c8fb9819d5df32da4b8b6ba21027aef6f629f8"
+  },
+  "status": "PASS"
+}

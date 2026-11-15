@@ -1,0 +1,47 @@
+{
+  "scope": "isolated local D1; synthetic credentials; no remote or real-user changes",
+  "checks": [
+    {
+      "name": "account keys normalize the same identifiers across clients and IPs without a user lookup",
+      "status": "PASS"
+    },
+    {
+      "name": "known, nonexistent, banned-wrong-password and invalid-verifier failures have the same public credential response",
+      "status": "PASS"
+    },
+    {
+      "name": "distributed Web and Android guesses share one account budget",
+      "status": "PASS"
+    },
+    {
+      "name": "nonexistent accounts receive the same account-limit response",
+      "status": "PASS"
+    },
+    {
+      "name": "one blocked IP pair cannot keep charging or extending the shared account budget",
+      "status": "PASS"
+    },
+    {
+      "name": "parallel distributed reservations cannot exceed the account budget",
+      "status": "PASS"
+    },
+    {
+      "name": "rate exhaustion never bans the user or revokes an existing legal session, and expires without extending on denial",
+      "status": "PASS"
+    },
+    {
+      "name": "successful old-password login clears the completed attempt without applying new-password composition rules",
+      "status": "PASS"
+    },
+    {
+      "name": "missing limiter storage fails closed instead of issuing credentials",
+      "status": "PASS"
+    }
+  ],
+  "limits": {
+    "pair": 8,
+    "account": 24,
+    "windowSeconds": 300
+  },
+  "status": "PASS"
+}

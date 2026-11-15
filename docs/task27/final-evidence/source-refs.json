@@ -1,0 +1,13 @@
+{
+  "task27_source_head": "12a70019869432fbab581f2200e528326a6c88b2",
+  "main_head": "7766b80eb2c9e448dc08a3a4b317bfa62e0dff6e",
+  "email_head": "033b815201a47ac0e874a9d75183371fe99b6f0d",
+  "combined_head": "878c04090d442bc026ec77434b16d2e922f58152",
+  "historical_reports_modified": false,
+  "evidence_boundaries": [
+    "local synthetic",
+    "no real mailbox",
+    "no physical phone",
+    "no Hosted or Production writes"
+  ]
+}
