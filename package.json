@@ -4,6 +4,9 @@
   "version": "0.0.0",
   "description": "Cloudflare Pages development tooling for thewyj.uk",
   "scripts": {
+    "test:task28": "node qa/task28/secure-files.mjs",
+    "test:task28:runtime": "npm run cf:check && node qa/task28/workerd.mjs",
+    "test:task28:browser": "node qa/task28/browser.mjs",
     "test:tts": "node local-backend/test_tts_js.mjs && node local-backend/test_language_js.mjs",
     "test:tts:browser": "node qa/tts/browser.mjs",
     "test:tts:runtime": "npm run cf:check && node qa/tts/workerd.mjs",

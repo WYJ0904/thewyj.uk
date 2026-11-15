@@ -1,0 +1,385 @@
+{
+  "task": "Task28: unified secure files and attachments foundation (P1)",
+  "date_hong_kong": "2026-11-16",
+  "recorded_at_hong_kong": "2026-11-16T02:29:45.308426+08:00",
+  "branch": "codex/task28-secure-file-foundation",
+  "base_task27_sha": "8109e90fd83da110959a988f2a4aa692fee15051",
+  "main_observed_sha": "7766b80eb2c9e448dc08a3a4b317bfa62e0dff6e",
+  "release": "RELEASE_HELD",
+  "scope": "Synthetic local isolated D1/R2 only; not Hosted, device or Production acceptance",
+  "checks": {
+    "task28": {
+      "status": "PASS",
+      "groups": 30,
+      "raw_log": ".wrangler/task28/evidence/task28-submission.log",
+      "detail": {
+        "scope": "local isolated Miniflare D1/R2; synthetic files and accounts only",
+        "checks": [
+          {
+            "name": "additive migration preserves existing users, share rows, R2 bytes and unverified hash semantics",
+            "status": "PASS"
+          },
+          {
+            "name": "concurrent initialization reuses one owner-scoped request, file and daily quota entry",
+            "status": "PASS"
+          },
+          {
+            "name": "private attachment initializes through v1, reuses transfer parts and publishes once",
+            "status": "PASS"
+          },
+          {
+            "name": "private metadata, grants, deletion and upload sessions deny other accounts, guests and administrators",
+            "status": "PASS"
+          },
+          {
+            "name": "file-scoped grants reject forgery, cross-file replay and expiry while preserving range retry",
+            "status": "PASS"
+          },
+          {
+            "name": "known-type spoofing and forged hashes fail before committing; correct retry succeeds",
+            "status": "PASS"
+          },
+          {
+            "name": "HTML SVG and unsupported ordinary binaries download with sandbox, attachment, nosniff and no-store",
+            "status": "PASS"
+          },
+          {
+            "name": "path traversal, encoded paths, arbitrary storage fields and cross-origin writes fail closed",
+            "status": "PASS"
+          },
+          {
+            "name": "untrusted bodies and fractional sizes stay within a bounded buffer and cancel oversized streams",
+            "status": "PASS"
+          },
+          {
+            "name": "concurrent quota reservations cannot exceed the existing guest allowance and cancel releases it",
+            "status": "PASS"
+          },
+          {
+            "name": "concurrent last daily quota slot is charged once atomically with its reservation",
+            "status": "PASS"
+          },
+          {
+            "name": "concurrent file allocations respect declared count and size",
+            "status": "PASS"
+          },
+          {
+            "name": "R2 part failure retains a resumable verified intent and never publishes a missing part",
+            "status": "PASS"
+          },
+          {
+            "name": "D1 publication failure after R2 complete recovers without completing the MPU twice",
+            "status": "PASS"
+          },
+          {
+            "name": "complete versus cancel is fenced; a losing cancel cannot delete a published object",
+            "status": "PASS"
+          },
+          {
+            "name": "parallel complete requests create one share and retries return the same ID",
+            "status": "PASS"
+          },
+          {
+            "name": "multi-part content, resume and cross-boundary ranges preserve bytes without claiming a full-file hash",
+            "status": "PASS"
+          },
+          {
+            "name": "guest sharing keeps its password contract and concurrent last-download authorization has one winner",
+            "status": "PASS"
+          },
+          {
+            "name": "revoke immediately denies existing/new grants, failed physical deletion retries, and quota is not duplicated",
+            "status": "PASS"
+          },
+          {
+            "name": "orphan scan paginates, preserves foreign/malformed keys and protects historical references",
+            "status": "PASS"
+          },
+          {
+            "name": "legacy objects remain readable and declared historical hashes never become verified whole-file hashes",
+            "status": "PASS"
+          },
+          {
+            "name": "expired shares deny both existing bearer grants and new authorizations",
+            "status": "PASS"
+          },
+          {
+            "name": "R2 cleanup plus D1 release failure retains its retry evidence and releases logical quota once",
+            "status": "PASS"
+          },
+          {
+            "name": "failed allocation rollback journals the losing MPU and retry never deletes the winning object",
+            "status": "PASS"
+          },
+          {
+            "name": "multi-batch cleanup resumes beyond its object budget and preserves unrelated objects",
+            "status": "PASS"
+          },
+          {
+            "name": "Task14 file ownership denies administrator override and an uncertain successful D1 commit keeps published bytes",
+            "status": "PASS"
+          },
+          {
+            "name": "Task14 cancellation during R2 put cannot publish an orphan or delete another file",
+            "status": "PASS"
+          },
+          {
+            "name": "unacknowledged MPU creation retains a scoped recovery intent instead of claiming cleanup success",
+            "status": "PASS"
+          },
+          {
+            "name": "interactive cleanup requires a session-bound single-use Task27 step-up and keeps administrative audit",
+            "status": "PASS"
+          },
+          {
+            "name": "oversized chunked administrative bodies reject promptly even when the router tees them for audit",
+            "status": "PASS"
+          }
+        ],
+        "hosted": "NOT_TESTED",
+        "production": "NOT_TOUCHED",
+        "android_device": "NOT_TESTED",
+        "maximum_buffer_bytes": 33554432,
+        "status": "PASS"
+      },
+      "local_evidence": ".wrangler/task28/evidence/bcd0e3aa-1caf-4722-b2f8-81a551d03e39/result.json"
+    },
+    "compiled_workerd": {
+      "status": "PASS",
+      "groups": 3,
+      "raw_log": ".wrangler/task28/evidence/workerd-submission.log",
+      "detail": {
+        "scope": "compiled Pages Worker in local workerd; isolated D1/R2; streaming synthetic bytes",
+        "checks": [
+          {
+            "name": "actual Worker uploads verified multipart bytes through the existing protocol",
+            "status": "PASS"
+          },
+          {
+            "name": "native fixed-length stream preserves wire length and whole download SHA-256",
+            "status": "PASS"
+          },
+          {
+            "name": "native range retry, private owner authorization and revocation work in compiled routing",
+            "status": "PASS"
+          }
+        ],
+        "production": "NOT_TOUCHED",
+        "hosted": "NOT_TESTED",
+        "device": "NOT_TESTED",
+        "download": {
+          "size_bytes": 16777339,
+          "maximum_received_chunk": 65536,
+          "wire_content_length": 16777339,
+          "whole_sha256_compared": true
+        },
+        "status": "PASS"
+      },
+      "local_evidence": ".wrangler/task28/evidence/workerd-2eebe5ae-cbf0-4f49-aea3-a34989107a93/result.json"
+    },
+    "browser": {
+      "status": "PASS",
+      "groups": 4,
+      "raw_log": ".wrangler/task28/evidence/browser-submission.log",
+      "detail": {
+        "scope": "isolated desktop Chrome + mobile viewport, real local D1/R2, synthetic account/files",
+        "checks": [
+          {
+            "name": "account login exposes the private attachment option in the existing transfer page",
+            "status": "PASS"
+          },
+          {
+            "name": "private upload, validated completion, owner-only management and file-scoped download use the real UI",
+            "status": "PASS"
+          },
+          {
+            "name": "375px mobile layout keeps controls visible and the transfer region has no serious accessibility violations",
+            "status": "PASS"
+          },
+          {
+            "name": "revoke removes private access and ordinary shared links still open in an independent guest browser context",
+            "status": "PASS"
+          }
+        ],
+        "screenshots": [
+          "private-desktop.png",
+          "private-mobile.png"
+        ],
+        "hosted": "NOT_TESTED",
+        "android_webview": "NOT_TESTED",
+        "production": "NOT_TOUCHED",
+        "browser": "Chrome/157.0.8103.52",
+        "status": "PASS"
+      },
+      "local_evidence": ".wrangler/task28/evidence/browser-3635842a-91bd-4567-86db-ea5daf247c61/result.json"
+    },
+    "task14": {
+      "status": "PASS",
+      "groups": 13,
+      "log": ".wrangler/task28/evidence/task14-submission.log"
+    },
+    "task22": {
+      "status": "PASS",
+      "log": ".wrangler/task28/evidence/task22-sixth.log"
+    },
+    "transfer_byte_integrity": {
+      "status": "PASS",
+      "log": ".wrangler/task28/evidence/transfer-integrity-final.log"
+    },
+    "task27": {
+      "status": "PASS",
+      "groups": 32,
+      "log": ".wrangler/task28/evidence/task27-regression.log"
+    },
+    "email": {
+      "status": "PASS",
+      "suites": 10,
+      "log": ".wrangler/task28/evidence/email-regression.log"
+    },
+    "android_device_sessions": {
+      "status": "PASS",
+      "groups": 18,
+      "log": ".wrangler/task28/evidence/device-session-regression.log"
+    },
+    "android_local": {
+      "status": "PASS",
+      "tests": 25,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "suites": 8,
+      "lint": "PASS",
+      "assembleDebug": "PASS",
+      "installed": false
+    },
+    "local_wrangler_migrations": {
+      "status": "PASS",
+      "ledger": 38,
+      "foreign_key_violations": 0,
+      "log": ".wrangler/task28/evidence/local-ledger.log"
+    },
+    "static_site": {
+      "status": "PASS",
+      "python_tests": 31
+    },
+    "service_worker": {
+      "status": "PASS",
+      "tests": 20
+    },
+    "queue_isolation_session_plan_and_recovery": {
+      "status": "PASS"
+    },
+    "module_graph_storage_contract_cloud_only_async_feedback": {
+      "status": "PASS"
+    },
+    "allowlist_build_and_repository_audit": {
+      "status": "PASS"
+    },
+    "functions_and_two_cleanup_workers_build_only": {
+      "status": "PASS",
+      "remote_deploy": false
+    }
+  },
+  "remote": {
+    "ci_authority": "Final PR head checks; recorded in PR description and final delivery, not inferred from local passes",
+    "hosted_preview": "NOT_TESTED",
+    "shared_hydrogen_preview": "NOT_OVERWRITTEN",
+    "production": "NOT_TOUCHED",
+    "android_real_device": "NOT_TESTED",
+    "android_stable": "NOT_CHANGED"
+  },
+  "limitations": [
+    "Runtime stream fixture: 16 MiB + 123 bytes; no GB heap-peak/WAN benchmark",
+    "Only server-verified single-part files expose whole-file SHA-256; multipart is parts_verified",
+    "Header validation is not antivirus or full media decoding; JSON object parsing capped at 1 MiB",
+    "Unacknowledged R2 MPU creation remains create_unknown pending explicit scoped reconciliation"
+  ],
+  "history": {
+    "preserved": true,
+    "index": ".wrangler/task28/evidence/development-failures.md",
+    "logs": [
+      "android-task22-initial.log",
+      "browser-fifth.log",
+      "browser-fourth.log",
+      "browser-initial.log",
+      "browser-second.log",
+      "browser-submission.log",
+      "browser-third.log",
+      "cleanup14-build.log",
+      "cleanup22-build.log",
+      "device-session-regression.log",
+      "email-regression.log",
+      "functional-audit.log",
+      "functions-build-second.log",
+      "functions-build.log",
+      "local-ledger.log",
+      "local-migrations.log",
+      "pages-stage.log",
+      "repository-audit.log",
+      "sw-install.log",
+      "task14-final.log",
+      "task14-initial.log",
+      "task14-submission.log",
+      "task14-third.log",
+      "task22-fifth.log",
+      "task22-final.log",
+      "task22-fourth.log",
+      "task22-initial.log",
+      "task22-second.log",
+      "task22-sixth.log",
+      "task22-third.log",
+      "task27-regression.log",
+      "task28-final-candidate.log",
+      "task28-final.log",
+      "task28-fourth.log",
+      "task28-initial.log",
+      "task28-memory-final.log",
+      "task28-second.log",
+      "task28-submission.log",
+      "task28-third.log",
+      "transfer-integrity-final.log",
+      "transfer-integrity-initial.log",
+      "workerd-final.log",
+      "workerd-initial.log",
+      "workerd-memory-final.log",
+      "workerd-submission.log"
+    ]
+  },
+  "source_manifest": {
+    "normalization": "UTF-8 text bytes with CR/CRLF normalized to LF; describes submitted sources, not a remote CI claim",
+    "sha256": {
+      ".github/workflows/ci.yml": "815b1cee42438243238313bca695c2d5b493e3ab7784d2688e79b192786bedf9",
+      "cloudflare/migrations/0038_task28_secure_files.sql": "464f54f36bf312b297a267118286b9d43618f7abfbb0f5eca364c419fd4c0bff",
+      "cloudflare/task22-cleanup-worker.mjs": "e69da54eab37e1ef66d4499a64d8bd79c9826b5aa92b7bbc22333f2f8df5923e",
+      "functions/_lib/secure-file-api.mjs": "6c86f5407c89d800410c6db75f18c9d0dd120bd6a1d6ea60b6e3968bfbd2efd9",
+      "functions/_lib/secure-file-cleanup.mjs": "e4ce36b7f8c1581db8ad2ac8fc647e53ce6ccced46512d15fb76d46b0143c2fe",
+      "functions/_lib/secure-file-maintenance.mjs": "c028109262b95e6280983455211adfa52e2ab174fe776b6a9f1eb0bf58e64ddc",
+      "functions/_lib/secure-file-policy.mjs": "7dafbde1cbe398b8638ca61b980bd04d2aab614d7c6df433280f858c39794faa",
+      "functions/_lib/secure-file-service.mjs": "aa6634a09b82c5ed99021183d27657e830a1eb0c6dafa6b44207e19e6d9a59b2",
+      "functions/_lib/task14-api.mjs": "82c3c3b1336ee3afa0ec15c32584cf70cf4ecca2929702fb639625feb4a2bc6a",
+      "functions/_lib/task14-model.mjs": "22ed26ccc1f2dadf0074895044e939b21f4837a844b74eba3b0f5c07b4351936",
+      "functions/_lib/task14-service.mjs": "18f757277a8f46d8f375e22bcd4cafb0bdc5ab3cfbf8e4895752ae3213b28955",
+      "functions/_lib/task22-api.mjs": "d4ab559d0d10c2806f6d7daceeea58e121b3af1bc7bff592f0be34fee53dc8c8",
+      "functions/_lib/task22-model.mjs": "a9ef6f25fd8d36d0980d7c2d490121f77502de853a7c39ae909631f11ae30313",
+      "functions/_lib/task22-service.mjs": "32c08aa778b4b0ef133338de743f3ee9de40e6eecd0edc6af633d1645d4b7e2f",
+      "functions/_lib/task27-auth.mjs": "6efc1c044bba6b0d03b153cac2f1e48abaf3731fcce7db6d6471d81e9def8e9d",
+      "functions/api/[[path]].js": "fae7e884844a98b233c6b0d0d1eeb2063ca905eca4f09819a39a5d55276eee34",
+      "index.html": "0c4af6f8b76c5b794d73395d0f27daa415a2c39e4b619715f049c278d3d17ee4",
+      "js/transfer/app.js": "ce955464210d897693de4a01f1619f77c4d52e1c34207387ee5a4f0be5d04117",
+      "local-backend/test_task14_d1_js.mjs": "bcbf77d953fc9b4653d163a3dc8afd1a185ba46b5faac939403457bcf31a290b",
+      "local-backend/test_task22_d1_js.mjs": "451a0b58dd709fce6f9d1cae5b27ee31678d344d0c7223a3d90007b2170f61ff",
+      "local-backend/test_transfer_integrity_js.mjs": "ef91486a11d060cf6207532457b57216117ec12ccdfeefbd8fa9dd7db62823da",
+      "package.json": "62f17b989c9dedd3b768404430036302d3fce9c6eb4356988de4aac04ab6b9bd",
+      "product-ui.css": "752cbf9388843818974e19597ea2bb771bf8689d655e4c6efc59286aca8834de",
+      "qa/task28/browser.mjs": "594c74bf6ff839322760b9c92fb2775ae55877dbf89f46aed497201c4f47f283",
+      "qa/task28/secure-files.mjs": "ba3ceeb1cea9b35b447362878258d1f7e11b4fa8a181277e5ef53acf4229eebc",
+      "qa/task28/workerd.mjs": "58bbfa42e6d5fdb770a9f743cabcd4766615b513e72fe04d9b3816a461011365",
+      "sw.js": "8f7943e85e5a216e67c5ec8b5c8b359fc62c76ca5cd95ad4cfb65a3d64923d91"
+    }
+  },
+  "screenshots": {
+    "private-desktop.png": "37c1fdc4ab99a1c4d57bb6a1914d9373f64bcde6858c28a707aa70317b595cbf",
+    "private-mobile.png": "69208355d3003bab9d3a0b710e51b025411d5e167d7f0c11d1f9128a74b58eb6"
+  },
+  "changed_file_count": 35
+}

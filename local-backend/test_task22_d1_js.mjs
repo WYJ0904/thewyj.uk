@@ -136,12 +136,18 @@ async function allocateFile(db, storage, sessionId, options) {
 }
 
 async function putPart(db, storage, sessionId, fileId, partNumber, sizeBytes, seed, options) {
+  // These transport fixtures now pass the same real-type gate as user uploads.
+  // Keep arbitrary binary fixtures binary; give text/PNG cases authentic bytes.
+  const file = await db.prepare('SELECT file_name FROM task22_upload_files WHERE id=?1').bind(fileId).first();
+  const bytes = bytesOf(seed,sizeBytes);
+  if (file?.file_name.endsWith('.txt')) bytes.fill(65+seed%26);
+  if (file?.file_name.endsWith('.png') && partNumber===1) bytes.set([137,80,78,71,13,10,26,10]);
   const result = await request(db, storage,
     `/api/transfer/uploads/${sessionId}/files/${fileId}/parts/${partNumber}`, {
       method: "PUT",
       token: options.token,
       guestId: options.guestId,
-      bodyBytes: bytesOf(seed, sizeBytes),
+      bodyBytes: bytes,
     });
   return result;
 }

@@ -451,7 +451,7 @@ try {
     );
     assert.equal(
       downloaded.response.headers.get("Content-Type"),
-      fixture.mimeType,
+      /\.(docx|exe)$/.test(fixture.fileName) ? 'application/octet-stream' : fixture.mimeType,
       `${fixture.label}: Content-Type`,
     );
     const disposition = downloaded.response.headers.get("Content-Disposition") || "";
@@ -484,7 +484,7 @@ try {
     );
     assert.equal(
       ranged.response.headers.get("Content-Type"),
-      fixture.mimeType,
+      /\.(docx|exe)$/.test(fixture.fileName) ? 'application/octet-stream' : fixture.mimeType,
       `${fixture.label}: ranged Content-Type`,
     );
     assert.deepEqual(

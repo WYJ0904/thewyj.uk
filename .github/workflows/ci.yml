@@ -431,6 +431,8 @@ jobs:
           npm run test:task27:mail 2>&1 | tee artifacts/task27-mail-consumer.log
           npm run test:task27:login-guard 2>&1 | tee artifacts/task27-login-guard.log
           npm run test:task27:owner 2>&1 | tee artifacts/task27-operation-owner.log
+          npm run test:task28 2>&1 | tee artifacts/task28-secure-files.log
+          node qa/task28/workerd.mjs 2>&1 | tee artifacts/task28-workerd.log
           npm install --prefix .wrangler/task27-reference/otpauth-lab --ignore-scripts --no-audit --no-fund --no-save otpauth@9.6.0 jsqr@1.4.0
           npm run cf:check
           node qa/task27/workerd.mjs 2>&1 | tee artifacts/task27-workerd.log
@@ -1114,6 +1116,7 @@ jobs:
           set -euo pipefail
           npm install --prefix .wrangler/task27-reference/otpauth-lab --ignore-scripts --no-audit --no-fund --no-save otpauth@9.6.0 jsqr@1.4.0
           npm run test:task27:browser 2>&1 | tee artifacts/task27-browser.log
+          npm run test:task28:browser 2>&1 | tee artifacts/task28-browser.log
 
       - name: Task 25 feature administration and release channel browser acceptance
         run: |
