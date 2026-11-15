@@ -34,10 +34,12 @@ import {
 import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation, nativeAppRoute } from "./js/core/router.js?release=20261115-aeris-s0-p0-release";
 import {
   ACCOUNT_CACHE_KEY,
+  NATIVE_ACCOUNT_SESSION,
   isThewyjAndroidApp,
   accountSessionHeaders,
   clearAccountSessionStorage,
   persistAccountSession,
+  queueNativeBridgeNavigation,
   requestNativeLogout,
   requestNativeSessionRefresh,
   restoreAccountSession,
@@ -1307,7 +1309,7 @@ function renderAccountUi() {
   const summary = accountMembershipSummary(account);
   $("accountBar")?.classList.remove("hidden");
   $("navGuestActions")?.classList.toggle("hidden", Boolean(account));
-  if (!account && state.session) $("navGuestActions")?.classList.add("hidden");
+  if (!account && (state.session || isThewyjAndroidApp())) $("navGuestActions")?.classList.add("hidden");
   $("accountMenu")?.classList.toggle("hidden", !account);
   if (!account && $("accountMenu")) $("accountMenu").open = false;
   if ($("navHomeLabel")) $("navHomeLabel").textContent = "首页";
@@ -3994,14 +3996,19 @@ async function mountVerifiedCurrentRoute(owner, strictOwner = false) {
       $('sessionRecovery').setAttribute('aria-hidden', 'true');
       renderAccountUi();
       document.documentElement.dataset.workspaceMount = 'ready';
+      startupMounted = true;
+      if (startupRevealed) document.documentElement.dataset.bootState = 'ready';
       return;
     }
   }
 }
 
 function showStartupRecovery(reason) {
+  const timeoutMessage = isThewyjAndroidApp()
+    ? '连接较慢，正在安全恢复页面。你可以等待或点击重试。'
+    : '连接较慢，正在安全恢复页面。你可以等待、重试或返回公开首页。';
   showSessionRecovery(reason === 'timeout'
-    ? '连接较慢，正在安全恢复页面。你可以等待、重试或返回公开首页。'
+    ? timeoutMessage
     : '页面尚未准备完成，请重试连接。', { isError: reason === 'error' || !backendAvailable, preserveWorkspaceMount: true });
 }
 
@@ -4153,7 +4160,9 @@ function showSessionRecovery(message = "正在打开你的页面…", options = 
   recovery.setAttribute("aria-hidden", "false");
   $("sessionRecoveryMessage").textContent = message;
   if ($("exitSessionRecoveryBtn")) {
-    $("exitSessionRecoveryBtn").hidden = isThewyjAndroidApp();
+    const hideExit = isThewyjAndroidApp();
+    $("exitSessionRecoveryBtn").hidden = hideExit;
+    $("exitSessionRecoveryBtn").classList.toggle("hidden", hideExit);
   }
   $("accountBar").classList.add("hidden");
 }
@@ -7300,6 +7309,7 @@ async function performBackendRefresh() {
       if (!healthResponse.ok) {
         if (isCanonicalSessionFailure(health)) {
           if (requestNativeSessionRefresh(health.code)) {
+            backendFailureMessage = "";
             pendingScreen = "workspace";
             pendingAuthMessage = "正在刷新设备会话…";
           } else {
@@ -7323,6 +7333,7 @@ async function performBackendRefresh() {
         $("statusDot").classList.toggle("online", true);
         pendingScreen = "workspace";
         pendingAuthMessage = "";
+        backendFailureMessage = "";
         if (restoring && startupMounted) void mountVerifiedCurrentRoute(owner, true).catch(() => {});
       }
     } else {
@@ -7340,7 +7351,7 @@ async function performBackendRefresh() {
     $("statusDot").classList.remove("online");
   }
   if (sessionRestorePending) {
-    showSessionRecovery(backendFailureMessage || "正在重新验证登录状态…", { isError: !backendAvailable });
+    showSessionRecovery(pendingAuthMessage || backendFailureMessage || "正在重新验证登录状态…", { isError: !backendAvailable });
     applyInterfacePolicy();
   }
   applyPendingScreen();
@@ -7478,7 +7489,7 @@ function installNativeThemeBridge() {
   const pushTheme = (resolved) => {
     if (window.__wyjNativeTheme === resolved) return;
     window.__wyjNativeTheme = resolved;
-    window.location.href = `thewyj://theme/${resolved}`;
+    queueNativeBridgeNavigation(`thewyj://theme/${resolved}`);
   };
   document.addEventListener("wyj:theme-changed", (event) => {
     pushTheme(event?.detail?.resolved === "dark" ? "dark" : "light");
@@ -8013,7 +8024,19 @@ async function boot() {
     toolsInitialized = true;
   }
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register(`/sw.js?v=${ASSET_RELEASE}`).catch(() => {});
+    const registerReleaseWorker = (attempt = 0) => {
+      navigator.serviceWorker.register(`/sw.js?v=${ASSET_RELEASE}`)
+        .then((registration) => {
+          const activeUrl = registration?.active?.scriptURL || "";
+          if (activeUrl && !activeUrl.includes(ASSET_RELEASE) && !registration.installing && !registration.waiting) {
+            void registration.update().catch(() => {});
+          }
+        })
+        .catch(() => {
+          if (attempt < 3) setTimeout(() => registerReleaseWorker(attempt + 1), 500 * (attempt + 1));
+        });
+    };
+    registerReleaseWorker();
   }
   const initialPath = location.pathname.replace(/\/+$/, "") || "/";
   const shouldProbeCloudBackend = () => !location.pathname.startsWith("/share/");
@@ -8069,16 +8092,32 @@ async function boot() {
   void refreshCloudChangelog();
   $("retrySessionRecoveryBtn").addEventListener("click", (event) =>
     withInteractionFeedback(event.currentTarget, "session-recovery-retry", async () => {
+      if (isThewyjAndroidApp() && !state.session) {
+        state.session = NATIVE_ACCOUNT_SESSION;
+        sessionRestorePending = true;
+      }
       $("sessionRecovery").dataset.recoveryState = "loading";
       $("sessionRecoveryMessage").textContent = "正在重新连接服务…";
       await refreshBackendState();
+      if (state.session && state.account && !sessionRestorePending) {
+        await mountVerifiedCurrentRoute(state.session, false);
+        return;
+      }
       await routeCurrent();
-      if (!$("sessionRecovery").classList.contains("hidden") && !backendAvailable) {
-        $("sessionRecovery").dataset.recoveryState = "error";
-        $("sessionRecoveryMessage").textContent = backendFailureMessage || "连接暂时不可用，请稍后重试或返回公开首页。";
+      if (!$("sessionRecovery").classList.contains("hidden")) {
+        if (backendAvailable && sessionRestorePending && isThewyjAndroidApp()) {
+          $("sessionRecovery").dataset.recoveryState = "loading";
+          $("sessionRecoveryMessage").textContent = pendingAuthMessage || "正在刷新设备会话…";
+        } else if (!backendAvailable) {
+          $("sessionRecovery").dataset.recoveryState = "error";
+          $("sessionRecoveryMessage").textContent = backendFailureMessage || (isThewyjAndroidApp()
+            ? "连接暂时不可用，设备会话已保留。请重试。"
+            : "连接暂时不可用，请稍后重试或返回公开首页。");
+        }
       }
     }));
   $("exitSessionRecoveryBtn")?.addEventListener("click", () => {
+    if (isThewyjAndroidApp()) return;
     if (sessionRestorePending || !state.account) clearSession();
     showPublicHome(true);
   });

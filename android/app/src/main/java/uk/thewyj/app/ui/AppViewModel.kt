@@ -181,7 +181,7 @@ class AppViewModel : ViewModel() {
     fun refreshSession() {
         if (refreshJob?.isActive == true) return
         refreshJob = viewModelScope.launch {
-            if (repository.refresh() == RefreshWorkResult.SUCCESS) {
+            if (repository.refresh(forceWebReload = true) == RefreshWorkResult.SUCCESS) {
                 mutableNotice.value = "连接已恢复"
             }
         }

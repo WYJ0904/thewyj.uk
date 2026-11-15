@@ -291,7 +291,7 @@ class ThewyjApiClient(
         secret: String,
         deviceId: String,
     ): ApiCall<DeviceCredentials> {
-        return request(
+        return requestWithClock(
             path = "/api/app/login",
             method = "POST",
             body = JSONObject()
@@ -303,7 +303,7 @@ class ThewyjApiClient(
     }
 
     override suspend fun verifyLogin(challenge: String, code: String, deviceId: String): ApiCall<DeviceCredentials> =
-        request(path = "/api/app/login/verify", method = "POST", body = JSONObject()
+        requestWithClock(path = "/api/app/login/verify", method = "POST", body = JSONObject()
             .put("challenge", challenge).put("code", code).put("device_id", deviceId)
             .put("app_version", BuildConfig.VERSION_NAME)).authenticationResult()
 
@@ -311,17 +311,18 @@ class ThewyjApiClient(
         request(path = "/api/security/password/complete", method = "POST", body = JSONObject()
             .put("challenge", challenge).put("new_secret", secret).put("confirm_secret", confirmation)).map { Unit }
 
-    private fun ApiCall<JSONObject>.authenticationResult(): ApiCall<DeviceCredentials> = when (this) {
+    private fun ApiCall<ClockSyncedPayload>.authenticationResult(): ApiCall<DeviceCredentials> = when (this) {
         is ApiCall.Failure -> this
         is ApiCall.Success -> {
-            val passwordChange = value.optBoolean("password_change_required")
-            if (value.optBoolean("mfa_required") || passwordChange) {
-                val token = value.optString(if (passwordChange) "password_change_token" else "challenge")
+            val payload = value.payload
+            val passwordChange = payload.optBoolean("password_change_required")
+            if (payload.optBoolean("mfa_required") || passwordChange) {
+                val token = payload.optString(if (passwordChange) "password_change_token" else "challenge")
                 if (!Regex("^[A-Za-z0-9_-]{43}$").matches(token)) {
                     ApiCall.Failure("invalid_server_response", "安全验证响应无效", ApiFailureKind.RETRYABLE)
                 } else ApiCall.Failure("authentication_challenge_required", "请完成安全验证", ApiFailureKind.VALIDATION,
-                    authenticationChallenge = AuthenticationChallenge(token, value.optString("method"), passwordChange, value.optString("expires_at")))
-            } else map(::parseCredentials)
+                    authenticationChallenge = AuthenticationChallenge(token, payload.optString("method"), passwordChange, payload.optString("expires_at")))
+            } else map { parseCredentials(it.payload, it.serverDateMs, it.clientNowMs) }
         }
     }
 
@@ -330,7 +331,7 @@ class ThewyjApiClient(
         deviceId: String,
         rotationKey: String,
     ): ApiCall<DeviceCredentials> {
-        return request(
+        return requestWithClock(
             path = "/api/app/session/refresh",
             method = "POST",
             body = JSONObject()
@@ -338,7 +339,7 @@ class ThewyjApiClient(
                 .put("device_id", deviceId)
                 .put("rotation_key", rotationKey)
                 .put("app_version", BuildConfig.VERSION_NAME),
-        ).map(::parseCredentials)
+        ).map { parseCredentials(it.payload, it.serverDateMs, it.clientNowMs) }
     }
 
     override suspend fun currentAccount(accessToken: String): ApiCall<AccountSnapshot> {
@@ -435,12 +436,25 @@ class ThewyjApiClient(
         },
     )
 
+    private data class ClockSyncedPayload(
+        val payload: JSONObject,
+        val serverDateMs: Long,
+        val clientNowMs: Long,
+    )
+
     private suspend fun request(
         path: String,
         method: String,
         body: JSONObject? = null,
         accessToken: String = "",
-    ): ApiCall<JSONObject> = withContext(Dispatchers.IO) {
+    ): ApiCall<JSONObject> = requestWithClock(path, method, body, accessToken).map { it.payload }
+
+    private suspend fun requestWithClock(
+        path: String,
+        method: String,
+        body: JSONObject? = null,
+        accessToken: String = "",
+    ): ApiCall<ClockSyncedPayload> = withContext(Dispatchers.IO) {
         val connection = (URL("$baseUrl$path").openConnection() as HttpURLConnection).apply {
             requestMethod = method
             connectTimeout = CONNECT_TIMEOUT_MS
@@ -462,12 +476,14 @@ class ThewyjApiClient(
                 connection.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
             }
             val status = connection.responseCode
+            val clientNowMs = System.currentTimeMillis()
+            val serverDateMs = connection.getHeaderFieldDate("Date", 0L)
             val stream = if (status in 200..299) connection.inputStream else connection.errorStream
             val text = stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }.orEmpty()
             val payload = runCatching { JSONObject(text) }.getOrElse { JSONObject() }
             if (BuildConfig.DEBUG) Log.i("ThewyjSession", "$method $path HTTP $status code=${payload.optString("code").take(80)}")
             if (status in 200..299) {
-                ApiCall.Success(payload)
+                ApiCall.Success(ClockSyncedPayload(payload, serverDateMs, clientNowMs))
             } else {
                 failureFrom(status, payload)
             }
@@ -502,16 +518,26 @@ class ThewyjApiClient(
         return ApiCall.Failure(code, "$message ($code)", kind, status)
     }
 
-    private fun parseCredentials(json: JSONObject): DeviceCredentials {
+    private fun parseCredentials(json: JSONObject, serverDateMs: Long, clientNowMs: Long): DeviceCredentials {
         val session = json.getJSONObject("device_session")
         return DeviceCredentials(
             accessToken = json.getString("access_token"),
-            accessExpiresAtEpochMs = Instant.parse(json.getString("access_expires_at")).toEpochMilli(),
+            accessExpiresAtEpochMs = normalizeExpiryEpochMs(json.getString("access_expires_at"), serverDateMs, clientNowMs),
             refreshToken = json.getString("refresh_token"),
-            refreshExpiresAtEpochMs = Instant.parse(json.getString("refresh_expires_at")).toEpochMilli(),
+            refreshExpiresAtEpochMs = normalizeExpiryEpochMs(json.getString("refresh_expires_at"), serverDateMs, clientNowMs),
             deviceSessionId = session.getString("id"),
             account = AccountSnapshot.fromJson(json.getJSONObject("account")),
         )
+    }
+
+    internal fun normalizeExpiryEpochMs(
+        expiresAtIso: String,
+        serverDateMs: Long,
+        clientNowMs: Long,
+    ): Long {
+        val parsedMs = Instant.parse(expiresAtIso).toEpochMilli()
+        if (serverDateMs <= 0L) return parsedMs
+        return (clientNowMs + (parsedMs - serverDateMs)).coerceAtLeast(0L)
     }
 
     private fun isSafeDownloadUrl(value: String): Boolean = runCatching {

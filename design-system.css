@@ -462,6 +462,10 @@ button,
     opacity var(--ds-duration-pressed) var(--ds-ease-standard);
 }
 
+[hidden] {
+  display: none !important;
+}
+
 button:hover:not(:disabled),
 .button-link:hover,
 .button-secondary:hover:not(:disabled) {

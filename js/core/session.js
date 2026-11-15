@@ -14,17 +14,78 @@ export function accountSessionHeaders(value) {
   return session && session !== NATIVE_ACCOUNT_SESSION ? { "X-Session-Token": session } : {};
 }
 
+const NATIVE_BRIDGE_INTERVAL_MS = 60;
+const nativeBridgeQueue = [];
+let nativeBridgeTimer = null;
+let nativeBridgeLastSentAt = 0;
+
+function clearNativeBridgeQueue() {
+  nativeBridgeQueue.length = 0;
+  if (nativeBridgeTimer) {
+    globalThis.clearTimeout?.(nativeBridgeTimer);
+    nativeBridgeTimer = null;
+  }
+}
+
+function flushNativeBridgeQueue() {
+  nativeBridgeTimer = null;
+  if (!isThewyjAndroidApp() || nativeBridgeQueue.length === 0) {
+    nativeBridgeQueue.length = 0;
+    return false;
+  }
+  const nextUrl = nativeBridgeQueue.shift();
+  nativeBridgeLastSentAt = Date.now();
+  window.location.href = nextUrl;
+  if (nativeBridgeQueue.length > 0 && typeof globalThis.setTimeout === "function") {
+    nativeBridgeTimer = globalThis.setTimeout(flushNativeBridgeQueue, NATIVE_BRIDGE_INTERVAL_MS);
+    if (typeof nativeBridgeTimer?.unref === "function") nativeBridgeTimer.unref();
+  }
+  return true;
+}
+
+export function queueNativeBridgeNavigation(url, options = {}) {
+  if (!isThewyjAndroidApp()) return false;
+  const target = String(url || "").trim();
+  if (!target.startsWith("thewyj://")) return false;
+  if (options.clearPending) {
+    clearNativeBridgeQueue();
+    nativeBridgeLastSentAt = Date.now();
+    window.location.href = target;
+    return true;
+  }
+  const now = Date.now();
+  if (nativeBridgeQueue.length === 0 && !nativeBridgeTimer && now - nativeBridgeLastSentAt >= NATIVE_BRIDGE_INTERVAL_MS) {
+    nativeBridgeLastSentAt = now;
+    window.location.href = target;
+    return true;
+  }
+  const channel = target.slice("thewyj://".length).split(/[/?#]/, 1)[0];
+  if (channel && nativeBridgeQueue.length > 0) {
+    for (let i = nativeBridgeQueue.length - 1; i >= 0; i -= 1) {
+      if (nativeBridgeQueue[i].startsWith(`thewyj://${channel}/`) || nativeBridgeQueue[i] === `thewyj://${channel}`) {
+        nativeBridgeQueue.splice(i, 1);
+      }
+    }
+  }
+  if (target.startsWith("thewyj://session/")) nativeBridgeQueue.unshift(target);
+  else nativeBridgeQueue.push(target);
+  if (!nativeBridgeTimer && typeof globalThis.setTimeout === "function") {
+    const waitMs = Math.max(0, NATIVE_BRIDGE_INTERVAL_MS - (now - nativeBridgeLastSentAt));
+    nativeBridgeTimer = globalThis.setTimeout(flushNativeBridgeQueue, waitMs);
+    if (typeof nativeBridgeTimer?.unref === "function") nativeBridgeTimer.unref();
+  }
+  return true;
+}
+
 export function requestNativeSessionRefresh(code = "session_expired") {
   if (!isThewyjAndroidApp()) return false;
   const reason = encodeURIComponent(String(code || "session_expired").slice(0, 80));
-  window.location.href = `thewyj://session/refresh?reason=${reason}`;
-  return true;
+  return queueNativeBridgeNavigation(`thewyj://session/refresh?reason=${reason}`);
 }
 
 export function requestNativeLogout() {
   if (!isThewyjAndroidApp()) return false;
-  window.location.href = "thewyj://session/logout";
-  return true;
+  return queueNativeBridgeNavigation("thewyj://session/logout", { clearPending: true });
 }
 
 export function restoreAccountSession() {

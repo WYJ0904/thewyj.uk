@@ -230,6 +230,11 @@ export async function openPage({ cdpUrl, baseUrl, width = 412, height = 915, mob
    */
   const interceptRules = [];
   const intercept = async (rules) => {
+    if (!rules || rules.length === 0) {
+      interceptRules.length = 0;
+      await send("Fetch.disable").catch(() => {});
+      return { setState: () => {} };
+    }
     for (const rule of rules) interceptRules.push(rule);
     await send("Fetch.enable", {
       patterns: interceptRules.map((rule) => ({ urlPattern: `*${rule.match}*`, requestStage: "Request" })),
