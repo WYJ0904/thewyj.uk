@@ -108,6 +108,7 @@ async function completeLogin(context,_account,payload) {
 }
 export async function handleTask27Request(context) {
   const url=new URL(context.request.url),method=context.request.method.toUpperCase(),key=`${method} ${url.pathname}`;
+  if (emailCenterIntegrated() && url.pathname.startsWith('/api/admin/email/')) return null;
   const descriptor=ROUTES.get(key),legacyScope=method==='POST'?LEGACY_STEPUP.get(url.pathname):null;
   if (!descriptor&&!legacyScope) {
     if ([...ROUTES.keys()].some(route=>route.endsWith(` ${url.pathname}`))&&!LEGACY_OVERRIDES.has(url.pathname)) return apiError('method_not_allowed','请求方法无效',405,context.data?.requestId);

@@ -4,6 +4,8 @@ import path from 'node:path';
 import os from 'node:os';
 import { Miniflare } from 'miniflare';
 import { handleTask27Request } from '../functions/_lib/task27-api.mjs';
+import { handleTask27EmailRequest } from '../functions/_lib/task27-email-gateway.mjs';
+import { handleEmailRequest } from '../functions/_lib/email-api.mjs';
 import { handleTask12Request } from '../functions/_lib/task12-api.mjs';
 import { handleTask20Request } from '../functions/_lib/task20-api.mjs';
 import { handleTask18Request } from '../functions/_lib/task18-api.mjs';
@@ -31,12 +33,12 @@ async function call(route,body,token='',extra={}) {
   const tasks=[];
   const headers={'User-Agent':extra.android?'thewyj-android/1.3.38 Android/36':'Task27 synthetic browser',...(body===undefined?{}:{'Content-Type':'application/json'}),...(token?{'X-Session-Token':token}:{}),...(extra.headers || {})};
   const context={request:new Request(`https://thewyj.uk${route}`,{method:body===undefined?'GET':'POST',headers,body:body===undefined?undefined:JSON.stringify(body)}),env:{...env,...extra.env},data:{requestId:crypto.randomUUID()},waitUntil(p){tasks.push(p);}};
-  const response=await handleTask27Request(context)||await handleTask12Request(context)||await handleTask20Request(context)||await handleTask18Request(context);
+  const response=await handleTask27EmailRequest(context,handleEmailRequest)||await handleTask27Request(context)||await handleTask12Request(context)||await handleTask20Request(context)||await handleTask18Request(context);
   await Promise.all(tasks);
   assert.ok(response,'route must be handled');
   return {status:response.status,body:await response.json(),headers:response.headers};
 }
-async function test(name,fn){await sql('DELETE FROM cloud_rate_limit_windows');await fn();completed++;console.log(`ok ${completed} - ${name}`);}
+async function test(name,fn){await sql('DELETE FROM cloud_rate_limit_windows');await sql("DELETE FROM email_center_deliveries WHERE kind IN ('email_bind_verification','verification_code','login_mfa_code')");await fn();completed++;console.log(`ok ${completed} - ${name}`);}
 async function seed(id,role='user') {
   const when=new Date().toISOString();
   await sql(`INSERT INTO task12_users(id,username,username_normalized,password_hash,password_scheme,password_iterations,role,registered_at,created_at,updated_at,source_updated_at) VALUES(?1,?1,?1,?2,'pbkdf2_sha256',310000,?3,?4,?4,?4,?4)`,id,await hashSecret(password,env.WYJ_TASK12_PASSWORD_PEPPER),role,when);
@@ -95,7 +97,7 @@ try {
   await test('provider failure invalidates the email challenge and reports failure without changing binding',async()=>{
     const token=(await login('recover-user')).session;
     const result=await call('/api/security/email/start',{email:'provider-failure@example.test',grant:await grant(token,'email_change')},token,{env:{EMAIL:{async send(){throw new Error('synthetic provider offline');}}}});
-    assert.equal(result.status,502);assert.equal(result.body.code,'email_delivery_failed');assert.equal(result.body.challenge,undefined);
+    assert.equal(result.status,503);assert.equal(result.body.code,'email_delivery_status_unknown');assert.equal(result.body.retryable,false);assert.equal(result.body.challenge,undefined);
     assert.equal((await one("SELECT verified_email FROM task27_security WHERE user_id='recover-user'")).verified_email,'');
     assert.equal((await one("SELECT COUNT(*) AS count FROM task27_challenges WHERE user_id='recover-user' AND kind='email_bind' AND consumed_at=''")).count,0);
   });
@@ -268,36 +270,30 @@ try {
     const admin=(await login('admin-a')).session;
     await sql("INSERT OR IGNORE INTO task27_security(user_id,password_age_start_at) VALUES('mail-user',?1)",new Date().toISOString());
     await sql("UPDATE task27_security SET verified_email='mail-fixture@example.test',email_verified_at=?1 WHERE user_id='mail-user'",new Date().toISOString());
-    const choices=await call('/api/admin/email/recipients?q=mail-user',undefined,admin);assert.equal(choices.status,200);assert.deepEqual(choices.body.recipients.map(user=>user.id).sort(),['email-user','mail-user']);assert.ok(choices.body.recipients.every(user=>user.verified_email===undefined));
-    assert.equal((await call('/api/admin/email/drafts',{subject:'Hi\r\nBcc: injected',body:'test',recipient_ids:['mail-user']},admin)).status,400);
-    assert.equal((await call('/api/admin/email/drafts',{subject:'Synthetic service notice',body:'<script>synthetic</script>',recipient_ids:['alice']},admin)).status,409);
-    const draft=await call('/api/admin/email/drafts',{subject:'Synthetic service notice',body:'<script>synthetic</script>',recipient_ids:['mail-user']},admin);assert.equal(draft.status,200);
-    const id=draft.body.draft.id,revision=draft.body.draft.revision;
-    const preview=await call('/api/admin/email/preview',{id},admin);assert.equal(preview.status,200);
-    const payload={id,revision,preview:preview.body.preview,confirm:true,grant:await grant(admin,`email_send:${id}:${revision}`)};
-    const sent=await call('/api/admin/email/send',payload,admin);assert.equal(sent.status,200);assert.equal(sent.body.inbox_delivery_confirmed,false);assert.ok(sent.body.jobs.some(j=>j.draft_id===id&&j.status==='queued'));
+    const choices=await call('/api/admin/email/recipients?q=mail-user&verified=verified',undefined,admin);assert.equal(choices.status,200);assert.deepEqual(choices.body.recipients.map(user=>user.id).sort(),['email-user','mail-user']);assert.ok(choices.body.recipients.every(user=>user.email===null&&user.verified_email===undefined));
+    assert.equal((await call('/api/admin/email/drafts',{subject:'Hi\r\nBcc: injected',body:'test',target_mode:'single',recipient_user_ids:['mail-user']},admin)).status,400);
+    assert.equal((await call('/api/admin/email/preview',{subject:'Synthetic service notice',body:'<script>synthetic</script>',target_mode:'single',recipient_user_ids:['alice']},admin)).status,400);
+    const draft=await call('/api/admin/email/drafts',{subject:'Synthetic service notice',body:'<script>synthetic</script>',target_mode:'single',recipient_user_ids:['mail-user']},admin);assert.equal(draft.status,200);
+    const preview=await call('/api/admin/email/preview',{draft_id:draft.body.draft_id,subject:'Synthetic service notice',body:'<script>synthetic</script>',target_mode:'single',recipient_user_ids:['mail-user']},admin);assert.equal(preview.status,200);assert.ok(!preview.body.html_preview.includes('<script>'));
+    const payload={preview_token:preview.body.preview_token,subject:'Synthetic service notice',body:'<script>synthetic</script>',confirmed:true};
+    const sent=await call('/api/admin/email/send',payload,admin,{headers:{'X-Aeris-Stepup':await grant(admin,'email_center:send')}});assert.equal(sent.status,200);assert.equal(sent.body.results[0].inbox_delivery_confirmed,false);assert.equal(sent.body.results[0].delivery_status,'queued');
     assert.equal(messages.at(-1).from.email,'noreply@thewyj.uk');assert.equal(messages.at(-1).replyTo.email,'support@thewyj.uk');assert.ok(!messages.at(-1).html.includes('<script>'));assert.ok(messages.at(-1).headers['X-Aeris-Thread']);
-    const count=messages.length;assert.notEqual((await call('/api/admin/email/send',payload,admin)).status,200);assert.equal(messages.length,count);
+    const count=messages.length;assert.equal((await call('/api/admin/email/send',payload,admin,{headers:{'X-Aeris-Stepup':await grant(admin,'email_center:send')}})).status,409);assert.equal(messages.length,count);
   });
   await test('mail uncertain outcomes are held and never automatically resent',async()=>{
     const admin=(await login('admin-a')).session;
-    const d=(await call('/api/admin/email/drafts',{subject:'Synthetic unknown outcome',body:'Synthetic',recipient_ids:['mail-user']},admin)).body.draft;
-    const preview=(await call('/api/admin/email/preview',{id:d.id},admin)).body;
-    transport='unknown';const sent=await call('/api/admin/email/send',{id:d.id,revision:d.revision,preview:preview.preview,confirm:true,grant:await grant(admin,`email_send:${d.id}:${d.revision}`)},admin);transport='queued';
-    assert.equal(sent.status,200);assert.ok(sent.body.jobs.some(j=>j.draft_id===d.id&&j.status==='unknown'));
-    const again=(await call('/api/admin/email/preview',{id:d.id},admin)).body;
-    const result=await call('/api/admin/email/send',{id:d.id,revision:d.revision,preview:again.preview,confirm:true,retry:true,grant:await grant(admin,`email_send:${d.id}:${d.revision}`)},admin);assert.equal(result.status,409);
+    const preview=(await call('/api/admin/email/preview',{subject:'Synthetic unknown outcome',body:'Synthetic',target_mode:'single',recipient_user_ids:['mail-user']},admin)).body;
+    transport='unknown';const sent=await call('/api/admin/email/send',{preview_token:preview.preview_token,subject:'Synthetic unknown outcome',body:'Synthetic',confirmed:true},admin,{headers:{'X-Aeris-Stepup':await grant(admin,'email_center:send')}});transport='queued';
+    assert.equal(sent.status,502);const row=sent.body.results[0];assert.equal(row.delivery_status,'unknown');assert.equal(row.retryable,false);assert.equal(row.inbox_delivery_confirmed,false);
+    const retry=await call('/api/admin/email/deliveries/retry',{delivery_id:row.delivery_id},admin,{headers:{'X-Aeris-Stepup':await grant(admin,'email_center:retry')}});assert.equal(retry.status,409);
   });
   await test('confirmed provider throttling permits bounded explicit retry after cooldown',async()=>{
     const admin=(await login('admin-a')).session;
-    const d=(await call('/api/admin/email/drafts',{subject:'Synthetic provider throttle',body:'Synthetic',recipient_ids:['mail-user']},admin)).body.draft;
-    const preview=(await call('/api/admin/email/preview',{id:d.id},admin)).body;
-    transport='rate';const failed=await call('/api/admin/email/send',{id:d.id,revision:d.revision,preview:preview.preview,confirm:true,grant:await grant(admin,`email_send:${d.id}:${d.revision}`)},admin);transport='queued';
-    assert.equal(failed.status,200);assert.ok(failed.body.jobs.some(j=>j.draft_id===d.id&&j.status==='failed'&&j.attempts===1));
-    await sql('UPDATE task27_email_jobs SET updated_at=?2 WHERE draft_id=?1',d.id,new Date(Date.now()-61000).toISOString());
-    const next=(await call('/api/admin/email/preview',{id:d.id},admin)).body;
-    const retried=await call('/api/admin/email/send',{id:d.id,revision:d.revision,preview:next.preview,confirm:true,retry:true,grant:await grant(admin,`email_send:${d.id}:${d.revision}`)},admin);
-    assert.equal(retried.status,200);assert.ok(retried.body.jobs.some(j=>j.draft_id===d.id&&j.status==='queued'&&j.attempts===2));
+    const preview=(await call('/api/admin/email/preview',{subject:'Synthetic provider throttle',body:'Synthetic',target_mode:'single',recipient_user_ids:['mail-user']},admin)).body;
+    transport='rate';const failed=await call('/api/admin/email/send',{preview_token:preview.preview_token,subject:'Synthetic provider throttle',body:'Synthetic',confirmed:true},admin,{headers:{'X-Aeris-Stepup':await grant(admin,'email_center:send')}});transport='queued';
+    assert.equal(failed.status,502);const row=failed.body.results[0];assert.equal(row.delivery_status,'failed');assert.equal(row.retryable,true);
+    const retried=await call('/api/admin/email/deliveries/retry',{delivery_id:row.delivery_id},admin,{headers:{'X-Aeris-Stepup':await grant(admin,'email_center:retry')}});
+    assert.equal(retried.status,200);assert.equal(retried.body.retry_result.delivery_status,'queued');
   });
   await test('current policy reacceptance gates business access and can be completed explicitly',async()=>{
     const token=(await login('alice')).session;
