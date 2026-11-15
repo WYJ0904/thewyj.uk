@@ -100,7 +100,7 @@ const REQUIRED_SHELL = [...CORE_SHELL, ...TASK26_SHELL, ...FINANCE_SHELL, ...TAS
 const TASK26_INTEGRITY = Object.freeze({
   "/": "cd1ae0f3708ddb8821569754400cca8ba09879d64ff9ceb0dabb90dfade4973c",
   "/index.html": "cd1ae0f3708ddb8821569754400cca8ba09879d64ff9ceb0dabb90dfade4973c",
-  "/app.js?release=20261116-aeris-task27-release": "0a85a7d458086de6a26ccd8968a6ed1958e26b18f9ba5653f1d2ad1c5cec80bb",
+  "/app.js?release=20261116-aeris-task27-release": "f670295eec00a171b9620208a2870bed0bc00bc947b09b36dd7ed303d82bd5c8",
   "/learning-sync.js?release=20261116-aeris-task27-release": "74ced24b8dab7c8ad16dc6b4b68ff81a89e968d18a607bbba6b066a8bee7727d",
   "/product-ui.css?release=20261116-aeris-task27-release": "41b21ee1f376a8ebd006b9042c9b1c963c3f9636d3fe734f6cbdc8bfb9a41a81",
   "/js/language/mastery.js?release=20261116-aeris-task27-release": "38ce736bcd7d148bc24b52d28ed58595f0a22637b9d3e91f613e4635c926eacc",
@@ -119,7 +119,7 @@ const TASK26_INTEGRITY = Object.freeze({
   "/js/account/password-policy.js?release=20261116-aeris-task27-release": "48fd3d494120682e5b8baac8c73fb6ff68714cbc89d567318e9ea39549c80c56",
   "/js/account/password-fields.js?release=20261116-aeris-task27-release": "b59cfb731ae7cbf01a82967975f958d72dfd83af776cf54a8dd62fe6f8a6eb48"
 });
-const PUBLICATION_HASH = "5da17372e95b19ff451fea91cb1c07a57f19cb186cb418e59c48f7d7a500d3f4";
+const PUBLICATION_HASH = "76266febe497cf83ecec23edf29cf241fbf04229017a00bf896588de6b3c25e9";
 const PUBLICATION_CACHE = `${CACHE}-task26-${PUBLICATION_HASH.slice(0, 16)}`;
 const PUBLICATION_MARKER = "/__aeris/task26-publication";
 
@@ -219,6 +219,10 @@ self.addEventListener("install", (event) => {
       } finally { await caches.delete(stagingName); }
     })(),
   );
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "SKIP_WAITING") event.waitUntil(self.skipWaiting());
 });
 
 self.addEventListener("activate", (event) => {

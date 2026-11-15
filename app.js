@@ -8027,6 +8027,10 @@ async function boot() {
     let swAttempts = 0;
     let swRetryTimer = 0;
     const isTargetWorker = (worker) => Boolean(worker?.scriptURL?.includes(ASSET_RELEASE));
+    const nudgeWaitingWorker = (worker) => {
+      if (!isTargetWorker(worker) || worker.state !== "installed") return;
+      try { worker.postMessage({ type: "SKIP_WAITING" }); } catch {}
+    };
     const scheduleReleaseRetry = () => {
       if (swRetryTimer || swAttempts >= 6 || navigator.onLine === false) return;
       if (isTargetWorker(navigator.serviceWorker.controller)) return;
@@ -8039,8 +8043,12 @@ async function boot() {
     const watchWorkerState = (worker, registration) => {
       if (!worker || worker.__wyjStateWatched) return;
       worker.__wyjStateWatched = true;
+      nudgeWaitingWorker(worker);
       worker.addEventListener("statechange", () => {
-        if (worker.state === "redundant" && !isTargetWorker(registration.active) && !isTargetWorker(navigator.serviceWorker.controller)) {
+        nudgeWaitingWorker(worker);
+        if (worker.state === "installed" && isTargetWorker(worker)) {
+          scheduleReleaseRetry();
+        } else if (worker.state === "redundant" && !isTargetWorker(registration.active) && !isTargetWorker(navigator.serviceWorker.controller)) {
           scheduleReleaseRetry();
         }
       });
@@ -8054,9 +8062,12 @@ async function boot() {
           }
           watchWorkerState(registration.installing, registration);
           watchWorkerState(registration.waiting, registration);
+          nudgeWaitingWorker(registration.waiting);
           if (!isTargetWorker(registration.active)) {
             if (!isTargetWorker(registration.installing) && !isTargetWorker(registration.waiting)) {
               void registration.update().catch(() => {});
+              scheduleReleaseRetry();
+            } else if (isTargetWorker(registration.waiting)) {
               scheduleReleaseRetry();
             }
           }
