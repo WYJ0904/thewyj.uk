@@ -25,7 +25,7 @@ const ROUTES=new Map([
   ['POST /api/security/stepup/verify',route('user',['challenge','code'],async(c,a,p)=>verifyStepup(c,p,await sessionStorageKey(task20TokenFromRequest(c.request))))],
   ['POST /api/security/login/verify',route('public',['challenge','code'],completeLogin)],
   ['POST /api/app/login/verify',route('public',['challenge','code','device_id','app_version'],completeLogin)],
-  ['POST /api/security/password/request',route('public',['username','method'],(c,a,p)=>requestPasswordReset(c,p.username,p.method || 'email'))],
+  ['POST /api/security/password/request',route('public',['username','email','method'],(c,a,p)=>requestPasswordReset(c,p.username,p.method || 'email',p.email || ''))],
   ['POST /api/security/password/reset',route('public',['challenge','code','new_secret','confirm_secret'],(c,a,p)=>finishPasswordRecovery(c,p))],
   ['POST /api/security/password/complete',route('public',['challenge','new_secret','confirm_secret'],(c,a,p)=>finishPasswordRecovery(c,p,'password_change'))],
   ['POST /api/security/mfa/recover/request',route('public',['username','password'],(c,a,p)=>beginMfaRecovery(c,p))],

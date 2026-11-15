@@ -1,7 +1,7 @@
 import { hashSecret, PASSWORD_HASH_ITERATIONS, sessionStorageKey, verifySecret } from './task12-crypto.mjs';
 import { isAdminAccount, isOwnerAccount, validateSecret } from './task12-model.mjs';
 import { task20TokenFromRequest } from './task20-model.mjs';
-import { cleanEmailAddress,emailSendingEnabled,emailBindingConfigured,EmailServiceError } from './email-service.mjs';
+import { cleanEmailAddress,emailSendingEnabled,emailBindingConfigured,EmailServiceError,parseAllowedTestRecipients } from './email-service.mjs';
 import { activeUser, assertion, atomic, changed, DAY, EVENT_TEXT, eventStatements, fail, first, generationAssertion, nowIso, rows, run, securityState, stmt, revokeAllStatements } from './task27-store.mjs';
 import { base32, encryptTotp, randomBytes, randomDigits, temporaryPassword,totpUri } from './task27-crypto.mjs';
 import { challengeAssertion, challengeIdentity, challengeRow, createChallenge, grantStatements, securityRate, sendCode, task27EnrollmentEnabled, verifyChallenge, verifyPassword } from './task27-auth.mjs';
@@ -92,6 +92,10 @@ export async function beginEmailBinding(context,account,payload) {
   await securityRate(context,'email-bind',user.id,3,900);
   await securityRate(context,'email-bind-recipient',await sessionStorageKey(email),3,900);
   if(!emailSendingEnabled(context.env)||!emailBindingConfigured(context.env))throw new EmailServiceError('邮件服务尚不可用，验证码未发送',503,'email_sending_unavailable',true);
+  const allowedRecipients=parseAllowedTestRecipients(context.env);
+  if (allowedRecipients.length>0 && !allowedRecipients.includes(email)) {
+    throw new EmailServiceError('email_recipient_not_allowlisted','当前测试环境已启用收件白名单限制，仅允许向授权测试邮箱发送验证码；此地址未允许发信，邮箱未完成绑定。',403);
+  }
   await atomic(db,guards);
   const code=randomDigits();
   // Sending the ownership challenge does not reveal whether the address is
@@ -126,11 +130,26 @@ export async function beginMfa(context,account,payload) {
   const data={method:payload.method};
   let secret='',code='';
   if (payload.method==='totp') { secret=base32(randomBytes(20)); data.totp_ciphertext=await encryptTotp(context.env,user.id,secret); }
-  else { if (!state.verified_email) fail('verified_email_required','请先绑定并验证邮箱'); code=randomDigits(); }
+  else {
+    if (!state.verified_email) fail('verified_email_required','请先绑定并验证邮箱，之后才能启用邮箱双重验证；当前双重验证方式未改变');
+    if (!emailSendingEnabled(context.env)||!emailBindingConfigured(context.env)) throw new EmailServiceError('email_sending_unavailable','邮件服务尚不可用，验证码未发送；当前双重验证方式未改变',503,{retryable:true});
+    const allowedRecipients=parseAllowedTestRecipients(context.env);
+    if (allowedRecipients.length>0 && !allowedRecipients.includes(String(state.verified_email).trim().toLowerCase())) {
+      throw new EmailServiceError('email_recipient_not_allowlisted','当前测试环境已启用收件白名单限制，您的已验证邮箱不在允许发信范围内，无法发送验证码；当前双重验证方式未改变。',403);
+    }
+    code=randomDigits();
+  }
   await atomic(db,guards);
   const challenge=await createChallenge(db,{user,state,kind:'mfa_setup',method:payload.method,sessionDigest,code,env:context.env,data});
-  if (payload.method==='email') await sendCode(context.env,state.verified_email,code,'开启邮箱双重验证',context.data?.requestId,{userId:user.id,challengeDigest:challenge.digest});
+  let deliveryStatus='';
+  if (payload.method==='email') {
+    let sent;
+    try { sent=await sendCode(context.env,state.verified_email,code,'开启邮箱双重验证',context.data?.requestId,{userId:user.id,challengeDigest:challenge.digest}); }
+    catch(error) { await run(db,'UPDATE task27_challenges SET consumed_at=?2 WHERE token_digest=?1',[challenge.digest,nowIso()]); throw error; }
+    deliveryStatus=sent.delivery_status;
+  }
   return {challenge:challenge.token,method:payload.method,expires_at:challenge.expires_at,
+    ...(deliveryStatus?{delivery_status:deliveryStatus,inbox_confirmed:false}:{}),
     ...(secret?{secret,otpauth_uri:totpUri(user.username,secret)}: {})};
 }
 export async function finishMfa(context,account,payload) {
@@ -213,5 +232,5 @@ export async function overview(context,account) {
     rows(db,'SELECT event_type,created_at FROM task27_events WHERE user_id=?1 ORDER BY created_at DESC,id DESC LIMIT 30',[account.id]),listSessions(context,account)]);
   return {email:state.verified_email,email_verified_at:state.email_verified_at,mfa_method:state.mfa_method,recovery_codes_remaining:Number(codes.count),
     password_changed_at:state.password_changed_at,password_age_measured_from:state.password_changed_at || state.password_age_start_at,password_advice_only:true,
-    enrollment_enabled:task27EnrollmentEnabled(context.env),password_guidance:'为了提高账户安全性，建议使用至少 9 位、包含大小写字母、数字和特殊符号的密码。',sessions,events};
+    enrollment_enabled:task27EnrollmentEnabled(context.env),email_sending_enabled:emailSendingEnabled(context.env)&&emailBindingConfigured(context.env),email_test_allowlist_active:parseAllowedTestRecipients(context.env).length>0,password_guidance:'为了提高账户安全性，建议使用至少 9 位、包含大小写字母、数字和特殊符号的密码。',sessions,events};
 }

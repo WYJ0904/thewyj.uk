@@ -96,13 +96,24 @@ try {
   });
   await test('provider failure invalidates the email challenge and reports failure without changing binding',async()=>{
     const token=(await login('recover-user')).session;
+    const allowlistDenied=await call('/api/security/email/start',{email:'blocked@example.test',grant:await grant(token,'email_change')},token,{env:{EMAIL_TEST_RECIPIENTS:'support@thewyj.uk'}});
+    assert.equal(allowlistDenied.status,403);assert.equal(allowlistDenied.body.code,'email_recipient_not_allowlisted');
+    assert.equal((await one("SELECT verified_email FROM task27_security WHERE user_id='recover-user'")).verified_email,'');
     const result=await call('/api/security/email/start',{email:'provider-failure@example.test',grant:await grant(token,'email_change')},token,{env:{EMAIL:{async send(){throw new Error('synthetic provider offline');}}}});
     assert.equal(result.status,503);assert.equal(result.body.code,'email_delivery_status_unknown');assert.equal(result.body.retryable,false);assert.equal(result.body.challenge,undefined);
     assert.equal((await one("SELECT verified_email FROM task27_security WHERE user_id='recover-user'")).verified_email,'');
     assert.equal((await one("SELECT COUNT(*) AS count FROM task27_challenges WHERE user_id='recover-user' AND kind='email_bind' AND consumed_at=''")).count,0);
   });
-  await test('email MFA sends only after correct password and issues no pre-MFA session',async()=>{
+  await test('email MFA requires verified email, consumes failed challenge, sends only after correct password and issues no pre-MFA session',async()=>{
+    const unverified=(await login('recover-user')).session;
+    const missingMailMfa=await call('/api/security/mfa/start',{method:'email',grant:await grant(unverified,'mfa_change')},unverified);
+    assert.equal(missingMailMfa.status,400);assert.equal(missingMailMfa.body.code,'verified_email_required');
     const session=(await login('email-user')).session;
+    const blockedMfa=await call('/api/security/mfa/start',{method:'email',grant:await grant(session,'mfa_change')},session,{env:{EMAIL_TEST_RECIPIENTS:'support@thewyj.uk'}});
+    assert.equal(blockedMfa.status,403);assert.equal(blockedMfa.body.code,'email_recipient_not_allowlisted');
+    const failedMfa=await call('/api/security/mfa/start',{method:'email',grant:await grant(session,'mfa_change')},session,{env:{EMAIL:{async send(){throw new Error('synthetic provider offline');}}}});
+    assert.equal(failedMfa.status,503);assert.equal((await one("SELECT COUNT(*) AS count FROM task27_challenges WHERE user_id='email-user' AND kind='mfa_setup' AND consumed_at=''")).count,0);
+    assert.equal((await one("SELECT mfa_method FROM task27_security WHERE user_id='email-user'")).mfa_method,'none');
     const start=await call('/api/security/mfa/start',{method:'email',grant:await grant(session,'mfa_change')},session);assert.equal(start.status,200);
     assert.equal((await call('/api/security/mfa/confirm',{challenge:start.body.challenge,code:lastCode()},session)).status,200);
     const before=messages.length;
@@ -165,11 +176,17 @@ try {
     assert.notEqual((await call('/api/security/password/complete',{challenge:result.body.password_change_token,new_secret:password,confirm_secret:password})).status,200);
     assert.ok((await login('admin-b')).session);
   });
-  await test('password reset preserves MFA and revokes old Web/native credentials',async()=>{
-    const request=await call('/api/security/password/request',{username:'email-user',method:'email'});const code=lastCode();
+  await test('password reset requires matching username and verified email without enumeration, preserves MFA and revokes old Web/native credentials',async()=>{
+    const blankEmail=await call('/api/security/password/request',{username:'email-user',method:'email'});assert.equal(blankEmail.status,400);assert.equal(blankEmail.body.code,'recovery_email_required');
+    const badEmail=await call('/api/security/password/request',{username:'email-user',email:'not-an-email',method:'email'});assert.equal(badEmail.status,400);assert.equal(badEmail.body.code,'email_invalid_recipient');
+    const mailCountBefore=messages.length;
+    const mismatch=await call('/api/security/password/request',{username:'email-user',email:'wrong@example.test',method:'email'});assert.equal(mismatch.status,200);assert.equal(messages.length,mailCountBefore);
+    assert.notEqual((await call('/api/security/password/reset',{challenge:mismatch.body.challenge,code:'000000',new_secret:password,confirm_secret:password})).status,200);
+    const unverified=await call('/api/security/password/request',{username:'bob',email:'wrong@example.test',method:'email'});assert.equal(unverified.status,200);assert.equal(unverified.body.message,mismatch.body.message);assert.equal(messages.length,mailCountBefore);
+    const missing=await call('/api/security/password/request',{username:'no-such-account',email:'synthetic@example.test',method:'email'});assert.equal(missing.status,200);assert.equal(missing.body.message,mismatch.body.message);assert.equal(messages.length,mailCountBefore);
+    const request=await call('/api/security/password/request',{username:'email-user',email:'SYNTHETIC@example.test',method:'email'});const code=lastCode();assert.equal(messages.length,mailCountBefore+1);assert.equal(request.body.message,mismatch.body.message);
     const result=await call('/api/security/password/reset',{challenge:request.body.challenge,code,new_secret:password,confirm_secret:password});assert.equal(result.status,200);assert.equal(result.body.mfa_preserved,true);
     assert.equal((await one("SELECT mfa_method FROM task27_security WHERE user_id='email-user'")).mfa_method,'email');assert.equal((await login('email-user')).mfa_required,true);
-    const missing=await call('/api/security/password/request',{username:'no-such-account',method:'email'});assert.equal(missing.status,200);assert.equal(missing.body.message,request.body.message);
   });
   await test('administrator temporary password still requires original MFA before restricted password change',async()=>{
     const admin=(await login('admin-a')).session;

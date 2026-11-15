@@ -22,7 +22,7 @@ export function createSecurityCenter({api,apiGet,publicApi,getSession,getAccount
     let node=$(id);
     if (!node) {
       node=document.createElement('div');node.id=id;node.className='modal-layer hidden task27-modal';node.setAttribute('aria-hidden','true');
-      node.innerHTML=`<section class="modal-panel task27-panel" role="dialog" aria-modal="true" aria-labelledby="${id}Title"><button class="modal-close" type="button" data-task27-close aria-label="关闭">×</button><h2 id="${id}Title">${esc(title)}</h2><div data-task27-body></div><p class="error" data-task27-status role="status" aria-live="polite"></p></section>`;
+      node.innerHTML=`<section class="modal-panel task27-panel" role="dialog" aria-modal="true" aria-labelledby="${id}Title"><button class="modal-close" type="button" data-task27-close aria-label="关闭">×</button><h2 id="${id}Title">${esc(title)}</h2><p class="error task27-status" data-task27-status data-tone="error" role="status" aria-live="polite" hidden></p><div data-task27-body></div></section>`;
       document.body.append(node);
       node.querySelector('[data-task27-close]').addEventListener('click',()=>closeModal(id,true));
       new MutationObserver(()=>{if(node.classList.contains('hidden')){if(id==='task27Prompt'&&pendingPrompt){pendingPrompt.reject(new Error('操作已取消'));pendingPrompt=null;}node.querySelectorAll('input[type=password],input[autocomplete=one-time-code]').forEach(input=>{input.value='';});if(id==='task27Secrets'||id==='task27Prompt')node.querySelector('[data-task27-body]').replaceChildren();}}).observe(node,{attributes:true,attributeFilter:['class']});
@@ -30,15 +30,16 @@ export function createSecurityCenter({api,apiGet,publicApi,getSession,getAccount
     return node;
   }
   const body=node=>node.querySelector('[data-task27-body]');
-  const status=(node,text)=>{node.querySelector('[data-task27-status]').textContent=text;};
-  function bind(node,selector,callback) {node.querySelectorAll(selector).forEach(button=>button.addEventListener('click',async()=>{if(button.disabled)return;button.disabled=true;status(node,'');try{await callback(button);}catch(error){status(node,error.message);}finally{if(button.isConnected)button.disabled=false;}}));}
-  async function prompt(title,fields,{message='',content='',button='继续'}={}) {
+  const status=(node,text,tone='error')=>{const box=node?.querySelector?.('[data-task27-status]');if(!box)return;box.textContent=text||'';box.dataset.tone=tone;box.className=tone==='info'?'task27-status is-info':'error task27-status is-error';box.hidden=!text;if(text&&typeof box.scrollIntoView==='function')box.scrollIntoView({block:'nearest'});};
+  function bind(node,selector,callback) {node.querySelectorAll(selector).forEach(button=>button.addEventListener('click',async()=>{if(button.disabled)return;button.disabled=true;status(node,'');try{await callback(button);}catch(error){const cancelled=error?.message==='操作已取消';status(node,cancelled?'已取消当前验证步骤，未保存任何更改（当前登录状态保持不变）。':(error?.message||'操作失败'),cancelled?'info':'error');}finally{if(button.isConnected)button.disabled=false;}}));}
+  async function prompt(title,fields,{message='',content='',button='继续',onMount=null}={}) {
     if(pendingPrompt){pendingPrompt.reject(new Error('操作已取消'));pendingPrompt=null;}
     const node=modal('task27Prompt',title);$('task27PromptTitle').textContent=title;status(node,'');
     body(node).innerHTML=`${message?`<p>${esc(message)}</p>`:''}${content}<form class="stack-form">${fields.map(field=>`<label class="field-label"><span>${esc(field.label)}</span><input name="${esc(field.name)}" type="${field.type || 'text'}" ${field.type==='checkbox'?'':'maxlength="256"'} ${field.autocomplete?`autocomplete="${esc(field.autocomplete)}"`:'autocomplete="off"'} ${field.required===false?'':'required'}></label>`).join('')}<button class="primary" type="submit">${esc(button)}</button></form>`;
     const promise=new Promise((resolve,reject)=>{pendingPrompt={resolve,reject};});
     body(node).querySelector('form').addEventListener('submit',event=>{event.preventDefault();const values={};for(const field of fields){const input=body(node).querySelector(`[name="${field.name}"]`);values[field.name]=field.type==='checkbox'?input.checked:input.value;}body(node).querySelectorAll('select[name]').forEach(select=>{values[select.name]=select.value;});const waiting=pendingPrompt;pendingPrompt=null;body(node).querySelectorAll('input').forEach(input=>{input.value='';input.checked=false;});closeModal('task27Prompt',true);waiting?.resolve(values);});
     body(node).querySelectorAll('input[type=password]').forEach(input=>{if(input.name==='new_secret')wireNewPasswordField(input);else wirePasswordVisibility(input);});
+    if(typeof onMount==='function')onMount(body(node));
     openModal('task27Prompt');return promise;
   }
   async function codePrompt(method,title='完成安全验证') {return (await prompt(title,[{name:'code',label:method==='totp'?'六位验证器验证码或一次性恢复码':'六位邮件验证码',autocomplete:'one-time-code'}],{message:method==='email'?'验证码已交给邮件服务发送，请检查绑定邮箱。有效期约五分钟。':'请输入验证器当前验证码；无法使用验证器时，可输入一个未使用的恢复码。'})).code.trim();}
@@ -78,20 +79,29 @@ export function createSecurityCenter({api,apiGet,publicApi,getSession,getAccount
     try {
       const data=await apiGet('/api/security/overview');if(snapshot!==key())return;
       const valid=data.sessions.filter(session=>session.valid);
-      body(node).innerHTML=`<div class="task27-security-summary"><article><h3>登录密码</h3><p>${data.password_changed_at?`最近修改：${esc(date(data.password_changed_at))}`:'历史修改时间未知，从功能启用后开始计算提醒。'}</p><p>30 天提醒仅为个人安全建议，不强制修改。</p><button type="button" data-security-password>修改密码</button></article><article><h3>绑定邮箱</h3><p>${esc(data.email || '尚未绑定已验证邮箱')}</p><button type="button" data-security-email>${data.email?'更换邮箱':'绑定并验证邮箱'}</button></article><article><h3>双重验证</h3><p>当前方式：${esc(labels[data.mfa_method])}</p><p>普通用户自主开启，不影响会员权益。</p><div class="action-row">${data.enrollment_enabled?'<button type="button" data-security-mfa="email">使用邮箱</button><button type="button" data-security-mfa="totp">使用验证器</button>':'<p>新的验证方式设置尚未开放。</p>'}${data.mfa_method!=='none'?'<button type="button" data-security-disable>关闭双重验证</button>':''}</div></article><article><h3>一次性恢复码</h3><p>${data.mfa_method==='totp'?`剩余 ${Number(data.recovery_codes_remaining)} 个；已有恢复码无法再次查看。`:'开启 TOTP 后可获得恢复码。'}</p>${data.mfa_method==='totp'?'<button type="button" data-security-recovery>重新生成恢复码</button>':''}</article></div><h3>登录设备与会话</h3><p>Web 会话显示可确认的客户端类型，不推测具体设备型号。</p><div class="task27-session-list">${valid.map(session=>`<article><div><strong>${esc(session.client || '浏览器会话')}${session.current?' · 当前会话':''}</strong><p>创建：${esc(date(session.created_at))}<br>最近活动：${esc(date(session.last_seen_at))}</p></div><button type="button" data-revoke-id="${esc(session.id)}" data-kind="${session.kind}">退出此会话</button></article>`).join('') || '<p>暂无有效会话。</p>'}</div><div class="action-row"><button type="button" data-revoke-mode="others">退出其他设备</button><button type="button" data-revoke-mode="all">退出全部设备</button></div><h3>最近安全活动</h3><ul>${data.events.map(event=>`<li>${esc(eventLabels[event.event_type] || '账户安全操作')} · ${esc(date(event.created_at))}</li>`).join('') || '<li>暂无记录</li>'}</ul>`;
+      body(node).innerHTML=`<div class="task27-security-summary"><article><h3>登录密码</h3><p>${data.password_changed_at?`最近修改：${esc(date(data.password_changed_at))}`:'历史修改时间未知，从功能启用后开始计算提醒。'}</p><p>30 天提醒仅为个人安全建议，不强制修改。</p><button type="button" data-security-password>修改密码</button></article><article><h3>绑定邮箱</h3><p>${esc(data.email || '尚未绑定已验证邮箱')}</p>${data.email_test_allowlist_active?'<p class="task27-note">测试环境仅允许向授权测试邮箱发送验证码。</p>':''}<button type="button" data-security-email>${data.email?'更换邮箱':'绑定并验证邮箱'}</button></article><article><h3>双重验证</h3><p>当前方式：${esc(labels[data.mfa_method])}</p><p>普通用户自主开启，不影响会员权益。</p>${data.enrollment_enabled&&!data.email?'<p class="task27-note">需先完成“绑定并验证邮箱”，才能切换为邮箱双重验证。</p>':''}<div class="action-row">${data.enrollment_enabled?'<button type="button" data-security-mfa="email">使用邮箱</button><button type="button" data-security-mfa="totp">使用验证器</button>':'<p>新的验证方式设置尚未开放。</p>'}${data.mfa_method!=='none'?'<button type="button" data-security-disable>关闭双重验证</button>':''}</div></article><article><h3>一次性恢复码</h3><p>${data.mfa_method==='totp'?`剩余 ${Number(data.recovery_codes_remaining)} 个；已有恢复码无法再次查看。`:'开启 TOTP 后可获得恢复码。'}</p>${data.mfa_method==='totp'?'<button type="button" data-security-recovery>重新生成恢复码</button>':''}</article></div><h3>登录设备与会话</h3><p>Web 会话显示可确认的客户端类型，不推测具体设备型号。</p><div class="task27-session-list">${valid.map(session=>`<article><div><strong>${esc(session.client || '浏览器会话')}${session.current?' · 当前会话':''}</strong><p>创建：${esc(date(session.created_at))}<br>最近活动：${esc(date(session.last_seen_at))}</p></div><button type="button" data-revoke-id="${esc(session.id)}" data-kind="${session.kind}">退出此会话</button></article>`).join('') || '<p>暂无有效会话。</p>'}</div><div class="action-row"><button type="button" data-revoke-mode="others">退出其他设备</button><button type="button" data-revoke-mode="all">退出全部设备</button></div><h3>最近安全活动</h3><ul>${data.events.map(event=>`<li>${esc(eventLabels[event.event_type] || '账户安全操作')} · ${esc(date(event.created_at))}</li>`).join('') || '<li>暂无记录</li>'}</ul>`;
       bind(node,'[data-security-password]',async()=>{
         const grant=await stepup('password_change');
         const values=await prompt('修改登录密码',[{name:'new_secret',label:'新密码（至少 9 位混合密码）',type:'password',autocomplete:'new-password'},{name:'confirm_secret',label:'再次输入新密码',type:'password',autocomplete:'new-password'}]);
         await invalidate(await api('/api/account/secret',{grant,...values}),'密码已修改，请重新登录');
       });
       bind(node,'[data-security-email]',async()=>{
-        const email=(await prompt('绑定并验证邮箱',[{name:'email',label:'新邮箱地址',type:'email',autocomplete:'email'}])).email;
-        const start=await api('/api/security/email/start',{email,grant:await stepup('email_change')});
-        const result=await api('/api/security/email/confirm',{challenge:start.challenge,code:await codePrompt('email')});
-        await invalidate(result,'邮箱已验证并更新，请重新登录');
+        const allowlistHint=data.email_test_allowlist_active?'步骤 1/3：请输入要绑定的邮箱。完成身份验证并输入 6 位邮箱验证码前，邮箱不会保存。（注意：当前测试环境启用了收件人白名单限制，仅授权测试邮箱可收信。）':'步骤 1/3：请输入要绑定的邮箱。完成身份验证并输入 6 位邮箱验证码前，邮箱不会保存。';
+        const email=(await prompt('绑定并验证邮箱',[{name:'email',label:'新邮箱地址',type:'email',autocomplete:'email'}],{message:allowlistHint,button:'下一步：验证身份'})).email;
+        const grant=await stepup('email_change');
+        status(node,`步骤 2/3：已完成身份验证，正在向 ${email} 请求发送 6 位验证码（尚未绑定邮箱）…`,'info');
+        const start=await api('/api/security/email/start',{email,grant});
+        const sentHint=`步骤 3/3：验证码已提交邮件服务（状态：${start.delivery_status||'accepted'}，尚未确认送达收件箱）。请输入发往 ${email} 的 6 位数字验证码确认绑定；取消不会保存。`;
+        status(node,sentHint,'info');
+        const result=await api('/api/security/email/confirm',{challenge:start.challenge,code:await codePrompt('email','步骤 3/3：确认邮箱验证码')});
+        await invalidate(result,'邮箱已验证并更新，旧会话已撤销，请重新登录');
       });
       bind(node,'[data-security-mfa]',async button=>{
-        const method=button.dataset.securityMfa,start=await api('/api/security/mfa/start',{method,grant:await stepup('mfa_change')});
+        const method=button.dataset.securityMfa;
+        if(method==='email'&&!data.email){status(node,'无法切换为邮箱双重验证：请先点击“绑定并验证邮箱”。现有双重验证保持不变，请勿提前删除验证器。','error');return;}
+        const grant=await stepup('mfa_change');
+        if(method==='email')status(node,`步骤 2/3：已完成身份验证，正在向已验证邮箱 ${data.email} 发送开启验证码（当前双重验证方式尚未变更）…`,'info');
+        const start=await api('/api/security/mfa/start',{method,grant});
         let code;
         if(method==='totp') {
           const uri=new URL(start.otpauth_uri);
@@ -104,7 +114,10 @@ export function createSecurityCenter({api,apiGet,publicApi,getSession,getAccount
           $('task27OpenAuthenticator').addEventListener('click',()=>{$('task27AuthenticatorFallback').textContent='已请求系统打开验证器；如没有打开，请使用二维码或手动复制密钥。此步骤尚未启用双重验证。';});
           $('task27CopyTotpSecret').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(start.secret);$('task27AuthenticatorFallback').textContent='设置密钥已复制。请在验证器中手动添加 Aeris 账户，然后输入当前六位验证码。';}catch(_){$('task27AuthenticatorFallback').textContent='当前环境无法自动复制，请选中上方设置密钥手动复制。';}});
           code=(await answer).code;
-        } else code=await codePrompt('email','确认开启邮箱双重验证');
+        } else {
+          status(node,`步骤 3/3：验证码已提交邮件服务（状态：${start.delivery_status||'accepted'}，尚未确认送达收件箱），请输入发往 ${data.email} 的 6 位验证码确认切换；确认前原有双重验证不会改变。`,'info');
+          code=await codePrompt('email','步骤 3/3：确认开启邮箱双重验证');
+        }
         const result=await api('/api/security/mfa/confirm',{challenge:start.challenge,code:code.trim()});
         await invalidate(result,'双重验证已更新，请重新登录');
       });
@@ -146,10 +159,18 @@ export function createSecurityCenter({api,apiGet,publicApi,getSession,getAccount
   async function forgotPassword(){
     const node=modal('task27Recovery','找回密码与账户恢复');body(node).innerHTML='<p>普通密码重置保留已有双重验证。若同时丢失所有恢复方式，请联系 support@thewyj.uk。</p><button type="button" data-forgot-password>重置密码</button><button type="button" data-lost-mfa>丢失验证器：独立恢复</button>';status(node,'');openModal('task27Recovery');
     bind(node,'[data-forgot-password]',async()=>{
-      const values=await prompt('申请重置密码',[{name:'username',label:'用户名'}],{content:'<label>恢复方式 <select name="method" id="task27ResetMethod"><option value="email">已验证邮箱</option><option value="totp">TOTP 验证器</option><option value="recovery">一次性恢复码</option></select></label>'});
-      const method=values.method || 'email';const start=await publicApi('/api/security/password/request',{username:values.username,method});
+      const values=await prompt('申请重置密码',[{name:'username',label:'用户名',autocomplete:'username'},{name:'email',label:'绑定的已验证邮箱',type:'email',autocomplete:'email'}],{
+        content:'<label>恢复方式 <select name="method" id="task27ResetMethod"><option value="email">已验证邮箱</option><option value="totp">TOTP 验证器</option><option value="recovery">一次性恢复码</option></select></label><p class="task27-note">选择“已验证邮箱”时必须填写与该用户名绑定的邮箱；仅当信息完全匹配且满足发送条件时才会尝试发信，响应不泄露账户状态。</p>',
+        onMount:panel=>{
+          const select=panel.querySelector('#task27ResetMethod'),emailInput=panel.querySelector('[name="email"]'),emailWrap=emailInput?.closest('label');
+          const sync=()=>{const byEmail=(select?.value||'email')==='email';if(emailInput){emailInput.required=byEmail;if(!byEmail)emailInput.value='';}if(emailWrap)emailWrap.hidden=!byEmail;};
+          select?.addEventListener('change',sync);sync();
+        }
+      });
+      const method=values.method || 'email';
+      const start=await publicApi('/api/security/password/request',{username:values.username,email:method==='email'?(values.email||''):'',method});
       const result=await prompt('验证并设置新密码',[{name:'code',label:method==='email'?'六位邮件验证码':method==='totp'?'六位 TOTP 验证码':'一次性恢复码',autocomplete:'one-time-code'},{name:'new_secret',label:'新密码',type:'password',autocomplete:'new-password'},{name:'confirm_secret',label:'再次输入新密码',type:'password',autocomplete:'new-password'}],{message:start.message});
-      await publicApi('/api/security/password/reset',{challenge:start.challenge,...result});status(node,'密码已重置，原双重验证保留。请关闭此窗口并重新登录。');
+      await publicApi('/api/security/password/reset',{challenge:start.challenge,...result});status(node,'密码已重置，原双重验证保留。请关闭此窗口并重新登录。','info');
     });
     bind(node,'[data-lost-mfa]',async()=>{const values=await prompt('独立恢复双重验证',[{name:'username',label:'用户名'},{name:'password',label:'当前密码',type:'password',autocomplete:'current-password'}],{message:'此流程需要当前密码及一个未使用的恢复码，成功后关闭原验证器并撤销全部旧会话。'});const start=await publicApi('/api/security/mfa/recover/request',values);const code=(await prompt('验证一次性恢复码',[{name:'code',label:'恢复码',autocomplete:'one-time-code'}])).code;await publicApi('/api/security/mfa/recover/confirm',{challenge:start.challenge,code});status(node,'双重验证已通过独立程序恢复。请重新登录并重新配置。');});
   }
