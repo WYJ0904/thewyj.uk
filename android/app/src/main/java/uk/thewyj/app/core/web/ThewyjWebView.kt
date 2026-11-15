@@ -78,6 +78,7 @@ fun ThewyjWebView(
     val paymentPublications = remember { PaymentPublicationGate() }
     val policy = remember { WebRoutePolicy(BuildConfig.THEWYJ_BASE_URL) }
     val loads = remember { WebLoadPolicy(sessionEpoch) }
+    val mainFrameFailed = remember { mutableStateOf(false) }
     val initialBackRequest = remember { backNavigationRequest }
     val refreshCallback = rememberUpdatedState(onRefreshSession)
     val logoutCallback = rememberUpdatedState(onLogout)
@@ -118,7 +119,10 @@ fun ThewyjWebView(
             onLogout = { logoutCallback.value() },
             onRouteChanged = { routeCallback.value(it) },
             onCanGoBackChanged = { canGoBackCallback.value(it) },
-            onMainFrameError = { errorCallback.value(it) },
+            onMainFrameError = {
+                mainFrameFailed.value = true
+                errorCallback.value(it)
+            },
             speechBridge = speechBridge,
             onThemeChanged = { dark -> themeCallback.value(dark) },
             onVerifyPayment = { eventId -> verifyPaymentCallback.value(eventId) },
@@ -164,11 +168,25 @@ fun ThewyjWebView(
         webView.awaitViewport()
         val target = policy.urlFor(route)
         if (BuildConfig.DEBUG) Log.i("ThewyjSession", "web-navigation-ready width=${webView.width} height=${webView.height}")
-        when (loads.next(navigationEpoch, sessionEpoch, webView.url == target)) {
-            WebLoadAction.LOAD -> webView.loadUrl(target)
-            WebLoadAction.NAVIGATE -> webView.navigateWithinDocument(policy, target)
-            WebLoadAction.RELOAD -> webView.reload()
-            WebLoadAction.NONE -> Unit
+        val action = loads.next(navigationEpoch, sessionEpoch, webView.url == target)
+        when {
+            mainFrameFailed.value && action != WebLoadAction.NONE -> {
+                mainFrameFailed.value = false
+                webView.loadUrl(target)
+            }
+            action == WebLoadAction.LOAD -> {
+                mainFrameFailed.value = false
+                webView.loadUrl(target)
+            }
+            action == WebLoadAction.NAVIGATE -> webView.navigateWithinDocument(policy, target)
+            action == WebLoadAction.RELOAD -> {
+                mainFrameFailed.value = false
+                webView.reload()
+            }
+            action == WebLoadAction.NONE && mainFrameFailed.value -> {
+                mainFrameFailed.value = false
+                webView.loadUrl(target)
+            }
         }
     }
     LaunchedEffect(backNavigationRequest) {
@@ -355,6 +373,8 @@ private fun createWebView(
         }
 
         override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
+            if (policy.decide(request.url.toString()) == NavigationDecision.Authenticator &&
+                (!request.isForMainFrame || !request.hasGesture() || policy.decide(view.url.orEmpty()) != NavigationDecision.Internal)) return true
             if (!request.isForMainFrame && policy.decide(request.url.toString()) == NavigationDecision.VerifyPayment) return true
             if (request.isForMainFrame && policy.spaRoute(request.url.toString()) != null) {
                 view.navigateWithinDocument(policy, request.url.toString())
@@ -371,6 +391,7 @@ private fun createWebView(
 
         @Deprecated("Deprecated by Android")
         override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
+            if (policy.decide(url) == NavigationDecision.Authenticator) return true
             if (policy.spaRoute(url) != null) {
                 view.navigateWithinDocument(policy, url)
                 return true
@@ -481,6 +502,7 @@ private fun handleNavigation(
         else runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
     }
     NavigationDecision.Blocked -> true
+    NavigationDecision.Authenticator -> true.also { AuthenticatorLauncher.open(context, url) }
 }
 
 internal fun downloadName(url: String, contentDisposition: String): String {

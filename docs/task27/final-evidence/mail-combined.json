@@ -1,0 +1,79 @@
+{
+  "scope": "isolated synthetic D1 and transport; actual combined dispatcher when EMAIL_BUILD supports the full center; no remote writes",
+  "integrated": true,
+  "checks": [
+    {
+      "name": "0035 and optional 0036 preserve business records; unsafe raw 0035 repetition is rejected and 0036 is idempotent",
+      "status": "PASS"
+    },
+    {
+      "name": "public capabilities accurately select one mail center without changing enrollment or sending settings",
+      "status": "PASS"
+    },
+    {
+      "name": "failed OTP dispatch consumes its challenge and cannot mark the email verified",
+      "status": "PASS"
+    },
+    {
+      "name": "ownership proof updates authoritative email and optional center binding together, revokes sessions and emits one notice",
+      "status": "PASS"
+    },
+    {
+      "name": "unique authoritative email rejects another owner and leaves both tables and sessions unchanged",
+      "status": "PASS"
+    },
+    {
+      "name": "MFA email failure issues no full session and only a successfully completed challenge can authenticate",
+      "status": "PASS"
+    },
+    {
+      "name": "missing full-center schema fails before dispatch and divergent verified records cannot receive an auth code",
+      "status": "PASS"
+    },
+    {
+      "name": "the canonical mail API rejects old draft payloads, unauthorized sessions, binding writes and absent or replayed step-up",
+      "status": "PASS"
+    },
+    {
+      "name": "canonical draft and preview payloads send once even with concurrent separately authorized confirmations",
+      "status": "PASS"
+    },
+    {
+      "name": "source bridge and concurrent-send probes preserve observable producer defects for the separate PR",
+      "status": "PASS"
+    }
+  ],
+  "producer_findings": [
+    {
+      "id": "EMAIL-BRIDGE-ATOMICITY",
+      "status": "REPRODUCED",
+      "detail": "producer bridge persists a verified center row even when authoritative unique email rejects the write; generation unchanged",
+      "generation_unchanged": true
+    },
+    {
+      "id": "EMAIL-IDEMPOTENCY-RACE",
+      "status": "REPRODUCED",
+      "provider_calls": 2,
+      "settled": [
+        "rejected",
+        "fulfilled"
+      ],
+      "detail": "concurrent identical idempotency key reaches the provider twice before the unique delivery row is recorded"
+    }
+  ],
+  "real_email": "NOT_TESTED",
+  "preserved_business_digests": {
+    "task12_users": "47de49fecce5aefb4e1d861703aa4db7b50b518b7e50ebbea18cbcdc0389723a",
+    "task12_sessions": "54e52dd50d61c4fca881aaec7c794af033ced8aadba1c65eda56648c2b49e4d9",
+    "task20_device_sessions": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "task13_user_memberships": "2ce02eb86f228b7c32a9a09dc83ccac0ae9ea8a42235290e3a05edccd6d08347",
+    "task16_finance_transactions": "5eddba3e166d66289c8cf2c017ec52c68b06fd633b3e4cf12fe3ed19d7cc49ff",
+    "task11_learning_sync_records": "471949219f290f5801b316bd74f757c4958e383b3685e5b55f0e4efeaac0c823"
+  },
+  "migration_order": [
+    "0035_task27_security_center.sql",
+    "0036_task27_email_center.sql"
+  ],
+  "producer_probe_completed": true,
+  "status": "PASS"
+}

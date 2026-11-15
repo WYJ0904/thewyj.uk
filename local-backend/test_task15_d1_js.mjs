@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { POLICY_VERSIONS } from '../functions/_lib/task27-policy.mjs';
 import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -166,7 +167,7 @@ try {
 
   const registered = await accountRequest(db, "/api/register", {
     method: "POST",
-    body: { username: "task15-user", secret: USER_SECRET, confirm_secret: USER_SECRET },
+    body: { username: "task15-user", secret: USER_SECRET, confirm_secret: USER_SECRET, terms_accepted:true,policy_versions:POLICY_VERSIONS },
   });
   assert.equal(registered.response.status, 201, JSON.stringify(registered.payload));
   const login = await accountRequest(db, "/api/login", {
@@ -224,7 +225,7 @@ try {
   const adminSecret = "Task15-Admin-Secret!";
   const adminRegistered = await accountRequest(db, "/api/register", {
     method: "POST",
-    body: { username: "task15-admin", secret: adminSecret, confirm_secret: adminSecret },
+    body: { username: "task15-admin", secret: adminSecret, confirm_secret: adminSecret, terms_accepted:true,policy_versions:POLICY_VERSIONS },
   });
   assert.equal(adminRegistered.response.status, 201);
   await db.prepare("UPDATE task12_users SET role = 'super_admin' WHERE id = ?1")

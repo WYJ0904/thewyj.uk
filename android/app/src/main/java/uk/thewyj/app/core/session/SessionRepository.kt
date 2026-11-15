@@ -53,27 +53,61 @@ class SessionRepository(
         flushPendingLogout()
         when (val result = api.login(username.trim(), secret, deviceIdentity.getOrCreate())) {
             is ApiCall.Success -> activate(result.value)
-            is ApiCall.Failure -> mutableState.value = SessionState.SignedOut(result.message)
+            is ApiCall.Failure -> acceptAuthenticationFailure(result)
         }
     } }
 
-    suspend fun register(username: String, secret: String) = guarded(Unit) { mutex.withLock {
+    suspend fun register(username: String, secret: String, termsAccepted: Boolean = false) = guarded(Unit) { mutex.withLock {
         flushPendingLogout()
-        when (val result = api.register(username.trim(), secret)) {
+        when (val result = api.registerConsented(username.trim(), secret, termsAccepted)) {
             is ApiCall.Success -> when (val login = api.login(username.trim(), secret, deviceIdentity.getOrCreate())) {
                 is ApiCall.Success -> activate(login.value)
-                is ApiCall.Failure -> mutableState.value = SessionState.SignedOut(login.message)
+                is ApiCall.Failure -> acceptAuthenticationFailure(login)
             }
             is ApiCall.Failure -> mutableState.value = SessionState.SignedOut(result.message)
         }
     } }
 
-    suspend fun refresh(): RefreshWorkResult = guarded(RefreshWorkResult.RETRY) { mutex.withLock {
+    private suspend fun acceptAuthenticationFailure(result: ApiCall.Failure) {
+        val challenge = result.authenticationChallenge
+        if (challenge != null) {
+            store.clearActive()
+            webSession.clearAccountData()
+            mutableState.value = SessionState.VerificationRequired(challenge)
+        } else mutableState.value = SessionState.SignedOut(result.message)
+    }
+
+    suspend fun verifyAuthentication(code: String) = guarded(Unit) { mutex.withLock {
+        val current = mutableState.value as? SessionState.VerificationRequired ?: return@withLock
+        if (current.challenge.passwordChangeRequired) return@withLock
+        when (val result = api.verifyLogin(current.challenge.token, code.trim(), deviceIdentity.getOrCreate())) {
+            is ApiCall.Success -> activate(result.value)
+            is ApiCall.Failure -> if (result.authenticationChallenge != null) acceptAuthenticationFailure(result)
+                else mutableState.value = current.copy(message = result.message)
+        }
+    } }
+
+    suspend fun completeTemporaryPassword(secret: String, confirmation: String) = guarded(Unit) { mutex.withLock {
+        val current = mutableState.value as? SessionState.VerificationRequired ?: return@withLock
+        if (!current.challenge.passwordChangeRequired) return@withLock
+        when (val result = api.completeTemporaryPassword(current.challenge.token, secret, confirmation)) {
+            is ApiCall.Success -> terminate("密码已修改，请使用新密码重新登录")
+            is ApiCall.Failure -> mutableState.value = current.copy(message = result.message)
+        }
+    } }
+
+    fun cancelAuthentication() { mutableState.value = SessionState.SignedOut("请重新登录") }
+
+    suspend fun refresh(forceWebReload: Boolean = false): RefreshWorkResult = guarded(RefreshWorkResult.RETRY) { mutex.withLock {
         val credentials = store.loadActive()
             ?: return@withLock RefreshWorkResult.SIGNED_OUT.also {
-                mutableState.value = SessionState.SignedOut()
+                // A background refresh must not dismiss an in-progress MFA
+                // challenge. It still has no credentials to refresh or expose.
+                if (mutableState.value !is SessionState.VerificationRequired) {
+                    mutableState.value = SessionState.SignedOut()
+                }
             }
-        refreshLocked(credentials)
+        refreshLocked(credentials, forceWebReload)
     } }
 
     suspend fun logout() = guarded(Unit) { mutex.withLock {
@@ -112,11 +146,15 @@ class SessionRepository(
         return api.setReleaseChannel(credentials.accessToken, credentials.account.id, channel, revision)
     }
 
-    private suspend fun verifyLocked(credentials: DeviceCredentials): RefreshWorkResult {
+    private suspend fun verifyLocked(credentials: DeviceCredentials, forceWebReload: Boolean = false): RefreshWorkResult {
+        val hadCookie = webSession.hasAccessCookie()
+        val wasAuthenticatedRecovering = (mutableState.value as? SessionState.Authenticated)?.let {
+            it.mode != ConnectionMode.ONLINE || !hadCookie
+        } ?: false
         webSession.installAccessCookie(credentials.accessToken, credentials.accessExpiresAtEpochMs)
         return when (val result = api.currentAccount(credentials.accessToken)) {
             is ApiCall.Success -> {
-                activate(credentials.copy(account = result.value))
+                activate(credentials.copy(account = result.value), forceWebReload = forceWebReload || wasAuthenticatedRecovering)
                 RefreshWorkResult.SUCCESS
             }
             is ApiCall.Failure -> when (result.kind) {
@@ -128,7 +166,7 @@ class SessionRepository(
                     )
                     RefreshWorkResult.RETRY
                 }
-                ApiFailureKind.AUTHENTICATION -> refreshLocked(credentials)
+                ApiFailureKind.AUTHENTICATION -> refreshLocked(credentials, forceWebReload)
                 ApiFailureKind.VALIDATION -> {
                     mutableState.value = SessionState.Authenticated(
                         credentials.account,
@@ -141,7 +179,7 @@ class SessionRepository(
         }
     }
 
-    private suspend fun refreshLocked(original: DeviceCredentials): RefreshWorkResult {
+    private suspend fun refreshLocked(original: DeviceCredentials, forceWebReload: Boolean = false): RefreshWorkResult {
         if (original.refreshExpiresAtEpochMs <= now()) {
             terminate("登录有效期已结束，请重新登录")
             return RefreshWorkResult.SIGNED_OUT
@@ -159,7 +197,7 @@ class SessionRepository(
         store.saveActive(pending)
         return when (val result = api.refresh(pending, deviceIdentity.getOrCreate(), rotationKey)) {
             is ApiCall.Success -> {
-                activate(result.value.copy(pendingRotationKey = ""))
+                activate(result.value.copy(pendingRotationKey = ""), forceWebReload = forceWebReload)
                 RefreshWorkResult.SUCCESS
             }
             is ApiCall.Failure -> when (result.kind) {
@@ -179,14 +217,15 @@ class SessionRepository(
         }
     }
 
-    private suspend fun activate(credentials: DeviceCredentials) {
+    private suspend fun activate(credentials: DeviceCredentials, forceWebReload: Boolean = false) {
         val previous = store.loadActive()
         if (previous != null && previous.account.id != credentials.account.id) {
             webSession.clearAccountData()
         }
         store.saveActive(credentials)
         webSession.installAccessCookie(credentials.accessToken, credentials.accessExpiresAtEpochMs)
-        if (previous != null && previous.accessToken != credentials.accessToken) {
+        val tokenRotated = previous != null && previous.accessToken != credentials.accessToken
+        if (forceWebReload || tokenRotated) {
             mutableWebSessionEpoch.value += 1
         }
         mutableState.value = SessionState.Authenticated(credentials.account, ConnectionMode.ONLINE)

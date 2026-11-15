@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {fixtureRequestInit} from '../task27/fixture-request.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import {openPage} from '../../local-backend/browser_harness.mjs';
@@ -21,7 +22,7 @@ for(const width of widths){
     if(intentionallyOffline&&message.method==='Log.entryAdded'&&entry?.source==='network'
       &&entry.text==='Failed to load resource: net::ERR_INTERNET_DISCONNECTED')expectedOfflineErrors.add(page.runtimeErrors.length-1);
   });
-  async function call(route,body){return page.evaluate(`(async()=>{const response=await fetch(${JSON.stringify(route)},{method:${JSON.stringify(body===undefined?'GET':'POST')},headers:{'X-Session-Token':localStorage.getItem('wyjAccountSession'),'Content-Type':'application/json'},${body===undefined?'':`body:JSON.stringify(${JSON.stringify(body)}),`}cache:'no-store'});return {status:response.status,retry_after:response.headers.get('Retry-After'),body:await response.json()};})()`);}
+  async function call(route,body){const token=await page.evaluate("localStorage.getItem('wyjAccountSession')"),options=await fixtureRequestInit(baseUrl,route,body===undefined?null:body,token,secret);return page.evaluate(`(async()=>{const response=await fetch(${JSON.stringify(route)},${JSON.stringify(options)});return {status:response.status,retry_after:response.headers.get('Retry-After'),body:await response.json()};})()`);}
   async function flags(enabled){
     for(const key of ['adaptive_learning','mastery_score','adaptive_review']){
       const list=await call('/api/admin/feature-flags'),flag=list.body.flags.find(row=>row.flag_key===key);

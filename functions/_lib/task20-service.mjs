@@ -1,6 +1,7 @@
 import { createSessionToken, sessionStorageKey } from "./task12-crypto.mjs";
 import { loginAccount, userById } from "./task12-service.mjs";
 import { accountPayload, isoNow, Task12Error } from "./task12-model.mjs";
+import { hasTask27, eventStatements } from './task27-store.mjs';
 import { deriveTask20Token, task20DeviceDigest } from "./task20-crypto.mjs";
 import {
   TASK20_ACCESS_TTL_SECONDS,
@@ -70,11 +71,12 @@ function appSessionResult({ accessToken, refreshToken, row, account, idempotent 
 
 async function revokeDeviceSession(db, row, reason) {
   const now = isoNow();
-  await requireDatabase(db).batch([
+  const result=await requireDatabase(db).batch([
     db.prepare(`UPDATE task20_device_sessions SET revoked = 1, revoked_at = ?2, revoke_reason = ?3
       WHERE id = ?1 AND revoked = 0`).bind(row.id, now, String(reason || "revoked").slice(0, 80)),
     db.prepare("DELETE FROM task12_sessions WHERE token_digest = ?1").bind(row.access_token_digest),
   ]);
+  return Number(result[0]?.meta?.changes || 0)>0;
 }
 
 async function deviceSessionByRefresh(db, digest) {
@@ -115,10 +117,21 @@ export async function loginTask20Device(db, payload, request, options = {}) {
   requireTask20SessionSecret(options.sessionSecret);
   const now = new Date();
   const login = await loginAccount(db, payload.username, payload.secret, request, {
+    ...options,
     passwordPepper: options.passwordPepper,
     sessionTtlSeconds: TASK20_ACCESS_TTL_SECONDS,
     clientKind: "android_app",
+    challengeData: {device_id_digest: await task20DeviceDigest(deviceId), app_version: appVersion},
   });
+  if (login.mfa_required || login.password_change_required) return login;
+  return createTask20DeviceSession(db,login,payload,options);
+}
+
+export async function createTask20DeviceSession(db,login,payload,options={}) {
+  const deviceId=validateTask20DeviceId(payload.device_id);
+  const appVersion=validateTask20AppVersion(payload.app_version);
+  requireTask20SessionSecret(options.sessionSecret);
+  const now=new Date();
   const sessionId = crypto.randomUUID();
   const refreshToken = createSessionToken();
   const refreshDigest = await sessionStorageKey(refreshToken);
@@ -137,7 +150,10 @@ export async function loginTask20Device(db, payload, request, options = {}) {
     id, user_id, device_id_digest, refresh_token_digest, access_token_digest,
     session_version, rotation_counter, app_version, created_at, last_seen_at,
     access_expires_at, refresh_expires_at
-  ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, 0, ?7, ?8, ?8, ?9, ?10)`).bind(
+  ) SELECT ?1, ?2, ?3, ?4, ?5, ?6, 0, ?7, ?8, ?8, ?9, ?10
+    WHERE EXISTS(SELECT 1 FROM task12_sessions s JOIN task12_users u ON u.id=s.user_id
+      WHERE s.token_digest=?5 AND s.user_id=?2 AND s.revoked=0 AND s.session_version=?6
+        AND u.session_version=?6 AND u.deleted=0 AND u.banned=0)`).bind(
     sessionId, login.account.id, deviceDigest, refreshDigest, accessDigest,
     Number((await userById(db, login.account.id)).session_version || 1),
     appVersion, isoNow(now), accessExpiresAt, refreshExpiresAt,
@@ -150,6 +166,7 @@ export async function loginTask20Device(db, payload, request, options = {}) {
     throw error;
   }
   const row = await first(db, "SELECT * FROM task20_device_sessions WHERE id = ?1", [sessionId]);
+  if (!row) throw new Task12Error('账户状态已变化，请重新登录',409,'account_changed_during_login',true);
   return appSessionResult({ accessToken: login.session, refreshToken, row, account: await userById(db, login.account.id) });
 }
 
@@ -173,7 +190,9 @@ async function idempotentRotationResult(db, used, rotationKey, secret, deviceDig
 
 async function rejectRefreshReuse(db, sessionId) {
   const reused = await first(db, "SELECT * FROM task20_device_sessions WHERE id = ?1", [sessionId]);
-  if (reused) await revokeDeviceSession(db, reused, "refresh_reuse");
+  if (reused && await revokeDeviceSession(db, reused, "refresh_reuse") && await hasTask27(db)) {
+    await db.batch(eventStatements(db,reused.user_id,'refresh_reuse'));
+  }
   throw new Task12Error(
     "检测到设备会话凭据重复使用，请重新登录",
     401,
@@ -232,8 +251,10 @@ export async function refreshTask20Device(db, payload, options = {}) {
         token_digest, user_id, session_version, created_at, last_seen_at, expires_at, client_kind
       ) SELECT ?1, id, session_version, ?2, ?2, ?3, 'android_app'
         FROM task12_users
-        WHERE id = ?4 AND session_version = ?5 AND banned = 0 AND deleted = 0`).bind(
-        accessDigest, isoNow(now), accessExpiresAt, row.user_id, Number(row.session_version),
+        WHERE id = ?4 AND session_version = ?5 AND banned = 0 AND deleted = 0
+          AND EXISTS(SELECT 1 FROM task20_device_sessions d WHERE d.id=?6 AND d.revoked=0
+            AND d.access_token_digest=?1 AND d.refresh_token_digest=?7 AND d.session_version=?5)`).bind(
+        accessDigest, isoNow(now), accessExpiresAt, row.user_id, Number(row.session_version),row.id,nextRefreshDigest,
       ),
       db.prepare("DELETE FROM task20_used_refresh_tokens WHERE expires_at <= ?1").bind(isoNow(now)),
     ]);

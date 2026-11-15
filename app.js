@@ -1,3 +1,5 @@
+import { createSecurityCenter } from './js/account/security-center.js?release=20261116-aeris-task27-release';
+let task27Ui = null;
 import {
   AI_TIMEOUT_MS,
   API_GET_TIMEOUT_MS,
@@ -9,62 +11,64 @@ import {
   BUSINESS_TIME_ZONE,
   STATUS_RETRY_BASE_DELAYS_MS,
   STATUS_TIMEOUT_MS,
-} from "./js/core/config.js?release=20261115-aeris-s0-p0-release";
-import { reconcileKeyedRows } from "./js/core/keyed-list.js?release=20261115-aeris-s0-p0-release";
+} from "./js/core/config.js?release=20261116-aeris-task27-release";
+import { reconcileKeyedRows } from "./js/core/keyed-list.js?release=20261116-aeris-task27-release";
 import {
   capabilityProblems,
   detectCapabilities,
   randomId,
-} from "./js/core/capabilities.js?release=20261115-aeris-s0-p0-release";
+} from "./js/core/capabilities.js?release=20261116-aeris-task27-release";
 import {
   createApiClient,
   fetchWithTimeout,
   isCanonicalSessionFailure,
   retryDelayWithJitter,
   waitForDelay,
-} from "./js/core/api.js?release=20261115-aeris-s0-p0-release";
+} from "./js/core/api.js?release=20261116-aeris-task27-release";
 import {
   createChangelogSelection,
   loadCloudChangelog,
   mergeChangelogEntries,
   staticChangelogEntries,
-} from "./js/core/changelog.js?release=20261115-aeris-s0-p0-release";
-import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation, nativeAppRoute } from "./js/core/router.js?release=20261115-aeris-s0-p0-release";
+} from "./js/core/changelog.js?release=20261116-aeris-task27-release";
+import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation, nativeAppRoute } from "./js/core/router.js?release=20261116-aeris-task27-release";
 import {
   ACCOUNT_CACHE_KEY,
+  NATIVE_ACCOUNT_SESSION,
   isThewyjAndroidApp,
   accountSessionHeaders,
   clearAccountSessionStorage,
   persistAccountSession,
+  queueNativeBridgeNavigation,
   requestNativeLogout,
   requestNativeSessionRefresh,
   restoreAccountSession,
   subscribeAccountSessionChanges,
-} from "./js/core/session.js?release=20261115-aeris-s0-p0-release";
-import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?release=20261115-aeris-s0-p0-release";
-import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?release=20261115-aeris-s0-p0-release";
-import { initDesignSystem, setExperienceMode, setInterfaceEnhancementsEnabled, dialogFocusTargets, focusDialog } from "./js/core/design-system.js?release=20261115-aeris-s0-p0-release";
-import { createPublicUiPolicyController } from "./js/core/public-ui-policy.js?release=20261115-aeris-s0-p0-release";
-import { completeStartupSplash, canPresentWorkspace, waitForPresentation } from "./js/core/startup.js?release=20261115-aeris-s0-p0-release";
-import { installMotionSystem, motionDuration, prefersReducedMotion } from "./js/core/motion.js?release=20261115-aeris-s0-p0-release";
-import { initPublicExperience, renderPublicPlanCatalog } from "./js/core/public-experience.js?release=20261115-aeris-s0-p0-release";
-import { createAndroidDownloadController } from "./js/core/download.js?release=20261115-aeris-s0-p0-release";
-import { createFeatureController } from "./js/core/feature-flags.js?release=20261115-aeris-s0-p0-release";
-import { createFeatureConsole } from "./js/core/feature-console.js?release=20261115-aeris-s0-p0-release";
-import { createMasteryController } from "./js/language/mastery.js?release=20261115-aeris-s0-p0-release";
-import { createWrongReviewController } from './js/language/wrong-review-sync.js?release=20261115-aeris-s0-p0-release';
-import { wrongEntryWord, wrongEntryKey, findWrongEntry } from './js/language/wrong-book.js?release=20261115-aeris-s0-p0-release';
-import { orderWrongReview, wrongReviewView, mergeWrongReview, wrongReviewDigest, wrongReviewSource, reviewDictationOptions } from './js/language/wrong-review.js?release=20261115-aeris-s0-p0-release';
-import { clearMasteryJournalAccount } from "./js/language/mastery-journal.js?release=20261115-aeris-s0-p0-release";
-import { masteryStorageKey, parseIssuedQuestion } from "./js/language/mastery-state.js?release=20261115-aeris-s0-p0-release";
-import { speakText, stopSpeech } from "./js/language/speech.js?release=20261115-aeris-s0-p0-release";
+} from "./js/core/session.js?release=20261116-aeris-task27-release";
+import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?release=20261116-aeris-task27-release";
+import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?release=20261116-aeris-task27-release";
+import { initDesignSystem, setExperienceMode, setInterfaceEnhancementsEnabled, dialogFocusTargets, focusDialog } from "./js/core/design-system.js?release=20261116-aeris-task27-release";
+import { createPublicUiPolicyController } from "./js/core/public-ui-policy.js?release=20261116-aeris-task27-release";
+import { completeStartupSplash, canPresentWorkspace, waitForPresentation } from "./js/core/startup.js?release=20261116-aeris-task27-release";
+import { installMotionSystem, motionDuration, prefersReducedMotion } from "./js/core/motion.js?release=20261116-aeris-task27-release";
+import { initPublicExperience, renderPublicPlanCatalog } from "./js/core/public-experience.js?release=20261116-aeris-task27-release";
+import { createAndroidDownloadController } from "./js/core/download.js?release=20261116-aeris-task27-release";
+import { createFeatureController } from "./js/core/feature-flags.js?release=20261116-aeris-task27-release";
+import { createFeatureConsole } from "./js/core/feature-console.js?release=20261116-aeris-task27-release";
+import { createMasteryController } from "./js/language/mastery.js?release=20261116-aeris-task27-release";
+import { createWrongReviewController } from './js/language/wrong-review-sync.js?release=20261116-aeris-task27-release';
+import { wrongEntryWord, wrongEntryKey, findWrongEntry } from './js/language/wrong-book.js?release=20261116-aeris-task27-release';
+import { orderWrongReview, wrongReviewView, mergeWrongReview, wrongReviewDigest, wrongReviewSource, reviewDictationOptions } from './js/language/wrong-review.js?release=20261116-aeris-task27-release';
+import { clearMasteryJournalAccount } from "./js/language/mastery-journal.js?release=20261116-aeris-task27-release";
+import { masteryStorageKey, parseIssuedQuestion } from "./js/language/mastery-state.js?release=20261116-aeris-task27-release";
+import { speakText, stopSpeech } from "./js/language/speech.js?release=20261116-aeris-task27-release";
 import {
   loadSpeechRate,
   saveSpeechRate,
-} from "./js/language/speech-rate.js?release=20261115-aeris-s0-p0-release";
-import { formatFinanceMoney } from "./js/finance/format.js?release=20261115-aeris-s0-p0-release";
-import { createLazyController, installLazyTools, createRetryableImport } from "./js/core/lazy-controller.js?release=20261115-aeris-s0-p0-release";
-import { createDashboardView } from "./js/core/dashboard.js?release=20261115-aeris-s0-p0-release";
+} from "./js/language/speech-rate.js?release=20261116-aeris-task27-release";
+import { formatFinanceMoney } from "./js/finance/format.js?release=20261116-aeris-task27-release";
+import { createLazyController, installLazyTools, createRetryableImport } from "./js/core/lazy-controller.js?release=20261116-aeris-task27-release";
+import { createDashboardView } from "./js/core/dashboard.js?release=20261116-aeris-task27-release";
 import {
   INTERACTION_STAGES,
   beginInteraction,
@@ -72,15 +76,15 @@ import {
   interactionTraceApi,
   withInteractionFeedback,
   withInteractionFeedbackQuiet,
-} from "./js/core/perf.js?release=20261115-aeris-s0-p0-release";
-import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?release=20261115-aeris-s0-p0-release";
+} from "./js/core/perf.js?release=20261116-aeris-task27-release";
+import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?release=20261116-aeris-task27-release";
 import {
   calculateStudyStreak,
   formatDuration,
   localDayKey,
   sanitizeStudyRecords,
   studyDaySeries,
-} from "./js/language/history.js?release=20261115-aeris-s0-p0-release";
+} from "./js/language/history.js?release=20261116-aeris-task27-release";
 import {
   DEFAULT_PROFILE,
   LANGUAGE_LABELS,
@@ -117,16 +121,16 @@ import {
   trimRubricCache,
   wordIdentity,
   wordMatchesLanguage,
-} from "./js/language/quiz.js?release=20261115-aeris-s0-p0-release";
-import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?release=20261115-aeris-s0-p0-release";
-import { createWrongBookPdf } from "./js/language/pdf.js?release=20261115-aeris-s0-p0-release";
+} from "./js/language/quiz.js?release=20261116-aeris-task27-release";
+import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?release=20261116-aeris-task27-release";
+import { createWrongBookPdf } from "./js/language/pdf.js?release=20261116-aeris-task27-release";
 import {
   filterWrongBookByLanguage as filterWrongBookByLanguageModel,
   mergeWrongBooks,
   removeLanguageFromWrongBook as removeLanguageFromWrongBookModel,
   sanitizeWrongBook,
   updateWrongEntry as updateWrongEntryModel,
-} from "./js/language/wrong-book.js?release=20261115-aeris-s0-p0-release";
+} from "./js/language/wrong-book.js?release=20261116-aeris-task27-release";
 import {
   accountEntitlements as accountEntitlementsModel,
   accountMembershipSummary as accountMembershipSummaryModel,
@@ -135,7 +139,7 @@ import {
   isAdmin as isAdminModel,
   isSuperAdmin as isSuperAdminModel,
   membershipLabel,
-} from "./js/membership/account.js?release=20261115-aeris-s0-p0-release";
+} from "./js/membership/account.js?release=20261116-aeris-task27-release";
 import {
   MEMBERSHIP_GOALS,
   MEMBERSHIP_PLAN_ORDER,
@@ -143,19 +147,20 @@ import {
   membershipGoalForPlan,
   normalizedMembershipGoal,
   planDetails as planDetailsModel,
-} from "./js/membership/plans.js?release=20261115-aeris-s0-p0-release";
+} from "./js/membership/plans.js?release=20261116-aeris-task27-release";
 import {
   DEFAULT_PAYMENT_METHODS,
   normalizedPaymentMethod as normalizedPaymentMethodModel,
   paymentMethodLabel as paymentMethodLabelModel,
   paymentStatusLabel,
   rechargeStatusLabel,
-} from "./js/membership/recharge.js?release=20261115-aeris-s0-p0-release";
+} from "./js/membership/recharge.js?release=20261116-aeris-task27-release";
 import {
+  createAdminEmailCenter,
   loginLocationLabel,
   loginReasonLabel,
   membershipDateValue as membershipDateValueModel,
-} from "./js/admin/formatters.js?release=20261115-aeris-s0-p0-release";
+} from "./js/admin/formatters.js?release=20261116-aeris-task27-release";
 
 const localStorage = getSafeStorage("localStorage");
 const sessionStorage = getSafeStorage("sessionStorage");
@@ -310,6 +315,9 @@ let activeSiteMessage = null;
 let siteMessageLoadPromise = null;
 let siteMessageLastPollAt = 0;
 const siteMessageSessionDismissed = new Set();
+const siteMessagePendingDismissals = new Map();
+const siteMessageOwner = () => `${state.session || ''}:${state.account?.id || ''}`;
+let siteMessageQueueOwner = '';
 let lastLimitPromptKey = "";
 let projectRuntimeNeedsRestore = false;
 let backendStatusPromise = null;
@@ -1057,6 +1065,8 @@ function clearSession() {
   pendingSiteMessages = [];
   activeSiteMessage = null;
   siteMessageSessionDismissed.clear();
+  siteMessagePendingDismissals.clear();
+  renderSiteMessageSaveStatus();
   closeModal("siteMessageModal", true);
   clearAccountSessionStorage();
   ["secretInput", "registerSecretInput", "registerConfirmInput", "currentSecretInput", "newSecretInput", "newSecretConfirmInput", "deleteSecretInput", "adminNewSecretInput"].forEach((id) => {
@@ -1110,15 +1120,21 @@ function isAdmin(account = state.account) {
 }
 
 function resetSiteMessageQueue() {
+  siteMessageQueueOwner = siteMessageOwner();
   pendingSiteMessages = [];
   activeSiteMessage = null;
   siteMessageSessionDismissed.clear();
+  siteMessagePendingDismissals.clear();
+  renderSiteMessageSaveStatus();
+  siteMessageLoadPromise = null;
   siteMessageLastPollAt = 0;
   closeModal("siteMessageModal", true);
 }
 
 function showNextSiteMessage() {
   if (activeSiteMessage || !state.session || !state.account) return;
+  // A background broadcast must not interrupt an existing dialog or its proof.
+  if (document.querySelector('.modal-layer:not(.hidden):not(#siteMessageModal)')) return;
   const next = pendingSiteMessages.find((message) => !siteMessageSessionDismissed.has(message.id));
   pendingSiteMessages = pendingSiteMessages.filter((message) => message.id !== next?.id);
   if (!next) return;
@@ -1130,9 +1146,10 @@ function showNextSiteMessage() {
   $("siteMessageMeta").textContent = [
     formatLocalDateTime(next.created_at, ""),
     next.expires_at ? `有效期至 ${formatLocalDateTime(next.expires_at)}` : "",
-    next.requires_confirmation ? "需要明确确认" : "关闭后不再提示",
+    next.requires_confirmation ? "需要明确确认" : next.purpose === 'mfa_advice' ? '自主安全建议，约 30 天内不再提示' : "关闭后不再提示",
   ].filter(Boolean).join(" · ");
   $("siteMessageAcknowledgeBtn").classList.toggle("hidden", !next.requires_confirmation);
+  $('siteMessageCloseBtn').textContent = next.requires_confirmation ? '稍后确认' : '关闭';
   $("siteMessageError").textContent = "";
   openModal("siteMessageModal");
 }
@@ -1143,8 +1160,10 @@ async function loadPendingSiteMessages(options = {}) {
   if (!options.force && now - siteMessageLastPollAt < 30_000) return;
   if (siteMessageLoadPromise) return await siteMessageLoadPromise;
   siteMessageLastPollAt = now;
-  siteMessageLoadPromise = apiGet("/api/messages/pending")
+  const owner = siteMessageOwner();
+  const request = apiGet("/api/messages/pending")
     .then((data) => {
+      if (owner !== siteMessageOwner()) return;
       const existing = new Set([activeSiteMessage?.id, ...pendingSiteMessages.map((message) => message.id)]);
       for (const message of data.messages || []) {
         if (!message?.id || existing.has(message.id) || siteMessageSessionDismissed.has(message.id)) continue;
@@ -1154,8 +1173,9 @@ async function loadPendingSiteMessages(options = {}) {
       showNextSiteMessage();
     })
     .catch(() => undefined)
-    .finally(() => { siteMessageLoadPromise = null; });
-  return await siteMessageLoadPromise;
+    .finally(() => { if (siteMessageLoadPromise === request) siteMessageLoadPromise = null; });
+  siteMessageLoadPromise = request;
+  return await request;
 }
 
 function schedulePendingSiteMessages() {
@@ -1163,44 +1183,72 @@ function schedulePendingSiteMessages() {
   window.setTimeout(() => { void loadPendingSiteMessages(); }, 0);
 }
 
+function renderSiteMessageSaveStatus() {
+  const notice = $('siteMessageSaveStatus');
+  if (!notice) return;
+  const failures = [...siteMessagePendingDismissals.values()].filter(item => item.status === 'failed');
+  const saving = [...siteMessagePendingDismissals.values()].some(item => item.status === 'saving');
+  notice.classList.toggle('hidden', !siteMessagePendingDismissals.size);
+  $('siteMessageSaveText').textContent = failures.length
+    ? `通知已在本页收起，但 ${failures.length} 条关闭状态未保存，刷新后可能再次显示。${failures[0].error}`
+    : '通知已收起，正在保存关闭状态…';
+  $('siteMessageRetryBtn').classList.toggle('hidden', !failures.length);
+  $('siteMessageRetryBtn').disabled = saving;
+}
+
+async function saveSiteMessageDismissal(messageId, owner = siteMessageOwner()) {
+  if (owner !== siteMessageOwner() || siteMessagePendingDismissals.get(messageId)?.status === 'saving') return;
+  siteMessagePendingDismissals.set(messageId, { status: 'saving' });
+  renderSiteMessageSaveStatus();
+  try {
+    await api('/api/messages/receipt', { message_id: messageId, action: 'dismiss' });
+    if (owner !== siteMessageOwner()) return;
+    siteMessagePendingDismissals.delete(messageId);
+  } catch (error) {
+    if (owner !== siteMessageOwner()) return;
+    siteMessagePendingDismissals.set(messageId, { status: 'failed', error: error.message });
+  }
+  if (owner === siteMessageOwner()) renderSiteMessageSaveStatus();
+}
+
+async function retrySiteMessageDismissals() {
+  const owner = siteMessageOwner();
+  for (const [id, item] of [...siteMessagePendingDismissals]) {
+    if (owner !== siteMessageOwner()) return;
+    if (item.status === 'failed') await saveSiteMessageDismissal(id, owner);
+  }
+}
+
 async function dismissActiveSiteMessage() {
   const message = activeSiteMessage;
   if (!message) return;
-  const controls = [$("siteMessageCloseIcon"), $("siteMessageCloseBtn"), $("siteMessageAcknowledgeBtn")].filter(Boolean);
-  controls.forEach((control) => { control.disabled = true; });
+  const owner = siteMessageOwner();
   $("siteMessageError").textContent = "";
-  if (!message.requires_confirmation) {
-    try {
-      await api("/api/messages/receipt", { message_id: message.id, action: "dismiss" });
-    } catch (error) {
-      $("siteMessageError").textContent = `关闭状态保存失败：${error.message}`;
-      controls.forEach((control) => { control.disabled = false; });
-      return;
-    }
-  } else {
-    void api("/api/messages/receipt", { message_id: message.id, action: "dismiss" }).catch(() => undefined);
-  }
   siteMessageSessionDismissed.add(message.id);
   activeSiteMessage = null;
   closeModal("siteMessageModal", true);
-  controls.forEach((control) => { control.disabled = false; });
   window.setTimeout(showNextSiteMessage, 0);
+  await saveSiteMessageDismissal(message.id, owner);
 }
 
 async function acknowledgeActiveSiteMessage() {
   const message = activeSiteMessage;
   if (!message) return;
+  const owner = siteMessageOwner();
   const button = $("siteMessageAcknowledgeBtn");
   button.disabled = true;
   $("siteMessageError").textContent = "";
   try {
     await api("/api/messages/receipt", { message_id: message.id, action: "acknowledge" });
+    if (owner !== siteMessageOwner()) return;
     siteMessageSessionDismissed.add(message.id);
-    activeSiteMessage = null;
-    closeModal("siteMessageModal", true);
+    if (activeSiteMessage === message) {
+      activeSiteMessage = null;
+      closeModal("siteMessageModal", true);
+    }
     window.setTimeout(showNextSiteMessage, 0);
   } catch (error) {
-    $("siteMessageError").textContent = `确认失败：${error.message}`;
+    if (owner === siteMessageOwner() && activeSiteMessage === message) $("siteMessageError").textContent = `确认失败：${error.message}`;
   } finally {
     button.disabled = false;
   }
@@ -1242,6 +1290,13 @@ function accountWordLimit(language = state.quizLanguage) {
 }
 
 function renderAccountUi() {
+  if (siteMessageQueueOwner !== siteMessageOwner()) resetSiteMessageQueue();
+  task27Ui?.updateAccount();
+  const inboxMenu = $('notificationInboxMenuBtn'), inboxOwner = siteMessageOwner();
+  if (!state.session || !state.account) inboxMenu?.classList.add('hidden');
+  else if (task27Ui && inboxMenu) void task27Ui.isSupported().then(supported => {
+    if (inboxOwner === siteMessageOwner()) inboxMenu.classList.toggle('hidden', !supported);
+  }).catch(() => {});
   featureController?.updateAccount();
   publicUiPolicyController?.updateAccount();
   applyInterfacePolicy();
@@ -1254,7 +1309,7 @@ function renderAccountUi() {
   const summary = accountMembershipSummary(account);
   $("accountBar")?.classList.remove("hidden");
   $("navGuestActions")?.classList.toggle("hidden", Boolean(account));
-  if (!account && state.session) $("navGuestActions")?.classList.add("hidden");
+  if (!account && (state.session || isThewyjAndroidApp())) $("navGuestActions")?.classList.add("hidden");
   $("accountMenu")?.classList.toggle("hidden", !account);
   if (!account && $("accountMenu")) $("accountMenu").open = false;
   if ($("navHomeLabel")) $("navHomeLabel").textContent = "首页";
@@ -1707,6 +1762,7 @@ function closeModal(id, immediate = false) {
     if (returnFocus?.isConnected && returnFocus.getClientRects().length && !returnFocus.closest("[inert], .modal-layer.hidden")) {
       returnFocus.focus({ preventScroll: true });
     } else if (remaining.length) focusDialog(remaining.at(-1));
+    window.setTimeout(showNextSiteMessage, 0);
     if ((id === "membershipModal" && location.pathname === "/recharge") || (id === "accountModal" && location.pathname === "/account")) {
       if (state.session && state.account) {
         showModulePicker(false);
@@ -1749,7 +1805,11 @@ async function registerAccount(event) {
     const username = $("registerUsernameInput").value.trim();
     const secret = $("registerSecretInput").value;
     const confirmSecret = $("registerConfirmInput").value;
-    await api("/api/register", { username, secret, confirm_secret: confirmSecret });
+    const consent = await task27Ui.registrationConsent();
+    await api("/api/register", { username, secret, confirm_secret: confirmSecret, ...consent });
+    $('registerTermsConsent').checked = false;
+    $('registerSecretInput').value = '';
+    $('registerConfirmInput').value = '';
     $("usernameInput").value = username;
     $("secretInput").value = secret;
     showAuthMode("login", true);
@@ -2351,8 +2411,9 @@ async function changeOwnSecret(event) {
   }
   button.disabled = true;
   try {
+    const securityProof=await task27Ui.isSupported()?{grant:await task27Ui.stepup('password_change',$("currentSecretInput").value)}:{current_secret:$("currentSecretInput").value};
     await api("/api/account/secret", {
-      current_secret: $("currentSecretInput").value,
+      ...securityProof,
       new_secret: newSecret,
       confirm_secret: confirmation,
     });
@@ -2500,6 +2561,7 @@ function generateOwnSecret() {
   try {
     const secret = generateSecureSecret();
     $("newSecretInput").value = secret;
+    $('newSecretInput').dispatchEvent(new Event('input',{bubbles:true}));
     $("newSecretConfirmInput").value = secret;
     setSecretFieldsVisibility(["newSecretInput", "newSecretConfirmInput"], "toggleNewSecretBtn", true);
     $("accountMessage").textContent = "已生成安全密钥；保存前请确认你已记住或安全保存。";
@@ -2560,7 +2622,7 @@ function renderAdminUsers(data = null, { append = false } = {}) {
     signature: user => JSON.stringify([user, isSuperAdmin(), state.account?.id]),
     empty: `<p class="admin-empty-state">${adminUserPage.query ? "没有匹配的用户" : "暂无用户"}</p>`,
     render: (user) => {
-    const protectedUser = user.is_admin || (!isSuperAdmin() && user.id === state.account?.id);
+    const protectedUser = user.is_super_admin || user.id === state.account?.id;
     const roleLabel = user.is_super_admin ? "站点所有者" : user.is_admin ? "管理员" : "普通用户";
     const stateClass = user.banned ? "account-state-bad" : "account-state-good";
     const summary = accountMembershipSummary(user);
@@ -2791,6 +2853,8 @@ async function sendAdminMessage(event) {
     title: $("adminMessageTitle").value.trim(),
     body: $("adminMessageBody").value.trim(),
     message_type: $("adminMessageType").value,
+    delivery_channel: $('adminMessageChannel').value,
+    purpose: $('adminMessagePurpose').value,
     target_scope: scope,
     target_user_ids: targetUserIds,
     expires_at: expiryValue ? new Date(expiryValue).toISOString() : "",
@@ -3119,7 +3183,11 @@ function renderAdminCurrentMemberships(user) {
 
 function openAdminEditor(userId) {
   const user = adminUserById(userId);
-  if (!user || user.is_admin || (!isSuperAdmin() && user.id === state.account?.id)) return;
+  if (!user || user.is_super_admin || user.id === state.account?.id) return;
+  const resetOnly=Boolean(user.is_admin);
+  document.querySelectorAll('#adminEditModal .admin-editor-section').forEach(section=>{
+    section.classList.toggle('hidden',resetOnly && !section.querySelector('#saveAdminSecretBtn'));
+  });
   $("adminEditUserId").value = user.id;
   $("adminEditTitle").textContent = `编辑 ${user.username}`;
   const preferred = (user.memberships || [])
@@ -3194,28 +3262,25 @@ function updateAdminToolsOverride(allowed) {
   });
 }
 
-function saveAdminSecret() {
-  const secret = $("adminNewSecretInput").value;
+async function saveAdminSecret() {
+  const supported=await task27Ui.isSupported();
+  const legacySecret=$('adminNewSecretInput').value;
+  if(!supported&&!legacySecret){$('adminEditMessage').textContent='请先输入或生成新的登录密钥';return;}
   const saveButton = $("saveAdminSecretBtn");
   const generateButton = $("generateAdminSecretBtn");
-  if (!secret) {
-    $("adminEditMessage").textContent = "请先输入或生成新的登录密钥";
-    $("adminNewSecretInput").focus();
-    return;
-  }
   const userId = $("adminEditUserId").value;
   const user = adminUserById(userId);
   askConfirmation(`确认重置“${user?.username || userId}”的登录密钥并退出其全部会话？`, async () => {
     saveButton.disabled = true;
     generateButton.disabled = true;
     try {
-      await api("/api/admin/secret", { user_id: userId, secret });
+      const result = await api("/api/admin/secret", { user_id: userId, ...(supported?{grant:await task27Ui.stepup(`admin_reset:${userId}`)}:{secret:legacySecret}) });
       await loadAdminData();
       $("adminNewSecretInput").value = "";
       setAdminSecretVisibility(false);
-      $("adminSecretResultValue").textContent = secret;
+      $("adminSecretResultValue").textContent = supported?result.temporary_password:legacySecret;
       $("adminSecretResult").classList.remove("hidden");
-      $("adminEditMessage").textContent = "密钥已修改，旧密钥和旧会话均已失效。请立即复制新密钥。";
+      $("adminEditMessage").textContent = supported?"已生成随机 20 位临时密码，仅本次显示。旧会话已撤销，原 MFA 保留，用户须在首次登录时设置新密码。":"密钥已修改，旧密钥和旧会话均已失效。请立即复制新密钥。";
     } finally {
       saveButton.disabled = false;
       generateButton.disabled = false;
@@ -3931,14 +3996,19 @@ async function mountVerifiedCurrentRoute(owner, strictOwner = false) {
       $('sessionRecovery').setAttribute('aria-hidden', 'true');
       renderAccountUi();
       document.documentElement.dataset.workspaceMount = 'ready';
+      startupMounted = true;
+      if (startupRevealed) document.documentElement.dataset.bootState = 'ready';
       return;
     }
   }
 }
 
 function showStartupRecovery(reason) {
+  const timeoutMessage = isThewyjAndroidApp()
+    ? '连接较慢，正在安全恢复页面。你可以等待或点击重试。'
+    : '连接较慢，正在安全恢复页面。你可以等待、重试或返回公开首页。';
   showSessionRecovery(reason === 'timeout'
-    ? '连接较慢，正在安全恢复页面。你可以等待、重试或返回公开首页。'
+    ? timeoutMessage
     : '页面尚未准备完成，请重试连接。', { isError: reason === 'error' || !backendAvailable, preserveWorkspaceMount: true });
 }
 
@@ -4090,7 +4160,9 @@ function showSessionRecovery(message = "正在打开你的页面…", options = 
   recovery.setAttribute("aria-hidden", "false");
   $("sessionRecoveryMessage").textContent = message;
   if ($("exitSessionRecoveryBtn")) {
-    $("exitSessionRecoveryBtn").hidden = isThewyjAndroidApp();
+    const hideExit = isThewyjAndroidApp();
+    $("exitSessionRecoveryBtn").hidden = hideExit;
+    $("exitSessionRecoveryBtn").classList.toggle("hidden", hideExit);
   }
   $("accountBar").classList.add("hidden");
 }
@@ -4415,6 +4487,7 @@ function routeCurrent() {
 
 async function renderCurrentRoute(path, generation = routeGeneration) {
     if (!isRouteGenerationCurrent(generation)) return;
+    if (path === '/forgot-password') { showAuth('', { path:'/forgot-password' }); await task27Ui.forgotPassword(); return; }
     if (state.session && (sessionRestorePending || !state.account)) {
       showSessionRecovery(pendingAuthMessage || '正在验证登录状态…', { isError: !backendAvailable });
       return;
@@ -4929,7 +5002,7 @@ function backendErrorMessage(error) {
   return BACKEND_NETWORK_MESSAGE;
 }
 
-const { api, apiGet, publicApi, requestJsonGet, uploadApi, uploadBinaryApi } = createApiClient({
+const { api: accountApi, apiGet: accountApiGet, publicApi, requestJsonGet, uploadApi, uploadBinaryApi } = createApiClient({
   getSession: () => state.session,
   backendErrorMessage,
   markBackendReachable,
@@ -4951,15 +5024,37 @@ const { api, apiGet, publicApi, requestJsonGet, uploadApi, uploadBinaryApi } = c
   },
 });
 
+task27Ui=createSecurityCenter({api:accountApi,apiGet:accountApiGet,publicApi,getSession:()=>state.session,getAccount:()=>state.account,openModal,closeModal,
+  onInvalidated:(message,{deferNative=false}={})=>{clearSession();if(!deferNative&&requestNativeLogout())return;showAuth(message,{path:'/login',replace:true});},
+  onNativeLogout:()=>requestNativeLogout(),
+});
+const task27SensitiveRoutes=new Map([
+  ['/api/admin/roles','admin_roles'],['/api/admin/ban','admin_account'],['/api/admin/logout-user','admin_account'],['/api/admin/delete-user','admin_account'],
+  ['/api/admin/membership/manage','admin_entitlements'],['/api/admin/membership','admin_entitlements'],['/api/admin/entitlement','admin_entitlements'],
+  ['/api/admin/feature-flags','admin_features'],['/api/account/delete','account_delete'],
+  ['/api/admin/feature-flags/override','admin_features'],['/api/admin/recharge/process','admin_entitlements'],
+  ['/api/admin/email/test-send','email_center:test'],['/api/admin/email/send','email_center:send'],
+  ['/api/admin/email/deliveries/retry','email_center:retry'],['/api/admin/email/inbound/reply','email_center:reply'],
+  ['/api/admin/email/templates','email_center:templates'],['/api/admin/email/inbound/status','email_center:inbound'],
+]);
+async function api(path,body={},options={}) {
+  const scope=task27SensitiveRoutes.get(path);
+  if(scope&&await task27Ui.isSupported())options={...options,headers:{...options.headers,'X-Aeris-Stepup':await task27Ui.stepup(scope,path==='/api/account/delete'?body.secret:undefined)}};
+  try{return await accountApi(path,body,options);}catch(error){if(error.code!=='policy_consent_required')throw error;await task27Ui.reaccept();return accountApi(path,body,options);}
+}
+async function apiGet(path,options={}) {
+  try{return await accountApiGet(path,options);}catch(error){if(error.code!=='policy_consent_required')throw error;await task27Ui.reaccept();return accountApiGet(path,options);}
+}
+
 installLazyTools({
-  loadTools: createRetryableImport(new URL("./tools.js?release=20261115-aeris-s0-p0-release", import.meta.url)),
-  loadWorkflows: createRetryableImport(new URL("./workflows.js?release=20261115-aeris-s0-p0-release", import.meta.url)),
+  loadTools: createRetryableImport(new URL("./tools.js?release=20261116-aeris-task27-release", import.meta.url)),
+  loadWorkflows: createRetryableImport(new URL("./workflows.js?release=20261116-aeris-task27-release", import.meta.url)),
   onReady: () => renderDashboard(),
 });
 
-const loadFinanceModule = createRetryableImport(new URL("./js/finance/app.js?release=20261115-aeris-s0-p0-release", import.meta.url));
-const loadCandidateModule = createRetryableImport(new URL("./js/finance/candidates.js?release=20261115-aeris-s0-p0-release", import.meta.url));
-const loadTransferModule = createRetryableImport(new URL("./js/transfer/app.js?release=20261115-aeris-s0-p0-release", import.meta.url));
+const loadFinanceModule = createRetryableImport(new URL("./js/finance/app.js?release=20261116-aeris-task27-release", import.meta.url));
+const loadCandidateModule = createRetryableImport(new URL("./js/finance/candidates.js?release=20261116-aeris-task27-release", import.meta.url));
+const loadTransferModule = createRetryableImport(new URL("./js/transfer/app.js?release=20261116-aeris-task27-release", import.meta.url));
 
 financeController = createLazyController({
   methods: ["syncNow", "verifyTransaction", "render"],
@@ -7111,7 +7206,7 @@ function showAuthTransition(message = "正在验证身份与权限…") {
     overlay.setAttribute("aria-label", message);
     overlay.setAttribute("aria-hidden", "false");
     overlay.innerHTML = '<div class="entry-content">' +
-      '<img class="entry-logo" src="/icon-192.png?release=20261115-aeris-s0-p0-release" width="76" height="76" alt="" />' +
+      '<img class="entry-logo" src="/icon-192.png?release=20261116-aeris-task27-release" width="76" height="76" alt="" />' +
       '<strong>Aeris</strong>' +
       '<span class="entry-progress" aria-hidden="true"></span>' +
       '</div>';
@@ -7147,10 +7242,12 @@ async function login(event) {
       $("loginError").textContent = "正在重新连接服务器…";
       if (!(await ensureBackendConnection())) throw new Error(backendFailureMessage);
     }
-    const data = await api("/api/login", {
+    let data = await api("/api/login", {
       username: $("usernameInput").value.trim(),
       secret: $("secretInput").value,
     });
+    $('secretInput').value='';
+    data = await task27Ui.completeLogin(data);
     if (state.session !== owner) {
       const error = new Error('账户已切换'); error.code = 'account_changed'; throw error;
     }
@@ -7212,6 +7309,7 @@ async function performBackendRefresh() {
       if (!healthResponse.ok) {
         if (isCanonicalSessionFailure(health)) {
           if (requestNativeSessionRefresh(health.code)) {
+            backendFailureMessage = "";
             pendingScreen = "workspace";
             pendingAuthMessage = "正在刷新设备会话…";
           } else {
@@ -7235,6 +7333,7 @@ async function performBackendRefresh() {
         $("statusDot").classList.toggle("online", true);
         pendingScreen = "workspace";
         pendingAuthMessage = "";
+        backendFailureMessage = "";
         if (restoring && startupMounted) void mountVerifiedCurrentRoute(owner, true).catch(() => {});
       }
     } else {
@@ -7252,7 +7351,7 @@ async function performBackendRefresh() {
     $("statusDot").classList.remove("online");
   }
   if (sessionRestorePending) {
-    showSessionRecovery(backendFailureMessage || "正在重新验证登录状态…", { isError: !backendAvailable });
+    showSessionRecovery(pendingAuthMessage || backendFailureMessage || "正在重新验证登录状态…", { isError: !backendAvailable });
     applyInterfacePolicy();
   }
   applyPendingScreen();
@@ -7390,7 +7489,7 @@ function installNativeThemeBridge() {
   const pushTheme = (resolved) => {
     if (window.__wyjNativeTheme === resolved) return;
     window.__wyjNativeTheme = resolved;
-    window.location.href = `thewyj://theme/${resolved}`;
+    queueNativeBridgeNavigation(`thewyj://theme/${resolved}`);
   };
   document.addEventListener("wyj:theme-changed", (event) => {
     pushTheme(event?.detail?.resolved === "dark" ? "dark" : "light");
@@ -7602,6 +7701,7 @@ async function boot() {
   $("feedbackBtn").addEventListener("click", (event) =>
     withInteractionFeedback(event.currentTarget, "feedback-open", () => openFeedbackModal(event)));
   $("accountBtn").addEventListener("click", () => { closeAccountMenu(); showAccount(true); });
+  $('notificationInboxMenuBtn')?.addEventListener('click', () => { closeAccountMenu(); void task27Ui?.openInbox(); });
   $("homeBtn").addEventListener("click", () => { closeAccountMenu(); showModulePicker(true); });
   $("adminBtn").addEventListener("click", () => { closeAccountMenu(); showAdminPanel(true); });
   $("logoutBtn").addEventListener("click", () => { closeAccountMenu(); logoutAccount(); });
@@ -7716,6 +7816,20 @@ async function boot() {
   $("siteMessageCloseIcon")?.addEventListener("click", () => { void dismissActiveSiteMessage(); });
   $("siteMessageCloseBtn")?.addEventListener("click", () => { void dismissActiveSiteMessage(); });
   $("siteMessageAcknowledgeBtn")?.addEventListener("click", acknowledgeActiveSiteMessage);
+  $('siteMessageRetryBtn')?.addEventListener('click', () => { void retrySiteMessageDismissals(); });
+  let adminEmailCenterController = null;
+  function loadAdminEmailCenter() {
+    if (!isAdmin()) return;
+    if (!adminEmailCenterController) {
+      adminEmailCenterController = createAdminEmailCenter({
+        root: $("adminEmailCenterRoot"),
+        apiGet: (path) => apiGet(path),
+        apiPost: (path, body) => api(path, body),
+        getAccount: () => state.account,
+      });
+    }
+    adminEmailCenterController?.load();
+  }
   document.querySelectorAll("[data-admin-view]").forEach((button) => button.addEventListener("click", () => {
     document.querySelectorAll("[data-admin-view]").forEach((item) => {
       const active = item === button;
@@ -7724,6 +7838,7 @@ async function boot() {
     });
     document.querySelectorAll(".admin-view").forEach((view) => view.classList.toggle("active", view.id === button.dataset.adminView));
     if (button.dataset.adminView === "adminFeedbackView") loadAdminFeedback();
+    if (button.dataset.adminView === "adminEmailView") loadAdminEmailCenter();
   }));
   $("adminFeedbackSearch").addEventListener("input", () => {
     window.clearTimeout(adminFeedbackSearchTimer);
@@ -7909,7 +8024,57 @@ async function boot() {
     toolsInitialized = true;
   }
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register(`/sw.js?v=${ASSET_RELEASE}`).catch(() => {});
+    let swAttempts = 0;
+    let swRetryTimer = 0;
+    const isTargetWorker = (worker) => Boolean(worker?.scriptURL?.includes(ASSET_RELEASE));
+    const nudgeWaitingWorker = (worker) => {
+      if (!isTargetWorker(worker) || worker.state !== "installed") return;
+      try { worker.postMessage({ type: "SKIP_WAITING" }); } catch {}
+    };
+    const scheduleReleaseRetry = () => {
+      if (swRetryTimer || swAttempts >= 6 || navigator.onLine === false) return;
+      if (isTargetWorker(navigator.serviceWorker.controller)) return;
+      swAttempts += 1;
+      swRetryTimer = window.setTimeout(() => {
+        swRetryTimer = 0;
+        registerReleaseWorker();
+      }, Math.min(1500, 300 * swAttempts));
+    };
+    const watchWorkerState = (worker, registration) => {
+      if (!worker || worker.__wyjStateWatched) return;
+      worker.__wyjStateWatched = true;
+      nudgeWaitingWorker(worker);
+      worker.addEventListener("statechange", () => {
+        nudgeWaitingWorker(worker);
+        if (worker.state === "installed" && isTargetWorker(worker)) {
+          scheduleReleaseRetry();
+        } else if (worker.state === "redundant" && !isTargetWorker(registration.active) && !isTargetWorker(navigator.serviceWorker.controller)) {
+          scheduleReleaseRetry();
+        }
+      });
+    };
+    const registerReleaseWorker = () => {
+      navigator.serviceWorker.register(`/sw.js?v=${ASSET_RELEASE}`)
+        .then((registration) => {
+          if (!registration.__wyjUpdateWatched) {
+            registration.__wyjUpdateWatched = true;
+            registration.addEventListener("updatefound", () => watchWorkerState(registration.installing, registration));
+          }
+          watchWorkerState(registration.installing, registration);
+          watchWorkerState(registration.waiting, registration);
+          nudgeWaitingWorker(registration.waiting);
+          if (!isTargetWorker(registration.active)) {
+            if (!isTargetWorker(registration.installing) && !isTargetWorker(registration.waiting)) {
+              void registration.update().catch(() => {});
+              scheduleReleaseRetry();
+            } else if (isTargetWorker(registration.waiting)) {
+              scheduleReleaseRetry();
+            }
+          }
+        })
+        .catch(() => scheduleReleaseRetry());
+    };
+    registerReleaseWorker();
   }
   const initialPath = location.pathname.replace(/\/+$/, "") || "/";
   const shouldProbeCloudBackend = () => !location.pathname.startsWith("/share/");
@@ -7965,16 +8130,32 @@ async function boot() {
   void refreshCloudChangelog();
   $("retrySessionRecoveryBtn").addEventListener("click", (event) =>
     withInteractionFeedback(event.currentTarget, "session-recovery-retry", async () => {
+      if (isThewyjAndroidApp() && !state.session) {
+        state.session = NATIVE_ACCOUNT_SESSION;
+        sessionRestorePending = true;
+      }
       $("sessionRecovery").dataset.recoveryState = "loading";
       $("sessionRecoveryMessage").textContent = "正在重新连接服务…";
       await refreshBackendState();
+      if (state.session && state.account && !sessionRestorePending) {
+        await mountVerifiedCurrentRoute(state.session, false);
+        return;
+      }
       await routeCurrent();
-      if (!$("sessionRecovery").classList.contains("hidden") && !backendAvailable) {
-        $("sessionRecovery").dataset.recoveryState = "error";
-        $("sessionRecoveryMessage").textContent = backendFailureMessage || "连接暂时不可用，请稍后重试或返回公开首页。";
+      if (!$("sessionRecovery").classList.contains("hidden")) {
+        if (backendAvailable && sessionRestorePending && isThewyjAndroidApp()) {
+          $("sessionRecovery").dataset.recoveryState = "loading";
+          $("sessionRecoveryMessage").textContent = pendingAuthMessage || "正在刷新设备会话…";
+        } else if (!backendAvailable) {
+          $("sessionRecovery").dataset.recoveryState = "error";
+          $("sessionRecoveryMessage").textContent = backendFailureMessage || (isThewyjAndroidApp()
+            ? "连接暂时不可用，设备会话已保留。请重试。"
+            : "连接暂时不可用，请稍后重试或返回公开首页。");
+        }
       }
     }));
   $("exitSessionRecoveryBtn")?.addEventListener("click", () => {
+    if (isThewyjAndroidApp()) return;
     if (sessionRestorePending || !state.account) clearSession();
     showPublicHome(true);
   });

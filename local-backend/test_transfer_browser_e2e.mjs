@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import {fixtureRequestInit} from '../qa/task27/fixture-request.mjs';
 import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
@@ -139,14 +140,7 @@ for (const fixture of FIXTURES) {
 }
 
 async function api(pathname, payload = null, token = "") {
-  const response = await fetch(`${BASE_URL}${pathname}`, {
-    method: payload === null ? "GET" : "POST",
-    headers: {
-      ...(payload === null ? {} : { "Content-Type": "application/json" }),
-      ...(token ? { "X-Session-Token": token } : {}),
-    },
-    body: payload === null ? undefined : JSON.stringify(payload),
-  });
+  const response = await fetch(`${BASE_URL}${pathname}`, await fixtureRequestInit(BASE_URL,pathname,payload,token));
   return { status: response.status, data: await response.json().catch(() => ({})) };
 }
 

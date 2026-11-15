@@ -6,6 +6,7 @@ import {
   jsonResponse,
 } from "./cloudflare-foundation.mjs";
 import { resolveTask12Account } from "./task12-auth.mjs";
+import { task27EnrollmentEnabled } from './task27-auth.mjs';
 import {
   TASK18_BUILD,
   Task18Error,
@@ -111,7 +112,7 @@ async function execute(context, path, account, payload) {
   const method = context.request.method.toUpperCase();
   if (method === "GET") {
     if (path === "/api/messages/pending") {
-      return response({ ok: true, messages: await listPendingMessages(db, account), build: TASK18_BUILD }, 200, context);
+      return response({ ok: true, messages: await listPendingMessages(db, account,20,{securityAdvice:task27EnrollmentEnabled(context.env)}), build: TASK18_BUILD }, 200, context);
     }
     if (path === "/api/admin/messages") {
       return response({ ok: true, messages: await listAdminMessages(db, account), build: TASK18_BUILD }, 200, context);
@@ -138,6 +139,7 @@ async function execute(context, path, account, payload) {
     requireAllowedFields(payload, new Set([
       "title", "body", "message_type", "target_scope", "target_user_ids",
       "expires_at", "requires_confirmation", "idempotency_key", "confirm_bulk_send",
+      "delivery_channel", "purpose",
     ]));
     const result = await createAdminMessage(db, account, payload, requestId(context));
     return response({ ok: true, ...result }, result.created ? 201 : 200, context);

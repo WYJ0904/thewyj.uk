@@ -17,6 +17,9 @@ import { handleEmailRequest } from "../_lib/email-api.mjs";
 import { resolveTask12Account } from "../_lib/task12-auth.mjs";
 import { recordAdminAction } from "../_lib/task18-service.mjs";
 
+import { handleTask27Request } from '../_lib/task27-api.mjs';
+import { handleTask27EmailRequest } from '../_lib/task27-email-gateway.mjs';
+
 const SENSITIVE_ADMIN_ACTIONS = Object.freeze({
   "/api/admin/secret": ["password_reset", "user", "user_id"],
   "/api/admin/ban": ["user_ban_state", "user", "user_id"],
@@ -38,6 +41,12 @@ const SENSITIVE_ADMIN_ACTIONS = Object.freeze({
   "/api/admin/task16/import/rollback": ["task16_import_rollback", "migration", "source_key"],
   "/api/admin/task22/cleanup": ["task22_cleanup", "operation", "mode"],
   "/api/admin/email/test-send": ["email_test_send", "email", "recipient"],
+  "/api/admin/email/send": ["email_admin_send", "email_batch", "preview_token"],
+  "/api/admin/email/deliveries/retry": ["email_delivery_retry", "email_delivery", "delivery_id"],
+  "/api/admin/email/inbound/reply": ["email_inbound_reply", "email_thread", "thread_id"],
+  "/api/admin/email/inbound/status": ["email_inbound_status", "email_thread", "thread_id"],
+  "/api/admin/email/templates": ["email_template_update", "email_template", "template_key"],
+  "/api/admin/email/user-binding": ["email_user_binding_update", "user", "user_id"],
 });
 
 async function auditSensitiveAdminRequest(context, response, bodyRequest, descriptor) {
@@ -77,7 +86,9 @@ export async function onRequest(context) {
     ? SENSITIVE_ADMIN_ACTIONS[pathname]
     : null;
   const bodyRequest = sensitiveDescriptor ? context.request.clone() : null;
-  const response = await handleTask12Request(context)
+  const response = await handleTask27EmailRequest(context,handleEmailRequest)
+    || await handleTask27Request(context)
+    || await handleTask12Request(context)
     || await handleTask20Request(context)
     || await handleTask18Request(context)
     || await handleTask25Request(context)

@@ -26,6 +26,15 @@ import {
   processPaymentOrder,
   publicPaymentMethods,
 } from "./task13-service.mjs";
+import { notifyAutomaticBusinessEmail } from "./email-service.mjs";
+
+async function fireTask13AutoEmail(context, options) {
+  try {
+    await notifyAutomaticBusinessEmail(context, options);
+  } catch {
+    // non-blocking transactional notification
+  }
+}
 
 const ROUTES = new Map([
   ["GET /api/membership/plans", { mode: "read", auth: "public", limit: 120, window: 60 }],
@@ -171,6 +180,27 @@ async function executeRoute(context, descriptor, account) {
   if (path === "/api/admin/recharge/process") {
     requireAllowedFields(payload, new Set(["request_id", "action", "admin_note"]));
     const status = await processPaymentOrder(db, account, payload.request_id, payload.action, payload.admin_note);
+    try {
+      const orderRow = await db
+        .prepare("SELECT id, user_id, plan_code, order_number FROM task13_payment_orders WHERE id = ? LIMIT 1")
+        .bind(payload.request_id)
+        .first();
+      if (orderRow?.user_id) {
+        const uRow = await db.prepare("SELECT username FROM task12_users WHERE id = ? LIMIT 1").bind(orderRow.user_id).first();
+        await fireTask13AutoEmail(context, {
+          kind: "order_status_notice",
+          userId: orderRow.user_id,
+          username: uRow?.username || "用户",
+          actorUserId: account.id,
+          triggerSource: "admin_recharge_process",
+          orderId: orderRow.order_number || orderRow.id,
+          statusLabel: String(status || payload.action || "updated"),
+          detail: `您的订单 ${orderRow.order_number || orderRow.id}（${orderRow.plan_code || "会员方案"}）已处理，当前状态：${status || payload.action}。`,
+        });
+      }
+    } catch {
+      // non-blocking
+    }
     return response({ ok: true, status }, 200, context);
   }
   if (path === "/api/admin/membership/manage") {
@@ -178,15 +208,35 @@ async function executeRoute(context, descriptor, account) {
       "user_id", "action", "plan_code", "membership_start", "membership_expires",
       "note", "preserve_japanese", "trial_language",
     ]));
-    return response({ ok: true, user: await adminManageMembership(db, account, payload) }, 200, context);
+    const updatedUser = await adminManageMembership(db, account, payload);
+    await fireTask13AutoEmail(context, {
+      kind: "membership_change_notice",
+      userId: updatedUser.id,
+      username: updatedUser.username,
+      actorUserId: account.id,
+      triggerSource: "admin_membership_manage",
+      statusLabel: updatedUser.membership?.label || payload.action || "updated",
+      detail: `您的会员权益已由管理员更新（操作：${payload.action || "manage"}，当前方案：${updatedUser.membership?.label || "已更新"}）。`,
+    });
+    return response({ ok: true, user: updatedUser }, 200, context);
   }
   if (path === "/api/admin/membership") {
     requireAllowedFields(payload, new Set([
       "user_id", "membership", "membership_start", "membership_expires", "trial_language",
     ]));
+    const updatedUser = await adminManageMembership(db, account, legacyMembershipInput(payload));
+    await fireTask13AutoEmail(context, {
+      kind: "membership_change_notice",
+      userId: updatedUser.id,
+      username: updatedUser.username,
+      actorUserId: account.id,
+      triggerSource: "admin_membership_legacy",
+      statusLabel: updatedUser.membership?.label || payload.membership || "updated",
+      detail: `您的会员等级与有效期已更新（当前状态：${updatedUser.membership?.label || payload.membership}）。`,
+    });
     return response({
       ok: true,
-      user: await adminManageMembership(db, account, legacyMembershipInput(payload)),
+      user: updatedUser,
     }, 200, context);
   }
   if (path === "/api/admin/entitlement") {

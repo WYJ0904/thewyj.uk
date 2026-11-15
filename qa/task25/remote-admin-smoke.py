@@ -35,6 +35,7 @@ def main():
         parser.error('Existing WYJ_TASK25_ADMIN_SESSION required; no synthetic records created')
     stable = json.loads((Path(__file__).resolve().parents[2] / 'android/release-metadata.json').read_text())
     checks, flag, token = [], None, None
+    task27_config = None
     account = username = secret = key = None
     failure = None
     cleanup_ok = True
@@ -44,8 +45,21 @@ def main():
         headers.touch(mode=0o600)
 
         def request(route, payload=None, session=None, expect=200):
+            scoped_proof = None
+            if task27_config and task27_config.get('security_center_ready') and payload is not None and session:
+                scope = ('admin_features' if route in ('/api/admin/feature-flags', '/api/admin/feature-flags/override')
+                         else 'account_delete' if route == '/api/account/delete' else None)
+                if scope:
+                    credential = payload.get('secret') if scope == 'account_delete' else (
+                        os.environ.get('WYJ_TEST_ADMIN_SECRET') if args.environment == 'development' else None)
+                    if not credential:
+                        raise RuntimeError('BLOCKED: explicit Task27 step-up is required; no password is inferred from a session')
+                    scoped_proof = request('/api/security/stepup', {'password': credential, 'scope': scope}, session).get('grant')
+                    if not scoped_proof:
+                        raise RuntimeError('BLOCKED: fixture MFA requires an explicit second factor; no bypass is supported')
             lines = [f'Origin: {origin}', 'Content-Type: application/json']
             if session: lines.append(f'X-Session-Token: {session}')
+            if scoped_proof: lines.append(f'X-Aeris-Stepup: {scoped_proof}')
             headers.write_text('\n'.join(lines) + '\n')
             command = ['curl', '--silent', '--show-error', '--max-time', '40', '--header', '@' + str(headers),
                        '--write-out', '\n%{http_code}', origin + route]
@@ -53,7 +67,7 @@ def main():
             result = subprocess.run(command, input=None if payload is None else json.dumps(payload),
                 text=True, capture_output=True, check=True)
             body, code = result.stdout.rsplit('\n', 1)
-            if int(code) != expect:
+            if int(code) not in (expect if isinstance(expect, (list, tuple)) else (expect,)):
                 raise RuntimeError(f'{route}: expected HTTP {expect}, observed {code}')
             return json.loads(body)
 
@@ -79,8 +93,14 @@ def main():
                 raise RuntimeError('Server has not proved requested environment and enabled service')
             assert_stable()
             request('/api/admin/feature-flags', session=admin)  # Prove authorization before fixture creation.
-            username, secret = 't25release_' + secrets.token_hex(5), secrets.token_urlsafe(30)
-            registered = request('/api/register', {'username': username, 'secret': secret, 'confirm_secret': secret}, expect=201)
+            candidate = request('/api/policies', expect=(200, 404))
+            if candidate.get('versions'):
+                task27_config = candidate
+                if not candidate.get('security_center_ready') or args.environment != 'development':
+                    raise RuntimeError('BLOCKED: reviewed Task27 hosted step-up is required before creating fixtures')
+            username, secret = 't25release_' + secrets.token_hex(5), 'Fixture!Aa1-' + secrets.token_urlsafe(30)
+            consent = {'terms_accepted': True, 'policy_versions': task27_config['versions']} if task27_config else {}
+            registered = request('/api/register', {'username': username, 'secret': secret, 'confirm_secret': secret, **consent}, expect=201)
             account = registered['account']['id']
             token = request('/api/login', {'username': username, 'secret': secret})['session']
             key = 'task25_release_' + secrets.token_hex(5)
