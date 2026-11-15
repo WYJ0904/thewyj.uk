@@ -27,13 +27,16 @@ const password='Synthetic-Task28-Browser-Password!',now=new Date().toISOString()
 await db.prepare(`INSERT INTO task12_users(id,username,username_normalized,password_hash,password_scheme,password_iterations,role,registered_at,created_at,updated_at)
   VALUES('task28-browser','task28-browser','task28-browser',?1,'pbkdf2_sha256',310000,'user',?2,?2,?2)`)
   .bind(await hashSecret(password,env.WYJ_TASK12_PASSWORD_PEPPER),now).run();
+await db.prepare(`INSERT INTO task12_users(id,username,username_normalized,password_hash,password_scheme,password_iterations,role,registered_at,created_at,updated_at)
+  VALUES('task28-browser-other','task28-browser-other','task28-browser-other',?1,'pbkdf2_sha256',310000,'user',?2,?2,?2)`)
+  .bind(await hashSecret(password,env.WYJ_TASK12_PASSWORD_PEPPER),now).run();
 // Task18 readiness requires exactly one owner even when the browser exercises
 // an ordinary account. This is an isolated fixture, never a remote account.
 await db.prepare(`INSERT INTO task12_users(id,username,username_normalized,password_hash,password_scheme,password_iterations,role,registered_at,created_at,updated_at)
   VALUES('task28-fixture-owner','task28-fixture-owner','task28-fixture-owner','','reset_required',0,'super_admin',?1,?1,?1)`).bind(now).run();
 const fixture=path.join(out,'synthetic-attachment.txt');await writeFile(fixture,'Synthetic attachment integrity 中文\n'.repeat(64));
 const csp=(await readFile(path.join(root,'_headers'),'utf8')).match(/Content-Security-Policy: (.+)/)[1].trim();
-let base;const apiErrors=[];
+let base;const apiErrors=[];let holdAuthorization=false,releaseAuthorization=null;
 const server=createServer(async(req,res)=>{
   try {
     const url=new URL(req.url,base);
@@ -44,6 +47,9 @@ const server=createServer(async(req,res)=>{
         ...(['GET','HEAD'].includes(req.method)?{}:{body:Buffer.concat(chunks)})}),env,data:{requestId:crypto.randomUUID()},waitUntil(p){tasks.push(p);}};
       const response=await (url.pathname==='/api/status'?status:onRequest)(context);
       if(response.status>=500)apiErrors.push({path:url.pathname,status:response.status,code:(await response.clone().json()).code});
+      if(holdAuthorization && /\/api\/transfer\/shares\/.+\/authorize$/.test(url.pathname) && response.ok) {
+        holdAuthorization=false;await new Promise(resolve=>{releaseAuthorization=resolve;});
+      }
       res.writeHead(response.status,Object.fromEntries(response.headers));res.end(Buffer.from(await response.arrayBuffer()));await Promise.all(tasks);return;
     }
     const file=['/','/login','/transfer','/select','/account'].includes(url.pathname)?'index.html':url.pathname.slice(1);
@@ -77,7 +83,8 @@ try {
     assert.match(await page.evaluate("document.getElementById('transferSafetyHint').textContent"),/HTML、SVG/);
   });
   await check('private upload, validated completion, owner-only management and file-scoped download use the real UI',async()=>{
-    await page.click('#transferPrivate');await page.setFile('#transferFileInput',[fixture]);
+    if(!(await page.evaluate("document.getElementById('transferPrivate').checked")))await page.click('#transferPrivate');
+    await page.setFile('#transferFileInput',[fixture]);
     await page.waitFor("document.getElementById('transferCompleteBtn').disabled===false",60000,'synthetic upload completed');
     await page.click('#transferCompleteBtn');await page.waitFor("document.getElementById('transferShareTitle').textContent==='私有附件已保存'",30000);
     assert.equal(await page.evaluate("document.getElementById('transferShareLink').value"),'');
@@ -98,9 +105,31 @@ try {
     assert.deepEqual(violations,[]);await screenshot('private-mobile');
     await page.send('Emulation.setDeviceMetricsOverride',{width:1440,height:1100,deviceScaleFactor:1,mobile:false});
   });
+  await check('account switches clear private views and grants and discard a late authorization from the previous owner',async()=>{
+    async function logout(){await page.click('#accountMenu summary');await page.click('#logoutBtn');await page.waitFor("location.pathname==='/login'&&document.getElementById('usernameInput').checkVisibility()",20000);}
+    async function login(name){await page.setFields({'#usernameInput':name,'#secretInput':password});await page.click('#loginSubmitBtn');await page.waitFor(`location.pathname==='/'&&document.getElementById('accountBadge').textContent.includes('${name}')`,30000);await page.click('a[data-site-nav=transfer]');await page.waitFor("document.getElementById('transferPage').checkVisibility()&&!document.getElementById('transferQuotaText').textContent.includes('加载中')",20000);}
+    await logout();
+    assert.equal(await page.evaluate("document.getElementById('transferShareFiles').textContent"),'','logout clears private file metadata from the DOM');
+    await login('task28-browser-other');
+    assert.equal(await page.evaluate("document.getElementById('transferShareCard').classList.contains('hidden')"),true);
+    assert.equal(await page.evaluate("document.getElementById('transferMyShares').textContent.includes('synthetic-attachment.txt')"),false);
+    await logout();await login('task28-browser');await page.waitFor("document.querySelector('[data-transfer-open]')",20000);await page.click('[data-transfer-open]');
+    await page.waitFor("document.getElementById('transferShareFiles').textContent.includes('synthetic-attachment.txt')",20000);
+    await page.evaluate("window.__task28DownloadClicks=0;window.__task28HeldDownloadButton=document.querySelector('[data-transfer-download]');const original=HTMLAnchorElement.prototype.click;HTMLAnchorElement.prototype.click=function(){if(this.download)window.__task28DownloadClicks++;return original.call(this);};");
+    holdAuthorization=true;await page.click('[data-transfer-download]');
+    for(let i=0;i<100&&!releaseAuthorization;i++)await delay(50);
+    assert.ok(releaseAuthorization,'a fresh owner-bound authorization reached the isolated server');
+    await logout();await login('task28-browser-other');const release=releaseAuthorization;releaseAuthorization=null;release();
+    await page.waitFor('window.__task28HeldDownloadButton?.disabled===false',10000,'old owner authorization settles while the other account remains active');
+    assert.equal(await page.evaluate('window.__task28DownloadClicks'),0,'old owner authorization cannot start a download after switching accounts');
+    assert.equal(await page.evaluate("document.getElementById('transferShareFiles').textContent"),'');
+    await logout();await login('task28-browser');await page.waitFor("document.querySelector('[data-transfer-open]')",20000);await page.click('[data-transfer-open]');
+    await page.waitFor("document.getElementById('transferShareFiles').textContent.includes('synthetic-attachment.txt')",20000);
+  });
   await check('revoke removes private access and ordinary shared links still open in an independent guest browser context',async()=>{
     await page.click('#transferCurrentRevokeBtn');await page.waitFor("document.getElementById('transferShareCard').classList.contains('hidden')",20000);
-    await page.click('#transferPrivate');await page.setFile('#transferFileInput',[fixture]);
+    if(await page.evaluate("document.getElementById('transferPrivate').checked"))await page.click('#transferPrivate');
+    await page.setFile('#transferFileInput',[fixture]);
     await page.waitFor("document.getElementById('transferCompleteBtn').disabled===false",60000);await page.click('#transferCompleteBtn');
     await page.waitFor("document.getElementById('transferShareLink').value.includes('#share=')",30000);
     const link=await page.evaluate("document.getElementById('transferShareLink').value");
@@ -113,6 +142,7 @@ try {
   proof.status='PASS';
 }catch(error){proof.status='FAIL';proof.error=error.stack;process.exitCode=1;console.error(error.stack);}
 finally{
+  releaseAuthorization?.();
   await writeFile(path.join(out,'result.json'),JSON.stringify(proof,null,2)+'\n');
   if(guest)await guest.close();if(page)await page.close();if(browser){await Promise.race([browser.send('Browser.close').catch(()=>undefined),delay(1000)]);browser.close();}
   child.kill();await new Promise(resolve=>server.close(resolve));await mf.dispose();

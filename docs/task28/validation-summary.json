@@ -179,8 +179,9 @@
     },
     "browser": {
       "status": "PASS",
-      "groups": 4,
-      "raw_log": ".wrangler/task28/evidence/browser-final-integration.log",
+      "groups": 5,
+      "raw_log": ".wrangler/task28/evidence/owner-isolation-submission.log",
+      "local_evidence": ".wrangler/task28/evidence/browser-4ad1ae74-de65-422c-a98f-eb7d853080e8/result.json",
       "detail": {
         "scope": "isolated desktop Chrome + mobile viewport, real local D1/R2, synthetic account/files",
         "checks": [
@@ -197,6 +198,10 @@
             "status": "PASS"
           },
           {
+            "name": "account switches clear private views and grants and discard a late authorization from the previous owner",
+            "status": "PASS"
+          },
+          {
             "name": "revoke removes private access and ordinary shared links still open in an independent guest browser context",
             "status": "PASS"
           }
@@ -210,8 +215,7 @@
         "production": "NOT_TOUCHED",
         "browser": "Chrome/157.0.8103.52",
         "status": "PASS"
-      },
-      "local_evidence": ".wrangler/task28/evidence/browser-1bde74c1-7067-4a4e-9bd8-54f36f4c842e/result.json"
+      }
     },
     "task14": {
       "status": "PASS",
@@ -297,9 +301,14 @@
       "status": "PASS",
       "browser_scenarios": 4,
       "javascript_unit": "PASS",
-      "browser_log": ".wrangler/task28/evidence/task27-session-bridge-submission.log",
+      "browser_log": ".wrangler/task28/evidence/session-bridge-owner-fix-retest.log",
       "js_log": ".wrangler/task28/evidence/task27-session-bridge-js.log",
-      "not_real_webview": true
+      "not_real_webview": true,
+      "first_owner_fix_run": "FAIL",
+      "first_failure_log": ".wrangler/task28/evidence/session-bridge-owner-fix.log",
+      "unchanged_threshold_retest": "PASS",
+      "failure_cause": "UNCONFIRMED",
+      "stability": "NOT_ESTABLISHED"
     }
   },
   "remote": {
@@ -330,6 +339,7 @@
       "browser-second.log",
       "browser-submission.log",
       "browser-third.log",
+      "ci-js-97c406c0-attempt1.log",
       "cleanup14-build.log",
       "cleanup22-build.log",
       "device-session-regression.log",
@@ -339,10 +349,20 @@
       "functions-build.log",
       "local-ledger.log",
       "local-migrations.log",
+      "owner-isolation-after-fix.log",
+      "owner-isolation-before-fix.log",
+      "owner-isolation-final.log",
+      "owner-isolation-fixed.log",
+      "owner-isolation-submission.log",
+      "pages-final-commit.log",
       "pages-stage.log",
       "repository-audit.log",
+      "session-bridge-owner-fix-retest.log",
+      "session-bridge-owner-fix.log",
+      "static-owner-fix.log",
       "sw-after-baseline.log",
       "sw-install.log",
+      "sw-owner-fix.log",
       "task14-final.log",
       "task14-initial.log",
       "task14-submission.log",
@@ -385,6 +405,7 @@
     "normalization": "UTF-8 text bytes with CR/CRLF normalized to LF; describes submitted sources, not a remote CI claim",
     "sha256": {
       ".github/workflows/ci.yml": "815b1cee42438243238313bca695c2d5b493e3ab7784d2688e79b192786bedf9",
+      "app.js": "023ff7d27cc51462ef48fcf0ce2b1aab07a5466f272b16981c70e4325321aa09",
       "cloudflare/migrations/0038_task28_secure_files.sql": "464f54f36bf312b297a267118286b9d43618f7abfbb0f5eca364c419fd4c0bff",
       "cloudflare/task22-cleanup-worker.mjs": "e69da54eab37e1ef66d4499a64d8bd79c9826b5aa92b7bbc22333f2f8df5923e",
       "functions/_lib/secure-file-api.mjs": "6c86f5407c89d800410c6db75f18c9d0dd120bd6a1d6ea60b6e3968bfbd2efd9",
@@ -401,24 +422,24 @@
       "functions/_lib/task27-auth.mjs": "6efc1c044bba6b0d03b153cac2f1e48abaf3731fcce7db6d6471d81e9def8e9d",
       "functions/api/[[path]].js": "fae7e884844a98b233c6b0d0d1eeb2063ca905eca4f09819a39a5d55276eee34",
       "index.html": "0c4af6f8b76c5b794d73395d0f27daa415a2c39e4b619715f049c278d3d17ee4",
-      "js/transfer/app.js": "ce955464210d897693de4a01f1619f77c4d52e1c34207387ee5a4f0be5d04117",
+      "js/transfer/app.js": "5a1623e406e4dd9bf77cbedf25b974d8c22e8de13fa8eb0855cfe39b4cf62c08",
       "local-backend/test_task14_d1_js.mjs": "bcbf77d953fc9b4653d163a3dc8afd1a185ba46b5faac939403457bcf31a290b",
       "local-backend/test_task22_d1_js.mjs": "451a0b58dd709fce6f9d1cae5b27ee31678d344d0c7223a3d90007b2170f61ff",
       "local-backend/test_transfer_integrity_js.mjs": "ef91486a11d060cf6207532457b57216117ec12ccdfeefbd8fa9dd7db62823da",
       "package.json": "62f17b989c9dedd3b768404430036302d3fce9c6eb4356988de4aac04ab6b9bd",
       "product-ui.css": "752cbf9388843818974e19597ea2bb771bf8689d655e4c6efc59286aca8834de",
       "qa/task27/android-session-sync-browser.mjs": "6404bc53f68cd24f61b1072d89ee95f47415585431f0f5648c88b8e2056ebe02",
-      "qa/task28/browser.mjs": "920585ae21bab942f71fd5ca64f3dc4f08a32420bacc849f86e060920e7eb513",
+      "qa/task28/browser.mjs": "2386754f5ea9a6f3a68e65ac998b197691382a8821e3c0289c2ed5a857050f03",
       "qa/task28/secure-files.mjs": "ba3ceeb1cea9b35b447362878258d1f7e11b4fa8a181277e5ef53acf4229eebc",
       "qa/task28/workerd.mjs": "58bbfa42e6d5fdb770a9f743cabcd4766615b513e72fe04d9b3816a461011365",
-      "sw.js": "878f63c27a0ebf16bf78af9d3fc31f6e7922b369a9cba2857f409746b2ae6cd1"
+      "sw.js": "957cbb40f556384b388bc8baf0c9b628869161ad9d161a2fb1c8225bf8aaf2a3"
     }
   },
   "screenshots": {
-    "private-desktop.png": "84a8553332c95603da2d3d1b1643138763e78c972d6db6089dbba6fcdd602b8b",
-    "private-mobile.png": "42ca3cfa278ed50339e737e52acf0c7df1f0ca77efe15be43006fd246facfdf0"
+    "private-desktop.png": "85d913abba21edd534068f7a49e72990f7989495742e7ffb77fb9a151cd4bdd4",
+    "private-mobile.png": "90ed2b4f8248678dff49cb907a6ea7251abf19dc76d96fdb63be2feed12998a3"
   },
-  "changed_file_count": 36,
+  "changed_file_count": 37,
   "initial_task27_sha": "8109e90fd83da110959a988f2a4aa692fee15051",
   "baseline_update": {
     "method": "normal merge on Task28 branch; no force push",
@@ -455,5 +476,13 @@
     "conflict": "sw.js derived integrity/publication only; regenerated with existing script",
     "task28_backend_unchanged": true,
     "test_teardown_fix": "bounded CDP shutdown and safe temporary-profile cleanup in isolated browser fixtures; assertions/product timeouts unchanged"
+  },
+  "client_owner_isolation": {
+    "regression_before_fix": "FAIL",
+    "before_log": ".wrangler/task28/evidence/owner-isolation-before-fix.log",
+    "after_fix": "PASS",
+    "after_log": ".wrangler/task28/evidence/owner-isolation-submission.log",
+    "late_authorization_observed_until_settled": true,
+    "new_owner_downloads_from_old_grant": 0
   }
 }

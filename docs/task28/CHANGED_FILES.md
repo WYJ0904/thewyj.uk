@@ -1,12 +1,12 @@
 # Task28 变更文件清单
 
-相对临时比较基线 `d13a588fa5475305252a4f9a1e10d656a98f384f`，共 36 个文件。
-35 个 Task28 文件与 1 个隔离浏览器脚本退出清理修复；不包含 Task27 基线增量、
-原 Hotfix WIP、构建缓存或本地日志。
+相对临时比较基线 `d13a588fa5475305252a4f9a1e10d656a98f384f`，共 37 个文件。
+仅 Task28 增量及必要账户/测试接入，不包含 Task27 基线增量、原 Hotfix WIP、缓存或本地日志。
 
 | 文件 | 状态 |
 | --- | --- |
 | `.github/workflows/ci.yml` | 修改 |
+| `app.js` | 修改 |
 | `cloudflare/migrations/0038_task28_secure_files.sql` | 新增 |
 | `cloudflare/task22-cleanup-worker.mjs` | 修改 |
 | `docs/task28/CHANGED_FILES.md` | 新增 |

@@ -14,8 +14,9 @@
   `d13a588fa5475305252a4f9a1e10d656a98f384f`（Android/WebView 会话同步）。
   已仅在 Task28 分支普通 merge 该基线；唯一冲突是 SW 派生哈希，使用既有
   publication 脚本重算，保留双方源码，不 force push。后端 Task28 代码未被覆盖。
-- Draft PR 暂比较 `hydrogen/task27-final-integration`，为 35 个 Task28 文件加
-  1 个隔离会话浏览器脚本的 Windows 退出清理修复，不重复提交 Task27 增量。
+- Draft PR 暂比较 `hydrogen/task27-final-integration`；文件模块接入账户状态更新、
+  退出和跨窗口会话变化时增加最小通知，隔离浏览器脚本另含 Windows 退出清理修复。
+  不重复提交 Task27 基线增量，完整路径见变更清单。
   原 Hotfix 分支/WIP、Hydrogen 分支、原工作区及发布证据均未修改。
 - 最新提交 SHA、Draft PR 地址及精确 HEAD 的 CI 结果由该 PR 的描述与 Checks
   记录，交付回复同时给出；本文件不提前冻结尚未发生的 CI 结论。
@@ -38,6 +39,9 @@ Task22 multipart/续传/Range、分享 URL、访客、会员权益与两个清�
   内容和未知二进制安全下载；历史声明哈希保持未验证状态。
 - 清理页反复从头、部分失败和孤儿范围过宽：持久游标、精确规范前缀、对象
   操作预算、批次内进度、共享引用保护和失败 MPU 日志；不扫描其他桶前缀。
+- 最后浏览器复核复现了退出后旧私有卡片/凭证缓存残留：账户应用顺序与退出/
+  跨窗口会话通知已修正，立即清除旧视图和授权；旧所有者迟到的完成、续传和
+  授权结果不更新新账户，也不能触发下载。身份恢复期间暂停文件读取。
 
 Task28 新增：
 
@@ -63,14 +67,14 @@ Task28 新增：
 | --- | --- |
 | Task28 安全/功能/故障 | PASS，30 组；跨账户/管理员、访客隔离、类型/路径、哈希、重放、配额、完成/取消、D1/R2 失败、分页、未知结果、旧数据和审计副本下的超限请求取消 |
 | 编译后 Pages Worker | PASS，3 组；真实 workerd multipart、原生流 Content-Length、全下载哈希、跨分片 Range 与撤销 |
-| 桌面及移动浏览器 | PASS，4 组；真实 UI 登录/上传/私有管理/下载授权/撤销、独立访客分享、375px 无横向溢出，Axe 无 serious/critical 项 |
+| 桌面及移动浏览器 | PASS，5 组；真实 UI 上传/管理/下载/撤销、两账户切换及迟到授权、独立访客分享、375px 无横向溢出，Axe 无 serious/critical 项 |
 | Task14 原回归 | PASS，13 组，临时文本/文件/授权及导入合同保留 |
 | Task22 原回归 | PASS，等级配额、访客、续传、并发、幂等、下载次数、Range、逻辑引用与旧 API |
 | 传输字节完整性 | PASS；源文件/R2/下载长度与 SHA-256、文件名、扩展名、Range 和安全 MIME |
 | 队列/网络恢复 | PASS；账户隔离、session plan、暂停、断线、重试、取消和持久化边界 |
 | Task27 安全回归 | PASS，32 组；MFA、旧会话、设备撤销、邮件、通知隔离、step-up、隐私同意 |
 | Android | PASS，新基线完整 121 suites / 834 tests / 0 failures/errors/skips（含 Task22 25 项）；Lint、Debug 构建成功；未安装手机 |
-| 新基线会话桥接 | PASS，JS 单测和 4 个浏览器仿真场景；不等于真实 WebView/手机验收 |
+| 新基线会话桥接 | 原阈值复跑 PASS，JS 单测和 4 个浏览器仿真场景；首次慢恢复分支 FAIL 保留，原因未证实，稳定性不据此判定通过 |
 | 迁移 | PASS，独立本地 Wrangler 台账 38 条，外键检查为空；旧用户/分享行与 R2 字节快照保持 |
 | 构建和静态资源 | PASS，Functions 编译、两个清理 Worker dry-run、allowlist staging、模块图、storage 合同、静态 Python 31 项、SW 20 项、敏感文件审计 |
 | 隔离 Hosted Preview 业务验收 | NOT_TESTED；未主动部署/迁移，不抢占 Hydrogen 共享环境 |

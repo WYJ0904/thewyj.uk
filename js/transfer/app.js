@@ -1056,6 +1056,7 @@ export function createTransferController({
   }
 
   async function complete() {
+    const operationOwner=currentOwner();
     if (!queue.length || queue.some((item) => item.status !== "done")) {
       setMessage("还有文件没有上传完成。", "error");
       return;
@@ -1080,9 +1081,11 @@ export function createTransferController({
       try {
         await ensureSession();
       } catch (error) {
+        if(operationOwner!==currentOwner())return;
         setMessage(error.message || "重新上传任务创建失败，请重试。", "error");
         return;
       }
+      if(operationOwner!==currentOwner())return;
       void run();
       setMessage("已按当前文件列表重新上传，请稍候再创建分享。", "info");
       return;
@@ -1092,6 +1095,7 @@ export function createTransferController({
       const body = {};
       if (!authenticated()) body.guest_id = guestId();
       const payload = await request(`/api/transfer/uploads/${activeSession.id}/complete`, { method: "POST", body });
+      if(operationOwner!==currentOwner())return;
       currentShare = payload.share;
       queue = [];
       activeSession = null;
@@ -1105,6 +1109,7 @@ export function createTransferController({
       // owner-list entry. Refresh both existing owners without another upload.
       void Promise.all([loadCapabilities(), loadMyShares(),loadUnfinishedSessions()]);
     } catch (error) {
+      if(operationOwner!==currentOwner())return;
       setMessage(error.message || "创建分享失败。", "error");
     }
   }
@@ -1165,12 +1170,13 @@ export function createTransferController({
   }
 
   async function downloadShareFile(shareId, fileId, passwordRequired = false) {
+    const operationOwner=currentOwner();
     // Only a share that really carries a password may open a modal prompt: an
     // unconditional window.prompt blocked the renderer (and every headless
     // browser flow) even for public shares, and asked users for a password that
     // does not exist.
     const privateFile = currentShare?.id === shareId && currentShare.access_scope === 'private';
-    const grantKey = privateFile ? `${shareId}:${fileId}` : shareId;
+    const grantKey = privateFile ? `${operationOwner}:${shareId}:${fileId}` : shareId;
     const cached = downloadGrants.get(grantKey);
     const reusable = cached && cached.expiresAt > Date.now() + 5_000;
     const password = !reusable && passwordRequired
@@ -1179,6 +1185,7 @@ export function createTransferController({
     try {
       const payload = reusable ? cached.payload
         : await request(`/api/transfer/shares/${shareId}/authorize`, { method: "POST", body: { password, ...(privateFile ? {file_id:fileId} : {}) } });
+      if(operationOwner!==currentOwner())return;
       if (!reusable) downloadGrants.set(grantKey, {
         payload, expiresAt: Date.parse(payload.download.expires_at) || 0,
       });
@@ -1200,6 +1207,7 @@ export function createTransferController({
       setMessage(nativeDownload ? "正在交给 Android 下载，请等待完整性校验。" : "下载已开始，请查看浏览器下载列表。",
         nativeDownload ? "info" : "success");
     } catch (error) {
+      if(operationOwner!==currentOwner())return;
       if (error?.name === "AbortError") setMessage("下载已取消，需要时可再次点击下载。", "info");
       else setMessage(error.message || "下载失败。", "error");
     }
@@ -1239,11 +1247,13 @@ export function createTransferController({
   }
 
   async function refreshQueueState() {
+    const operationOwner=currentOwner();
     for (const item of queue) {
       if (!item.sessionId || item.status === "done" || item.status === "cancelled") continue;
       try {
         const query = authenticated() ? "" : `?guest_id=${encodeURIComponent(guestId())}`;
         const payload = await request(`/api/transfer/uploads/${item.sessionId}${query}`);
+        if(operationOwner!==currentOwner())return;
         if (!["active", "published"].includes(String(payload.state || ""))) {
           const staleSessionId = item.sessionId;
           resetQueueForStaleSession(queue, staleSessionId);
@@ -1266,10 +1276,12 @@ export function createTransferController({
           item.status = "done";
           item.uploaded = item.size;
           const sharePayload = await request(`/api/transfer/shares/${payload.share_id}`);
+          if(operationOwner!==currentOwner())return;
           currentShare = sharePayload.share;
           renderShare(currentShare);
         }
       } catch (error) {
+        if(operationOwner!==currentOwner())return;
         if (isRecoverableUploadSessionError(error)) {
           const staleSessionId = item.sessionId;
           resetQueueForStaleSession(queue, staleSessionId);
@@ -1312,6 +1324,9 @@ export function createTransferController({
     updateCurrentShareActions();
     if (element("transferShareFiles")) element("transferShareFiles").innerHTML = "";
     if (element("transferShareLink")) element("transferShareLink").value = "";
+    if (element('transferShareLink')) element('transferShareLink').href='';
+    const qr=element('transferQr');if(qr){qr.width=0;qr.height=0;}
+    setText('transferShareAccessHint','');
   }
 
   async function revokeShare(shareId) {
@@ -1350,12 +1365,15 @@ export function createTransferController({
   }
 
   async function loadUnfinishedSessions() {
+    const operationOwner=currentOwner();
     try {
       const query = authenticated() ? "" : `?guest_id=${encodeURIComponent(guestId())}`;
       const payload = await request(`/api/transfer/uploads${query}`);
+      if(operationOwner!==currentOwner())return;
       serverSessions = Array.isArray(payload.uploads) ? payload.uploads : [];
       renderUnfinishedSessions();
     } catch (error) {
+      if(operationOwner!==currentOwner())return;
       const list = element("transferUnfinishedSessions");
       if (list) list.innerHTML = `<div class="transfer-empty">未完成上传暂时无法读取：${escapeHtml(error.message || "请稍后重试")}</div>`;
     }
@@ -1604,13 +1622,26 @@ export function createTransferController({
     updates.cancelProgress();
   }
 
-  function accountUpdated() {
+  function accountUpdated({deferLoad=false}={}) {
+    const ownerChanged=currentOwner()!==queueOwner;
     updates.cancel();
     ownerGeneration += 1;
     ownedShareIds = new Set();
+    if(ownerChanged) {
+      clearShare();downloadGrants.clear();serverSessions=[];
+      capabilities={storage_limit_bytes:0,stored_bytes:0,reserved_bytes:0,used_bytes:0};
+      if(element('transferPrivate'))element('transferPrivate').checked=false;
+      if(element('transferMyShares'))element('transferMyShares').innerHTML='<div class="transfer-empty">正在加载当前账户的分享与附件…</div>';
+      if(element('transferQueue'))element('transferQueue').innerHTML='';progressNodes=new Map();
+      if(element('transferUnfinishedSessions'))element('transferUnfinishedSessions').innerHTML='<div class="transfer-empty">正在加载当前账户的上传任务…</div>';
+      setText('transferQuotaText','配额加载中');
+      const quotaBar=element('transferQuotaBar');if(quotaBar){quotaBar.value=0;quotaBar.max=1;}
+      setMessage('');
+    }
     updateCurrentShareActions();
     restoreQueue();
     restoreCleanupQueue();
+    if(deferLoad || (!authenticated() && Boolean(storage.getItem(ACCOUNT_SESSION_KEY)))) {visible=false;return;}
     if (visible) {
       renderQueue();
       void loadCapabilities();
