@@ -102,7 +102,7 @@ const TASK26_INTEGRITY = Object.freeze({
   "/index.html": "5e3a5db030e23b30a3c6267a747fea08b61a5077a4ad610530d25ef09ea963e8",
   "/app.js?release=20261115-aeris-s0-p0-release": "ede9ec181b1c8cf91f9e97131fe288294e87d0ed6b5928d2807ad3b41d4f04d6",
   "/learning-sync.js?release=20261115-aeris-s0-p0-release": "74ced24b8dab7c8ad16dc6b4b68ff81a89e968d18a607bbba6b066a8bee7727d",
-  "/product-ui.css?release=20261115-aeris-s0-p0-release": "1d82879842492ae73d99a6a997a3b01cd03fa4142d76b4774a2ddc67782024d2",
+  "/product-ui.css?release=20261115-aeris-s0-p0-release": "41b21ee1f376a8ebd006b9042c9b1c963c3f9636d3fe734f6cbdc8bfb9a41a81",
   "/js/language/mastery.js?release=20261115-aeris-s0-p0-release": "fa25726ccbb83bd21004f7abc0b9e527668f4789764ce94802fa6fc5e0b16cc4",
   "/js/language/quiz.js?release=20261115-aeris-s0-p0-release": "cd4546dc7e48876bac503c49e259267bde99b79ab0cf5565cb917c1ed031e3b0",
   "/js/language/wrong-book.js?release=20261115-aeris-s0-p0-release": "4cc4e3debb24578be2fa5c372b5204789c015ddbcc8372f5650494bb2780c35c",
@@ -119,7 +119,7 @@ const TASK26_INTEGRITY = Object.freeze({
   "/js/account/password-policy.js?release=20261115-aeris-s0-p0-release": "48fd3d494120682e5b8baac8c73fb6ff68714cbc89d567318e9ea39549c80c56",
   "/js/account/password-fields.js?release=20261115-aeris-s0-p0-release": "58f2161ba98c1cb07025c6884a3c32acb522cddc634eb2499127a88e7a3614e4"
 });
-const PUBLICATION_HASH = "0a5f6e8db932de0041d7ea4de06b1d56d0b4111c9ef0d5114e4bcf02a8e6f919";
+const PUBLICATION_HASH = "10a623ff30f04c1b1128075aedc2235c2c4dce12c545a5d3df4a06efd6444361";
 const PUBLICATION_CACHE = `${CACHE}-task26-${PUBLICATION_HASH.slice(0, 16)}`;
 const PUBLICATION_MARKER = "/__aeris/task26-publication";
 
