@@ -88,6 +88,7 @@
               <button class="hidden" id="feedbackBtn" type="button" role="menuitem">反馈与功能投票</button>
               <button class="hidden" id="accountBtn" type="button" role="menuitem">账户设置</button>
               <button class="hidden" id="securityCenterMenuBtn" type="button" role="menuitem">账户安全</button>
+              <button class="hidden" id="notificationInboxMenuBtn" type="button" role="menuitem">个人通知收件箱</button>
               <button class="hidden" id="adminBtn" type="button" role="menuitem">管理后台</button>
               <button class="hidden danger-text" id="logoutBtn" type="button" role="menuitem">退出登录</button>
             </div>
@@ -1243,6 +1244,9 @@
 
     <div class="achievement-toast hidden" id="achievementToast" role="status" aria-live="polite"></div>
 
+    <aside class="site-message-save-status hidden" id="siteMessageSaveStatus" role="status" aria-live="polite">
+      <span id="siteMessageSaveText"></span><button id="siteMessageRetryBtn" class="hidden" type="button">重试保存关闭状态</button>
+    </aside>
     <div class="modal-layer hidden" id="siteMessageModal" aria-hidden="true">
       <section class="modal-panel site-message-panel" role="dialog" aria-modal="true" aria-labelledby="siteMessageTitle" aria-describedby="siteMessageBody">
         <button class="modal-close" id="siteMessageCloseIcon" type="button" aria-label="关闭消息"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg></button>

@@ -52,7 +52,9 @@ export function cleanUserId(value) {
 
 export function cleanMessageId(value) {
   const text = String(value || "").trim().toLowerCase();
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(text)) {
+  // Existing Task27 deployments already store this one reserved broadcast ID.
+  // It is still subject to the receipt service's audience/ownership checks.
+  if (text !== "task27-mfa-advice-v1" && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(text)) {
     throw new Task18Error("消息标识无效", 400, "message_id_invalid");
   }
   return text;

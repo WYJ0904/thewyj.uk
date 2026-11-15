@@ -313,6 +313,9 @@ let activeSiteMessage = null;
 let siteMessageLoadPromise = null;
 let siteMessageLastPollAt = 0;
 const siteMessageSessionDismissed = new Set();
+const siteMessagePendingDismissals = new Map();
+const siteMessageOwner = () => `${state.session || ''}:${state.account?.id || ''}`;
+let siteMessageQueueOwner = '';
 let lastLimitPromptKey = "";
 let projectRuntimeNeedsRestore = false;
 let backendStatusPromise = null;
@@ -1060,6 +1063,8 @@ function clearSession() {
   pendingSiteMessages = [];
   activeSiteMessage = null;
   siteMessageSessionDismissed.clear();
+  siteMessagePendingDismissals.clear();
+  renderSiteMessageSaveStatus();
   closeModal("siteMessageModal", true);
   clearAccountSessionStorage();
   ["secretInput", "registerSecretInput", "registerConfirmInput", "currentSecretInput", "newSecretInput", "newSecretConfirmInput", "deleteSecretInput", "adminNewSecretInput"].forEach((id) => {
@@ -1113,15 +1118,21 @@ function isAdmin(account = state.account) {
 }
 
 function resetSiteMessageQueue() {
+  siteMessageQueueOwner = siteMessageOwner();
   pendingSiteMessages = [];
   activeSiteMessage = null;
   siteMessageSessionDismissed.clear();
+  siteMessagePendingDismissals.clear();
+  renderSiteMessageSaveStatus();
+  siteMessageLoadPromise = null;
   siteMessageLastPollAt = 0;
   closeModal("siteMessageModal", true);
 }
 
 function showNextSiteMessage() {
   if (activeSiteMessage || !state.session || !state.account) return;
+  // A background broadcast must not interrupt an existing dialog or its proof.
+  if (document.querySelector('.modal-layer:not(.hidden):not(#siteMessageModal)')) return;
   const next = pendingSiteMessages.find((message) => !siteMessageSessionDismissed.has(message.id));
   pendingSiteMessages = pendingSiteMessages.filter((message) => message.id !== next?.id);
   if (!next) return;
@@ -1133,9 +1144,10 @@ function showNextSiteMessage() {
   $("siteMessageMeta").textContent = [
     formatLocalDateTime(next.created_at, ""),
     next.expires_at ? `有效期至 ${formatLocalDateTime(next.expires_at)}` : "",
-    next.requires_confirmation ? "需要明确确认" : "关闭后不再提示",
+    next.requires_confirmation ? "需要明确确认" : next.purpose === 'mfa_advice' ? '自主安全建议，约 30 天内不再提示' : "关闭后不再提示",
   ].filter(Boolean).join(" · ");
   $("siteMessageAcknowledgeBtn").classList.toggle("hidden", !next.requires_confirmation);
+  $('siteMessageCloseBtn').textContent = next.requires_confirmation ? '稍后确认' : '关闭';
   $("siteMessageError").textContent = "";
   openModal("siteMessageModal");
 }
@@ -1146,8 +1158,10 @@ async function loadPendingSiteMessages(options = {}) {
   if (!options.force && now - siteMessageLastPollAt < 30_000) return;
   if (siteMessageLoadPromise) return await siteMessageLoadPromise;
   siteMessageLastPollAt = now;
-  siteMessageLoadPromise = apiGet("/api/messages/pending")
+  const owner = siteMessageOwner();
+  const request = apiGet("/api/messages/pending")
     .then((data) => {
+      if (owner !== siteMessageOwner()) return;
       const existing = new Set([activeSiteMessage?.id, ...pendingSiteMessages.map((message) => message.id)]);
       for (const message of data.messages || []) {
         if (!message?.id || existing.has(message.id) || siteMessageSessionDismissed.has(message.id)) continue;
@@ -1157,8 +1171,9 @@ async function loadPendingSiteMessages(options = {}) {
       showNextSiteMessage();
     })
     .catch(() => undefined)
-    .finally(() => { siteMessageLoadPromise = null; });
-  return await siteMessageLoadPromise;
+    .finally(() => { if (siteMessageLoadPromise === request) siteMessageLoadPromise = null; });
+  siteMessageLoadPromise = request;
+  return await request;
 }
 
 function schedulePendingSiteMessages() {
@@ -1166,44 +1181,72 @@ function schedulePendingSiteMessages() {
   window.setTimeout(() => { void loadPendingSiteMessages(); }, 0);
 }
 
+function renderSiteMessageSaveStatus() {
+  const notice = $('siteMessageSaveStatus');
+  if (!notice) return;
+  const failures = [...siteMessagePendingDismissals.values()].filter(item => item.status === 'failed');
+  const saving = [...siteMessagePendingDismissals.values()].some(item => item.status === 'saving');
+  notice.classList.toggle('hidden', !siteMessagePendingDismissals.size);
+  $('siteMessageSaveText').textContent = failures.length
+    ? `通知已在本页收起，但 ${failures.length} 条关闭状态未保存，刷新后可能再次显示。${failures[0].error}`
+    : '通知已收起，正在保存关闭状态…';
+  $('siteMessageRetryBtn').classList.toggle('hidden', !failures.length);
+  $('siteMessageRetryBtn').disabled = saving;
+}
+
+async function saveSiteMessageDismissal(messageId, owner = siteMessageOwner()) {
+  if (owner !== siteMessageOwner() || siteMessagePendingDismissals.get(messageId)?.status === 'saving') return;
+  siteMessagePendingDismissals.set(messageId, { status: 'saving' });
+  renderSiteMessageSaveStatus();
+  try {
+    await api('/api/messages/receipt', { message_id: messageId, action: 'dismiss' });
+    if (owner !== siteMessageOwner()) return;
+    siteMessagePendingDismissals.delete(messageId);
+  } catch (error) {
+    if (owner !== siteMessageOwner()) return;
+    siteMessagePendingDismissals.set(messageId, { status: 'failed', error: error.message });
+  }
+  if (owner === siteMessageOwner()) renderSiteMessageSaveStatus();
+}
+
+async function retrySiteMessageDismissals() {
+  const owner = siteMessageOwner();
+  for (const [id, item] of [...siteMessagePendingDismissals]) {
+    if (owner !== siteMessageOwner()) return;
+    if (item.status === 'failed') await saveSiteMessageDismissal(id, owner);
+  }
+}
+
 async function dismissActiveSiteMessage() {
   const message = activeSiteMessage;
   if (!message) return;
-  const controls = [$("siteMessageCloseIcon"), $("siteMessageCloseBtn"), $("siteMessageAcknowledgeBtn")].filter(Boolean);
-  controls.forEach((control) => { control.disabled = true; });
+  const owner = siteMessageOwner();
   $("siteMessageError").textContent = "";
-  if (!message.requires_confirmation) {
-    try {
-      await api("/api/messages/receipt", { message_id: message.id, action: "dismiss" });
-    } catch (error) {
-      $("siteMessageError").textContent = `关闭状态保存失败：${error.message}`;
-      controls.forEach((control) => { control.disabled = false; });
-      return;
-    }
-  } else {
-    void api("/api/messages/receipt", { message_id: message.id, action: "dismiss" }).catch(() => undefined);
-  }
   siteMessageSessionDismissed.add(message.id);
   activeSiteMessage = null;
   closeModal("siteMessageModal", true);
-  controls.forEach((control) => { control.disabled = false; });
   window.setTimeout(showNextSiteMessage, 0);
+  await saveSiteMessageDismissal(message.id, owner);
 }
 
 async function acknowledgeActiveSiteMessage() {
   const message = activeSiteMessage;
   if (!message) return;
+  const owner = siteMessageOwner();
   const button = $("siteMessageAcknowledgeBtn");
   button.disabled = true;
   $("siteMessageError").textContent = "";
   try {
     await api("/api/messages/receipt", { message_id: message.id, action: "acknowledge" });
+    if (owner !== siteMessageOwner()) return;
     siteMessageSessionDismissed.add(message.id);
-    activeSiteMessage = null;
-    closeModal("siteMessageModal", true);
+    if (activeSiteMessage === message) {
+      activeSiteMessage = null;
+      closeModal("siteMessageModal", true);
+    }
     window.setTimeout(showNextSiteMessage, 0);
   } catch (error) {
-    $("siteMessageError").textContent = `确认失败：${error.message}`;
+    if (owner === siteMessageOwner() && activeSiteMessage === message) $("siteMessageError").textContent = `确认失败：${error.message}`;
   } finally {
     button.disabled = false;
   }
@@ -1245,7 +1288,13 @@ function accountWordLimit(language = state.quizLanguage) {
 }
 
 function renderAccountUi() {
+  if (siteMessageQueueOwner !== siteMessageOwner()) resetSiteMessageQueue();
   task27Ui?.updateAccount();
+  const inboxMenu = $('notificationInboxMenuBtn'), inboxOwner = siteMessageOwner();
+  if (!state.session || !state.account) inboxMenu?.classList.add('hidden');
+  else if (task27Ui && inboxMenu) void task27Ui.isSupported().then(supported => {
+    if (inboxOwner === siteMessageOwner()) inboxMenu.classList.toggle('hidden', !supported);
+  }).catch(() => {});
   featureController?.updateAccount();
   publicUiPolicyController?.updateAccount();
   applyInterfacePolicy();
@@ -1711,6 +1760,7 @@ function closeModal(id, immediate = false) {
     if (returnFocus?.isConnected && returnFocus.getClientRects().length && !returnFocus.closest("[inert], .modal-layer.hidden")) {
       returnFocus.focus({ preventScroll: true });
     } else if (remaining.length) focusDialog(remaining.at(-1));
+    window.setTimeout(showNextSiteMessage, 0);
     if ((id === "membershipModal" && location.pathname === "/recharge") || (id === "accountModal" && location.pathname === "/account")) {
       if (state.session && state.account) {
         showModulePicker(false);
@@ -7640,6 +7690,7 @@ async function boot() {
   $("feedbackBtn").addEventListener("click", (event) =>
     withInteractionFeedback(event.currentTarget, "feedback-open", () => openFeedbackModal(event)));
   $("accountBtn").addEventListener("click", () => { closeAccountMenu(); showAccount(true); });
+  $('notificationInboxMenuBtn')?.addEventListener('click', () => { closeAccountMenu(); void task27Ui?.openInbox(); });
   $("homeBtn").addEventListener("click", () => { closeAccountMenu(); showModulePicker(true); });
   $("adminBtn").addEventListener("click", () => { closeAccountMenu(); showAdminPanel(true); });
   $("logoutBtn").addEventListener("click", () => { closeAccountMenu(); logoutAccount(); });
@@ -7754,6 +7805,7 @@ async function boot() {
   $("siteMessageCloseIcon")?.addEventListener("click", () => { void dismissActiveSiteMessage(); });
   $("siteMessageCloseBtn")?.addEventListener("click", () => { void dismissActiveSiteMessage(); });
   $("siteMessageAcknowledgeBtn")?.addEventListener("click", acknowledgeActiveSiteMessage);
+  $('siteMessageRetryBtn')?.addEventListener('click', () => { void retrySiteMessageDismissals(); });
   let adminEmailCenterController = null;
   function loadAdminEmailCenter() {
     if (!isAdmin()) return;
