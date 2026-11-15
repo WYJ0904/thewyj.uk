@@ -466,5 +466,17 @@
     "path": ".wrangler/task27-final-sw-pwa-metadata.log",
     "bytes": 1897,
     "sha256": "a21a41b0e66ae4024e83d01236d66084705dd228611fa3dd211adc1afc27e217"
+  },
+  {
+    "scope": "Task27 fifth CI admin audit navigation diagnosis",
+    "path": ".wrangler/task27-final/ci-fifth-failure.log",
+    "bytes": 15700,
+    "sha256": "1888076c3fc7aa0f4d5c508659880b4b8beee2dd174eda7428ab7ab6af210789"
+  },
+  {
+    "scope": "Task27 fifth CI admin audit navigation diagnosis",
+    "path": ".wrangler/task27-final/ci5-cloud-artifacts/artifacts/task25-admin-ui-release-smoke.json.failed.png",
+    "bytes": 95740,
+    "sha256": "70b437ecaa550aafe14c3f69f46922e955c33262551ccfbf49cc5b17e1171970"
   }
 ]

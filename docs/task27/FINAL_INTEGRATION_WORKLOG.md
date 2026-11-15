@@ -113,3 +113,15 @@ and their integrity digests, and requires all 89 assets. Local metadata contract
 execution and all 20 SW tests pass; the full browser rerun remains required.
 Run 43681806574 was cancelled by the normal new-head concurrency policy and is
 recorded as cancelled, never PASS.
+
+## Fifth CI: PWA/security browser passed; admin audit refresh race
+
+Run 43683601131 at `212e57be` passed seven jobs. PWA, cloud P0, Task18 and
+Task27's real browser step passed in the cloud job before the old admin-audit
+UI smoke failed. The original report and screenshot are preserved. Its
+same-route navigation predicate can match the old shell; this is a plausible
+navigation race, not a proven product permission failure. The test now requires
+a fresh marked document, initialized admin data and loaded configuration before
+performing the same visibility-guarded disclosure click and audit assertions.
+No forced open/click or removed acceptance gate is used; exact-head CI must
+validate this correction.

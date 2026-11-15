@@ -248,12 +248,24 @@ try {
   await checkbox('featureFlagKillSwitch', true);
   await save();
   await evaluate('stable', false, 'kill_switch');
-  await adminPage.navigate('/admin');
+  // This is a same-route document reload. The shared navigation helper's
+  // shell predicates can also match the old document, so identify the fresh
+  // page before reading its persisted form or clicking its audit disclosure.
+  const auditRefresh = randomBytes(8).toString('hex');
+  await adminPage.evaluate(`globalThis.__task25PriorAuditDocument=${JSON.stringify(auditRefresh)}`);
+  await adminPage.navigate(`/admin?task25-audit-refresh=${auditRefresh}`);
+  stage = 'UI_audit_fresh_document';
+  await adminPage.waitFor(`globalThis.__task25PriorAuditDocument!==${JSON.stringify(auditRefresh)} &&
+    new URL(location.href).searchParams.get('task25-audit-refresh')===${JSON.stringify(auditRefresh)} &&
+    document.documentElement.dataset.bootState==='ready' &&
+    document.getElementById('adminPanel')?.getAttribute('aria-busy')==='false'`,15000,'fresh initialized admin document');
   await visibleClick(adminPage, '#adminFeatureFlagsTab');
-  await adminPage.waitFor(`Array.from(document.getElementById('featureFlagSelect').options).some(o => o.value === ${JSON.stringify(key)})`);
+  await adminPage.waitFor(`document.getElementById('featureConsoleStatus').textContent==='已读取最新配置' && Array.from(document.getElementById('featureFlagSelect').options).some(o => o.value === ${JSON.stringify(key)})`);
   await selected();
   assert.equal(await adminPage.evaluate("document.getElementById('featureFlagKillSwitch').checked"), true);
   await visibleClick(adminPage, '#adminFeatureFlagsView details > summary');
+  stage = 'UI_audit_disclosure_open';
+  await adminPage.waitFor("document.getElementById('featureFlagAudit').closest('details').open",5000,'audit disclosure opens after a visible click');
   assert.equal(await adminPage.evaluate("document.getElementById('featureFlagAudit').closest('details').open"), true);
   assert.ok(await adminPage.evaluate(`document.getElementById('featureFlagAudit').textContent.includes(${JSON.stringify(key)})`));
   api('/api/admin/feature-flags', undefined, token, 403);
@@ -284,6 +296,9 @@ try {
   try {
     if (pages[0]) diagnostic = await (controlPage || pages[0]).evaluate(`(() => ({
       console_status: document.getElementById('featureConsoleStatus')?.textContent,
+      boot_state: document.documentElement.dataset.bootState,
+      audit_open: document.getElementById('featureFlagAudit')?.closest('details')?.open,
+      audit_has_fixture: ${JSON.stringify(fixtureKeys)}.some(key => document.getElementById('featureFlagAudit')?.textContent.includes(key)),
       selected_is_fixture: ${JSON.stringify(fixtureKeys)}.includes(document.getElementById('featureFlagSelect')?.value),
       form_revision: document.getElementById('featureFlagForm')?.dataset.revision,
       evaluate_channel: document.getElementById('featureEvaluateChannel')?.value,

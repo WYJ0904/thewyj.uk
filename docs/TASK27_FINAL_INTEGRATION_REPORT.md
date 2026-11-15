@@ -167,6 +167,19 @@ Task27专项本身已成功，失败发生在完整功能审计：QA矩阵缺少
 [第四轮收据](task27/final-evidence/ci-fourth-43682374162.json) 与
 [第三轮取消收据](task27/final-evidence/ci-third-43681806574.json) 分开保留。
 
+第五轮 [43683601131](https://github.com/WYJ0904/thewyj.uk/actions/runs/43683601131)
+针对 `212e57be22128ce95f086410a79cfdaf1bab99d9` 仍为7个jobs成功、2个Task25专用jobs跳过、
+Cloud-only job失败；但PWA、Cloud-only P0、Task18及Task27安全浏览器步骤已全部成功。
+失败在Task25既有后台审计披露检查，原报告与截图保留。
+源码检查发现同URL刷新等待只看shell存在，可匹配刷新前的旧文档；截图及诊断在失败后显示新页面停在顶部。
+这是导航竞争的证据，仍需修复后真实CI复验确认。
+测试现以唯一查询标记和旧文档哨兵区别新旧页面，并等初始化/后台加载/配置读取完成；
+随后仍要求可见、无挡控件的正常点击及审计实际展开/包含夹具记录，未强制设置展开或跳过断言。
+本地语法、功能矩阵和敏感文件检查通过，完整新CI等待中。
+[第五轮收据](task27/final-evidence/ci-fifth-43683601131.json)、
+[原UI失败报告](task27/final-evidence/task25-ui-fifth-failure.json)。
+
+
 ## 8. 所有者真实验收与发布步骤
 
 以下均为 **NOT_TESTED**：真实邮箱 OTP，Google Authenticator 真机扫码/绑定，
