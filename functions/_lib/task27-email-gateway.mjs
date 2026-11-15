@@ -7,9 +7,9 @@ import {atomic,fail,hasTask27} from './task27-store.mjs';
 import {authorize} from './task27-security.mjs';
 
 const SCOPES=new Map([
-  ['/api/admin/email/test-send','test'],['/api/admin/email/send','send'],
-  ['/api/admin/email/deliveries/retry','retry'],['/api/admin/email/inbound/reply','reply'],
-  ['/api/admin/email/templates','templates'],['/api/admin/email/inbound/status','inbound'],
+  ['POST /api/admin/email/test-send','test'],['POST /api/admin/email/send','send'],
+  ['POST /api/admin/email/deliveries/retry','retry'],['POST /api/admin/email/inbound/reply','reply'],
+  ['POST /api/admin/email/templates','templates'],['POST /api/admin/email/inbound/status','inbound'],
 ]);
 // The complete mail center owns this namespace when integrated. Keeping the
 // legacy Task27 draft API behind it would silently mix incompatible draft IDs,
@@ -30,7 +30,7 @@ export async function handleTask27EmailRequest(context,handler) {
       // A mail-management binding write cannot replace the user's ownership
       // proof, security generation change and session revocation in Task27.
       if(path==='/api/admin/email/user-binding')fail('email_binding_security_center_required','邮箱验证与变更必须由账户安全中心完成',403);
-      const scope=SCOPES.get(path);
+      const scope=SCOPES.get(`${context.request.method} ${path}`);
       if(scope){
         const {db,guards}=await authorize(context,authenticated.account,context.request.headers.get('X-Aeris-Stepup'),`email_center:${scope}`);
         await atomic(db,guards);

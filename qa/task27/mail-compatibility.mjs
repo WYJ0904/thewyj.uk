@@ -73,6 +73,15 @@ try{
    assert.equal((await one('SELECT COUNT(*) AS n FROM task27_email_drafts')).n,0);
    assert.equal((await call('/api/admin/email/drafts',undefined,owner)).status,200);
   });
+  await check('canonical draft and preview payloads send once even with concurrent separately authorized confirmations',async()=>{
+   const payload={target_mode:'single',recipient_user_ids:['mail-user'],sender_kind:'system',subject:'Synthetic canonical notice',body:'Synthetic combined mail only.'};
+   const draft=await call('/api/admin/email/drafts',payload,owner);assert.equal(draft.status,200,JSON.stringify(draft));
+   const preview=await call('/api/admin/email/preview',{...payload,draft_id:draft.body.draft_id},owner);assert.equal(preview.status,200,JSON.stringify(preview));
+   const grants=await Promise.all([1,2].map(()=>grant(owner,'email_center:send'))),count=messages.length;
+   const sends=await Promise.all(grants.map(token=>call('/api/admin/email/send',{preview_token:preview.body.preview_token,confirmed:true,subject:payload.subject,body:payload.body},owner,{'X-Aeris-Stepup':token})));
+   assert.equal(sends.filter(result=>result.status===200).length,1,JSON.stringify(sends));assert.equal(messages.length-count,1);
+   assert.equal((await one('SELECT COUNT(*) AS n FROM task27_email_drafts')).n,0);
+  });
   await check('source bridge and concurrent-send probes preserve observable producer defects for the separate PR',async()=>{
    const old=await one("SELECT version FROM task27_security WHERE user_id='mail-other'");await mail.upsertUserEmailBinding(db,{userId:'mail-other',email:'first@example.test',verified:true,actorUserId:'mail-owner'});
    const center=await one("SELECT email,verified FROM email_center_bindings WHERE user_id='mail-other'"),security=await one("SELECT verified_email,version FROM task27_security WHERE user_id='mail-other'");
