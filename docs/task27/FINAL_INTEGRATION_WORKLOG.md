@@ -71,3 +71,19 @@ The original gate is preserved and passes with 27 routes. No product or
 permission requirement is weakened. The original failed CI receipt is retained.
 The temporary combination was archived with the app tool after preserving all
 ignored logs, migration state and browser evidence in the Task27 checkout.
+
+## Second CI: full gate passed, two old browser fixtures failed
+
+Core CI 43680878033 at `9b1ea84a` passed all six base jobs, including the
+unchanged full-functional audit. Two Task25-only jobs were skipped by their
+existing branch conditions. Both browser jobs failed: Transfer responsive used
+an unscoped admin request, and the Python application matrix rejected the new
+optional `/api/policies` 404 after completing all 24 business flows.
+
+The affected transfer, interaction-feedback and toolbox fixtures now acquire
+real scoped grants with the existing loopback-only helper. The old Python
+matrix explicitly recognizes only that new capability 404; every other error
+assertion remains. The cloud registration fixture also actively checks the
+terms box after asserting it starts unchecked. These are QA-only changes;
+product permissions and consent requirements remain unchanged. Original second
+CI logs/receipt remain available; full browser success awaits the next real run.

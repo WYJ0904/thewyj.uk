@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { POLICY_VERSIONS } from '../functions/_lib/task27-policy.mjs';
+import {fixtureRequestInit} from '../qa/task27/fixture-request.mjs';
 import fs from "node:fs";
 import path from "node:path";
 
@@ -14,14 +15,8 @@ const USER_SECRET = "Responsive-Matrix-2026!";
 const ARTIFACT_DIR = path.resolve(process.env.WYJ_TEST_ARTIFACT_DIR || path.join(ROOT, 'artifacts'));
 
 async function api(pathname, payload, token = "", expected = [200]) {
-  const response = await fetch(`${BASE_URL}${pathname}`, {
-    method: payload === null ? "GET" : "POST",
-    headers: {
-      ...(payload === null ? {} : { "Content-Type": "application/json" }),
-      ...(token ? { "X-Session-Token": token } : {}),
-    },
-    body: payload === null ? undefined : JSON.stringify(payload),
-  });
+  const response = await fetch(`${BASE_URL}${pathname}`,
+    await fixtureRequestInit(BASE_URL,pathname,payload,token,ADMIN_SECRET));
   const body = await response.json().catch(() => ({}));
   assert.ok(expected.includes(response.status), `${pathname} -> ${response.status} ${JSON.stringify(body)}`);
   return body;

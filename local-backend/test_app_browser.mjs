@@ -2608,6 +2608,9 @@ async function main() {
     const expectedDeniedPaths = new Set(["/api/tools/access", "/api/quiz/start"]);
     const expectedCloudOnlyPaths = new Set([
       "/api/ui/features",
+      // The legacy Python fixture has no Task27 capability endpoint. Its
+      // explicit 404 selects the legacy account UI exercised by this matrix.
+      "/api/policies",
       "/api/messages/pending",
       "/api/admin/messages",
       "/api/admin/roles",

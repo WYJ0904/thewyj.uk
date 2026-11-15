@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { POLICY_VERSIONS } from '../functions/_lib/task27-policy.mjs';
+import {fixtureRequestInit} from '../qa/task27/fixture-request.mjs';
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import fs from "node:fs";
@@ -109,14 +110,8 @@ for (const [name, filePath] of Object.entries(samples)) {
 }
 
 async function api(pathname, payload = null, token = "", expected = [200]) {
-  const response = await fetch(`${BASE_URL}${pathname}`, {
-    method: payload === null ? "GET" : "POST",
-    headers: {
-      ...(payload === null ? {} : { "Content-Type": "application/json" }),
-      ...(token ? { "X-Session-Token": token } : {}),
-    },
-    body: payload === null ? undefined : JSON.stringify(payload),
-  });
+  const response = await fetch(`${BASE_URL}${pathname}`,
+    await fixtureRequestInit(BASE_URL,pathname,payload,token,ADMIN_SECRET));
   const data = await response.json().catch(() => ({}));
   assert.ok(expected.includes(response.status), `${pathname}: HTTP ${response.status} ${JSON.stringify(data)}`);
   return data;

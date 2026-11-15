@@ -412,5 +412,17 @@
     "path": ".wrangler/task27-final-browser-v3.log",
     "bytes": 1846,
     "sha256": "73c3c994335a491c01447b2d4aadc708430c8e330b5b82fc96fd66b455b955fe"
+  },
+  {
+    "scope": "Task27 second CI failure and fixture repair",
+    "path": ".wrangler/task27-final/ci-second-failure.log",
+    "bytes": 65716,
+    "sha256": "d312f3baf42eb2661342269661d418a1a46c23c874321f61620aad78a3106324"
+  },
+  {
+    "scope": "Task27 second CI failure and fixture repair",
+    "path": ".wrangler/task27-final-browser-harness-ci-fix.log",
+    "bytes": 379,
+    "sha256": "5ccdcdd70f3ec7afc1a5d4d8dfd9b68b82b673466de822c98a0c1e456bc7afa9"
   }
 ]

@@ -232,6 +232,8 @@ async function main() {
         "#registerSecretInput": USER_SECRET,
         "#registerConfirmInput": USER_SECRET,
       });
+      assert.equal(await evaluate("document.querySelector('#registerTermsConsent').checked"), false);
+      await click('#registerTermsConsent');
       await click("#registerSubmitBtn");
       await waitFor("location.pathname === '/login' && document.querySelector('#loginError')?.textContent.includes('注册成功')", 15_000, "registration success");
       await setFields({ "#usernameInput": USERNAME, "#secretInput": USER_SECRET });

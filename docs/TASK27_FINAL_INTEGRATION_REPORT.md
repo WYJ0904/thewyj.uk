@@ -132,7 +132,18 @@ Task27专项本身已成功，失败发生在完整功能审计：QA矩阵缺少
 
 修复为补齐 `qa/functional-audit.json` 四个路由、审计说明及真实公开恢复浏览器流程。
 原门禁未放宽：本地已核实27路由、24应用流程、104工具及所有原模式覆盖通过；
-独立Chrome 11项通过。修复后的完整远端CI继续跟踪，尚未完成时不宣称PASS。
+独立Chrome 11项通过。第二轮 [Core CI 43680878033](https://github.com/WYJ0904/thewyj.uk/actions/runs/43680878033)
+针对 `9b1ea84a4d1ac95b90b17ba82a8b36fe8fb807c7`，6个基础jobs均通过、2个Task25 jobs按规则跳过，
+2个浏览器jobs失败。完整功能矩阵已通过；失败是传输布局夹具缺少实际Step-up、
+以及Python旧后端浏览器验收把新增可选 `/api/policies` 的404当作异常。
+应用24项业务流程本身全部完成，但其最终网络错误断言失败，不能记整套PASS。
+[第二轮完整收据](task27/final-evidence/ci-second-43680878033.json) 保留。
+
+后续修复让传输布局、交互反馈及工具矩阵复用现有loopback专用 `fixtureRequestInit`，
+通过真实密码取得限定作用域的一次性grant；不修改服务端权限。
+仅把旧Python后端已明确不支持的 `/api/policies` 404纳入该旧后端矩阵的预期回退，
+其余HTTP错误与断言原样保留。同时补齐Cloud-only注册UI夹具的主动勾选，先断言默认未勾选。
+语法、功能矩阵与共享harness回归通过；完整浏览器结果等待新的真实CI，不用静态检查替代。
 最终状态由PR当前head的检查和后续CI收据记录。
 
 ## 8. 所有者真实验收与发布步骤
