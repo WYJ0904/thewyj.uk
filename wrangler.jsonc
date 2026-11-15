@@ -108,6 +108,7 @@
         "TASK11_IMPORT_ENABLED": "true",
         "TASK25_FEATURE_FLAGS_ENABLED": "true",
         "TASK26_ADAPTIVE_LEARNING_ENABLED": "true",
+        "TASK27_SECURITY_ENABLED": "true",
         "AZURE_SPEECH_REGION": "eastasia",
         "EMAIL_SENDING_ENABLED": "true",
         "EMAIL_CLOUDFLARE_ACCOUNT_ID": "97c274a981e8dd6703aa6388e11c4614",
