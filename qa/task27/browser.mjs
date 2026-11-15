@@ -162,6 +162,13 @@ try {
     await screenshot('policy-mobile');
   });
   await page.close();page=await openPage({cdpUrl,baseUrl:base,width:1440,height:1000,mobile:false});
+  await check('public recovery route offers password and lost-factor recovery with all three proof methods',async()=>{
+    await page.navigate('/forgot-password');await page.waitFor("document.getElementById('task27Recovery')?.checkVisibility()",15000);
+    assert.equal(await page.evaluate("document.querySelectorAll('#task27Recovery [data-forgot-password],#task27Recovery [data-lost-mfa]').length"),2);
+    await page.click('#task27Recovery [data-forgot-password]');await page.waitFor("document.getElementById('task27ResetMethod')",15000);
+    assert.deepEqual(await page.evaluate("[...document.getElementById('task27ResetMethod').options].map(option=>option.value)"),['email','totp','recovery']);
+    await screenshot('recovery-route-desktop');await page.close();page=await openPage({cdpUrl,baseUrl:base,width:1440,height:1000,mobile:false});
+  });
   await check('old six-character password stays usable in the actual Web login form without MFA enforcement',async()=>{
     await page.navigate('/login');await page.setFields({'#usernameInput':'legacy-browser','#secretInput':'123456'});await page.click('#loginSubmitBtn');await page.waitFor("location.pathname==='/'&&document.getElementById('notificationBellBtn').checkVisibility()",45000);await closeBroadcast();assert.equal(await page.evaluate("document.querySelector('#task27Prompt')?.checkVisibility() || false"),false);await page.close();page=await openPage({cdpUrl,baseUrl:base,width:1440,height:1000,mobile:false});
   });

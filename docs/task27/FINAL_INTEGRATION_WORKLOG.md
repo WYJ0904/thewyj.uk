@@ -54,3 +54,20 @@ The original failing log is retained under ignored `.wrangler/`.
   delivery branch. Producer fixes belong to PR153, including non-atomic binding
   writes, direct verified-binding administration and concurrent idempotency.
   Findings are not represented as a successful mail-platform release gate.
+
+## Draft PR154 and the first actual CI failure
+
+Task27 was pushed at `8a57c3802109f4cb624fe65a7a69158c5563fad8` and
+[Draft PR154](https://github.com/WYJ0904/thewyj.uk/pull/154) was created.
+Core CI 43680148997 failed the unchanged full-functional coverage gate because
+its matrix omitted the new public recovery and three policy routes. Task27's
+actual authentication/notification step had passed; Android and Python also
+passed. The two dependent browser jobs did not run. Task25 branch-only jobs
+remain explicitly SKIPPED.
+
+The fix updates the QA matrix and documentation and adds a real browser check
+for `/forgot-password`, its two recovery entry points and three factor choices.
+The original gate is preserved and passes with 27 routes. No product or
+permission requirement is weakened. The original failed CI receipt is retained.
+The temporary combination was archived with the app tool after preserving all
+ignored logs, migration state and browser evidence in the Task27 checkout.

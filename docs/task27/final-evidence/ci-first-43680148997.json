@@ -1,0 +1,1065 @@
+{
+  "conclusion": "failure",
+  "headSha": "8a57c3802109f4cb624fe65a7a69158c5563fad8",
+  "jobs": [
+    {
+      "completedAt": "2026-11-15T05:13:44Z",
+      "conclusion": "success",
+      "databaseId": 132708794284,
+      "name": "Sensitive files and static naming",
+      "startedAt": "2026-11-15T05:13:33Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-11-15T05:13:35Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-11-15T05:13:34Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:13:38Z",
+          "conclusion": "success",
+          "name": "Check out repository",
+          "number": 2,
+          "startedAt": "2026-11-15T05:13:35Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:13:38Z",
+          "conclusion": "success",
+          "name": "Set up Python",
+          "number": 3,
+          "startedAt": "2026-11-15T05:13:38Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:13:39Z",
+          "conclusion": "success",
+          "name": "Audit repository contents",
+          "number": 4,
+          "startedAt": "2026-11-15T05:13:38Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:13:41Z",
+          "conclusion": "success",
+          "name": "Upload repository audit report",
+          "number": 5,
+          "startedAt": "2026-11-15T05:13:39Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:13:41Z",
+          "conclusion": "success",
+          "name": "Post Set up Python",
+          "number": 9,
+          "startedAt": "2026-11-15T05:13:41Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:13:41Z",
+          "conclusion": "success",
+          "name": "Post Check out repository",
+          "number": 10,
+          "startedAt": "2026-11-15T05:13:41Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:13:41Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 11,
+          "startedAt": "2026-11-15T05:13:41Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/43680148997/job/132708794284"
+    },
+    {
+      "completedAt": "2026-11-15T05:18:23Z",
+      "conclusion": "failure",
+      "databaseId": 132708794459,
+      "name": "JavaScript and static site checks",
+      "startedAt": "2026-11-15T05:13:33Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-11-15T05:13:36Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-11-15T05:13:33Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:13:41Z",
+          "conclusion": "success",
+          "name": "Check out repository",
+          "number": 2,
+          "startedAt": "2026-11-15T05:13:36Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:13:45Z",
+          "conclusion": "success",
+          "name": "Set up Node.js",
+          "number": 3,
+          "startedAt": "2026-11-15T05:13:41Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:13:45Z",
+          "conclusion": "success",
+          "name": "Set up Python",
+          "number": 4,
+          "startedAt": "2026-11-15T05:13:45Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:13:46Z",
+          "conclusion": "success",
+          "name": "Restore Node download cache",
+          "number": 5,
+          "startedAt": "2026-11-15T05:13:45Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:13:49Z",
+          "conclusion": "success",
+          "name": "Install pinned Cloudflare development tooling",
+          "number": 6,
+          "startedAt": "2026-11-15T05:13:46Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:13:53Z",
+          "conclusion": "success",
+          "name": "Check JavaScript syntax",
+          "number": 7,
+          "startedAt": "2026-11-15T05:13:49Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:13:53Z",
+          "conclusion": "success",
+          "name": "Check ES module dependency graph",
+          "number": 8,
+          "startedAt": "2026-11-15T05:13:53Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:13:53Z",
+          "conclusion": "success",
+          "name": "Check frontend storage compatibility",
+          "number": 9,
+          "startedAt": "2026-11-15T05:13:53Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:13:53Z",
+          "conclusion": "success",
+          "name": "Test transfer progress and persistence coalescing",
+          "number": 10,
+          "startedAt": "2026-11-15T05:13:53Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:13:53Z",
+          "conclusion": "success",
+          "name": "Test stalled multipart connection recovery",
+          "number": 11,
+          "startedAt": "2026-11-15T05:13:53Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:13:53Z",
+          "conclusion": "success",
+          "name": "Test JavaScript tools",
+          "number": 12,
+          "startedAt": "2026-11-15T05:13:53Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:13:53Z",
+          "conclusion": "success",
+          "name": "Test file transfer queue isolation",
+          "number": 13,
+          "startedAt": "2026-11-15T05:13:53Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:13:53Z",
+          "conclusion": "success",
+          "name": "Test the transfer upload-session lifecycle plan",
+          "number": 14,
+          "startedAt": "2026-11-15T05:13:53Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:13:53Z",
+          "conclusion": "success",
+          "name": "Test the browser harness registration state machine",
+          "number": 15,
+          "startedAt": "2026-11-15T05:13:53Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:13:54Z",
+          "conclusion": "success",
+          "name": "Test finance candidate confirm eligibility",
+          "number": 16,
+          "startedAt": "2026-11-15T05:13:53Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:13:54Z",
+          "conclusion": "success",
+          "name": "Test interaction feedback and click-to-render timeline",
+          "number": 17,
+          "startedAt": "2026-11-15T05:13:54Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:13:55Z",
+          "conclusion": "success",
+          "name": "Audit async interactions across the browser modules",
+          "number": 18,
+          "startedAt": "2026-11-15T05:13:54Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:14:09Z",
+          "conclusion": "success",
+          "name": "Test core JavaScript modules",
+          "number": 19,
+          "startedAt": "2026-11-15T05:13:55Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:14:15Z",
+          "conclusion": "success",
+          "name": "Test Azure cloud TTS and legacy cache compatibility",
+          "number": 20,
+          "startedAt": "2026-11-15T05:14:09Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:14:15Z",
+          "conclusion": "success",
+          "name": "Test language JavaScript modules",
+          "number": 21,
+          "startedAt": "2026-11-15T05:14:15Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:14:15Z",
+          "conclusion": "success",
+          "name": "Test membership and admin modules",
+          "number": 22,
+          "startedAt": "2026-11-15T05:14:15Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:14:15Z",
+          "conclusion": "success",
+          "name": "Test configurable tool workflows",
+          "number": 23,
+          "startedAt": "2026-11-15T05:14:15Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:14:15Z",
+          "conclusion": "success",
+          "name": "Test learning data sync client",
+          "number": 24,
+          "startedAt": "2026-11-15T05:14:15Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:14:15Z",
+          "conclusion": "success",
+          "name": "Test Pages API proxy",
+          "number": 25,
+          "startedAt": "2026-11-15T05:14:15Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:14:31Z",
+          "conclusion": "success",
+          "name": "Test Cloudflare serverless foundation",
+          "number": 26,
+          "startedAt": "2026-11-15T05:14:15Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:14:35Z",
+          "conclusion": "success",
+          "name": "Test Task 11 routing and D1 integration",
+          "number": 27,
+          "startedAt": "2026-11-15T05:14:31Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:14:45Z",
+          "conclusion": "success",
+          "name": "Test Task 12 account, session and identity integration",
+          "number": 28,
+          "startedAt": "2026-11-15T05:14:35Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:15:43Z",
+          "conclusion": "success",
+          "name": "Test Task27 authentication and notification isolation",
+          "number": 29,
+          "startedAt": "2026-11-15T05:14:45Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:15:54Z",
+          "conclusion": "success",
+          "name": "Test Task 13 membership, payment and private QR integration",
+          "number": 30,
+          "startedAt": "2026-11-15T05:15:43Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:16:09Z",
+          "conclusion": "success",
+          "name": "Test Task 14 temporary sharing and private file integration",
+          "number": 31,
+          "startedAt": "2026-11-15T05:15:54Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:16:24Z",
+          "conclusion": "success",
+          "name": "Test Task 15 cloud-only runtime and authentication isolation",
+          "number": 32,
+          "startedAt": "2026-11-15T05:16:09Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:16:37Z",
+          "conclusion": "success",
+          "name": "Test Task 16 finance core, reconciliation and D1 integration",
+          "number": 33,
+          "startedAt": "2026-11-15T05:16:24Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:16:40Z",
+          "conclusion": "success",
+          "name": "Test Task 17 finance web and membership integration",
+          "number": 34,
+          "startedAt": "2026-11-15T05:16:37Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:16:52Z",
+          "conclusion": "success",
+          "name": "Test Task 18 admin roles and in-app messages",
+          "number": 35,
+          "startedAt": "2026-11-15T05:16:40Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:16:58Z",
+          "conclusion": "success",
+          "name": "Test Task 20 Android device sessions and security contract",
+          "number": 36,
+          "startedAt": "2026-11-15T05:16:52Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:17:01Z",
+          "conclusion": "success",
+          "name": "Test Task 21 payment product and private QR isolation",
+          "number": 37,
+          "startedAt": "2026-11-15T05:16:58Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:17:19Z",
+          "conclusion": "success",
+          "name": "Test Task 21 notification archive privacy and finance integration",
+          "number": 38,
+          "startedAt": "2026-11-15T05:17:01Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:17:38Z",
+          "conclusion": "success",
+          "name": "Test Task 21 pending hints (single pending source)",
+          "number": 39,
+          "startedAt": "2026-11-15T05:17:19Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:18:00Z",
+          "conclusion": "success",
+          "name": "Test Task 22 file transfer multipart, quota and share lifecycle",
+          "number": 40,
+          "startedAt": "2026-11-15T05:17:38Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:18:16Z",
+          "conclusion": "success",
+          "name": "Test file transfer integrity (SHA-256 round trip per file type)",
+          "number": 41,
+          "startedAt": "2026-11-15T05:18:00Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:18:20Z",
+          "conclusion": "success",
+          "name": "Benchmark the multipart hash/upload pipeline",
+          "number": 42,
+          "startedAt": "2026-11-15T05:18:16Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:18:20Z",
+          "conclusion": "success",
+          "name": "Check HTML, PWA and tool catalog",
+          "number": 43,
+          "startedAt": "2026-11-15T05:18:20Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:18:20Z",
+          "conclusion": "failure",
+          "name": "Check full functional audit coverage",
+          "number": 44,
+          "startedAt": "2026-11-15T05:18:20Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:18:20Z",
+          "conclusion": "skipped",
+          "name": "Task 25 flags, rollout, migration and Web/native contracts",
+          "number": 45,
+          "startedAt": "2026-11-15T05:18:20Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:18:20Z",
+          "conclusion": "skipped",
+          "name": "Task 26 deterministic engine, event recovery and client isolation",
+          "number": 46,
+          "startedAt": "2026-11-15T05:18:20Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:18:21Z",
+          "conclusion": "success",
+          "name": "Upload JavaScript and static reports",
+          "number": 47,
+          "startedAt": "2026-11-15T05:18:20Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:18:21Z",
+          "conclusion": "skipped",
+          "name": "Post Restore Node download cache",
+          "number": 91,
+          "startedAt": "2026-11-15T05:18:21Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:18:21Z",
+          "conclusion": "skipped",
+          "name": "Post Set up Python",
+          "number": 92,
+          "startedAt": "2026-11-15T05:18:21Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:18:21Z",
+          "conclusion": "skipped",
+          "name": "Post Set up Node.js",
+          "number": 93,
+          "startedAt": "2026-11-15T05:18:21Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:18:21Z",
+          "conclusion": "success",
+          "name": "Post Check out repository",
+          "number": 94,
+          "startedAt": "2026-11-15T05:18:21Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:18:21Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 95,
+          "startedAt": "2026-11-15T05:18:21Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/43680148997/job/132708794459"
+    },
+    {
+      "completedAt": "2026-11-15T05:16:16Z",
+      "conclusion": "success",
+      "databaseId": 132708794511,
+      "name": "Python syntax and unittest (windows-latest)",
+      "startedAt": "2026-11-15T05:13:33Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-11-15T05:13:35Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-11-15T05:13:34Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:13:48Z",
+          "conclusion": "success",
+          "name": "Check out repository",
+          "number": 2,
+          "startedAt": "2026-11-15T05:13:35Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:13:48Z",
+          "conclusion": "success",
+          "name": "Set up Python",
+          "number": 3,
+          "startedAt": "2026-11-15T05:13:48Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:13:49Z",
+          "conclusion": "success",
+          "name": "Restore Python download cache",
+          "number": 4,
+          "startedAt": "2026-11-15T05:13:48Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:13:50Z",
+          "conclusion": "success",
+          "name": "Check Python syntax",
+          "number": 5,
+          "startedAt": "2026-11-15T05:13:49Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:15:59Z",
+          "conclusion": "success",
+          "name": "Run Python unittest suite",
+          "number": 6,
+          "startedAt": "2026-11-15T05:13:50Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:16:00Z",
+          "conclusion": "success",
+          "name": "Check Android release metadata consistency",
+          "number": 7,
+          "startedAt": "2026-11-15T05:15:59Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:16:00Z",
+          "conclusion": "success",
+          "name": "Test CI service readiness helper",
+          "number": 8,
+          "startedAt": "2026-11-15T05:16:00Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:16:05Z",
+          "conclusion": "success",
+          "name": "Test Task 11 migration tooling",
+          "number": 9,
+          "startedAt": "2026-11-15T05:16:00Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:16:06Z",
+          "conclusion": "success",
+          "name": "Test Task 12 migration tooling",
+          "number": 10,
+          "startedAt": "2026-11-15T05:16:05Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:16:07Z",
+          "conclusion": "success",
+          "name": "Test Task 13 migration tooling",
+          "number": 11,
+          "startedAt": "2026-11-15T05:16:06Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:16:10Z",
+          "conclusion": "success",
+          "name": "Test Task 14 migration tooling",
+          "number": 12,
+          "startedAt": "2026-11-15T05:16:07Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:16:10Z",
+          "conclusion": "success",
+          "name": "Test Task 15 remaining-data migration tooling",
+          "number": 13,
+          "startedAt": "2026-11-15T05:16:10Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:16:11Z",
+          "conclusion": "success",
+          "name": "Test Task 16 DailyPayGuard migration tooling",
+          "number": 14,
+          "startedAt": "2026-11-15T05:16:10Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:16:12Z",
+          "conclusion": "success",
+          "name": "Upload Python reports",
+          "number": 15,
+          "startedAt": "2026-11-15T05:16:11Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:16:12Z",
+          "conclusion": "success",
+          "name": "Post Restore Python download cache",
+          "number": 28,
+          "startedAt": "2026-11-15T05:16:12Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:16:12Z",
+          "conclusion": "success",
+          "name": "Post Set up Python",
+          "number": 29,
+          "startedAt": "2026-11-15T05:16:12Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:16:15Z",
+          "conclusion": "success",
+          "name": "Post Check out repository",
+          "number": 30,
+          "startedAt": "2026-11-15T05:16:12Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:16:15Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 31,
+          "startedAt": "2026-11-15T05:16:15Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/43680148997/job/132708794511"
+    },
+    {
+      "completedAt": "2026-11-15T05:18:30Z",
+      "conclusion": "success",
+      "databaseId": 132708794524,
+      "name": "Android unit, lint and APK",
+      "startedAt": "2026-11-15T05:13:33Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-11-15T05:13:34Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-11-15T05:13:33Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:13:37Z",
+          "conclusion": "success",
+          "name": "Check out repository",
+          "number": 2,
+          "startedAt": "2026-11-15T05:13:34Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:13:45Z",
+          "conclusion": "success",
+          "name": "Set up JDK",
+          "number": 3,
+          "startedAt": "2026-11-15T05:13:37Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:13:56Z",
+          "conclusion": "success",
+          "name": "Install pinned Android platform",
+          "number": 4,
+          "startedAt": "2026-11-15T05:13:45Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:18:25Z",
+          "conclusion": "success",
+          "name": "Run Android unit tests, lint and debug build",
+          "number": 5,
+          "startedAt": "2026-11-15T05:13:56Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:18:25Z",
+          "conclusion": "success",
+          "name": "Verify the built APK matches the release metadata",
+          "number": 6,
+          "startedAt": "2026-11-15T05:18:25Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:18:25Z",
+          "conclusion": "skipped",
+          "name": "Validate an unreleased higher-version candidate without advancing Stable",
+          "number": 7,
+          "startedAt": "2026-11-15T05:18:25Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:18:29Z",
+          "conclusion": "success",
+          "name": "Upload Android reports and test APK",
+          "number": 8,
+          "startedAt": "2026-11-15T05:18:25Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:18:29Z",
+          "conclusion": "success",
+          "name": "Post Set up JDK",
+          "number": 15,
+          "startedAt": "2026-11-15T05:18:29Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:18:29Z",
+          "conclusion": "success",
+          "name": "Post Check out repository",
+          "number": 16,
+          "startedAt": "2026-11-15T05:18:29Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:18:29Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 17,
+          "startedAt": "2026-11-15T05:18:29Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/43680148997/job/132708794524"
+    },
+    {
+      "completedAt": "2026-11-15T05:13:53Z",
+      "conclusion": "success",
+      "databaseId": 132708794536,
+      "name": "Pages build and publish allowlist",
+      "startedAt": "2026-11-15T05:13:33Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-11-15T05:13:36Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-11-15T05:13:33Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:13:40Z",
+          "conclusion": "success",
+          "name": "Check out repository",
+          "number": 2,
+          "startedAt": "2026-11-15T05:13:36Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:13:45Z",
+          "conclusion": "success",
+          "name": "Set up Node.js",
+          "number": 3,
+          "startedAt": "2026-11-15T05:13:40Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:13:48Z",
+          "conclusion": "success",
+          "name": "Install pinned build tooling",
+          "number": 4,
+          "startedAt": "2026-11-15T05:13:45Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:13:49Z",
+          "conclusion": "success",
+          "name": "Reject private, unreviewed and redirected staging inputs",
+          "number": 5,
+          "startedAt": "2026-11-15T05:13:48Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:13:50Z",
+          "conclusion": "success",
+          "name": "Build and independently verify exact publish bytes",
+          "number": 6,
+          "startedAt": "2026-11-15T05:13:49Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:13:51Z",
+          "conclusion": "success",
+          "name": "Upload build audit evidence only",
+          "number": 7,
+          "startedAt": "2026-11-15T05:13:50Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:13:51Z",
+          "conclusion": "success",
+          "name": "Post Set up Node.js",
+          "number": 13,
+          "startedAt": "2026-11-15T05:13:51Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:13:51Z",
+          "conclusion": "success",
+          "name": "Post Check out repository",
+          "number": 14,
+          "startedAt": "2026-11-15T05:13:51Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:13:51Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 15,
+          "startedAt": "2026-11-15T05:13:51Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/43680148997/job/132708794536"
+    },
+    {
+      "completedAt": "2026-11-15T05:14:19Z",
+      "conclusion": "success",
+      "databaseId": 132708794576,
+      "name": "Python syntax and unittest (ubuntu-latest)",
+      "startedAt": "2026-11-15T05:13:33Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-11-15T05:13:36Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-11-15T05:13:33Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:13:43Z",
+          "conclusion": "success",
+          "name": "Check out repository",
+          "number": 2,
+          "startedAt": "2026-11-15T05:13:36Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:13:43Z",
+          "conclusion": "success",
+          "name": "Set up Python",
+          "number": 3,
+          "startedAt": "2026-11-15T05:13:43Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:13:44Z",
+          "conclusion": "success",
+          "name": "Restore Python download cache",
+          "number": 4,
+          "startedAt": "2026-11-15T05:13:43Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:13:45Z",
+          "conclusion": "success",
+          "name": "Check Python syntax",
+          "number": 5,
+          "startedAt": "2026-11-15T05:13:44Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:14:12Z",
+          "conclusion": "success",
+          "name": "Run Python unittest suite",
+          "number": 6,
+          "startedAt": "2026-11-15T05:13:45Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:14:12Z",
+          "conclusion": "success",
+          "name": "Check Android release metadata consistency",
+          "number": 7,
+          "startedAt": "2026-11-15T05:14:12Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:14:13Z",
+          "conclusion": "success",
+          "name": "Test CI service readiness helper",
+          "number": 8,
+          "startedAt": "2026-11-15T05:14:12Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:14:16Z",
+          "conclusion": "success",
+          "name": "Test Task 11 migration tooling",
+          "number": 9,
+          "startedAt": "2026-11-15T05:14:13Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:14:16Z",
+          "conclusion": "success",
+          "name": "Test Task 12 migration tooling",
+          "number": 10,
+          "startedAt": "2026-11-15T05:14:16Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:14:16Z",
+          "conclusion": "success",
+          "name": "Test Task 13 migration tooling",
+          "number": 11,
+          "startedAt": "2026-11-15T05:14:16Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:14:16Z",
+          "conclusion": "success",
+          "name": "Test Task 14 migration tooling",
+          "number": 12,
+          "startedAt": "2026-11-15T05:14:16Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:14:16Z",
+          "conclusion": "success",
+          "name": "Test Task 15 remaining-data migration tooling",
+          "number": 13,
+          "startedAt": "2026-11-15T05:14:16Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:14:17Z",
+          "conclusion": "success",
+          "name": "Test Task 16 DailyPayGuard migration tooling",
+          "number": 14,
+          "startedAt": "2026-11-15T05:14:16Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:14:17Z",
+          "conclusion": "success",
+          "name": "Upload Python reports",
+          "number": 15,
+          "startedAt": "2026-11-15T05:14:17Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:14:18Z",
+          "conclusion": "success",
+          "name": "Post Restore Python download cache",
+          "number": 28,
+          "startedAt": "2026-11-15T05:14:17Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:14:18Z",
+          "conclusion": "success",
+          "name": "Post Set up Python",
+          "number": 29,
+          "startedAt": "2026-11-15T05:14:18Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:14:18Z",
+          "conclusion": "success",
+          "name": "Post Check out repository",
+          "number": 30,
+          "startedAt": "2026-11-15T05:14:18Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-15T05:14:18Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 31,
+          "startedAt": "2026-11-15T05:14:18Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/43680148997/job/132708794576"
+    },
+    {
+      "completedAt": "2026-11-15T05:13:30Z",
+      "conclusion": "skipped",
+      "databaseId": 132708795337,
+      "name": "Task 25 Android runtime contract",
+      "startedAt": "2026-11-15T05:13:30Z",
+      "status": "completed",
+      "steps": [],
+      "url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/43680148997/job/132708795337"
+    },
+    {
+      "completedAt": "2026-11-15T05:13:30Z",
+      "conclusion": "skipped",
+      "databaseId": 132708795606,
+      "name": "Task 25 cloud credential discovery",
+      "startedAt": "2026-11-15T05:13:30Z",
+      "status": "completed",
+      "steps": [],
+      "url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/43680148997/job/132708795606"
+    },
+    {
+      "completedAt": "2026-11-15T05:18:30Z",
+      "conclusion": "skipped",
+      "databaseId": 132709893603,
+      "name": "Cloud-only browser, canonical session and toolbox",
+      "startedAt": "2026-11-15T05:18:31Z",
+      "status": "completed",
+      "steps": [],
+      "url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/43680148997/job/132709893603"
+    },
+    {
+      "completedAt": "2026-11-15T05:18:30Z",
+      "conclusion": "skipped",
+      "databaseId": 132709893675,
+      "name": "Browser flow (${{ matrix.suite }})",
+      "startedAt": "2026-11-15T05:18:31Z",
+      "status": "completed",
+      "steps": [],
+      "url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/43680148997/job/132709893675"
+    }
+  ],
+  "status": "completed"
+}

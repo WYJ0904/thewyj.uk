@@ -394,5 +394,23 @@
     "path": ".wrangler/task27-final/migration-ledger.json",
     "bytes": 142,
     "sha256": "86c3b670954ebc37e7cfe578703adda336cd070d14464c8d0ad9b26b36063037"
+  },
+  {
+    "scope": "Task27 CI coverage repair",
+    "path": ".wrangler/task27-final/ci-first-failure.log",
+    "bytes": 2896,
+    "sha256": "a2720883bc558e4c5928ef18203914b59daf2c7931f3ca189f5df83eabd8f203"
+  },
+  {
+    "scope": "Task27 CI coverage repair",
+    "path": ".wrangler/task27-final-functional-gate-pass.log",
+    "bytes": 151,
+    "sha256": "ca217f808aa00355bc991e71129fb451390923d009eaa8cb39d648afbf3f2b89"
+  },
+  {
+    "scope": "Task27 CI coverage repair",
+    "path": ".wrangler/task27-final-browser-v3.log",
+    "bytes": 1846,
+    "sha256": "73c3c994335a491c01447b2d4aadc708430c8e330b5b82fc96fd66b455b955fe"
   }
 ]

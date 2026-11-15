@@ -6,14 +6,14 @@
 ## 1. 分支与实际提交
 
 - 交付分支：`codex/task27-security-center`。
-- 最终本地受测源码/测试头：`12a70019869432fbab581f2200e528326a6c88b2`；
-  后续报告提交不改变该产品树。最终 GitHub 交付 HEAD 由 Draft PR 的 head SHA 记录。
+- 首轮最终本地受测源码/测试头：`12a70019869432fbab581f2200e528326a6c88b2`；
+  后续 CI 适配只补 QA 路由/浏览器覆盖与报告，不改变产品树。最终 GitHub 交付 HEAD 由 Draft PR 的 head SHA 记录。
 - 原实现 `4167af98`、产品完善 `3b1ff9d7`、原报告 `d06e50eb` 均在提交链上。
 - main 新鲜核对：`7766b80eb2c9e448dc08a3a4b317bfa62e0dff6e`；
   以普通 merge `434642223e57517cb4f81b0423980f00cad6471e` 合入，没有 rebase 或重置。
 - 主要增量修复 `8067ca1f`；可选邮件路由注册/测试完善 `308a7722`；
   本地收件人夹具 `32d7bb84`；管理员临时密码静态契约 `12a70019`。
-- Task27 Draft PR：待本地证据提交后创建并在本报告补录；禁止自动合并。
+- Task27 [Draft PR154](https://github.com/WYJ0904/thewyj.uk/pull/154)：已创建并推送；禁止自动合并。
 - [Hydrogen PR153](https://github.com/WYJ0904/thewyj.uk/pull/153) 为 Draft/open/unmerged，
   最新受测头 `033b815201a47ac0e874a9d75183371fe99b6f0d`。
 
@@ -94,7 +94,7 @@ Azure TTS、0026–0034、Android 权限/本地数据/发布元数据没有替�
 | PR153 组合合同 | 10 项 PASS，包含成功复现生产者缺陷的诊断；风险仍 OPEN |
 | 真实 workerd 安全流程 | 5 项 PASS |
 | OTPAuth 9.6.0 / jsQR 1.4.0 | 256 向量、4 种 URI 标签 QR/链接/手动等价、workerd ESM PASS |
-| Chrome UI | 独立 10 项、组合 10 项 PASS；375px、双主题、axe、注册/政策/邮件流程 |
+| Chrome UI | 独立 11 项（CI后补公共恢复路由）、组合 10 项 PASS；375px、双主题、axe、注册/政策/邮件流程 |
 | Android | 120 套件、831 tests，0 failure/error/skipped；Lint、Debug、DebugAndroidTest APK PASS |
 | Task12 / 18 / 20 | 15 / 8 / 18 组 PASS |
 | Task13 / 15 / 16 / 17 / 财务模型 | 17 / 19 / 11 组及其余各原有套件 PASS |
@@ -108,9 +108,9 @@ Azure TTS、0026–0034、Android 权限/本地数据/发布元数据没有替�
 | 三份已确认政策 | 正文逐字比对 PASS |
 | PR153 原完整邮件测试 | 前3组 PASS；第4组旧改密调用 FAIL，保留并交生产者适配 |
 
-独立和组合各自使用隔离数据。自动化没有打开真实邮件或手机验证器。
+独立和组合各自使用隔离数据。临时组合工作树已通过应用工具归档，可恢复；其忽略日志、迁移状态和浏览器证据另保留在原Task27工作树 `.wrangler/task27-final/combined-preserved/`。自动化没有打开真实邮件或手机验证器。
 新证据在 [final-evidence](task27/final-evidence/source-refs.json)；
-原始日志保留于忽略目录，66 份哈希收据在
+原始日志保留于忽略目录，初始66份及后续CI失败/修复哈希收据在
 [log-receipts.json](task27/final-evidence/log-receipts.json)。
 
 保留且已处理的失败包括：新增测试夹具约束/中文匹配、0035 重放假设、
@@ -124,8 +124,16 @@ Azure TTS、0026–0034、Android 权限/本地数据/发布元数据没有替�
 
 main 的 [Core CI 43625189929](https://github.com/WYJ0904/thewyj.uk/actions/runs/43625189929)
 已核实为 exact `7766b80e`，10/10 成功。这不是 Task27 的 CI。
-Task27 在推送并创建 Draft PR 后运行，实际结果和链接将在后续验收收据补录；
-本报告当前提交不宣称远端 Task27 已通过。
+Task27 首轮 [Core CI 43680148997](https://github.com/WYJ0904/thewyj.uk/actions/runs/43680148997)
+针对 exact `8a57c3802109f4cb624fe65a7a69158c5563fad8`，真实结果为 **FAILURE**：
+5 jobs成功、JavaScript job失败、2个Task25分支专用job跳过、2个后续浏览器job因依赖失败未运行。
+Task27专项本身已成功，失败发生在完整功能审计：QA矩阵缺少新增的找回密码和三份政策路由。
+[原始作业收据](task27/final-evidence/ci-first-43680148997.json) 保留。
+
+修复为补齐 `qa/functional-audit.json` 四个路由、审计说明及真实公开恢复浏览器流程。
+原门禁未放宽：本地已核实27路由、24应用流程、104工具及所有原模式覆盖通过；
+独立Chrome 11项通过。修复后的完整远端CI继续跟踪，尚未完成时不宣称PASS。
+最终状态由PR当前head的检查和后续CI收据记录。
 
 ## 8. 所有者真实验收与发布步骤
 
