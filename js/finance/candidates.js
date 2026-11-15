@@ -1,10 +1,10 @@
-import { mergeLocalNotificationReviews, localNotificationRecovery } from "./notification-ledger.js?release=20261113-aeris-s0-p0-rc1";
-import { randomId } from "../core/capabilities.js?release=20261113-aeris-s0-p0-rc1";
-import { createFinanceDisclosure } from "./disclosure.js?release=20261113-aeris-s0-p0-rc1";
-import { reconcileKeyedRows } from "../core/keyed-list.js?release=20261113-aeris-s0-p0-rc1";
-import { formatFinanceMoney } from "./format.js?release=20261113-aeris-s0-p0-rc1";
-import { SUPPORTED_CURRENCIES, currencyDigits, moneyText } from "./money.js?release=20261113-aeris-s0-p0-rc1";
-import { validateAmountText } from "./app.js?release=20261113-aeris-s0-p0-rc1";
+import { mergeLocalNotificationReviews, localNotificationRecovery } from "./notification-ledger.js?release=20261115-aeris-s0-p0-release";
+import { randomId } from "../core/capabilities.js?release=20261115-aeris-s0-p0-release";
+import { createFinanceDisclosure } from "./disclosure.js?release=20261115-aeris-s0-p0-release";
+import { reconcileKeyedRows } from "../core/keyed-list.js?release=20261115-aeris-s0-p0-release";
+import { formatFinanceMoney } from "./format.js?release=20261115-aeris-s0-p0-release";
+import { SUPPORTED_CURRENCIES, currencyDigits, moneyText } from "./money.js?release=20261115-aeris-s0-p0-release";
+import { validateAmountText } from "./app.js?release=20261115-aeris-s0-p0-release";
 import {
   INTERACTION_STAGES,
   attachInteractionFeedback,
@@ -12,7 +12,7 @@ import {
   createLatestOnly,
   createSingleFlight,
   withInteractionFeedback,
-} from "../core/perf.js?release=20261113-aeris-s0-p0-rc1";
+} from "../core/perf.js?release=20261115-aeris-s0-p0-release";
 const FINANCE_DEVICE_KEY = "wyjFinanceDevice:v1";
 const DIRECTION_LABELS = Object.freeze({ income: "收入", expense: "支出", refund: "退款", unknown: "方向待核实" });
 const VALID_DIRECTIONS = new Set(["income", "expense", "refund"]);
@@ -732,4 +732,4 @@ export function createFinanceCandidatesController({
   const dashboardSummary = () => ({ known: hasCanonicalObservation && renderedForAccount === String(account()?.id || ""), count: currentCandidates.length });
   return Object.freeze({ show, hide, reload, accountUpdated, handleClick, dashboardSummary });
 }
-import { createParkedRows, rowRenderRoot } from "../core/parked-rows.js?release=20261113-aeris-s0-p0-rc1";
+import { createParkedRows, rowRenderRoot } from "../core/parked-rows.js?release=20261115-aeris-s0-p0-release";
