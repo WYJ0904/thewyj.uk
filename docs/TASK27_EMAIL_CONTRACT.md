@@ -75,8 +75,11 @@
    - 当前 `main`（S0 PR `#151` 合入后）最新迁移编号为 `0034_finance_ai_assistance.sql`。
    - Codex 分支新增 `0035_task27_security_center.sql`，本分支新增 `0036_task27_email_center.sql`。
    - `0036_task27_email_center.sql` 仅引用 `task12_users(id)`，**对 `0035` 无外键或表结构硬依赖**；但在 Production D1 执行迁移时**必须等待 `0035_task27_security_center.sql` 先合入并执行后，再执行 `0036_task27_email_center.sql`**，防止 D1 迁移序号跳号导致 `0035` 无法按序应用。
-3. **路由归属（合并后接入指南）**：
+3. **路由归属与安全集成要点（合并后接入指南）**：
    - 本分支 `functions/_lib/email-api.mjs` 的 `handleEmailRequest(context)` 完整承担所有 `/api/admin/email/*`（含概览、收件人筛选、草稿、预览、二次确认发送、投递记录、安全重试、客服入站收件与回复、模板、绑定维护、状态与受控测试）权限校验与审计路由；合入 `handleTask27Request(context)` 时，应在 `functions/api/[[path]].js` 中保持 `handleEmailRequest` 优先于 `handleTask27Request`（或在 `task27-api.mjs` 中移除重复的 `/api/admin/email/*` 占位路由）。
+   - `functions/_lib/task12-api.mjs` 已补充捕获 `EmailServiceError`，以防 `/api/login` 触发 `beginTask27Login` 邮件错误/限流时丢失精准状态码与 `Retry-After`。
+   - `functions/_lib/email-service.mjs` 与 `email-api.mjs` 已支持比较 `email_center_bindings.verified_at` 与 `task27_security.email_verified_at` 时间戳，避免双处验证邮箱产生状态分裂；后续 `task27-security.mjs` 的 `notify()` 应统一通过 `resolveVerifiedUserEmail(db, userId)` 解析目标地址并传入 `userId`。
+   - 详细合入顺序、备份、迁移检查、灰度实测与回滚预案见 [`docs/TASK27_EMAIL_RELEASE_RUNBOOK.md`](./TASK27_EMAIL_RELEASE_RUNBOOK.md)。
 
 #### `getEmailDeliveryStatus(db, { deliveryId, idempotencyKey })`
 供 Task 27 查询某次发信的实际处理状态，返回：

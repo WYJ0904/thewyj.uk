@@ -640,6 +640,34 @@ export function classifyProviderError({ status = 0, payload = null, error = null
   const rawMsg = errors[0]?.message || payload?.error || error?.message || "邮件服务商请求失败";
   const safeMsg = cleanSingleLineText(String(rawMsg).slice(0, 220), { maxLength: 240, field: "error_message", required: false }) || "邮件服务商请求失败";
 
+  if (error && !payload) {
+    const errorText = String(error?.message || "");
+    if (/rate[\s_-]?limit|too many requests|\b429\b/i.test(errorText)) {
+      return new EmailServiceError("email_provider_rate_limited", "邮件发送触发 Cloudflare 速率限制，请稍后重试", 429, {
+        retryable: true,
+        provider_status: 429,
+        provider_code: firstCode || "E_RATE_LIMITED",
+        provider_message: safeMsg,
+      });
+    }
+    if (/unauthorized|forbidden|invalid.?token|auth.*fail|\b(401|403)\b/i.test(errorText)) {
+      return new EmailServiceError("email_provider_auth_failed", "Cloudflare 邮件发送凭据或权限校验失败", 502, {
+        retryable: false,
+        provider_status: status || 401,
+        provider_code: firstCode || "E_UNAUTHORIZED",
+        provider_message: safeMsg,
+      });
+    }
+    if (/reject|bounce|suppressed|invalid.?recipient|\b(400|422)\b/i.test(errorText)) {
+      return new EmailServiceError("email_provider_rejected", "邮件服务商拒绝该收件请求，请核对地址或内容格式", 422, {
+        retryable: false,
+        provider_status: 422,
+        provider_code: firstCode || "E_REJECTED",
+        provider_message: safeMsg,
+      });
+    }
+  }
+
   if (status === 401 || status === 403 || firstCode === "10000" || firstCode === "E_UNAUTHORIZED") {
     return new EmailServiceError("email_provider_auth_failed", `Cloudflare 邮件鉴权失败 (${status || firstCode || "auth"})`, 502, {
       retryable: false,
@@ -821,11 +849,25 @@ export async function hasTask27SecurityTable(db) {
   return tableExists(db, "task27_security");
 }
 
+function isNewerVerifiedTimestamp(candidateIso, baselineIso) {
+  const cand = String(candidateIso || "").trim();
+  if (!cand) return false;
+  const base = String(baselineIso || "").trim();
+  if (!base) return true;
+  const candMs = Date.parse(cand);
+  const baseMs = Date.parse(base);
+  if (Number.isFinite(candMs) && Number.isFinite(baseMs)) {
+    return candMs > baseMs;
+  }
+  return cand > base;
+}
+
 export async function resolveVerifiedUserEmail(db, userId) {
   if (!db || !userId) return null;
   const uid = String(userId).trim();
   if (!uid) return null;
 
+  let verifiedBinding = null;
   let unverifiedBinding = null;
   if (await tableExists(db, "email_center_bindings")) {
     const binding = await db
@@ -835,7 +877,7 @@ export async function resolveVerifiedUserEmail(db, userId) {
     if (binding?.email) {
       const normalized = String(binding.email).trim().toLowerCase();
       if (Number(binding.verified) === 1) {
-        return {
+        verifiedBinding = {
           user_id: uid,
           email: normalized,
           email_normalized: normalized,
@@ -844,19 +886,21 @@ export async function resolveVerifiedUserEmail(db, userId) {
           source: "email_center_bindings",
           updated_at: binding.updated_at || binding.verified_at || null,
         };
+      } else {
+        unverifiedBinding = {
+          user_id: uid,
+          email: normalized,
+          email_normalized: normalized,
+          verified: false,
+          verified_at: binding.verified_at || null,
+          source: "email_center_bindings",
+          updated_at: binding.updated_at || null,
+        };
       }
-      unverifiedBinding = {
-        user_id: uid,
-        email: normalized,
-        email_normalized: normalized,
-        verified: false,
-        verified_at: binding.verified_at || null,
-        source: "email_center_bindings",
-        updated_at: binding.updated_at || null,
-      };
     }
   }
 
+  let task27Verified = null;
   if (await hasTask27SecurityTable(db)) {
     try {
       const sec = await db
@@ -866,7 +910,7 @@ export async function resolveVerifiedUserEmail(db, userId) {
       const verifiedEmail = String(sec?.verified_email || "").trim().toLowerCase();
       const verifiedAt = String(sec?.email_verified_at || "").trim();
       if (verifiedEmail && verifiedAt) {
-        return {
+        task27Verified = {
           user_id: uid,
           email: verifiedEmail,
           email_normalized: verifiedEmail,
@@ -880,6 +924,14 @@ export async function resolveVerifiedUserEmail(db, userId) {
       // ignore incompatible schema cleanly
     }
   }
+
+  if (verifiedBinding && task27Verified) {
+    return isNewerVerifiedTimestamp(task27Verified.verified_at, verifiedBinding.verified_at || verifiedBinding.updated_at)
+      ? task27Verified
+      : verifiedBinding;
+  }
+  if (verifiedBinding) return verifiedBinding;
+  if (task27Verified) return task27Verified;
 
   if (unverifiedBinding) {
     return unverifiedBinding;

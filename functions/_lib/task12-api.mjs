@@ -37,7 +37,7 @@ import { listTask13Audit } from "./task13-service.mjs";
 import { enrichAccountWithTask13 } from "./task13-service.mjs";
 import { listAdminActionAudit } from "./task18-service.mjs";
 import { listFeedbackAudit } from "./task11-service.mjs";
-import { notifyAutomaticBusinessEmail } from "./email-service.mjs";
+import { EmailServiceError, notifyAutomaticBusinessEmail } from "./email-service.mjs";
 
 const LOGIN_FAILURE_LIMIT = 8;
 const LOGIN_FAILURE_WINDOW_SECONDS = 300;
@@ -423,6 +423,13 @@ export async function handleTask12Request(context) {
   } catch (error) {
     if (error instanceof Task12Error) {
       return apiError(error.code, error.message, error.status, requestId(context), { retryable: error.retryable });
+    }
+    if (error instanceof EmailServiceError) {
+      const status = Number(error.status || 503);
+      return apiError(error.code || "email_service_error", error.message, status, requestId(context), {
+        retryable: Boolean(error.retryable),
+        ...(status === 429 ? { headers: { "Retry-After": String(error?.details?.retry_after || 60) } } : {}),
+      });
     }
     console.error(JSON.stringify({
       event: "task12_cloud_error", request_id: requestId(context), route: url.pathname,

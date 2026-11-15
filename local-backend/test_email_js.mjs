@@ -1118,6 +1118,44 @@ async function run() {
       });
       assert.equal(codexNotice.ok, true);
       assert.equal(codexNotice.kind, "account_security_notice");
+
+      // 7d. Timestamp precedence (newer task27_security email overrides older email_center_bindings),
+      // recipients `id` field compatibility, and Workers Binding error classification
+      await db
+        .prepare("UPDATE email_center_bindings SET verified_at = ?, updated_at = ? WHERE user_id = ?")
+        .bind("2026-11-15T01:00:00.000Z", "2026-11-15T01:00:00.000Z", legacyUser.id)
+        .run();
+      await db
+        .prepare("UPDATE task27_security SET verified_email = ?, email_verified_at = ? WHERE user_id = ?")
+        .bind("t27newer@thewyj.uk", "2026-11-15T06:00:00.000Z", legacyUser.id)
+        .run();
+      const resolvedNewer = await resolveVerifiedUserEmail(db, legacyUser.id);
+      assert.equal(resolvedNewer?.email, "t27newer@thewyj.uk");
+      assert.equal(resolvedNewer?.source, "task27_security");
+
+      const recNewer = await callApi(envT27, `/api/admin/email/recipients?q=${encodeURIComponent(legacyUser.username)}&verified=verified`, { token: superAdmin.token });
+      assert.equal(recNewer.status, 200);
+      assert.equal(recNewer.data.recipients[0].id, legacyUser.id);
+      assert.equal(recNewer.data.recipients[0].email, "t27newer@thewyj.uk");
+
+      const rateLimitBindingEnv = makeEnv(db, {
+        EMAIL: {
+          send: async () => {
+            throw new Error("429 Too Many Requests: rate limit exceeded");
+          },
+        },
+        EMAIL_TRANSPORT: "binding",
+        EMAIL_TEST_RECIPIENTS: "t27user@thewyj.uk",
+      });
+      const bindingRateErr = await sendAccountSecurityNotice(rateLimitBindingEnv, {
+        to: "t27user@thewyj.uk",
+        userId: t27OnlyUser.id,
+        eventSummary: "Rate limit classification check",
+        idempotencyKey: "codex:compat:rl:1",
+      }).then(() => null, (e) => e);
+      assert.equal(bindingRateErr?.code, "email_provider_rate_limited");
+      assert.equal(bindingRateErr?.status, 429);
+      assert.equal(bindingRateErr?.retryable, true);
     });
 
     process.stdout.write(`Cloudflare Email Center tests passed: ${passedSuites} suites\n`);

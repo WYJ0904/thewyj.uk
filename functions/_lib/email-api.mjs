@@ -195,6 +195,12 @@ function statusResponsePayload(env, account) {
   };
 }
 
+const TASK27_NEWEST_VERIFIED_COND =
+  "(COALESCE(s.verified_email, '') <> '' AND COALESCE(s.email_verified_at, '') <> '' AND (COALESCE(b.verified, 0) <> 1 OR COALESCE(s.email_verified_at, '') > COALESCE(NULLIF(b.verified_at, ''), b.updated_at, '')))";
+const EFFECTIVE_EMAIL_SQL = `CASE WHEN ${TASK27_NEWEST_VERIFIED_COND} THEN LOWER(TRIM(s.verified_email)) ELSE b.email END`;
+const EFFECTIVE_VERIFIED_SQL = `(CASE WHEN COALESCE(b.verified, 0) = 1 OR (COALESCE(s.verified_email, '') <> '' AND COALESCE(s.email_verified_at, '') <> '') THEN 1 ELSE 0 END)`;
+const EFFECTIVE_VERIFIED_AT_SQL = `CASE WHEN ${TASK27_NEWEST_VERIFIED_COND} THEN s.email_verified_at WHEN COALESCE(b.verified, 0) = 1 THEN b.verified_at ELSE NULL END`;
+
 async function resolvePreviewRecipients(db, account, targetMode, rawUserIds) {
   const mode = String(targetMode || "single").trim().toLowerCase();
   if (!["single", "multiple", "all_verified"].includes(mode)) {
@@ -220,15 +226,8 @@ async function resolvePreviewRecipients(db, account, targetMode, rawUserIds) {
         .prepare(
           hasTask27Sec
             ? `SELECT u.id, u.username, u.role, u.banned, u.deleted,
-                      CASE
-                        WHEN COALESCE(b.verified, 0) = 1 THEN b.email
-                        WHEN COALESCE(s.verified_email, '') <> '' AND COALESCE(s.email_verified_at, '') <> '' THEN LOWER(TRIM(s.verified_email))
-                        ELSE b.email
-                      END AS email,
-                      CASE
-                        WHEN COALESCE(b.verified, 0) = 1 OR (COALESCE(s.verified_email, '') <> '' AND COALESCE(s.email_verified_at, '') <> '') THEN 1
-                        ELSE 0
-                      END AS verified
+                      ${EFFECTIVE_EMAIL_SQL} AS email,
+                      ${EFFECTIVE_VERIFIED_SQL} AS verified
                FROM task12_users AS u
                LEFT JOIN email_center_bindings AS b ON b.user_id = u.id
                LEFT JOIN task27_security AS s ON s.user_id = u.id
@@ -318,15 +317,8 @@ async function resolvePreviewRecipients(db, account, targetMode, rawUserIds) {
       .prepare(
         hasTask27Sec
           ? `SELECT u.id, u.username, u.role, u.banned, u.deleted,
-                    CASE
-                      WHEN COALESCE(b.verified, 0) = 1 THEN b.email
-                      WHEN COALESCE(s.verified_email, '') <> '' AND COALESCE(s.email_verified_at, '') <> '' THEN LOWER(TRIM(s.verified_email))
-                      ELSE b.email
-                    END AS email,
-                    CASE
-                      WHEN COALESCE(b.verified, 0) = 1 OR (COALESCE(s.verified_email, '') <> '' AND COALESCE(s.email_verified_at, '') <> '') THEN 1
-                      ELSE 0
-                    END AS verified
+                    ${EFFECTIVE_EMAIL_SQL} AS email,
+                    ${EFFECTIVE_VERIFIED_SQL} AS verified
              FROM task12_users AS u
              LEFT JOIN email_center_bindings AS b ON b.user_id = u.id
              LEFT JOIN task27_security AS s ON s.user_id = u.id
@@ -606,7 +598,7 @@ export async function handleEmailRequest(context) {
           },
         },
         200,
-        { reqId }
+        reqId
       );
     }
 
@@ -617,15 +609,9 @@ export async function handleEmailRequest(context) {
 
       const hasRoleTable = await tableExists(db, "task18_admin_roles");
       const hasTask27Sec = await hasTask27SecurityTable(db);
-      const effectiveEmailExpr = hasTask27Sec
-        ? "CASE WHEN COALESCE(b.verified, 0) = 1 THEN b.email WHEN COALESCE(s.verified_email, '') <> '' AND COALESCE(s.email_verified_at, '') <> '' THEN LOWER(TRIM(s.verified_email)) ELSE b.email END"
-        : "b.email";
-      const effectiveVerifiedExpr = hasTask27Sec
-        ? "(CASE WHEN COALESCE(b.verified, 0) = 1 OR (COALESCE(s.verified_email, '') <> '' AND COALESCE(s.email_verified_at, '') <> '') THEN 1 ELSE 0 END)"
-        : "COALESCE(b.verified, 0)";
-      const effectiveVerifiedAtExpr = hasTask27Sec
-        ? "CASE WHEN COALESCE(b.verified, 0) = 1 THEN b.verified_at WHEN COALESCE(s.verified_email, '') <> '' AND COALESCE(s.email_verified_at, '') <> '' THEN s.email_verified_at ELSE NULL END"
-        : "b.verified_at";
+      const effectiveEmailExpr = hasTask27Sec ? EFFECTIVE_EMAIL_SQL : "b.email";
+      const effectiveVerifiedExpr = hasTask27Sec ? EFFECTIVE_VERIFIED_SQL : "COALESCE(b.verified, 0)";
+      const effectiveVerifiedAtExpr = hasTask27Sec ? EFFECTIVE_VERIFIED_AT_SQL : "b.verified_at";
 
       const conditions = ["u.deleted = 0"];
       const params = [];
@@ -670,6 +656,7 @@ export async function handleEmailRequest(context) {
       ).results || [];
 
       const recipients = rows.map((row) => ({
+        id: row.id,
         user_id: row.id,
         username: row.username,
         role: row.role,
@@ -843,7 +830,7 @@ export async function handleEmailRequest(context) {
           expires_at: expiresAt,
         },
         200,
-        { reqId }
+        reqId
       );
     }
 
