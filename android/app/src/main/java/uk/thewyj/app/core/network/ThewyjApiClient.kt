@@ -18,6 +18,14 @@ import java.time.Instant
 
 enum class ApiFailureKind { RETRYABLE, AUTHENTICATION, VALIDATION }
 
+/** Pre-authentication only: never saved in CredentialStore or installed as a cookie. */
+data class AuthenticationChallenge(
+    val token: String,
+    val method: String,
+    val passwordChangeRequired: Boolean,
+    val expiresAt: String,
+)
+
 sealed interface ApiCall<out T> {
     data class Success<T>(val value: T) : ApiCall<T>
     data class Failure(
@@ -25,6 +33,7 @@ sealed interface ApiCall<out T> {
         val message: String,
         val kind: ApiFailureKind,
         val status: Int = 0,
+        val authenticationChallenge: AuthenticationChallenge? = null,
     ) : ApiCall<Nothing>
 }
 
@@ -211,6 +220,12 @@ internal object PendingReviewCompatibility {
 interface AccountApi {
     suspend fun register(username: String, secret: String): ApiCall<Unit>
     suspend fun login(username: String, secret: String, deviceId: String): ApiCall<DeviceCredentials>
+    suspend fun registerConsented(username: String, secret: String, accepted: Boolean): ApiCall<Unit> =
+        if (accepted) register(username, secret) else ApiCall.Failure("policy_consent_required", "请主动同意使用条款", ApiFailureKind.VALIDATION)
+    suspend fun verifyLogin(challenge: String, code: String, deviceId: String): ApiCall<DeviceCredentials> =
+        ApiCall.Failure("task27_unavailable", "账户安全验证服务不可用", ApiFailureKind.VALIDATION)
+    suspend fun completeTemporaryPassword(challenge: String, secret: String, confirmation: String): ApiCall<Unit> =
+        ApiCall.Failure("task27_unavailable", "账户安全验证服务不可用", ApiFailureKind.VALIDATION)
     suspend fun refresh(
         credentials: DeviceCredentials,
         deviceId: String,
@@ -250,13 +265,24 @@ class ThewyjApiClient(
     private val origin = URI(baseUrl).let { "${it.scheme}://${it.host}${if (it.port > 0) ":${it.port}" else ""}" }
 
     override suspend fun register(username: String, secret: String): ApiCall<Unit> {
+        return ApiCall.Failure("policy_consent_required", "请主动同意使用条款", ApiFailureKind.VALIDATION)
+    }
+
+    override suspend fun registerConsented(username: String, secret: String, accepted: Boolean): ApiCall<Unit> {
+        if (!accepted) return ApiCall.Failure("policy_consent_required", "请主动同意使用条款", ApiFailureKind.VALIDATION)
+        val policies = when (val result = request(path = "/api/policies", method = "GET")) {
+            is ApiCall.Success -> result.value.optJSONObject("versions")
+            is ApiCall.Failure -> return result
+        } ?: return ApiCall.Failure("policy_unavailable", "无法读取当前政策版本", ApiFailureKind.RETRYABLE)
         return request(
             path = "/api/register",
             method = "POST",
             body = JSONObject()
                 .put("username", username)
                 .put("secret", secret)
-                .put("confirm_secret", secret),
+                .put("confirm_secret", secret)
+                .put("terms_accepted", true)
+                .put("policy_versions", policies),
         ).map { Unit }
     }
 
@@ -273,7 +299,30 @@ class ThewyjApiClient(
                 .put("secret", secret)
                 .put("device_id", deviceId)
                 .put("app_version", BuildConfig.VERSION_NAME),
-        ).map(::parseCredentials)
+        ).authenticationResult()
+    }
+
+    override suspend fun verifyLogin(challenge: String, code: String, deviceId: String): ApiCall<DeviceCredentials> =
+        request(path = "/api/app/login/verify", method = "POST", body = JSONObject()
+            .put("challenge", challenge).put("code", code).put("device_id", deviceId)
+            .put("app_version", BuildConfig.VERSION_NAME)).authenticationResult()
+
+    override suspend fun completeTemporaryPassword(challenge: String, secret: String, confirmation: String): ApiCall<Unit> =
+        request(path = "/api/security/password/complete", method = "POST", body = JSONObject()
+            .put("challenge", challenge).put("new_secret", secret).put("confirm_secret", confirmation)).map { Unit }
+
+    private fun ApiCall<JSONObject>.authenticationResult(): ApiCall<DeviceCredentials> = when (this) {
+        is ApiCall.Failure -> this
+        is ApiCall.Success -> {
+            val passwordChange = value.optBoolean("password_change_required")
+            if (value.optBoolean("mfa_required") || passwordChange) {
+                val token = value.optString(if (passwordChange) "password_change_token" else "challenge")
+                if (!Regex("^[A-Za-z0-9_-]{43}$").matches(token)) {
+                    ApiCall.Failure("invalid_server_response", "安全验证响应无效", ApiFailureKind.RETRYABLE)
+                } else ApiCall.Failure("authentication_challenge_required", "请完成安全验证", ApiFailureKind.VALIDATION,
+                    authenticationChallenge = AuthenticationChallenge(token, value.optString("method"), passwordChange, value.optString("expires_at")))
+            } else map(::parseCredentials)
+        }
     }
 
     override suspend fun refresh(

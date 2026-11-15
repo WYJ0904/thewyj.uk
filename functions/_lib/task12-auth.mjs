@@ -1,6 +1,7 @@
 import { Task12Error } from "./task12-model.mjs";
 import { ensureTask12Schema, resolveSessionState } from "./task12-service.mjs";
 import { task20TokenFromRequest } from "./task20-model.mjs";
+import { policyReacceptRequired } from './task27-policy.mjs';
 
 export async function resolveTask12Account(context, options = {}) {
   const token = task20TokenFromRequest(context.request);
@@ -10,5 +11,9 @@ export async function resolveTask12Account(context, options = {}) {
   }
   const state = await resolveSessionState(context.env.WYJ_DB, token, { touch: options.touch !== false });
   if (!state.account) return { authenticated: false, status: state.status, code: state.code };
+  const path = new URL(context.request.url).pathname;
+  if (path !== '/api/policies/accept' && await policyReacceptRequired(context.env.WYJ_DB,state.account.id)) {
+    return {authenticated:false,status:428,code:'policy_consent_required'};
+  }
   return { authenticated: true, account: state.account };
 }

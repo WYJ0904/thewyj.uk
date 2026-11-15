@@ -1,0 +1,49 @@
+{
+  "checked_at_utc": "2026-11-15T06:18:20.728Z",
+  "origin": "http://127.0.0.1:8894",
+  "environment": "development",
+  "acceptance": "FAILED",
+  "checks": [],
+  "failure_class": "AssertionError",
+  "cleanup_pass": true,
+  "failure_step": "UI_visible_control_#adminFeatureFlagsView details > summary",
+  "diagnostic": {
+    "console_status": "已读取最新配置",
+    "selected_is_fixture": true,
+    "form_revision": "6",
+    "evaluate_channel": "stable",
+    "fixture_evaluation": [],
+    "visible_modal_ids": [],
+    "control": {
+      "selector": "#adminFeatureFlagsView details > summary",
+      "inert": false,
+      "visibility": "visible",
+      "x": 20,
+      "y": 1705.5,
+      "width": 1311,
+      "height": 25.59375
+    }
+  },
+  "fixture_flags": [
+    "task25_hosted_ui_db4d8b3b04"
+  ],
+  "synthetic_account_id": "754ff263-7c7d-4493-a226-9024e61dea87",
+  "real_user_data_modified": false,
+  "stable_pointer_modified": false,
+  "synthetic_account_soft_deleted": true,
+  "test_flags_retained_for_audit": true,
+  "admin_session_persisted": false,
+  "physical_device_acceptance": "NOT_EXECUTED",
+  "management_rate_budget": {
+    "observed_429": true,
+    "cooldown_ms": 28625,
+    "server_limits_changed": false
+  },
+  "ui_visibility": {
+    "occlusion_guard_enabled": true,
+    "development_fixture_messages_dismissed": 1,
+    "occluded_control_refused": true,
+    "hosted_message_receipts_modified": false,
+    "console_screenshot_unobstructed": false
+  }
+}

@@ -1,0 +1,482 @@
+[
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final-android.log",
+    "bytes": 5864,
+    "sha256": "85d1aba5065d3c760b386cf999ee4a51dfff6e17bb0c1bc442bbaaa8a69ecf8c"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final-api.log",
+    "bytes": 9422,
+    "sha256": "fddb1ffb4eaab07490bc719a3b96f5a41b7049c634c0150624efba5be943f134"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final-browser-v2.log",
+    "bytes": 1748,
+    "sha256": "41fdae4106df4439158b2b959bb47f520d502349c3308de2fec9f0caf5692b0c"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final-browser.log",
+    "bytes": 1725,
+    "sha256": "aa46659e46da2935560033c4f181a094c0d8577e8618075cf1ae591029edfd50"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final-build-v2.log",
+    "bytes": 349,
+    "sha256": "f473f40ae45bb6aad5e56cc83b186773732f8126bd851f87e3614b52dac02a1c"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final-build.log",
+    "bytes": 349,
+    "sha256": "f473f40ae45bb6aad5e56cc83b186773732f8126bd851f87e3614b52dac02a1c"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final-cloud-gate-pass.log",
+    "bytes": 100,
+    "sha256": "17c5c3ec747dcb6d20a8c22bf3a51c9a9f2b51439649a7db7214627a4929592d"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final-email.log",
+    "bytes": 4659,
+    "sha256": "e8cb09a45c50c930aae8d40a4298a0d9cdccf832eef2b1a9048bc8d9f7cd7a01"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final-login-guard-v2.log",
+    "bytes": 1508,
+    "sha256": "9477bda61172efb643e732df4ba0a6a8cfe1a810ccb4efbfa2e7e0817bc2ef85"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final-login-guard-v3.log",
+    "bytes": 828,
+    "sha256": "a915649887f3fc7b13844bdf57df90f3aa81406d82a14a25106e38d92ff4d0f4"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final-login-guard.log",
+    "bytes": 1421,
+    "sha256": "60e77c670aff4b3182b71dfa8e633ec8d8a046dcfd96de7e9ddb537a9e5fdd60"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final-mail-consumer-v2.log",
+    "bytes": 1142,
+    "sha256": "b887ea8224480dc4c56d467ca6aa3fa4b504010bcbb765d7762db492ac0374c5"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final-mail-consumer-v3.log",
+    "bytes": 1155,
+    "sha256": "dbae8d7706c7cd2b03462284d4d05d9090b190029e80efccfe86363ab9a9b93b"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final-mail-consumer-v4.log",
+    "bytes": 14912,
+    "sha256": "9978e2f74d468f57a27282579e452026c14e47acc6307046a37b2524bcc19dc1"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final-mail-consumer-v5.log",
+    "bytes": 2673,
+    "sha256": "edf219e6d82bfeb1fb164f3c5eead0becc83479100a46678f5d5d67c40ed4202"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final-mail-consumer-v6.log",
+    "bytes": 2792,
+    "sha256": "5c670cddeb3ade6aa6ba2d080779ea480df7f548c37bc248c7d3f0b9c46da31e"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final-mail-consumer-v7.log",
+    "bytes": 3700,
+    "sha256": "5c11cb90eb4669fe373209292f31da0964c1f11d108e4d719931e11514ba2cb8"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final-mail-consumer.log",
+    "bytes": 1128,
+    "sha256": "f58937ab49604c99b58535eae4ff24fb30e4d28fc51739ce471c4ddb96034dd2"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final-main-sw-pass.log",
+    "bytes": 1897,
+    "sha256": "89387cac910bc260f42817b043769db3b6d593b6f4d6b0e87b73b653dc8bd3a7"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final-main-sw.log",
+    "bytes": 2781,
+    "sha256": "b3e01b8e83ce14686e0b07d497e708f0d3aeede0ef85d43fdc474cbbc52c9d4a"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final-oracle.log",
+    "bytes": 1195,
+    "sha256": "a9b3e1c60e19628610d44c7589b663c21e17622c46eb449de711873c4a110531"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final-owner.log",
+    "bytes": 645,
+    "sha256": "f5ab01213a14385d4df0cfc80d0851d3c51770bce240c0ff3ff46d9368d2f3fd"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final-pages-build-v2.log",
+    "bytes": 103,
+    "sha256": "90e4acc9b6733ae903eb9517595f088afb4eaff8732703560d69d15392b88b1b"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final-pages-build.log",
+    "bytes": 658,
+    "sha256": "41bcc771f0c1d1d50a587e26d02e989f5a24ebc9b220a55c606ca655b77a685e"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final-pages-stage-build.log",
+    "bytes": 98,
+    "sha256": "69e26a3bd00e30fec554d93a4089aae5e980c2aad3e14ceca57ee1c6e28b7044"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final-repository-audit-v2.log",
+    "bytes": 68,
+    "sha256": "8dee83bcdb45274015cb8b4e9bb77a790a086dfe432f76a6075e96a9bf7f1529"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final-repository-audit.log",
+    "bytes": 68,
+    "sha256": "8dee83bcdb45274015cb8b4e9bb77a790a086dfe432f76a6075e96a9bf7f1529"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final-runtime.log",
+    "bytes": 1012,
+    "sha256": "5fa4d28ddda5f878136fe2bf3262aca9bc037f20b9117c01f5e32f16fa41c9c8"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final-s0-json.log",
+    "bytes": 734,
+    "sha256": "c4baa24296690b6ec04b38477746d68cbb471ccd06bfb10dc338eca3c98b27f4"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final-s0-transfer.log",
+    "bytes": 623,
+    "sha256": "d64161abcf51dd8ec419220cca51eef5b4cb4a5c6395f15bd7bcc849157bc10d"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final-source-api.log",
+    "bytes": 9340,
+    "sha256": "77d04f95e319040dac53df2999548db12f85b089df71f3ead12887325273f306"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final-source-role.log",
+    "bytes": 691,
+    "sha256": "80034b98153476ed6633965ab9cd62fddd93f1f5d0967635af04ffe2fb323677"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final-stage.log",
+    "bytes": 2506,
+    "sha256": "6f7e032b82831f89179db2ae08941832bff2fa3c632834d0a1f95b1a0554a75f"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final-static-python-pass.log",
+    "bytes": 4898,
+    "sha256": "7a576228179197578d81bbca45bda1ccdd40e9ce68f172d07e484243832cacd5"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final-static-python.log",
+    "bytes": 370153,
+    "sha256": "1b6b996206bca9c753c8265d388471ec1f961fc22bf2ab7a3ac1591812b202bb"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final-sw.log",
+    "bytes": 2100,
+    "sha256": "d81eb3b68a33e8050f30797d30f2046155076849e561ca8d2c6a2450e18e769c"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final-task12.log",
+    "bytes": 567,
+    "sha256": "21e1fa55f155c4567da3a329106cd9e7f88d26f7cc7472e35dbf65a1457bc67d"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final-upgrade.log",
+    "bytes": 1682,
+    "sha256": "aa31c8429fc6064955b903ce1c95d543e7434e0c6686fe733d3aad073f608dd3"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final/regressions/browser-sw-rollback.test.mjs.log",
+    "bytes": 1873,
+    "sha256": "1e01a5d6c75d3d97270dffea785a5d3d82b3bfeb7fcbc0e2ddc29fe52ab2679f"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final/regressions/check_js_module_graph.mjs.log",
+    "bytes": 88,
+    "sha256": "f4ddff6fcb6007795263b595f1a590627f66c3493631e80bf593853604e5e940"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final/regressions/check_storage_contract.mjs.log",
+    "bytes": 66,
+    "sha256": "e6e67970a9f44c63eac35db2312a14307faffce68c327f29803457e5917f9a6b"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final/regressions/check_task15_cloud_only.mjs.log",
+    "bytes": 308,
+    "sha256": "f526429063fdb6c05ab3da268766640580cc596eb62dfeb4abe4c22ad9cc71fc"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final/regressions/check_task27_policies.mjs.log",
+    "bytes": 831,
+    "sha256": "723420c06e9081631c546e40f6b2bc6e8b36f53c465d7878e5b60731334b8219"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final/regressions/stage_pages_deploy.test.mjs.log",
+    "bytes": 53,
+    "sha256": "8e5399b2334a3f7b0441cbf93ceef638b86030d400dbc293c231cf7720481ae5"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final/regressions/test_browser_harness_registration_js.mjs.log",
+    "bytes": 376,
+    "sha256": "501f84ca337935166ed675f5b3b46384544a0c7baf130356c8bc0a166934a9ae"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final/regressions/test_core_js.mjs.log",
+    "bytes": 571,
+    "sha256": "f7ab924b299ba542833c1e5edf4121a92ff3bafbb6ee3452cb24766fddcd5ceb"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final/regressions/test_email_js.mjs.log",
+    "bytes": 4553,
+    "sha256": "de82895804c13fd277422e2a3167ff8dc66f836021ffad8448012f75266317e7"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final/regressions/test_finance_js.mjs.log",
+    "bytes": 647,
+    "sha256": "45d08bf653aacdc10814433d234fee00037fcdd9f09600ec0d53a2e0da644450"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final/regressions/test_task13_d1_js.mjs.log",
+    "bytes": 564,
+    "sha256": "9c15eb044978652892567f6addd27ce9785d79112a4e3d2b26ce8023982e78cf"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final/regressions/test_task15_d1_js.mjs.log",
+    "bytes": 570,
+    "sha256": "ae66564455e27502ce97c6d2f83ee32ce832f68e020cff119eaeb23aa1e24ac6"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final/regressions/test_task16_d1_js.mjs.log",
+    "bytes": 562,
+    "sha256": "ea344f17227f7e1eb6f9fcff4b0a84436a5486cb1a4b49b1f731e514b1d08772"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final/regressions/test_task17_d1_js.mjs.log",
+    "bytes": 635,
+    "sha256": "de57d469b088026c99dab659166592c08fe9b0de0b9b057cf7446e1bdd10b63e"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final/regressions/test_task18_d1_js.mjs.log",
+    "bytes": 686,
+    "sha256": "ddf4ab0cfef84cda30e44d8d845754ac5a470a2e005040a10aa0b449484d00ff"
+  },
+  {
+    "scope": "Task27",
+    "path": ".wrangler/task27-final/regressions/test_task20_d1_js.mjs.log",
+    "bytes": 1861,
+    "sha256": "d49d27c4f03d19809e520eed73631eaa2b1b654705002417f4cf1118aa220322"
+  },
+  {
+    "scope": "isolated combination",
+    "path": ".wrangler/task27-final/browser-combined-v2.log",
+    "bytes": 2075,
+    "sha256": "79929a58d99cd65898446b41f6e181085da6bff64792abc0d1d468d305a33f05"
+  },
+  {
+    "scope": "isolated combination",
+    "path": ".wrangler/task27-final/browser-combined-v3.log",
+    "bytes": 1450,
+    "sha256": "94ba72f684582aa2b4f5c77c6351f0fb6c38e69717b702779edcf9d0e053e21f"
+  },
+  {
+    "scope": "isolated combination",
+    "path": ".wrangler/task27-final/browser-combined.log",
+    "bytes": 2075,
+    "sha256": "ab21e7c77beca9970cd3b56ab5064f161140d7fd1dc3944c296184c1c7374042"
+  },
+  {
+    "scope": "isolated combination",
+    "path": ".wrangler/task27-final/build.log",
+    "bytes": 349,
+    "sha256": "f473f40ae45bb6aad5e56cc83b186773732f8126bd851f87e3614b52dac02a1c"
+  },
+  {
+    "scope": "isolated combination",
+    "path": ".wrangler/task27-final/compatibility-v2.log",
+    "bytes": 2229,
+    "sha256": "98b372211e0501166cf63d9a6ec4f24ca119e2af9b1c29e0ad8fbcd01aaa33cf"
+  },
+  {
+    "scope": "isolated combination",
+    "path": ".wrangler/task27-final/compatibility.log",
+    "bytes": 2118,
+    "sha256": "7c5e75139a15b56c78549747e92f3d87aec01a2fde92cc181f21f77aba17cec5"
+  },
+  {
+    "scope": "isolated combination",
+    "path": ".wrangler/task27-final/email-source-tests.log",
+    "bytes": 1656,
+    "sha256": "7fcfdcb1b3cbc86f59d3fbd2dbd4ee49e6cd6bcdcbe3b594aeaca2ce061f4490"
+  },
+  {
+    "scope": "isolated combination",
+    "path": ".wrangler/task27-final/migrations-first.log",
+    "bytes": 315877,
+    "sha256": "4481c4418d929ae19e5899698255c955757581b9edb668c309c32fa4db47128d"
+  },
+  {
+    "scope": "isolated combination",
+    "path": ".wrangler/task27-final/migrations-second.log",
+    "bytes": 315,
+    "sha256": "c3bc0742d5d7bebe5c9573dae1dcf85a8dc5ceafee8cd3b02559fabff98b56fb"
+  },
+  {
+    "scope": "isolated combination",
+    "path": ".wrangler/task27-final/npm-install.log",
+    "bytes": 27,
+    "sha256": "e402a656c2dedb67d2dfd40cf2dc47561900794596c4818cc922d623dc12b617"
+  },
+  {
+    "scope": "isolated combination",
+    "path": ".wrangler/task27-final/oracle-tool-install.log",
+    "bytes": 26,
+    "sha256": "1f0467a9b6c98d7803c628b31c29bf46758df3db0b398560ee5dde483e5b4f23"
+  },
+  {
+    "scope": "isolated combination",
+    "path": ".wrangler/task27-final/migration-ledger.json",
+    "bytes": 142,
+    "sha256": "86c3b670954ebc37e7cfe578703adda336cd070d14464c8d0ad9b26b36063037"
+  },
+  {
+    "scope": "Task27 CI coverage repair",
+    "path": ".wrangler/task27-final/ci-first-failure.log",
+    "bytes": 2896,
+    "sha256": "a2720883bc558e4c5928ef18203914b59daf2c7931f3ca189f5df83eabd8f203"
+  },
+  {
+    "scope": "Task27 CI coverage repair",
+    "path": ".wrangler/task27-final-functional-gate-pass.log",
+    "bytes": 151,
+    "sha256": "ca217f808aa00355bc991e71129fb451390923d009eaa8cb39d648afbf3f2b89"
+  },
+  {
+    "scope": "Task27 CI coverage repair",
+    "path": ".wrangler/task27-final-browser-v3.log",
+    "bytes": 1846,
+    "sha256": "73c3c994335a491c01447b2d4aadc708430c8e330b5b82fc96fd66b455b955fe"
+  },
+  {
+    "scope": "Task27 second CI failure and fixture repair",
+    "path": ".wrangler/task27-final/ci-second-failure.log",
+    "bytes": 65716,
+    "sha256": "d312f3baf42eb2661342269661d418a1a46c23c874321f61620aad78a3106324"
+  },
+  {
+    "scope": "Task27 second CI failure and fixture repair",
+    "path": ".wrangler/task27-final-browser-harness-ci-fix.log",
+    "bytes": 379,
+    "sha256": "5ccdcdd70f3ec7afc1a5d4d8dfd9b68b82b673466de822c98a0c1e456bc7afa9"
+  },
+  {
+    "scope": "Task27 legacy badge compatibility fix",
+    "path": ".wrangler/task27-final-owner-v2.log",
+    "bytes": 920,
+    "sha256": "ffb7a37139c07b941a9bd4489e21183c1c744d33c2606e9c4d1461914e8a18ef"
+  },
+  {
+    "scope": "Task27 legacy badge compatibility fix",
+    "path": ".wrangler/task27-final-sw-badge-fix.log",
+    "bytes": 1897,
+    "sha256": "d67335987bd577d42e50adef64759d833d266354e3ea886716f6753715d831f4"
+  },
+  {
+    "scope": "Task27 legacy badge compatibility fix",
+    "path": ".wrangler/task27-final-browser-v4.log",
+    "bytes": 1846,
+    "sha256": "fa3bb0f71bfb2645a4d37e3d76d5a967fca5237f21dd5f2544ba4906e52d0684"
+  },
+  {
+    "scope": "Task27 legacy badge compatibility fix",
+    "path": ".wrangler/task27-final-pages-build-badge-fix.log",
+    "bytes": 103,
+    "sha256": "1074be3d6dc8c9da75adae5bf2b712adbeb2857e5706af52b19b616b584cd9a5"
+  },
+  {
+    "scope": "Task27 PWA browser contract repair",
+    "path": ".wrangler/task27-final/ci-fourth-failure.log",
+    "bytes": 61978,
+    "sha256": "107777695bc903718f154f97289932bfd01695d0615e94949baf71c87007edfb"
+  },
+  {
+    "scope": "Task27 PWA browser contract repair",
+    "path": ".wrangler/task27-final-pwa-metadata-pass.log",
+    "bytes": 128,
+    "sha256": "79d3e303f0dce190de15fe3a5cdeb96d40b7b839d14b33e842a5ab6a8ee11c5e"
+  },
+  {
+    "scope": "Task27 PWA browser contract repair",
+    "path": ".wrangler/task27-final-sw-pwa-metadata.log",
+    "bytes": 1897,
+    "sha256": "a21a41b0e66ae4024e83d01236d66084705dd228611fa3dd211adc1afc27e217"
+  },
+  {
+    "scope": "Task27 fifth CI admin audit navigation diagnosis",
+    "path": ".wrangler/task27-final/ci-fifth-failure.log",
+    "bytes": 15700,
+    "sha256": "1888076c3fc7aa0f4d5c508659880b4b8beee2dd174eda7428ab7ab6af210789"
+  },
+  {
+    "scope": "Task27 fifth CI admin audit navigation diagnosis",
+    "path": ".wrangler/task27-final/ci5-cloud-artifacts/artifacts/task25-admin-ui-release-smoke.json.failed.png",
+    "bytes": 95740,
+    "sha256": "70b437ecaa550aafe14c3f69f46922e955c33262551ccfbf49cc5b17e1171970"
+  }
+]

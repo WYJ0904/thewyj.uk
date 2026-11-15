@@ -19,6 +19,7 @@
 | 范围 | 路由 | 访问规则 | 主要验收 |
 | --- | --- | --- | --- |
 | 公开 | `/`, `/login`, `/register`, `/trial`, `/changelog` | 无需登录；试用有明确限制 | 导航、登录注册、更新提示、五种本地试用、刷新恢复 |
+| 账户恢复与政策 | `/forgot-password`, `/terms`, `/privacy`, `/security-privacy` | 无需登录；恢复证明由服务端验证 | `qa/task27/browser.mjs` 验证恢复入口、三种恢复方式与三份全文；Task27 D1/workerd 验证因子、一次性证明及会话边界 |
 | 个人 | `/select`, `/account`, `/recharge` | 登录用户 | 控制台摘要、账户改密、七种套餐、微信/支付宝订单恢复 |
 | 学习 | `/language`, `/language/english`, `/language/japanese` | 登录用户与对应权益 | 词表、测试、判卷、跳过、错题、重新判定、历史、PDF、统计、成就、同步 |
 | 工具 | `/tools`, `/tools/:tool_id`, `/tools/workflows` | 服务端 `tools_access` | 搜索、分类、收藏、最近、固定、配置、103 个工具及可配置工作流 |

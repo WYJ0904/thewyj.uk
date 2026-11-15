@@ -94,24 +94,32 @@ const TASK26_SHELL = [
 // Finance formatting statically imports money.js. A fresh installation must
 // include it before publishing HTML, while retaining the original RC5 layer.
 const FINANCE_SHELL = ["/js/finance/money.js?release=20261115-aeris-s0-p0-release"];
-const REQUIRED_SHELL = [...CORE_SHELL, ...TASK26_SHELL, ...FINANCE_SHELL];
-// Canonical UTF-8 text (CRLF -> LF) binds the changed Task26 graph, not only its
-// public P07 URL token. The publication name changes with these source hashes.
+const TASK27_SHELL = ["/js/account/security-center.js?release=20261115-aeris-s0-p0-release", "/js/account/policy-page.js?release=20261115-aeris-s0-p0-release", "/js/account/policy-version.js?release=20261115-aeris-s0-p0-release", "/js/account/password-policy.js?release=20261115-aeris-s0-p0-release", "/js/account/password-fields.js?release=20261115-aeris-s0-p0-release"];
+const REQUIRED_SHELL = [...CORE_SHELL, ...TASK26_SHELL, ...FINANCE_SHELL, ...TASK27_SHELL];
+// Canonical UTF-8 hashes bind the current S0 shell plus Task27 additions.
 const TASK26_INTEGRITY = Object.freeze({
-  "/": "c9be3af16610de5961822024fe24aa1e954acd81b695a1aba9c1e8c90984fcae",
-  "/index.html": "c9be3af16610de5961822024fe24aa1e954acd81b695a1aba9c1e8c90984fcae",
-  "/app.js?release=20261115-aeris-s0-p0-release": "c0d777dd3903fc6de0c3a921cc6707644f7265718cbec1ba2e894895ee9108de",
+  "/": "e3b11009d1428a7686aa9a5e8217f60c7d2b00776fec013d80860719ef01bf66",
+  "/index.html": "e3b11009d1428a7686aa9a5e8217f60c7d2b00776fec013d80860719ef01bf66",
+  "/app.js?release=20261115-aeris-s0-p0-release": "c1bbcb485aed4ae8bdffb09875f0f09fdce4abe43043556361ab3cc1cf3e9cc1",
   "/learning-sync.js?release=20261115-aeris-s0-p0-release": "74ced24b8dab7c8ad16dc6b4b68ff81a89e968d18a607bbba6b066a8bee7727d",
-  "/product-ui.css?release=20261115-aeris-s0-p0-release": "2afdb61afc1770198569bad4a2afa1c4fe131a5201a688c4e3af40cb96a1e5b8",
+  "/product-ui.css?release=20261115-aeris-s0-p0-release": "12ffbfb7603ac8faa0d24e550e92271546c0e378be980a59be681e09219b7ec2",
   "/js/language/mastery.js?release=20261115-aeris-s0-p0-release": "fa25726ccbb83bd21004f7abc0b9e527668f4789764ce94802fa6fc5e0b16cc4",
   "/js/language/quiz.js?release=20261115-aeris-s0-p0-release": "cd4546dc7e48876bac503c49e259267bde99b79ab0cf5565cb917c1ed031e3b0",
   "/js/language/wrong-book.js?release=20261115-aeris-s0-p0-release": "4cc4e3debb24578be2fa5c372b5204789c015ddbcc8372f5650494bb2780c35c",
   "/js/language/wrong-review.js?release=20261115-aeris-s0-p0-release": "d77ec0816756cf4a65a7c4f804ea80d6c17aee4757524bcee7ba2aca558c3a25",
   "/js/language/wrong-review-sync.js?release=20261115-aeris-s0-p0-release": "ba39af72a5c22e6390cb2d53582c4c0f4534521d321b8c2f00644636f67bd02f",
   "/js/finance/money.js?release=20261115-aeris-s0-p0-release": "f1172d6c74835784bd1a6629d48c1884f46c14d9825f9f8308a07d3542214277",
-  "/js/language/speech.js?release=20261115-aeris-s0-p0-release": "a6c7ab6b03d7e8499abef932670e18e013f0e65cb1a4cf6192e67fe50541bf6c"
+  "/js/language/speech.js?release=20261115-aeris-s0-p0-release": "a6c7ab6b03d7e8499abef932670e18e013f0e65cb1a4cf6192e67fe50541bf6c",
+  "/js/account/security-center.js?release=20261115-aeris-s0-p0-release": "e71c63d9989612c634bde4e51aa1820fb03fd4d243f18ca6eb654ff616f1583d",
+  "/js/account/policy-page.js?release=20261115-aeris-s0-p0-release": "7d54511a956995afc6065f27ccac275dfb6657b3040f51d51ea4d8b8334562da",
+  "/js/core/api.js?release=20261115-aeris-s0-p0-release": "b5307cc74077a630ee33b202b476c30bbfd66b4f2f2b24592cc25f9791ceb470",
+  "/js/core/router.js?release=20261115-aeris-s0-p0-release": "382cf576cd3a5e65e5b6e7646c816f52e6efcb35bdf5851297c071230f1767f9",
+  "/js/account/policy-version.js?release=20261115-aeris-s0-p0-release": "a3717643392287174eb698433b5195853d044e88285828a986da850e00cafafd",
+  "/js/transfer/app.js?release=20261115-aeris-s0-p0-release": "f64a6dc2ea531240400c9b2642bd6e5eac62811805006e338a027f6173ba7d28",
+  "/js/account/password-policy.js?release=20261115-aeris-s0-p0-release": "48fd3d494120682e5b8baac8c73fb6ff68714cbc89d567318e9ea39549c80c56",
+  "/js/account/password-fields.js?release=20261115-aeris-s0-p0-release": "58f2161ba98c1cb07025c6884a3c32acb522cddc634eb2499127a88e7a3614e4"
 });
-const PUBLICATION_HASH = "21961534153475e8ab548823e1b2b79897424e7f71c140f9595c0ef90453152a";
+const PUBLICATION_HASH = "3172f72155d872cbd334b308b4e18ab4730e2ee43a27e0395693bfb7b4236b36";
 const PUBLICATION_CACHE = `${CACHE}-task26-${PUBLICATION_HASH.slice(0, 16)}`;
 const PUBLICATION_MARKER = "/__aeris/task26-publication";
 

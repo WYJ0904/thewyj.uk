@@ -18,11 +18,84 @@ import uk.thewyj.app.core.network.AccountApi
 import uk.thewyj.app.core.network.ApiCall
 import uk.thewyj.app.core.network.ApiFailureKind
 import uk.thewyj.app.core.network.AppConfig
+import uk.thewyj.app.core.network.AuthenticationChallenge
 import uk.thewyj.app.core.web.WebSessionController
 
 class SessionRepositoryTest {
     private val now = 1_000_000L
     private val account = AccountSnapshot("stable-user-id", "alice", "user", "普通用户", emptySet())
+
+    @Test
+    fun mfaChallengeNeverPersistsOrInstallsFullCredentials() = runBlocking {
+        val store = FakeStore(null)
+        val web = FakeWebSession()
+        val challenge = AuthenticationChallenge("synthetic-pre-auth-challenge", "totp", false, "2030-01-01T00:00:00Z")
+        val api = FakeApi().apply { loginResult = ApiCall.Failure("authentication_challenge_required", "", ApiFailureKind.VALIDATION, authenticationChallenge = challenge) }
+        val repository = repository(store, api, web)
+        repository.login("alice", "synthetic-password")
+        assertTrue(repository.state.value is SessionState.VerificationRequired)
+        assertNull(store.loadActive())
+        assertEquals("", web.installedAccess)
+        assertEquals(RefreshWorkResult.SIGNED_OUT, repository.refresh())
+        assertTrue(repository.state.value is SessionState.VerificationRequired)
+        repository.cancelAuthentication()
+        assertTrue(repository.state.value is SessionState.SignedOut)
+        assertNull(store.loadActive())
+    }
+
+    @Test
+    fun incorrectMfaCodeKeepsChallengeAndOnlySuccessfulVerificationActivates() = runBlocking {
+        val store = FakeStore(null)
+        val web = FakeWebSession()
+        val challenge = AuthenticationChallenge("synthetic-pre-auth-challenge", "email", false, "2030-01-01T00:00:00Z")
+        val api = FakeApi().apply { loginResult = ApiCall.Failure("authentication_challenge_required", "", ApiFailureKind.VALIDATION, authenticationChallenge = challenge) }
+        val repository = repository(store, api, web)
+        repository.login("alice", "synthetic-password")
+        repository.verifyAuthentication("000000")
+        assertTrue(repository.state.value is SessionState.VerificationRequired)
+        assertNull(store.loadActive())
+        assertEquals("", web.installedAccess)
+        api.verificationResult = ApiCall.Success(credentials())
+        repository.verifyAuthentication("123456")
+        assertTrue(repository.state.value is SessionState.Authenticated)
+        assertEquals("access-old", store.loadActive()?.accessToken)
+        assertEquals("access-old", web.installedAccess)
+    }
+
+    @Test
+    fun temporaryPasswordRemainsRestrictedAfterMfaUntilNewPasswordIsSet() = runBlocking {
+        val store = FakeStore(null)
+        val web = FakeWebSession()
+        val mfa = AuthenticationChallenge("synthetic-mfa", "totp", false, "2030-01-01T00:00:00Z")
+        val change = AuthenticationChallenge("synthetic-change", "", true, "2030-01-01T00:00:00Z")
+        val api = FakeApi().apply {
+            loginResult = ApiCall.Failure("authentication_challenge_required", "", ApiFailureKind.VALIDATION, authenticationChallenge = mfa)
+            verificationResult = ApiCall.Failure("authentication_challenge_required", "", ApiFailureKind.VALIDATION, authenticationChallenge = change)
+        }
+        val repository = repository(store, api, web)
+        repository.login("alice", "temporary-password")
+        repository.verifyAuthentication("123456")
+        assertTrue((repository.state.value as SessionState.VerificationRequired).challenge.passwordChangeRequired)
+        assertNull(store.loadActive())
+        repository.completeTemporaryPassword("new-password", "new-password")
+        assertTrue(repository.state.value is SessionState.SignedOut)
+        assertNull(store.loadActive())
+        assertEquals("", web.installedAccess)
+    }
+
+    @Test
+    fun registrationRequiresExplicitConsentBeforeApiOrCredentialActivation() = runBlocking {
+        val store = FakeStore(null)
+        val api = FakeApi().apply { loginResult = ApiCall.Success(credentials()) }
+        val repository = repository(store, api, FakeWebSession())
+        repository.register("alice", "new-password", false)
+        assertEquals(0, api.registerCalls)
+        assertTrue(repository.state.value is SessionState.SignedOut)
+        assertNull(store.loadActive())
+        repository.register("alice", "new-password", true)
+        assertEquals(1, api.registerCalls)
+        assertTrue(repository.state.value is SessionState.Authenticated)
+    }
 
     @Test
     fun coldExpiredSessionDoesNotMountWebViewBeforeRefreshAndCookieComplete() = runBlocking {
@@ -287,6 +360,8 @@ private class FakeWebSession : WebSessionController {
 }
 
 private class FakeApi : AccountApi {
+    var registerCalls = 0
+    var verificationResult: ApiCall<DeviceCredentials> = ApiCall.Failure("security_verification_failed", "验证无效", ApiFailureKind.VALIDATION)
     var refreshGate: CompletableDeferred<Unit>? = null
     var loginResult: ApiCall<DeviceCredentials> = ApiCall.Failure("unused", "unused", ApiFailureKind.VALIDATION)
     var refreshResult: ApiCall<DeviceCredentials> = ApiCall.Failure("unused", "unused", ApiFailureKind.VALIDATION)
@@ -294,7 +369,9 @@ private class FakeApi : AccountApi {
     var logoutResult: ApiCall<Unit> = ApiCall.Success(Unit)
     val rotationKeys = mutableListOf<String>()
 
-    override suspend fun register(username: String, secret: String): ApiCall<Unit> = ApiCall.Success(Unit)
+    override suspend fun register(username: String, secret: String): ApiCall<Unit> { registerCalls += 1; return ApiCall.Success(Unit) }
+    override suspend fun verifyLogin(challenge: String, code: String, deviceId: String) = verificationResult
+    override suspend fun completeTemporaryPassword(challenge: String, secret: String, confirmation: String): ApiCall<Unit> = ApiCall.Success(Unit)
     override suspend fun login(username: String, secret: String, deviceId: String) = loginResult
     override suspend fun refresh(credentials: DeviceCredentials, deviceId: String, rotationKey: String): ApiCall<DeviceCredentials> {
         rotationKeys += rotationKey

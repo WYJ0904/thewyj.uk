@@ -1,0 +1,28 @@
+{
+  "scope": "compiled Pages worker in local workerd with isolated real D1, Web Crypto and synthetic bindings",
+  "checks": [
+    {
+      "name": "actual worker registration rejects missing consent and stores affirmative versions",
+      "status": "PASS"
+    },
+    {
+      "name": "actual worker AES-GCM TOTP enrollment and one-time recovery output",
+      "status": "PASS"
+    },
+    {
+      "name": "actual worker verifies MFA before Web and Android token issuance",
+      "status": "PASS"
+    },
+    {
+      "name": "actual worker revokes Android refresh and keeps current Web session",
+      "status": "PASS"
+    },
+    {
+      "name": "actual worker inbox read-all persists and public policies render",
+      "status": "PASS"
+    }
+  ],
+  "real_emails": 0,
+  "remote_operations": 0,
+  "status": "PASS"
+}

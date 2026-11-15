@@ -23,6 +23,9 @@ import {
   validateSecret,
   validateUsername,
 } from "./task12-model.mjs";
+import { beginTask27Login } from './task27-auth.mjs';
+import { hasTask27, securityState } from './task27-store.mjs';
+import { validateConsent, consentStatement } from './task27-policy.mjs';
 
 function requireDatabase(db) {
   if (!db?.prepare) throw new Task12Error("云端账户数据库暂时不可用", 503, "task12_database_unavailable", true);
@@ -130,6 +133,8 @@ export async function recordLoginEvent(db, attemptedUsername, success, reason, d
 }
 
 export async function registerAccount(db, username, secret, options = {}) {
+  const task27 = await hasTask27(db);
+  if (task27) validateConsent(options.registrationConsent || {});
   const cleanUsername = validateUsername(username);
   const cleanSecret = validateSecret(secret);
   const normalized = normalizeUsername(cleanUsername);
@@ -142,13 +147,17 @@ export async function registerAccount(db, username, secret, options = {}) {
     created_at: now, updated_at: now,
   };
   try {
-    await run(db, `INSERT INTO task12_users (
+    const insert = db.prepare(`INSERT INTO task12_users (
       id, username, username_normalized, password_hash, password_scheme, password_iterations,
       role, registered_at, created_at, updated_at, source_updated_at
-    ) VALUES (?1, ?2, ?3, ?4, 'pbkdf2_sha256', ?5, ?6, ?7, ?8, ?9, ?10)`, [
+    ) VALUES (?1, ?2, ?3, ?4, 'pbkdf2_sha256', ?5, ?6, ?7, ?8, ?9, ?10)`).bind(
       user.id, user.username, user.username_normalized, user.password_hash, PASSWORD_HASH_ITERATIONS,
       user.role, user.registered_at, user.created_at, user.updated_at, user.updated_at,
-    ]);
+    );
+    await db.batch([insert, ...(task27 ? [
+      db.prepare('INSERT INTO task27_security(user_id,password_changed_at,password_age_start_at) VALUES(?1,?2,?2)').bind(user.id,now),
+      consentStatement(db,user.id,options.requestId),
+    ] : [])]);
   } catch (error) {
     if (/unique|constraint/i.test(String(error?.message || error))) {
       throw new Task12Error("用户名已存在", 409, "username_exists");
@@ -166,13 +175,25 @@ export async function loginAccount(db, username, secret, request, options = {}) 
     await consumeVerificationWork(secretText, passwordPepper(options));
     throw new Task12Error("用户名或登录密钥错误", 403, "invalid_credentials");
   }
-  if (row.banned) throw new Task12Error("账户已被封禁", 403, "account_banned");
   if (row.password_scheme !== PASSWORD_HASH_PREFIX || !row.password_hash) {
     await consumeVerificationWork(secretText, passwordPepper(options));
     throw new Task12Error("此账户需要先重置登录密钥", 403, "password_reset_required");
   }
   const verified = await verifyRowSecret(row, secretText, options);
   if (!verified.valid) throw new Task12Error("用户名或登录密钥错误", 403, "invalid_credentials");
+  if (row.banned) throw new Task12Error("账户已被封禁", 403, "account_banned");
+  const challenge = await beginTask27Login(db, row, request, options);
+  if (challenge) return challenge;
+  return issueTask12Session(db, row, request, { ...options, secretText, verified });
+}
+
+// Called only after password verification and any Task27 challenge has completed.
+export async function issueTask12Session(db, row, request, options = {}) {
+  const verified = options.verified || { needsUpgrade: false };
+  const secretText = options.secretText || '';
+  if (await hasTask27(db) && (await securityState(db,row.id)).must_change_password) {
+    throw new Task12Error('请先设置新密码',403,'password_change_required');
+  }
   const now = isoNow();
   const token = createSessionToken();
   const digest = await sessionStorageKey(token);
@@ -261,6 +282,9 @@ export async function resolveSessionState(db, token, options = {}) {
   if (code) {
     if (row) await run(db, "DELETE FROM task12_sessions WHERE token_digest = ?1", [digest]);
     return { account: null, code, status };
+  }
+  if (await hasTask27(db) && (await securityState(db,row.id)).must_change_password) {
+    return { account: null, code: 'password_change_required', status: 401 };
   }
   if (options.touch !== false && now.getTime() - Date.parse(row.last_seen_at) >= 5 * 60 * 1000) {
     await run(db, `UPDATE task12_sessions SET last_seen_at = ?2, expires_at = ?3

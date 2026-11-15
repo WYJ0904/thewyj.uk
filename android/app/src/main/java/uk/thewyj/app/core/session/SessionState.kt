@@ -1,6 +1,7 @@
 package uk.thewyj.app.core.session
 
 import uk.thewyj.app.core.auth.AccountSnapshot
+import uk.thewyj.app.core.network.AuthenticationChallenge
 
 enum class ConnectionMode { ONLINE, OFFLINE, RECOVERING }
 
@@ -8,6 +9,7 @@ sealed interface SessionState {
     data object Initializing : SessionState
     data class StorageUnavailable(val message: String) : SessionState
     data class SignedOut(val message: String = "") : SessionState
+    data class VerificationRequired(val challenge: AuthenticationChallenge, val message: String = "") : SessionState
     data class Authenticated(
         val account: AccountSnapshot,
         val mode: ConnectionMode,

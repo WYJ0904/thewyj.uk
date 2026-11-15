@@ -1,0 +1,79 @@
+{
+  "status": "completed",
+  "conclusion": "cancelled",
+  "headSha": "73be6f8de850f9a4796ddab4e1a77fb3accbd087",
+  "jobs": [
+    {
+      "name": "Android unit, lint and APK",
+      "conclusion": "success",
+      "status": "completed",
+      "url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/43681806574/job/132713824102",
+      "failed_steps": []
+    },
+    {
+      "name": "Python syntax and unittest (windows-latest)",
+      "conclusion": "success",
+      "status": "completed",
+      "url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/43681806574/job/132713824297",
+      "failed_steps": []
+    },
+    {
+      "name": "Pages build and publish allowlist",
+      "conclusion": "success",
+      "status": "completed",
+      "url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/43681806574/job/132713824319",
+      "failed_steps": []
+    },
+    {
+      "name": "JavaScript and static site checks",
+      "conclusion": "success",
+      "status": "completed",
+      "url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/43681806574/job/132713824328",
+      "failed_steps": []
+    },
+    {
+      "name": "Python syntax and unittest (ubuntu-latest)",
+      "conclusion": "success",
+      "status": "completed",
+      "url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/43681806574/job/132713824402",
+      "failed_steps": []
+    },
+    {
+      "name": "Sensitive files and static naming",
+      "conclusion": "success",
+      "status": "completed",
+      "url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/43681806574/job/132713824541",
+      "failed_steps": []
+    },
+    {
+      "name": "Task 25 cloud credential discovery",
+      "conclusion": "skipped",
+      "status": "completed",
+      "url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/43681806574/job/132713825175",
+      "failed_steps": []
+    },
+    {
+      "name": "Task 25 Android runtime contract",
+      "conclusion": "skipped",
+      "status": "completed",
+      "url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/43681806574/job/132713825204",
+      "failed_steps": []
+    },
+    {
+      "name": "Browser flow (application)",
+      "conclusion": "failure",
+      "status": "completed",
+      "url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/43681806574/job/132715057744",
+      "failed_steps": [
+        "Run real browser flow"
+      ]
+    },
+    {
+      "name": "Cloud-only browser, canonical session and toolbox",
+      "conclusion": "cancelled",
+      "status": "completed",
+      "url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/43681806574/job/132715057753",
+      "failed_steps": []
+    }
+  ]
+}

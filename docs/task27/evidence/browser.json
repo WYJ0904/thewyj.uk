@@ -1,0 +1,78 @@
+{
+  "scope": "loopback Chrome, actual application UI, Node API dispatcher and isolated Miniflare D1; synthetic mail only",
+  "run": "fd662c8c-f40f-4582-886f-197433e0f38d",
+  "checks": [
+    {
+      "name": "registration consent is unchecked, required and linked to full policies",
+      "status": "PASS"
+    },
+    {
+      "name": "support footer, policy navigation and automatic copyright year",
+      "status": "PASS"
+    },
+    {
+      "name": "ordinary login and account security render in the existing shell",
+      "status": "PASS"
+    },
+    {
+      "name": "TOTP setup uses local QR, requires confirmation and shows recovery codes once",
+      "status": "PASS"
+    },
+    {
+      "name": "MFA login completes before the application stores a full session",
+      "status": "PASS"
+    },
+    {
+      "name": "read-all confirms the server count and preserves explicit acknowledgement",
+      "status": "PASS"
+    },
+    {
+      "name": "375px light and dark security layout has no horizontal overflow and passes axe",
+      "status": "PASS"
+    },
+    {
+      "name": "three full policy pages are readable without authentication",
+      "status": "PASS"
+    },
+    {
+      "name": "old six-character password stays usable in the actual Web login form without MFA enforcement",
+      "status": "PASS"
+    },
+    {
+      "name": "administrator mail draft, preview, confirmation and queued status work in UI",
+      "status": "PASS"
+    }
+  ],
+  "screenshots": [
+    "password-policy-desktop.png",
+    "password-policy-mobile.png",
+    "registration-desktop.png",
+    "security-desktop.png",
+    "inbox-desktop.png",
+    "security-mobile-light.png",
+    "security-mobile-dark.png",
+    "policy-mobile.png",
+    "mail-desktop.png"
+  ],
+  "real_email": "NOT_TESTED",
+  "android_device": "OWNER_OPERATED_NOT_TESTED",
+  "hosted": "NOT_TESTED",
+  "production": "NOT_TOUCHED",
+  "browser": "Chrome/157.0.8103.52",
+  "authenticator_link": "canonical URI and manual fallback verified; OS launch intentionally handed to owner/device acceptance",
+  "theme_states": [
+    {
+      "theme": "light",
+      "color": "rgb(24, 33, 47)",
+      "background": "rgb(255, 255, 255)"
+    },
+    {
+      "theme": "dark",
+      "color": "rgb(244, 246, 248)",
+      "background": "rgb(23, 28, 36)"
+    }
+  ],
+  "status": "PASS",
+  "runtime_errors": [],
+  "api_errors": []
+}

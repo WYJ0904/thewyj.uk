@@ -53,25 +53,59 @@ class SessionRepository(
         flushPendingLogout()
         when (val result = api.login(username.trim(), secret, deviceIdentity.getOrCreate())) {
             is ApiCall.Success -> activate(result.value)
-            is ApiCall.Failure -> mutableState.value = SessionState.SignedOut(result.message)
+            is ApiCall.Failure -> acceptAuthenticationFailure(result)
         }
     } }
 
-    suspend fun register(username: String, secret: String) = guarded(Unit) { mutex.withLock {
+    suspend fun register(username: String, secret: String, termsAccepted: Boolean = false) = guarded(Unit) { mutex.withLock {
         flushPendingLogout()
-        when (val result = api.register(username.trim(), secret)) {
+        when (val result = api.registerConsented(username.trim(), secret, termsAccepted)) {
             is ApiCall.Success -> when (val login = api.login(username.trim(), secret, deviceIdentity.getOrCreate())) {
                 is ApiCall.Success -> activate(login.value)
-                is ApiCall.Failure -> mutableState.value = SessionState.SignedOut(login.message)
+                is ApiCall.Failure -> acceptAuthenticationFailure(login)
             }
             is ApiCall.Failure -> mutableState.value = SessionState.SignedOut(result.message)
         }
     } }
 
+    private suspend fun acceptAuthenticationFailure(result: ApiCall.Failure) {
+        val challenge = result.authenticationChallenge
+        if (challenge != null) {
+            store.clearActive()
+            webSession.clearAccountData()
+            mutableState.value = SessionState.VerificationRequired(challenge)
+        } else mutableState.value = SessionState.SignedOut(result.message)
+    }
+
+    suspend fun verifyAuthentication(code: String) = guarded(Unit) { mutex.withLock {
+        val current = mutableState.value as? SessionState.VerificationRequired ?: return@withLock
+        if (current.challenge.passwordChangeRequired) return@withLock
+        when (val result = api.verifyLogin(current.challenge.token, code.trim(), deviceIdentity.getOrCreate())) {
+            is ApiCall.Success -> activate(result.value)
+            is ApiCall.Failure -> if (result.authenticationChallenge != null) acceptAuthenticationFailure(result)
+                else mutableState.value = current.copy(message = result.message)
+        }
+    } }
+
+    suspend fun completeTemporaryPassword(secret: String, confirmation: String) = guarded(Unit) { mutex.withLock {
+        val current = mutableState.value as? SessionState.VerificationRequired ?: return@withLock
+        if (!current.challenge.passwordChangeRequired) return@withLock
+        when (val result = api.completeTemporaryPassword(current.challenge.token, secret, confirmation)) {
+            is ApiCall.Success -> terminate("密码已修改，请使用新密码重新登录")
+            is ApiCall.Failure -> mutableState.value = current.copy(message = result.message)
+        }
+    } }
+
+    fun cancelAuthentication() { mutableState.value = SessionState.SignedOut("请重新登录") }
+
     suspend fun refresh(): RefreshWorkResult = guarded(RefreshWorkResult.RETRY) { mutex.withLock {
         val credentials = store.loadActive()
             ?: return@withLock RefreshWorkResult.SIGNED_OUT.also {
-                mutableState.value = SessionState.SignedOut()
+                // A background refresh must not dismiss an in-progress MFA
+                // challenge. It still has no credentials to refresh or expose.
+                if (mutableState.value !is SessionState.VerificationRequired) {
+                    mutableState.value = SessionState.SignedOut()
+                }
             }
         refreshLocked(credentials)
     } }

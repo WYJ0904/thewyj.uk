@@ -12,6 +12,7 @@ sealed interface NavigationDecision {
     data object Theme : NavigationDecision
     data object VerifyPayment : NavigationDecision
     data object External : NavigationDecision
+    data object Authenticator : NavigationDecision
     data object Blocked : NavigationDecision
 }
 
@@ -25,6 +26,7 @@ class WebRoutePolicy(baseUrl: String) {
 
     fun decide(rawUrl: String): NavigationDecision {
         val uri = runCatching { URI(rawUrl) }.getOrNull() ?: return NavigationDecision.Blocked
+        if (uri.scheme.equals("otpauth", true)) return if (AuthenticatorUri.isAllowed(rawUrl)) NavigationDecision.Authenticator else NavigationDecision.Blocked
         if (uri.scheme.equals("thewyj", ignoreCase = true)) {
             return when (uri.host?.lowercase()) {
                 "session" -> when (uri.path) {

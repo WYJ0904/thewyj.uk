@@ -1,0 +1,19 @@
+{
+  "status": "PASS",
+  "functional_audit": {
+    "routes": 27,
+    "app_flows": 24,
+    "tools": 104,
+    "tool_modes": 51,
+    "checkbox_controls": 7,
+    "workflow_capabilities": 12,
+    "workflow_flows": 27
+  },
+  "standalone_browser_checks": 11,
+  "product_code_changed": false,
+  "files": {
+    "qa/functional-audit.json": "13d94a6239b75241591fc0d2e696590f35c4d774b3710b5757d10267afafa3be",
+    "qa/FULL_FUNCTIONAL_AUDIT.md": "463ec286fa025e5159eb0ab08bc2139dcd174aec66ca4c2dc3507a1b2b74b572",
+    "qa/task27/browser.mjs": "1233593b92a1f2c417db6d6ec032bffe92687e8a837c1d711e47a4254388fb03"
+  }
+}

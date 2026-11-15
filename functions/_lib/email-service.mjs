@@ -10,6 +10,8 @@ export const ALLOWED_TRANSACTIONAL_KINDS = Object.freeze([
   "account_security_notice",
   "order_status_notice",
   "owner_ops_test",
+  "verification_code",
+  "admin_service_notice",
 ]);
 
 const ALLOWED_SENDER_SET = new Set(ALLOWED_SENDER_ADDRESSES);
@@ -155,6 +157,22 @@ export function renderTransactionalEmail(options = {}) {
   }
   const footer = `此邮件由 Aeris 系统自动发送，请勿直接回复 ${DEFAULT_FROM_EMAIL}；如有问题请回复 ${DEFAULT_REPLY_TO_EMAIL}。`;
 
+  if (kind === 'verification_code') {
+    if (typeof options.code !== 'string' || !/^\d{6}$/.test(options.code)) throw new EmailServiceError('验证码格式无效',400,'email_code_invalid');
+    const purpose=cleanSingleLineText(options.purpose,'验证用途',40);
+    const lines=[`您正在进行：${purpose}`,`验证码：${options.code}`,'验证码约五分钟有效，只能使用一次。请勿将验证码告诉任何人。若非本人操作，请忽略本邮件。'];
+    return {kind,subject:`[Aeris] ${purpose}`,text:`${lines.join('\n\n')}\n\n${footer}`,html:renderHtmlEnvelope('Aeris 安全验证',lines,footer)};
+  }
+  if (kind === 'admin_service_notice') {
+    const subject=cleanSingleLineText(options.subject,'邮件主题',120);
+    const body=cleanBodyText(options.body,'邮件正文',4000);
+    const thread=cleanSingleLineText(options.threadId,'线程标识',80);
+    if (!/^[a-f0-9-]{36}$/.test(thread)) throw new EmailServiceError('线程标识无效',400,'email_thread_invalid');
+    if (!/^[a-f0-9-]{36}$/.test(String(options.deliveryId || ''))) throw new EmailServiceError('投递标识无效',400,'email_thread_invalid');
+    const lines=[body,`服务通信编号：${thread}`];
+    return {kind,subject,text:`${lines.join('\n\n')}\n\n${footer}`,html:renderHtmlEnvelope(subject,lines,footer)};
+  }
+
   if (kind === "account_security_notice") {
     const summary = cleanBodyText(options.eventSummary || options.summary || "您的 Aeris 账户发生了一次安全操作。", "安全通知摘要", 1000);
     const occurredAt = cleanSingleLineText(options.occurredAt || new Date().toISOString().replace(/\.\d{3}Z$/, "Z"), "发生时间", 40);
@@ -237,6 +255,7 @@ export function buildEmailMessage(options = {}) {
       subject: rendered.subject,
       text: rendered.text,
       html: rendered.html,
+      ...(options.kind === 'admin_service_notice' ? {headers:{'X-Aeris-Thread':options.threadId,'Message-ID':`<${options.threadId}.${options.deliveryId}@thewyj.uk>`}} : {}),
     },
   };
 }
@@ -266,6 +285,7 @@ export function buildCloudflareRestPayload(built) {
     subject: built.payload.subject,
     text: built.payload.text,
     html: built.payload.html,
+    ...(built.payload.headers ? {headers:built.payload.headers} : {}),
   };
 }
 

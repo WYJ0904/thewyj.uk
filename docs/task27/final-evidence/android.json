@@ -1,0 +1,12 @@
+{
+  "status": "PASS",
+  "test_suites": 120,
+  "tests": 831,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "lint": "PASS",
+  "assembleDebug": "PASS",
+  "assembleDebugAndroidTest": "PASS",
+  "device": "NOT_TESTED"
+}

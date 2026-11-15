@@ -17,6 +17,26 @@
       "access": "public"
     },
     {
+      "id": "forgot-password",
+      "path": "/forgot-password",
+      "access": "public"
+    },
+    {
+      "id": "terms",
+      "path": "/terms",
+      "access": "public"
+    },
+    {
+      "id": "privacy",
+      "path": "/privacy",
+      "access": "public"
+    },
+    {
+      "id": "security-privacy",
+      "path": "/security-privacy",
+      "access": "public"
+    },
+    {
       "id": "trial",
       "path": "/trial",
       "access": "public-limited"

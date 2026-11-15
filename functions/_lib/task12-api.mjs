@@ -36,6 +36,9 @@ import {
 import { enrichAccountWithTask13, listTask13Audit } from "./task13-service.mjs";
 import { listAdminActionAudit } from "./task18-service.mjs";
 import { listFeedbackAudit } from "./task11-service.mjs";
+import { validateConsent } from './task27-policy.mjs';
+import { hasTask27 } from './task27-store.mjs';
+import {reserveLoginAttempt,acceptLoginPassword,settleLoginError,publicLoginError} from './task27-login-guard.mjs';
 
 const LOGIN_FAILURE_LIMIT = 8;
 const LOGIN_FAILURE_WINDOW_SECONDS = 300;
@@ -131,7 +134,7 @@ function passwordOptions(context) {
       true,
     );
   }
-  return { passwordPepper };
+  return { passwordPepper, env: context.env, requestId: requestId(context) };
 }
 
 async function businessAccount(context, account, flags) {
@@ -215,13 +218,15 @@ async function executeRoute(context, descriptor, account, flags) {
   }
   const payload = await readJson(context.request, descriptor.body);
   if (path === "/api/register") {
-    requireAllowedFields(payload, new Set(["username", "secret", "confirm_secret"]));
+    requireAllowedFields(payload, new Set(["username", "secret", "confirm_secret", "terms_accepted", "policy_versions"]));
+    validateConsent(payload);
+    if (!await hasTask27(db)) throw new Task12Error('注册政策记录尚未就绪，请稍后重试',503,'task27_policy_schema_not_ready',true);
     if (String(payload.secret || "") !== String(payload.confirm_secret || "")) {
       throw new Task12Error("两次输入的登录密钥不一致", 400, "secret_mismatch");
     }
     return response({
       ok: true,
-      account: await registerAccount(db, payload.username, payload.secret, passwordOptions(context)),
+      account: await registerAccount(db, payload.username, payload.secret, { ...passwordOptions(context), registrationConsent: payload }),
     }, 201, context);
   }
   if (path === "/api/login") {
@@ -233,10 +238,19 @@ async function executeRoute(context, descriptor, account, flags) {
         retryable: true, headers: { "Retry-After": String(Math.max(1, state.retryAfter || LOGIN_FAILURE_WINDOW_SECONDS)) },
       });
     }
+    const identifier=await reserveLoginAttempt(context,payload.username);
+    if(!identifier.allowed){
+      await safeLoginAudit(context,payload.username,false,'login_identifier_rate_limited');
+      return apiError('login_rate_limited','登录尝试过于频繁，请稍后重试',429,requestId(context),{retryable:true,headers:{'Retry-After':String(identifier.retryAfter)}});
+    }
     try {
       const result = await loginAccount(
         db, payload.username, payload.secret, context.request, passwordOptions(context),
       );
+      await acceptLoginPassword(context,identifier);
+      if (result.mfa_required || result.password_change_required) {
+        return response({ok:true,...result},200,context);
+      }
       await clearLoginFailures(context, state);
       await safeLoginAudit(context, payload.username, true, "success", result.account);
       let enriched = result.account;
@@ -247,11 +261,12 @@ async function executeRoute(context, descriptor, account, flags) {
       }
       return response({ ok: true, session: result.session, model: "Cloudflare account", account: enriched }, 200, context);
     } catch (error) {
+      await settleLoginError(context,identifier,error);
       if (error instanceof Task12Error) {
         if (!error.retryable) await recordLoginFailure(context, state);
         await safeLoginAudit(context, payload.username, false, error.code);
       }
-      throw error;
+      throw publicLoginError(error);
     }
   }
   if (path === "/api/logout") {

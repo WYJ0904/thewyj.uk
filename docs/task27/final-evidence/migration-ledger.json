@@ -1,0 +1,14 @@
+{
+  "status": "PASS",
+  "access": "native SQLite read-only; original Wrangler apply and repeat logs retained",
+  "results": [
+    {
+      "applied_migrations": 36,
+      "latest_two": [
+        "0036_task27_email_center.sql",
+        "0035_task27_security_center.sql"
+      ],
+      "foreign_key_errors": []
+    }
+  ]
+}

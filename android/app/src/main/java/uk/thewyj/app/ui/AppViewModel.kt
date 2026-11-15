@@ -150,13 +150,29 @@ class AppViewModel : ViewModel() {
         }
     }
 
-    fun register(username: String, secret: String) {
+    fun register(username: String, secret: String, termsAccepted: Boolean) {
         if (mutableAuthBusy.value) return
         viewModelScope.launch {
             mutableAuthBusy.value = true
-            try { repository.register(username, secret) } finally { mutableAuthBusy.value = false }
+            try { repository.register(username, secret, termsAccepted) } finally { mutableAuthBusy.value = false }
         }
     }
+
+    fun verifyAuthentication(code: String) {
+        if (mutableAuthBusy.value) return
+        viewModelScope.launch { mutableAuthBusy.value = true
+            try { repository.verifyAuthentication(code) } finally { mutableAuthBusy.value = false }
+        }
+    }
+
+    fun completeTemporaryPassword(secret: String, confirmation: String) {
+        if (mutableAuthBusy.value) return
+        viewModelScope.launch { mutableAuthBusy.value = true
+            try { repository.completeTemporaryPassword(secret, confirmation) } finally { mutableAuthBusy.value = false }
+        }
+    }
+
+    fun cancelAuthentication() = repository.cancelAuthentication()
 
     fun logout() {
         viewModelScope.launch { repository.logout() }

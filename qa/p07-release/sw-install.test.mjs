@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import {createHash} from 'node:crypto';
 const source=fs.readFileSync(new URL('../../sw.js',import.meta.url),'utf8'),origin='https://isolated.example';
-function metadata(s){const c={self:{addEventListener(){}}};vm.runInNewContext(s+';globalThis.meta={core:CORE_SHELL,cache:CACHE,release:RELEASE,publication:PUBLICATION_CACHE,layer:TASK26_SHELL,finance:FINANCE_SHELL,required:REQUIRED_SHELL,integrity:TASK26_INTEGRITY,fingerprint:PUBLICATION_HASH};',c);return JSON.parse(JSON.stringify(c.meta));}
+function metadata(s){const c={self:{addEventListener(){}}};vm.runInNewContext(s+';globalThis.meta={core:CORE_SHELL,cache:CACHE,release:RELEASE,publication:PUBLICATION_CACHE,layer:TASK26_SHELL,finance:FINANCE_SHELL,security:TASK27_SHELL,required:REQUIRED_SHELL,integrity:TASK26_INTEGRITY,fingerprint:PUBLICATION_HASH};',c);return JSON.parse(JSON.stringify(c.meta));}
 const meta=metadata(source),normalize=s=>s.replace(/\d{8}-aeris-[a-z0-9-]+/g,'RELEASE');
 function worker(network,{stores=new Map(),activeScriptURL,scriptURL}={}){
  const handlers=new Map(),timers=new Map();let timerId=0,skipped=0;
@@ -69,10 +69,20 @@ test('a failed Task26 import cannot publish or overwrite a legacy shell',async()
 });
 
 test('finance money is required without replacing any of the 81 RC5 or two Task26 assets',()=>{
- assert.equal(meta.finance.length,1);assert.equal(meta.required.length,84);
+ assert.equal(meta.finance.length,1);assert.equal(meta.core.length+meta.layer.length+meta.finance.length,84);assert.equal(meta.required.length,89);
  assert.ok(meta.finance[0].startsWith('/js/finance/money.js?'));
  assert.ok(!meta.core.includes(meta.finance[0])&&!meta.layer.includes(meta.finance[0]));
  assert.ok(meta.integrity[meta.finance[0]]);
+});
+test('all five Task27 imports are mandatory and independently fingerprinted',async()=>{
+ assert.equal(meta.security.length,5);assert.equal(new Set(meta.required).size,89);
+ for(const asset of meta.security){
+  assert.ok(meta.required.includes(asset));assert.ok(meta.integrity[asset]);
+  const w=worker(async candidate=>candidate===asset?new Response('missing security module',{status:503}):response(candidate));
+  await (await w.caches.open('synthetic-user-cache')).put('/retained',new Response('keep'));
+  await assert.rejects(w.install(),/Release shell is incomplete/);assert.equal(w.stores.has(meta.publication),false);
+  assert.equal(await(await(await w.caches.open('synthetic-user-cache')).match('/retained')).text(),'keep');
+ }
 });
 
 test('missing or stale finance money rejects the entire new publication and preserves user cache',async()=>{

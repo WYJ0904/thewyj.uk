@@ -1,3 +1,5 @@
+import { createSecurityCenter } from './js/account/security-center.js?release=20261115-aeris-s0-p0-release';
+let task27Ui = null;
 import {
   AI_TIMEOUT_MS,
   API_GET_TIMEOUT_MS,
@@ -1242,6 +1244,7 @@ function accountWordLimit(language = state.quizLanguage) {
 }
 
 function renderAccountUi() {
+  task27Ui?.updateAccount();
   featureController?.updateAccount();
   publicUiPolicyController?.updateAccount();
   applyInterfacePolicy();
@@ -1749,7 +1752,11 @@ async function registerAccount(event) {
     const username = $("registerUsernameInput").value.trim();
     const secret = $("registerSecretInput").value;
     const confirmSecret = $("registerConfirmInput").value;
-    await api("/api/register", { username, secret, confirm_secret: confirmSecret });
+    const consent = await task27Ui.registrationConsent();
+    await api("/api/register", { username, secret, confirm_secret: confirmSecret, ...consent });
+    $('registerTermsConsent').checked = false;
+    $('registerSecretInput').value = '';
+    $('registerConfirmInput').value = '';
     $("usernameInput").value = username;
     $("secretInput").value = secret;
     showAuthMode("login", true);
@@ -2351,8 +2358,9 @@ async function changeOwnSecret(event) {
   }
   button.disabled = true;
   try {
+    const securityProof=await task27Ui.isSupported()?{grant:await task27Ui.stepup('password_change',$("currentSecretInput").value)}:{current_secret:$("currentSecretInput").value};
     await api("/api/account/secret", {
-      current_secret: $("currentSecretInput").value,
+      ...securityProof,
       new_secret: newSecret,
       confirm_secret: confirmation,
     });
@@ -2500,6 +2508,7 @@ function generateOwnSecret() {
   try {
     const secret = generateSecureSecret();
     $("newSecretInput").value = secret;
+    $('newSecretInput').dispatchEvent(new Event('input',{bubbles:true}));
     $("newSecretConfirmInput").value = secret;
     setSecretFieldsVisibility(["newSecretInput", "newSecretConfirmInput"], "toggleNewSecretBtn", true);
     $("accountMessage").textContent = "已生成安全密钥；保存前请确认你已记住或安全保存。";
@@ -2560,7 +2569,7 @@ function renderAdminUsers(data = null, { append = false } = {}) {
     signature: user => JSON.stringify([user, isSuperAdmin(), state.account?.id]),
     empty: `<p class="admin-empty-state">${adminUserPage.query ? "没有匹配的用户" : "暂无用户"}</p>`,
     render: (user) => {
-    const protectedUser = user.is_admin || (!isSuperAdmin() && user.id === state.account?.id);
+    const protectedUser = user.is_super_admin || user.id === state.account?.id;
     const roleLabel = user.is_super_admin ? "站点所有者" : user.is_admin ? "管理员" : "普通用户";
     const stateClass = user.banned ? "account-state-bad" : "account-state-good";
     const summary = accountMembershipSummary(user);
@@ -2791,6 +2800,8 @@ async function sendAdminMessage(event) {
     title: $("adminMessageTitle").value.trim(),
     body: $("adminMessageBody").value.trim(),
     message_type: $("adminMessageType").value,
+    delivery_channel: $('adminMessageChannel').value,
+    purpose: $('adminMessagePurpose').value,
     target_scope: scope,
     target_user_ids: targetUserIds,
     expires_at: expiryValue ? new Date(expiryValue).toISOString() : "",
@@ -3119,7 +3130,11 @@ function renderAdminCurrentMemberships(user) {
 
 function openAdminEditor(userId) {
   const user = adminUserById(userId);
-  if (!user || user.is_admin || (!isSuperAdmin() && user.id === state.account?.id)) return;
+  if (!user || user.is_super_admin || user.id === state.account?.id) return;
+  const resetOnly=Boolean(user.is_admin);
+  document.querySelectorAll('#adminEditModal .admin-editor-section').forEach(section=>{
+    section.classList.toggle('hidden',resetOnly && !section.querySelector('#saveAdminSecretBtn'));
+  });
   $("adminEditUserId").value = user.id;
   $("adminEditTitle").textContent = `编辑 ${user.username}`;
   const preferred = (user.memberships || [])
@@ -3194,28 +3209,25 @@ function updateAdminToolsOverride(allowed) {
   });
 }
 
-function saveAdminSecret() {
-  const secret = $("adminNewSecretInput").value;
+async function saveAdminSecret() {
+  const supported=await task27Ui.isSupported();
+  const legacySecret=$('adminNewSecretInput').value;
+  if(!supported&&!legacySecret){$('adminEditMessage').textContent='请先输入或生成新的登录密钥';return;}
   const saveButton = $("saveAdminSecretBtn");
   const generateButton = $("generateAdminSecretBtn");
-  if (!secret) {
-    $("adminEditMessage").textContent = "请先输入或生成新的登录密钥";
-    $("adminNewSecretInput").focus();
-    return;
-  }
   const userId = $("adminEditUserId").value;
   const user = adminUserById(userId);
   askConfirmation(`确认重置“${user?.username || userId}”的登录密钥并退出其全部会话？`, async () => {
     saveButton.disabled = true;
     generateButton.disabled = true;
     try {
-      await api("/api/admin/secret", { user_id: userId, secret });
+      const result = await api("/api/admin/secret", { user_id: userId, ...(supported?{grant:await task27Ui.stepup(`admin_reset:${userId}`)}:{secret:legacySecret}) });
       await loadAdminData();
       $("adminNewSecretInput").value = "";
       setAdminSecretVisibility(false);
-      $("adminSecretResultValue").textContent = secret;
+      $("adminSecretResultValue").textContent = supported?result.temporary_password:legacySecret;
       $("adminSecretResult").classList.remove("hidden");
-      $("adminEditMessage").textContent = "密钥已修改，旧密钥和旧会话均已失效。请立即复制新密钥。";
+      $("adminEditMessage").textContent = supported?"已生成随机 20 位临时密码，仅本次显示。旧会话已撤销，原 MFA 保留，用户须在首次登录时设置新密码。":"密钥已修改，旧密钥和旧会话均已失效。请立即复制新密钥。";
     } finally {
       saveButton.disabled = false;
       generateButton.disabled = false;
@@ -4415,6 +4427,7 @@ function routeCurrent() {
 
 async function renderCurrentRoute(path, generation = routeGeneration) {
     if (!isRouteGenerationCurrent(generation)) return;
+    if (path === '/forgot-password') { showAuth('', { path:'/forgot-password' }); await task27Ui.forgotPassword(); return; }
     if (state.session && (sessionRestorePending || !state.account)) {
       showSessionRecovery(pendingAuthMessage || '正在验证登录状态…', { isError: !backendAvailable });
       return;
@@ -4929,7 +4942,7 @@ function backendErrorMessage(error) {
   return BACKEND_NETWORK_MESSAGE;
 }
 
-const { api, apiGet, publicApi, requestJsonGet, uploadApi, uploadBinaryApi } = createApiClient({
+const { api: accountApi, apiGet: accountApiGet, publicApi, requestJsonGet, uploadApi, uploadBinaryApi } = createApiClient({
   getSession: () => state.session,
   backendErrorMessage,
   markBackendReachable,
@@ -4950,6 +4963,28 @@ const { api, apiGet, publicApi, requestJsonGet, uploadApi, uploadBinaryApi } = c
     return openMembershipModal({ goal: membershipGoalForCurrentContext() });
   },
 });
+
+task27Ui=createSecurityCenter({api:accountApi,apiGet:accountApiGet,publicApi,getSession:()=>state.session,getAccount:()=>state.account,openModal,closeModal,
+  onInvalidated:(message,{deferNative=false}={})=>{clearSession();if(!deferNative&&requestNativeLogout())return;showAuth(message,{path:'/login',replace:true});},
+  onNativeLogout:()=>requestNativeLogout(),
+});
+const task27SensitiveRoutes=new Map([
+  ['/api/admin/roles','admin_roles'],['/api/admin/ban','admin_account'],['/api/admin/logout-user','admin_account'],['/api/admin/delete-user','admin_account'],
+  ['/api/admin/membership/manage','admin_entitlements'],['/api/admin/membership','admin_entitlements'],['/api/admin/entitlement','admin_entitlements'],
+  ['/api/admin/feature-flags','admin_features'],['/api/account/delete','account_delete'],
+  ['/api/admin/feature-flags/override','admin_features'],['/api/admin/recharge/process','admin_entitlements'],
+  ['/api/admin/email/test-send','email_center:test'],['/api/admin/email/send','email_center:send'],
+  ['/api/admin/email/deliveries/retry','email_center:retry'],['/api/admin/email/inbound/reply','email_center:reply'],
+  ['/api/admin/email/templates','email_center:templates'],['/api/admin/email/inbound/status','email_center:inbound'],
+]);
+async function api(path,body={},options={}) {
+  const scope=task27SensitiveRoutes.get(path);
+  if(scope&&await task27Ui.isSupported())options={...options,headers:{...options.headers,'X-Aeris-Stepup':await task27Ui.stepup(scope,path==='/api/account/delete'?body.secret:undefined)}};
+  try{return await accountApi(path,body,options);}catch(error){if(error.code!=='policy_consent_required')throw error;await task27Ui.reaccept();return accountApi(path,body,options);}
+}
+async function apiGet(path,options={}) {
+  try{return await accountApiGet(path,options);}catch(error){if(error.code!=='policy_consent_required')throw error;await task27Ui.reaccept();return accountApiGet(path,options);}
+}
 
 installLazyTools({
   loadTools: createRetryableImport(new URL("./tools.js?release=20261115-aeris-s0-p0-release", import.meta.url)),
@@ -7147,10 +7182,12 @@ async function login(event) {
       $("loginError").textContent = "正在重新连接服务器…";
       if (!(await ensureBackendConnection())) throw new Error(backendFailureMessage);
     }
-    const data = await api("/api/login", {
+    let data = await api("/api/login", {
       username: $("usernameInput").value.trim(),
       secret: $("secretInput").value,
     });
+    $('secretInput').value='';
+    data = await task27Ui.completeLogin(data);
     if (state.session !== owner) {
       const error = new Error('账户已切换'); error.code = 'account_changed'; throw error;
     }

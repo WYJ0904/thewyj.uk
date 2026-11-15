@@ -1,0 +1,21 @@
+{
+  "status": "PASS",
+  "source_sha256": "36efbf3085da0746a564ed9a90ae2cc38f713c2548b10f31f8a8d16f098fd475",
+  "checks": [
+    {
+      "policy": "terms",
+      "status": "PASS",
+      "sha256": "d80b1af49c5130f5f4b614a8655008a31768a2464d89bbd31bc5d7fce17475cf"
+    },
+    {
+      "policy": "privacy",
+      "status": "PASS",
+      "sha256": "1b26ea066807d10bc7c99400cfdcd2588ee555c133c158ee94b332d7fcf1681c"
+    },
+    {
+      "policy": "security",
+      "status": "PASS",
+      "sha256": "401a850ed26d49398aa7089b954acd4d630fa10806144f34bf0d9a603142486f"
+    }
+  ]
+}

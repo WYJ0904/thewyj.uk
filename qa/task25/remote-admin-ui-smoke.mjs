@@ -22,9 +22,15 @@ assert.ok(admin, 'BLOCKED: ADMIN SESSION; no records created');
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'task25-admin-ui-'));
 const headerFile = path.join(temp, 'headers');
 fs.writeFileSync(headerFile, '', { mode: 0o600 });
+let task27Config=null;
 const api = (route, payload = undefined, session = admin, expected = 200, cookie = '') => {
+  let grant;
+  if(task27Config?.security_center_ready&&payload!==undefined&&session){
+    const scope=['/api/admin/feature-flags','/api/admin/feature-flags/override'].includes(route)?'admin_features':route==='/api/account/delete'?'account_delete':null;
+    if(scope){const password=scope==='account_delete'?payload.secret:environment==='development'?process.env.WYJ_TEST_ADMIN_SECRET:null;assert.ok(password,'BLOCKED: explicit Task27 step-up is required');grant=api('/api/security/stepup',{password,scope},session).grant;assert.ok(grant,'BLOCKED: fixture MFA requires explicit second-factor verification');}
+  }
   fs.writeFileSync(headerFile, [`Origin: ${origin}`, 'Content-Type: application/json', 'User-Agent: Thewyj-Android/1.3.34',
-    ...(session ? [`X-Session-Token: ${session}`] : []), ...(cookie ? [`Cookie: __Host-wyj_app_access=${cookie}`] : [])].join('\n') + '\n');
+    ...(session ? [`X-Session-Token: ${session}`] : []), ...(grant?[`X-Aeris-Stepup: ${grant}`]:[]), ...(cookie ? [`Cookie: __Host-wyj_app_access=${cookie}`] : [])].join('\n') + '\n');
   const args = ['--silent', '--show-error', '--max-time', '40', '--header', '@' + headerFile, '--write-out', '\n%{http_code}', origin + route];
   if (payload !== undefined) args.push('--request', 'POST', '--data-binary', '@-');
   const output = execFileSync('curl', args, { input: payload === undefined ? undefined : JSON.stringify(payload), encoding: 'utf8', maxBuffer: 1024 * 1024 });
@@ -66,10 +72,12 @@ try {
   actor = api('/api/me').account;
   assert.ok(actor.is_admin, 'Administrator authorization required before creating fixtures');
   api('/api/admin/feature-flags');
-  const username = 't25ui_' + randomBytes(5).toString('hex'), secret = randomBytes(24).toString('base64url');
+  const candidate=api('/api/policies',undefined,'',[200,404]);
+  if(candidate.versions){task27Config=candidate;assert.ok(candidate.security_center_ready&&environment==='development','BLOCKED: reviewed hosted Task27 step-up required before fixture creation');}
+  const username = 't25ui_' + randomBytes(5).toString('hex'), secret = 'Fixture!Aa1-' + randomBytes(24).toString('base64url');
   fixtureSecret = secret;
   fixtureUsername = username;
-  user = api('/api/register', { username, secret, confirm_secret: secret }, '', 201).account;
+  user = api('/api/register', { username, secret, confirm_secret: secret,...(task27Config?{terms_accepted:true,policy_versions:task27Config.versions}:{}) }, '', 201).account;
   token = api('/api/login', { username, secret }, '').session;
   deviceId = crypto.randomUUID();
   native = api('/api/app/login', { username, secret, device_id: deviceId, app_version: '1.3.34' }, '').access_token;
@@ -162,7 +170,7 @@ try {
     controlSelector = selector;
     controlPage = adminPage;
     await waitVisibleControl(adminPage, selector);
-    return adminPage.evaluate(`(() => {
+    const clicked=await adminPage.evaluate(`(() => {
     const form = document.getElementById('featureFlagForm'), key = ${JSON.stringify(key)};
     if (document.getElementById('featureFlagKey').value !== key ||
         (Number(form.dataset.revision) > 0 && document.getElementById('featureFlagSelect').value !== key) ||
@@ -173,6 +181,12 @@ try {
     (${requireVisibleControl.toString()})(button);
     button.click(); return true;
   })()`);
+    if(task27Config?.security_center_ready&&['#saveFeatureFlagBtn','#saveFeatureOverrideBtn'].includes(selector)){
+      await adminPage.waitFor("document.querySelector('#task27Prompt [name=password]')",10000,'Task27 current-password verification');
+      await adminPage.setFields({'#task27Prompt [name=password]':process.env.WYJ_TEST_ADMIN_SECRET});
+      await visibleClick(adminPage,'#task27Prompt button[type=submit]');
+    }
+    return clicked;
   };
   const save = async () => {
     stage = 'save_flag';
@@ -234,12 +248,24 @@ try {
   await checkbox('featureFlagKillSwitch', true);
   await save();
   await evaluate('stable', false, 'kill_switch');
-  await adminPage.navigate('/admin');
+  // This is a same-route document reload. The shared navigation helper's
+  // shell predicates can also match the old document, so identify the fresh
+  // page before reading its persisted form or clicking its audit disclosure.
+  const auditRefresh = randomBytes(8).toString('hex');
+  await adminPage.evaluate(`globalThis.__task25PriorAuditDocument=${JSON.stringify(auditRefresh)}`);
+  await adminPage.navigate(`/admin?task25-audit-refresh=${auditRefresh}`);
+  stage = 'UI_audit_fresh_document';
+  await adminPage.waitFor(`globalThis.__task25PriorAuditDocument!==${JSON.stringify(auditRefresh)} &&
+    new URL(location.href).searchParams.get('task25-audit-refresh')===${JSON.stringify(auditRefresh)} &&
+    document.documentElement.dataset.bootState==='ready' &&
+    document.getElementById('adminPanel')?.getAttribute('aria-busy')==='false'`,15000,'fresh initialized admin document');
   await visibleClick(adminPage, '#adminFeatureFlagsTab');
-  await adminPage.waitFor(`Array.from(document.getElementById('featureFlagSelect').options).some(o => o.value === ${JSON.stringify(key)})`);
+  await adminPage.waitFor(`document.getElementById('featureConsoleStatus').textContent==='已读取最新配置' && Array.from(document.getElementById('featureFlagSelect').options).some(o => o.value === ${JSON.stringify(key)})`);
   await selected();
   assert.equal(await adminPage.evaluate("document.getElementById('featureFlagKillSwitch').checked"), true);
   await visibleClick(adminPage, '#adminFeatureFlagsView details > summary');
+  stage = 'UI_audit_disclosure_open';
+  await adminPage.waitFor("document.getElementById('featureFlagAudit').closest('details').open",5000,'audit disclosure opens after a visible click');
   assert.equal(await adminPage.evaluate("document.getElementById('featureFlagAudit').closest('details').open"), true);
   assert.ok(await adminPage.evaluate(`document.getElementById('featureFlagAudit').textContent.includes(${JSON.stringify(key)})`));
   api('/api/admin/feature-flags', undefined, token, 403);
@@ -270,6 +296,9 @@ try {
   try {
     if (pages[0]) diagnostic = await (controlPage || pages[0]).evaluate(`(() => ({
       console_status: document.getElementById('featureConsoleStatus')?.textContent,
+      boot_state: document.documentElement.dataset.bootState,
+      audit_open: document.getElementById('featureFlagAudit')?.closest('details')?.open,
+      audit_has_fixture: ${JSON.stringify(fixtureKeys)}.some(key => document.getElementById('featureFlagAudit')?.textContent.includes(key)),
       selected_is_fixture: ${JSON.stringify(fixtureKeys)}.includes(document.getElementById('featureFlagSelect')?.value),
       form_revision: document.getElementById('featureFlagForm')?.dataset.revision,
       evaluate_channel: document.getElementById('featureEvaluateChannel')?.value,

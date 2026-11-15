@@ -392,6 +392,7 @@ export async function registerAndSignIn(page, { username, secret, label = "membe
     "#registerSecretInput": secret,
     "#registerConfirmInput": secret,
   });
+  await page.click('#registerTermsConsent');
   await page.click("#registerSubmitBtn");
 
   // The UI indicator is a UI assertion; the HTTP answer is the evidence.

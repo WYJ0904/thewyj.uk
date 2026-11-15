@@ -389,7 +389,8 @@ try {
     assert.equal(login.payload.account.id, "task20-legacy-six");
     const { validateSecret } = await import("../functions/_lib/task12-model.mjs");
     assert.throws(() => validateSecret("123456"));
-    assert.equal(validateSecret("1234567"), "1234567");
+    assert.throws(() => validateSecret('1234567'));
+    assert.equal(validateSecret('Abcdef1!x'),'Abcdef1!x');
   });
 
   console.log(`Task 20 D1 integration tests passed: ${completed}`);

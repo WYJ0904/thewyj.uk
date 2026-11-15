@@ -10,6 +10,7 @@ assert.ok(secret, 'Isolated admin fixture is required');
 const results = [];
 for (const width of [390, 1366]) {
   const page = await openPage({ cdpUrl: process.env.WYJ_CDP_URL || 'http://127.0.0.1:9225', baseUrl, width, height: 915, mobile: width === 390 });
+  const stepup=async()=>{await page.waitFor("document.querySelector('#task27Prompt [name=password]')",10000,'feature management step-up');await page.setFields({'#task27Prompt [name=password]':secret});await page.click('#task27Prompt button[type=submit]');};
   const flagKey = `task25_browser_${width}_${Date.now().toString(36)}`;
   try {
     await page.navigate('/login');
@@ -25,6 +26,7 @@ for (const width of [390, 1366]) {
     await page.setFields({ '#featureFlagKey': flagKey, '#featureFlagDescription': '<img src=x onerror="window.task25Xss=1">', '#featureFlagPercentage': 0 });
     await page.click('#featureFlagEnabled');
     await page.click('#saveFeatureFlagBtn');
+    await stepup();
     await page.waitFor(`Array.from(document.getElementById('featureFlagSelect').options).some(o => o.value === ${JSON.stringify(flagKey)})`);
     await page.setFields({ '#featureFlagSelect': flagKey });
     const accountId = await page.evaluate("JSON.parse(localStorage.getItem('wyjAccountCache')).id");
@@ -33,11 +35,13 @@ for (const width of [390, 1366]) {
     await page.waitFor(`document.getElementById('featureEvaluationResult').textContent.includes(${JSON.stringify(flagKey + ': OFF')})`);
     await page.setFields({ '#featureOverrideUser': accountId, '#featureOverrideValue': 'on' });
     await page.click('#saveFeatureOverrideBtn');
+    await stepup();
     await page.waitFor("document.getElementById('featureConsoleStatus').textContent === '设置已保存' && !document.getElementById('saveFeatureOverrideBtn').disabled");
     await page.click('#evaluateFeatureBtn');
     await page.waitFor(`document.getElementById('featureEvaluationResult').textContent.includes(${JSON.stringify(flagKey + ': ON')})`);
     await page.click('#featureFlagKillSwitch');
     await page.click('#saveFeatureFlagBtn');
+    await stepup();
     await page.waitFor("document.getElementById('featureConsoleStatus').textContent === '设置已保存' && !document.getElementById('saveFeatureFlagBtn').disabled");
     await page.click('#evaluateFeatureBtn');
     await page.waitFor(`document.getElementById('featureEvaluationResult').textContent.includes(${JSON.stringify(flagKey + ': OFF (kill_switch')})`);
@@ -54,6 +58,7 @@ for (const width of [390, 1366]) {
     await page.click('#featureFlagKillSwitch');
     await page.click('#featureChannel_stable');
     await page.click('#saveFeatureFlagBtn');
+    await stepup();
     await page.waitFor("document.getElementById('featureConsoleStatus').textContent === '设置已保存' && !document.getElementById('saveFeatureFlagBtn').disabled");
 
     // Account preferences are server confirmed and cannot change the formal APK.

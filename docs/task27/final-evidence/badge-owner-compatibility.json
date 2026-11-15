@@ -1,0 +1,13 @@
+{
+  "status": "PASS",
+  "checks": 4,
+  "details": [
+    "late private result rejected after account switch",
+    "no private polling on a backend without Task27",
+    "supported backend refreshes authoritative unread count",
+    "late or unavailable capability cannot start private polling after account switch"
+  ],
+  "security_center_sha256": "e71c63d9989612c634bde4e51aa1820fb03fd4d243f18ca6eb654ff616f1583d",
+  "sw_publication_hash": "3172f72155d872cbd334b308b4e18ab4730e2ee43a27e0395693bfb7b4236b36",
+  "sw_tests": 20
+}

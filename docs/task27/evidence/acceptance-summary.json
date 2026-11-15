@@ -1,0 +1,247 @@
+{
+  "date": "2026-11-15",
+  "timezone": "Asia/Hong_Kong",
+  "base": "3f5ea474404df5e513df6198d0244c8a041ad2ff",
+  "prior_task27_checkpoint": "4167af98b38ae6c11c632e0b58b3902e62e57c3f",
+  "implementation_commit": "3b1ff9d7dc09a05bafd310686760e785e93953ef",
+  "status": "CODE_READY_LOCAL_RELEASE_HELD",
+  "api_groups_passed": 31,
+  "browser_checks_passed": 10,
+  "workerd_checks_passed": 5,
+  "upgrade_checks_passed": 11,
+  "android": {
+    "suites": 120,
+    "tests": 831,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "real_email_receipt": "NOT_TESTED",
+  "real_authenticator_apps_and_device_webview": "OWNER_NOT_TESTED",
+  "remote_ci": "NOT_RUN",
+  "hosted_preview": "NOT_DEPLOYED",
+  "production": "NOT_TOUCHED",
+  "task27_pr": null,
+  "hydrogen_local_refs": {
+    "hydrogen/s0-p0-integration": "72bf8cd0573f87c6bf78f8e31fab97ab966ec99c",
+    "hydrogen/s0-security-audit": "3f5ea474404df5e513df6198d0244c8a041ad2ff"
+  },
+  "protected_source_paths_unchanged": [
+    "wrangler.jsonc",
+    "wrangler.local.jsonc",
+    "android/app/build.gradle.kts",
+    "android/app/src/main/AndroidManifest.xml",
+    "android/release-metadata.json",
+    "cloudflare/migrations/0026_wrong_book_review.sql",
+    "cloudflare/migrations/0027_payment_identity_lifecycle.sql",
+    "cloudflare/migrations/0028_payment_lifecycle_accounting.sql",
+    "cloudflare/migrations/0029_payment_reconciliation.sql",
+    "cloudflare/migrations/0030_payment_supersession.sql",
+    "cloudflare/migrations/0031_finance_currency_fx.sql",
+    "cloudflare/migrations/0032_notification_currency_units.sql",
+    "cloudflare/migrations/0033_currency_default_review.sql",
+    "cloudflare/migrations/0034_finance_ai_assistance.sql"
+  ],
+  "modified_files": [
+    ".github/workflows/ci.yml",
+    "android/app/src/main/java/uk/thewyj/app/core/auth/AuthInputPolicy.kt",
+    "android/app/src/main/java/uk/thewyj/app/core/network/ThewyjApiClient.kt",
+    "android/app/src/main/java/uk/thewyj/app/core/session/SessionRepository.kt",
+    "android/app/src/main/java/uk/thewyj/app/core/session/SessionState.kt",
+    "android/app/src/main/java/uk/thewyj/app/core/web/AuthenticatorLauncher.kt",
+    "android/app/src/main/java/uk/thewyj/app/core/web/ThewyjWebView.kt",
+    "android/app/src/main/java/uk/thewyj/app/core/web/WebRoutePolicy.kt",
+    "android/app/src/main/java/uk/thewyj/app/ui/AppViewModel.kt",
+    "android/app/src/main/java/uk/thewyj/app/ui/ThewyjApp.kt",
+    "android/app/src/test/java/uk/thewyj/app/core/auth/AuthInputPolicyTest.kt",
+    "android/app/src/test/java/uk/thewyj/app/core/session/SessionRepositoryTest.kt",
+    "android/app/src/test/java/uk/thewyj/app/core/web/AuthenticatorLauncherTest.kt",
+    "app.js",
+    "cloudflare/migrations/0035_task27_security_center.sql",
+    "docs/TASK27_FUNCTION_AND_DATA_CONTRACT.md",
+    "docs/task27/OPEN_SOURCE_AND_SECURITY_REVIEW.md",
+    "docs/task27/policies/SOURCE.md",
+    "docs/task27/policies/privacy-2026-11-14-v1.md",
+    "docs/task27/policies/security-2026-11-14-v1.md",
+    "docs/task27/policies/terms-2026-11-14-v1.md",
+    "functions/_lib/email-service.mjs",
+    "functions/_lib/finance-source-units.mjs",
+    "functions/_lib/task12-api.mjs",
+    "functions/_lib/task12-auth.mjs",
+    "functions/_lib/task12-model.mjs",
+    "functions/_lib/task12-service.mjs",
+    "functions/_lib/task18-api.mjs",
+    "functions/_lib/task18-model.mjs",
+    "functions/_lib/task18-service.mjs",
+    "functions/_lib/task20-api.mjs",
+    "functions/_lib/task20-service.mjs",
+    "functions/_lib/task21-api.mjs",
+    "functions/_lib/task27-api.mjs",
+    "functions/_lib/task27-auth.mjs",
+    "functions/_lib/task27-crypto.mjs",
+    "functions/_lib/task27-mail.mjs",
+    "functions/_lib/task27-notifications.mjs",
+    "functions/_lib/task27-policy-archive.mjs",
+    "functions/_lib/task27-policy-content.mjs",
+    "functions/_lib/task27-policy.mjs",
+    "functions/_lib/task27-security.mjs",
+    "functions/_lib/task27-store.mjs",
+    "functions/api/[[path]].js",
+    "functions/privacy.js",
+    "functions/security-privacy.js",
+    "functions/terms.js",
+    "index.html",
+    "js/account/password-fields.js",
+    "js/account/password-policy.js",
+    "js/account/policy-page.js",
+    "js/account/policy-version.js",
+    "js/account/security-center.js",
+    "js/core/api.js",
+    "js/core/router.js",
+    "js/transfer/app.js",
+    "local-backend/browser_harness.mjs",
+    "local-backend/test_app_browser.mjs",
+    "local-backend/test_email_js.mjs",
+    "local-backend/test_task12_d1_js.mjs",
+    "local-backend/test_task15_cloud_browser.mjs",
+    "local-backend/test_task15_d1_js.mjs",
+    "local-backend/test_task18_browser.mjs",
+    "local-backend/test_task18_d1_js.mjs",
+    "local-backend/test_task20_d1_js.mjs",
+    "local-backend/test_task21_notification_js.mjs",
+    "local-backend/test_task27_js.mjs",
+    "local-backend/test_tools_browser.mjs",
+    "local-backend/test_transfer_browser_e2e.mjs",
+    "local-backend/test_transfer_isolation_js.mjs",
+    "local-backend/test_transfer_responsive.mjs",
+    "package.json",
+    "product-ui.css",
+    "qa/p07-r5/harness.mjs",
+    "qa/p07-release/publication-browser.mjs",
+    "qa/p07-release/rollback-browser.mjs",
+    "qa/task11/profile-restore-browser.mjs",
+    "qa/task25/feature-flags-browser.mjs",
+    "qa/task25/remote-admin-smoke.py",
+    "qa/task25/remote-admin-ui-smoke.mjs",
+    "qa/task26/wrong-review-browser.mjs",
+    "qa/task27/browser.mjs",
+    "qa/task27/collect-evidence.py",
+    "qa/task27/fixture-request.mjs",
+    "qa/task27/operation-owner.mjs",
+    "qa/task27/otpauth-differential.mjs",
+    "qa/task27/regressions.mjs",
+    "qa/task27/upgrade-and-strength.mjs",
+    "qa/task27/workerd.mjs",
+    "scripts/build_task27_policy.py",
+    "scripts/update_task27_publication.mjs",
+    "sw.js"
+  ],
+  "screenshots": [
+    {
+      "path": "docs/task27/evidence/browser-fd662c8c/password-policy-desktop.png",
+      "sha256": "be13d2f7e7d8bea1ed71d742c79252d02c04ddf364a35ca71970c5626d211712"
+    },
+    {
+      "path": "docs/task27/evidence/browser-fd662c8c/password-policy-mobile.png",
+      "sha256": "c392d2225cabb2e63157e74fe2bab44b126d78b09afe92dad0db59f857e14b2a"
+    },
+    {
+      "path": "docs/task27/evidence/browser-fd662c8c/security-desktop.png",
+      "sha256": "c5a3d700ac4787d0014cb017f0e36fa6ffe36afda2e1745f1804120e869fb518"
+    },
+    {
+      "path": "docs/task27/evidence/browser-fd662c8c/security-mobile-dark.png",
+      "sha256": "88ff5b093c255ba04886ca68d399158176c5a66d8506dfc9f876a4449cb974e5"
+    },
+    {
+      "path": "docs/task27/evidence/browser-fd662c8c/inbox-desktop.png",
+      "sha256": "ee229253a7c3965d3abf4ebda1b5be31242e28cd3173ff39b42e4e464a95c78f"
+    },
+    {
+      "path": "docs/task27/evidence/browser-fd662c8c/mail-desktop.png",
+      "sha256": "bc6f602cecc8f13d49a561d9f6c44602714def001786dd52d70d4b2a2ec50cae"
+    },
+    {
+      "path": "docs/task27/evidence/browser-fd662c8c/policy-mobile.png",
+      "sha256": "7857617a438c54c27c03f7d70ec0f39f8c164dc7a68509700d44ea745f116b2d"
+    }
+  ],
+  "local_log_refs": [
+    {
+      "path": ".wrangler/task27-final-source-api.log",
+      "sha256": "77d04f95e319040dac53df2999548db12f85b089df71f3ead12887325273f306"
+    },
+    {
+      "path": ".wrangler/task27-final-source-role.log",
+      "sha256": "80034b98153476ed6633965ab9cd62fddd93f1f5d0967635af04ffe2fb323677"
+    },
+    {
+      "path": ".wrangler/task27-final-email.log",
+      "sha256": "e8cb09a45c50c930aae8d40a4298a0d9cdccf832eef2b1a9048bc8d9f7cd7a01"
+    },
+    {
+      "path": ".wrangler/task27-increment-task12.log",
+      "sha256": "598c6ebdfab20d96684ffc1a8172b50d9d02e1a9e77e86727824ec6de7990c6c"
+    },
+    {
+      "path": ".wrangler/task27-increment-task20.log",
+      "sha256": "632569925818afc754c1a091d2b93c3c2966d74fafd60850291a95bb197caff6"
+    },
+    {
+      "path": ".wrangler/task27-increment-task15.log",
+      "sha256": "757f1f5dcfd92b444440e0432b8950260621c7e083e46e702c88bca13f49dcba"
+    },
+    {
+      "path": ".wrangler/task27-increment-android-first.log",
+      "sha256": "d33e0c488c139e508d7ff36b4830c1a4a9fae7933663be99f97a6f25a520bed1"
+    },
+    {
+      "path": ".wrangler/task27-stage-acceptance-current.log",
+      "sha256": "a989f0d2459768d99382e3daaeffda01b30e59ebacbb0d5e18b362edd651e1d5"
+    },
+    {
+      "path": ".wrangler/task27-s0-json-depth.log",
+      "sha256": "bf9121aa91d0d8c1e4d4bc88466515459f9058f3b48828ce49c5cefd188f78aa"
+    }
+  ],
+  "preserved_earlier_failure_refs": [
+    {
+      "path": ".wrangler/task27-android-first.log",
+      "sha256": "18b9a5e6cc53cae19b91a6e2df76a7f6be7c20f2dd5e9f71c71c2418e9fdb17f"
+    },
+    {
+      "path": ".wrangler/task27-browser-first.log",
+      "sha256": "47dd7207b5abe99bf0e04dca5a1686917c15312667d224d68fe317e24e8267ca"
+    },
+    {
+      "path": ".wrangler/task27-browser-second.log",
+      "sha256": "ce5146f4cd5342d392ac8c04737674dd2b9d4115925b6360d4a94e8f64bb097d"
+    },
+    {
+      "path": ".wrangler/task27-test-final.log",
+      "sha256": "59d59497296cc017522922148a272288a4dd58745872564699b23f3c60d87f84"
+    },
+    {
+      "path": ".wrangler/task27-task12-first.log",
+      "sha256": "5de476aa349579a2c2f47ef01ebbc8363faff054ddf6ebfda52e912c2d5dea00"
+    },
+    {
+      "path": ".wrangler/task27-regressions/test_task18_d1_js.mjs.log",
+      "sha256": "3099f283d0c2adccf8dcc9e3e03febbb0dd18d222caf991885c852fab7ceeb44"
+    },
+    {
+      "path": ".wrangler/task27-oracle-first.log",
+      "sha256": "b895995bf89ae36f22db69b757bfdafb8b389b787289d12b61a934538553d889"
+    },
+    {
+      "path": ".wrangler/task27-oracle-second.log",
+      "sha256": "bcb164ab4878bbf769543c546e74d828a38cccff85a2e62f3df347672b0a8c60"
+    },
+    {
+      "path": ".wrangler/task27-browser-acceptance-current.log",
+      "sha256": "a99780d63d0493c953bd4590daf988f85499617277f81f89ce6b2c389b8cbc88"
+    }
+  ],
+  "production_acceptance": "NOT_TESTED",
+  "publication_rollback_checks_passed": 2
+}
