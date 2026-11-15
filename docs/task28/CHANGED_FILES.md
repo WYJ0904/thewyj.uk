@@ -1,7 +1,8 @@
 # Task28 变更文件清单
 
-相对临时比较基线 `8109e90fd83da110959a988f2a4aa692fee15051`，共 35 个文件。
-仅 Task28；不包含基线 Task27 历史、原 Hotfix WIP、构建缓存或本地日志。
+相对临时比较基线 `d13a588fa5475305252a4f9a1e10d656a98f384f`，共 36 个文件。
+35 个 Task28 文件与 1 个隔离浏览器脚本退出清理修复；不包含 Task27 基线增量、
+原 Hotfix WIP、构建缓存或本地日志。
 
 | 文件 | 状态 |
 | --- | --- |
@@ -36,6 +37,7 @@
 | `local-backend/test_transfer_integrity_js.mjs` | 修改 |
 | `package.json` | 修改 |
 | `product-ui.css` | 修改 |
+| `qa/task27/android-session-sync-browser.mjs` | 修改 |
 | `qa/task28/browser.mjs` | 新增 |
 | `qa/task28/secure-files.mjs` | 新增 |
 | `qa/task28/workerd.mjs` | 新增 |

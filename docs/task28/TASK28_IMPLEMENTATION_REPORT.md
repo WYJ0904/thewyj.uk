@@ -7,10 +7,15 @@
 
 - 仓库：`WYJ0904/thewyj.uk`。
 - Task28 分支：`codex/task28-secure-file-foundation`，独立 managed worktree。
-- 开发及提交前重新核实：#155 尚未合并，HEAD 为
+- 初始开发基线：#155 的
   `8109e90fd83da110959a988f2a4aa692fee15051`；main 为
   `7766b80eb2c9e448dc08a3a4b317bfa62e0dff6e`。
-- Draft PR 暂比较 `hydrogen/task27-final-integration`，只提交 Task28 差异。
+- Draft PR #156 创建时，Task27 刚更新为
+  `d13a588fa5475305252a4f9a1e10d656a98f384f`（Android/WebView 会话同步）。
+  已仅在 Task28 分支普通 merge 该基线；唯一冲突是 SW 派生哈希，使用既有
+  publication 脚本重算，保留双方源码，不 force push。后端 Task28 代码未被覆盖。
+- Draft PR 暂比较 `hydrogen/task27-final-integration`，为 35 个 Task28 文件加
+  1 个隔离会话浏览器脚本的 Windows 退出清理修复，不重复提交 Task27 增量。
   原 Hotfix 分支/WIP、Hydrogen 分支、原工作区及发布证据均未修改。
 - 最新提交 SHA、Draft PR 地址及精确 HEAD 的 CI 结果由该 PR 的描述与 Checks
   记录，交付回复同时给出；本文件不提前冻结尚未发生的 CI 结论。
@@ -64,7 +69,8 @@ Task28 新增：
 | 传输字节完整性 | PASS；源文件/R2/下载长度与 SHA-256、文件名、扩展名、Range 和安全 MIME |
 | 队列/网络恢复 | PASS；账户隔离、session plan、暂停、断线、重试、取消和持久化边界 |
 | Task27 安全回归 | PASS，32 组；MFA、旧会话、设备撤销、邮件、通知隔离、step-up、隐私同意 |
-| Android | PASS，Task22 8 suites / 25 tests / 0 failures/errors/skips；Lint、Debug 构建成功；未安装手机 |
+| Android | PASS，新基线完整 121 suites / 834 tests / 0 failures/errors/skips（含 Task22 25 项）；Lint、Debug 构建成功；未安装手机 |
+| 新基线会话桥接 | PASS，JS 单测和 4 个浏览器仿真场景；不等于真实 WebView/手机验收 |
 | 迁移 | PASS，独立本地 Wrangler 台账 38 条，外键检查为空；旧用户/分享行与 R2 字节快照保持 |
 | 构建和静态资源 | PASS，Functions 编译、两个清理 Worker dry-run、allowlist staging、模块图、storage 合同、静态 Python 31 项、SW 20 项、敏感文件审计 |
 | 隔离 Hosted Preview 业务验收 | NOT_TESTED；未主动部署/迁移，不抢占 Hydrogen 共享环境 |
@@ -94,7 +100,10 @@ Task29 导出/加密备份/恢复、Task30 全站删除、Task38 聊天、Task39
 Task48 知识库均只预留调用合同，没有实现其业务功能。
 
 Task27 的潜在冲突集中于路由注册、step-up scope 单行、原文件 UI、SW 完整性
-和 CI。未改其认证/MFA/邮件机制、迁移或分支；后续基线变化仍需重新比较和回归。
+和 CI。本次 SW 哈希冲突已解决，新增会话同步基线补跑本地 JS/浏览器/Android
+兼容检查。浏览器脚本在 Windows 的文件锁失败及 CDP 退出确认等待已保留记录，
+仅限定测试退出清理的等待、关闭自建 Chrome 并重试临时目录清理；业务断言及
+产品超时未改。未改其认证/MFA/邮件机制、迁移或分支；后续基线变化仍需重新比较和回归。
 
 发布门禁和安全回滚见 [RELEASE_AND_ROLLBACK.md](RELEASE_AND_ROLLBACK.md)。
 尤其不能直接回退到不理解私有附件范围的旧下载代码；需保留访问限制的维护

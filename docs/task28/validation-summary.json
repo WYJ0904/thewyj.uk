@@ -1,9 +1,9 @@
 {
   "task": "Task28: unified secure files and attachments foundation (P1)",
   "date_hong_kong": "2026-11-16",
-  "recorded_at_hong_kong": "2026-11-16T02:29:45.308426+08:00",
+  "recorded_at_hong_kong": "2026-11-16T02:47:24.320987+08:00",
   "branch": "codex/task28-secure-file-foundation",
-  "base_task27_sha": "8109e90fd83da110959a988f2a4aa692fee15051",
+  "base_task27_sha": "d13a588fa5475305252a4f9a1e10d656a98f384f",
   "main_observed_sha": "7766b80eb2c9e448dc08a3a4b317bfa62e0dff6e",
   "release": "RELEASE_HELD",
   "scope": "Synthetic local isolated D1/R2 only; not Hosted, device or Production acceptance",
@@ -180,7 +180,7 @@
     "browser": {
       "status": "PASS",
       "groups": 4,
-      "raw_log": ".wrangler/task28/evidence/browser-submission.log",
+      "raw_log": ".wrangler/task28/evidence/browser-final-integration.log",
       "detail": {
         "scope": "isolated desktop Chrome + mobile viewport, real local D1/R2, synthetic account/files",
         "checks": [
@@ -211,7 +211,7 @@
         "browser": "Chrome/157.0.8103.52",
         "status": "PASS"
       },
-      "local_evidence": ".wrangler/task28/evidence/browser-3635842a-91bd-4567-86db-ea5daf247c61/result.json"
+      "local_evidence": ".wrangler/task28/evidence/browser-1bde74c1-7067-4a4e-9bd8-54f36f4c842e/result.json"
     },
     "task14": {
       "status": "PASS",
@@ -250,7 +250,8 @@
       "suites": 8,
       "lint": "PASS",
       "assembleDebug": "PASS",
-      "installed": false
+      "installed": false,
+      "baseline_scope": "initial 8109e90f Task22-only run"
     },
     "local_wrangler_migrations": {
       "status": "PASS",
@@ -278,6 +279,27 @@
     "functions_and_two_cleanup_workers_build_only": {
       "status": "PASS",
       "remote_deploy": false
+    },
+    "android_latest_baseline": {
+      "status": "PASS",
+      "tests": 834,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "suites": 121,
+      "lint": "PASS",
+      "assembleDebug": "PASS",
+      "installed": false,
+      "log": ".wrangler/task28/evidence/android-latest-baseline.log",
+      "base": "d13a588fa5475305252a4f9a1e10d656a98f384f"
+    },
+    "baseline_session_bridge": {
+      "status": "PASS",
+      "browser_scenarios": 4,
+      "javascript_unit": "PASS",
+      "browser_log": ".wrangler/task28/evidence/task27-session-bridge-submission.log",
+      "js_log": ".wrangler/task28/evidence/task27-session-bridge-js.log",
+      "not_real_webview": true
     }
   },
   "remote": {
@@ -298,10 +320,13 @@
     "preserved": true,
     "index": ".wrangler/task28/evidence/development-failures.md",
     "logs": [
+      "android-latest-baseline.log",
       "android-task22-initial.log",
       "browser-fifth.log",
+      "browser-final-integration.log",
       "browser-fourth.log",
       "browser-initial.log",
+      "browser-latest-baseline.log",
       "browser-second.log",
       "browser-submission.log",
       "browser-third.log",
@@ -316,6 +341,7 @@
       "local-migrations.log",
       "pages-stage.log",
       "repository-audit.log",
+      "sw-after-baseline.log",
       "sw-install.log",
       "task14-final.log",
       "task14-initial.log",
@@ -329,6 +355,10 @@
       "task22-sixth.log",
       "task22-third.log",
       "task27-regression.log",
+      "task27-session-bridge-js.log",
+      "task27-session-bridge-latest.log",
+      "task27-session-bridge-retry.log",
+      "task27-session-bridge-submission.log",
       "task28-final-candidate.log",
       "task28-final.log",
       "task28-fourth.log",
@@ -343,6 +373,12 @@
       "workerd-initial.log",
       "workerd-memory-final.log",
       "workerd-submission.log"
+    ],
+    "baseline_followup": [
+      "Task27 d13a588f arrived at Draft PR creation; original e9f21c32 and its evidence retained",
+      "First bridge run passed four functional assertions then failed Windows EBUSY during temporary-profile removal",
+      "First cleanup attempt stalled waiting for a Chrome shutdown acknowledgement; stopped only that owned synthetic Node process",
+      "Final bounded teardown run completed successfully with all four assertions unchanged"
     ]
   },
   "source_manifest": {
@@ -371,15 +407,53 @@
       "local-backend/test_transfer_integrity_js.mjs": "ef91486a11d060cf6207532457b57216117ec12ccdfeefbd8fa9dd7db62823da",
       "package.json": "62f17b989c9dedd3b768404430036302d3fce9c6eb4356988de4aac04ab6b9bd",
       "product-ui.css": "752cbf9388843818974e19597ea2bb771bf8689d655e4c6efc59286aca8834de",
-      "qa/task28/browser.mjs": "594c74bf6ff839322760b9c92fb2775ae55877dbf89f46aed497201c4f47f283",
+      "qa/task27/android-session-sync-browser.mjs": "6404bc53f68cd24f61b1072d89ee95f47415585431f0f5648c88b8e2056ebe02",
+      "qa/task28/browser.mjs": "920585ae21bab942f71fd5ca64f3dc4f08a32420bacc849f86e060920e7eb513",
       "qa/task28/secure-files.mjs": "ba3ceeb1cea9b35b447362878258d1f7e11b4fa8a181277e5ef53acf4229eebc",
       "qa/task28/workerd.mjs": "58bbfa42e6d5fdb770a9f743cabcd4766615b513e72fe04d9b3816a461011365",
-      "sw.js": "8f7943e85e5a216e67c5ec8b5c8b359fc62c76ca5cd95ad4cfb65a3d64923d91"
+      "sw.js": "878f63c27a0ebf16bf78af9d3fc31f6e7922b369a9cba2857f409746b2ae6cd1"
     }
   },
   "screenshots": {
-    "private-desktop.png": "37c1fdc4ab99a1c4d57bb6a1914d9373f64bcde6858c28a707aa70317b595cbf",
-    "private-mobile.png": "69208355d3003bab9d3a0b710e51b025411d5e167d7f0c11d1f9128a74b58eb6"
+    "private-desktop.png": "84a8553332c95603da2d3d1b1643138763e78c972d6db6089dbba6fcdd602b8b",
+    "private-mobile.png": "42ca3cfa278ed50339e737e52acf0c7df1f0ca77efe15be43006fd246facfdf0"
   },
-  "changed_file_count": 35
+  "changed_file_count": 36,
+  "initial_task27_sha": "8109e90fd83da110959a988f2a4aa692fee15051",
+  "baseline_update": {
+    "method": "normal merge on Task28 branch; no force push",
+    "incoming_files": [
+      "android/app/src/main/java/uk/thewyj/app/core/network/ThewyjApiClient.kt",
+      "android/app/src/main/java/uk/thewyj/app/core/session/SessionRepository.kt",
+      "android/app/src/main/java/uk/thewyj/app/core/web/ThewyjWebView.kt",
+      "android/app/src/main/java/uk/thewyj/app/core/web/WebSessionBridge.kt",
+      "android/app/src/main/java/uk/thewyj/app/ui/AppViewModel.kt",
+      "android/app/src/test/java/uk/thewyj/app/core/session/WebSessionSyncRegressionTest.kt",
+      "app.js",
+      "design-system.css",
+      "js/core/session.js",
+      "local-backend/browser_harness.mjs",
+      "local-backend/test_android_session_sync_js.mjs",
+      "qa/task27/android-session-sync-browser.mjs",
+      "sw.js"
+    ],
+    "base_blob_sha256_lf": {
+      "android/app/src/main/java/uk/thewyj/app/core/network/ThewyjApiClient.kt": "0e0792c649d9213abe53edb893ff9944e4d434385b2d013dd44a6afbf99efb1d",
+      "android/app/src/main/java/uk/thewyj/app/core/session/SessionRepository.kt": "e33df60ec7b34d7c34394cddf02abda292a7919518816c558957926a86235a82",
+      "android/app/src/main/java/uk/thewyj/app/core/web/ThewyjWebView.kt": "1857cdbbadb233c84ab0e63748759000e4fdeae1c9d6196e40fa943c449d7729",
+      "android/app/src/main/java/uk/thewyj/app/core/web/WebSessionBridge.kt": "5319beddea6e881533ab19987284d9313848aa02d57aa785a080fd1cd201df1d",
+      "android/app/src/main/java/uk/thewyj/app/ui/AppViewModel.kt": "7c78847f88bb4ab60b4b4c4aff7bcf813267c668a680b77e67f8b97ea2a6bfc0",
+      "android/app/src/test/java/uk/thewyj/app/core/session/WebSessionSyncRegressionTest.kt": "25004cf1f9f8ab3c66ced606d0ae1437e5f0646bd61b49949d6dce1f4368c5c1",
+      "app.js": "7e42183a529e44c3a57a0e52b9691f62cb28efc1bd19431024cf8aa43e6cb321",
+      "design-system.css": "a49e9541abff033d0b01328d3c1b6555231954d225f6a136b5e0f0be38d397cd",
+      "js/core/session.js": "7f11ad14c2e345077be40222a707564edd8ba497424d19574563403da3e8c215",
+      "local-backend/browser_harness.mjs": "3f92ef905901ba6d309baf1ade722457e47fb391b0abbe64d76bcece6be981a1",
+      "local-backend/test_android_session_sync_js.mjs": "2097d11e07eb519953556a3987b561239104c1a93ec1c545eee5677712b00069",
+      "qa/task27/android-session-sync-browser.mjs": "1fde7f46f3713d917c7361aee7b2b5626e768322ea3af4ec256ff1ea0aa2af1f",
+      "sw.js": "5f0cc41b5cf64fd9642f3e1d0b8a95da9482b8f734265673f204c4e3ad497068"
+    },
+    "conflict": "sw.js derived integrity/publication only; regenerated with existing script",
+    "task28_backend_unchanged": true,
+    "test_teardown_fix": "bounded CDP shutdown and safe temporary-profile cleanup in isolated browser fixtures; assertions/product timeouts unchanged"
+  }
 }

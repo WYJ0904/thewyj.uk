@@ -98,7 +98,7 @@ class SessionRepository(
 
     fun cancelAuthentication() { mutableState.value = SessionState.SignedOut("请重新登录") }
 
-    suspend fun refresh(): RefreshWorkResult = guarded(RefreshWorkResult.RETRY) { mutex.withLock {
+    suspend fun refresh(forceWebReload: Boolean = false): RefreshWorkResult = guarded(RefreshWorkResult.RETRY) { mutex.withLock {
         val credentials = store.loadActive()
             ?: return@withLock RefreshWorkResult.SIGNED_OUT.also {
                 // A background refresh must not dismiss an in-progress MFA
@@ -107,7 +107,7 @@ class SessionRepository(
                     mutableState.value = SessionState.SignedOut()
                 }
             }
-        refreshLocked(credentials)
+        refreshLocked(credentials, forceWebReload)
     } }
 
     suspend fun logout() = guarded(Unit) { mutex.withLock {
@@ -146,11 +146,15 @@ class SessionRepository(
         return api.setReleaseChannel(credentials.accessToken, credentials.account.id, channel, revision)
     }
 
-    private suspend fun verifyLocked(credentials: DeviceCredentials): RefreshWorkResult {
+    private suspend fun verifyLocked(credentials: DeviceCredentials, forceWebReload: Boolean = false): RefreshWorkResult {
+        val hadCookie = webSession.hasAccessCookie()
+        val wasAuthenticatedRecovering = (mutableState.value as? SessionState.Authenticated)?.let {
+            it.mode != ConnectionMode.ONLINE || !hadCookie
+        } ?: false
         webSession.installAccessCookie(credentials.accessToken, credentials.accessExpiresAtEpochMs)
         return when (val result = api.currentAccount(credentials.accessToken)) {
             is ApiCall.Success -> {
-                activate(credentials.copy(account = result.value))
+                activate(credentials.copy(account = result.value), forceWebReload = forceWebReload || wasAuthenticatedRecovering)
                 RefreshWorkResult.SUCCESS
             }
             is ApiCall.Failure -> when (result.kind) {
@@ -162,7 +166,7 @@ class SessionRepository(
                     )
                     RefreshWorkResult.RETRY
                 }
-                ApiFailureKind.AUTHENTICATION -> refreshLocked(credentials)
+                ApiFailureKind.AUTHENTICATION -> refreshLocked(credentials, forceWebReload)
                 ApiFailureKind.VALIDATION -> {
                     mutableState.value = SessionState.Authenticated(
                         credentials.account,
@@ -175,7 +179,7 @@ class SessionRepository(
         }
     }
 
-    private suspend fun refreshLocked(original: DeviceCredentials): RefreshWorkResult {
+    private suspend fun refreshLocked(original: DeviceCredentials, forceWebReload: Boolean = false): RefreshWorkResult {
         if (original.refreshExpiresAtEpochMs <= now()) {
             terminate("登录有效期已结束，请重新登录")
             return RefreshWorkResult.SIGNED_OUT
@@ -193,7 +197,7 @@ class SessionRepository(
         store.saveActive(pending)
         return when (val result = api.refresh(pending, deviceIdentity.getOrCreate(), rotationKey)) {
             is ApiCall.Success -> {
-                activate(result.value.copy(pendingRotationKey = ""))
+                activate(result.value.copy(pendingRotationKey = ""), forceWebReload = forceWebReload)
                 RefreshWorkResult.SUCCESS
             }
             is ApiCall.Failure -> when (result.kind) {
@@ -213,14 +217,15 @@ class SessionRepository(
         }
     }
 
-    private suspend fun activate(credentials: DeviceCredentials) {
+    private suspend fun activate(credentials: DeviceCredentials, forceWebReload: Boolean = false) {
         val previous = store.loadActive()
         if (previous != null && previous.account.id != credentials.account.id) {
             webSession.clearAccountData()
         }
         store.saveActive(credentials)
         webSession.installAccessCookie(credentials.accessToken, credentials.accessExpiresAtEpochMs)
-        if (previous != null && previous.accessToken != credentials.accessToken) {
+        val tokenRotated = previous != null && previous.accessToken != credentials.accessToken
+        if (forceWebReload || tokenRotated) {
             mutableWebSessionEpoch.value += 1
         }
         mutableState.value = SessionState.Authenticated(credentials.account, ConnectionMode.ONLINE)

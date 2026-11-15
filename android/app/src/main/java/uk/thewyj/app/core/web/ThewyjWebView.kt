@@ -78,6 +78,7 @@ fun ThewyjWebView(
     val paymentPublications = remember { PaymentPublicationGate() }
     val policy = remember { WebRoutePolicy(BuildConfig.THEWYJ_BASE_URL) }
     val loads = remember { WebLoadPolicy(sessionEpoch) }
+    val mainFrameFailed = remember { mutableStateOf(false) }
     val initialBackRequest = remember { backNavigationRequest }
     val refreshCallback = rememberUpdatedState(onRefreshSession)
     val logoutCallback = rememberUpdatedState(onLogout)
@@ -118,7 +119,10 @@ fun ThewyjWebView(
             onLogout = { logoutCallback.value() },
             onRouteChanged = { routeCallback.value(it) },
             onCanGoBackChanged = { canGoBackCallback.value(it) },
-            onMainFrameError = { errorCallback.value(it) },
+            onMainFrameError = {
+                mainFrameFailed.value = true
+                errorCallback.value(it)
+            },
             speechBridge = speechBridge,
             onThemeChanged = { dark -> themeCallback.value(dark) },
             onVerifyPayment = { eventId -> verifyPaymentCallback.value(eventId) },
@@ -164,11 +168,25 @@ fun ThewyjWebView(
         webView.awaitViewport()
         val target = policy.urlFor(route)
         if (BuildConfig.DEBUG) Log.i("ThewyjSession", "web-navigation-ready width=${webView.width} height=${webView.height}")
-        when (loads.next(navigationEpoch, sessionEpoch, webView.url == target)) {
-            WebLoadAction.LOAD -> webView.loadUrl(target)
-            WebLoadAction.NAVIGATE -> webView.navigateWithinDocument(policy, target)
-            WebLoadAction.RELOAD -> webView.reload()
-            WebLoadAction.NONE -> Unit
+        val action = loads.next(navigationEpoch, sessionEpoch, webView.url == target)
+        when {
+            mainFrameFailed.value && action != WebLoadAction.NONE -> {
+                mainFrameFailed.value = false
+                webView.loadUrl(target)
+            }
+            action == WebLoadAction.LOAD -> {
+                mainFrameFailed.value = false
+                webView.loadUrl(target)
+            }
+            action == WebLoadAction.NAVIGATE -> webView.navigateWithinDocument(policy, target)
+            action == WebLoadAction.RELOAD -> {
+                mainFrameFailed.value = false
+                webView.reload()
+            }
+            action == WebLoadAction.NONE && mainFrameFailed.value -> {
+                mainFrameFailed.value = false
+                webView.loadUrl(target)
+            }
         }
     }
     LaunchedEffect(backNavigationRequest) {

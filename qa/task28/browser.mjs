@@ -114,7 +114,7 @@ try {
 }catch(error){proof.status='FAIL';proof.error=error.stack;process.exitCode=1;console.error(error.stack);}
 finally{
   await writeFile(path.join(out,'result.json'),JSON.stringify(proof,null,2)+'\n');
-  if(guest)await guest.close();if(page)await page.close();if(browser){await browser.send('Browser.close').catch(()=>undefined);browser.close();}
+  if(guest)await guest.close();if(page)await page.close();if(browser){await Promise.race([browser.send('Browser.close').catch(()=>undefined),delay(1000)]);browser.close();}
   child.kill();await new Promise(resolve=>server.close(resolve));await mf.dispose();
   // This directory was created by mkdtemp for this synthetic browser alone.
   const resolved=path.resolve(profile),temporary=path.resolve(os.tmpdir())+path.sep;
