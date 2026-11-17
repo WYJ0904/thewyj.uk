@@ -8026,17 +8026,55 @@ async function boot() {
     toolsInitialized = true;
   }
   if ("serviceWorker" in navigator) {
-    const registerReleaseWorker = (attempt = 0) => {
+    let swAttempts = 0;
+    let swRetryTimer = 0;
+    const isTargetWorker = (worker) => Boolean(worker?.scriptURL?.includes(ASSET_RELEASE));
+    const nudgeWaitingWorker = (worker) => {
+      if (!isTargetWorker(worker) || worker.state !== "installed") return;
+      try { worker.postMessage({ type: "SKIP_WAITING" }); } catch {}
+    };
+    const scheduleReleaseRetry = () => {
+      if (swRetryTimer || swAttempts >= 6 || navigator.onLine === false) return;
+      if (isTargetWorker(navigator.serviceWorker.controller)) return;
+      swAttempts += 1;
+      swRetryTimer = window.setTimeout(() => {
+        swRetryTimer = 0;
+        registerReleaseWorker();
+      }, Math.min(1500, 300 * swAttempts));
+    };
+    const watchWorkerState = (worker, registration) => {
+      if (!worker || worker.__wyjStateWatched) return;
+      worker.__wyjStateWatched = true;
+      nudgeWaitingWorker(worker);
+      worker.addEventListener("statechange", () => {
+        nudgeWaitingWorker(worker);
+        if (worker.state === "installed" && isTargetWorker(worker)) {
+          scheduleReleaseRetry();
+        } else if (worker.state === "redundant" && !isTargetWorker(registration.active) && !isTargetWorker(navigator.serviceWorker.controller)) {
+          scheduleReleaseRetry();
+        }
+      });
+    };
+    const registerReleaseWorker = () => {
       navigator.serviceWorker.register(`/sw.js?v=${ASSET_RELEASE}`)
         .then((registration) => {
-          const activeUrl = registration?.active?.scriptURL || "";
-          if (activeUrl && !activeUrl.includes(ASSET_RELEASE) && !registration.installing && !registration.waiting) {
-            void registration.update().catch(() => {});
+          if (!registration.__wyjUpdateWatched) {
+            registration.__wyjUpdateWatched = true;
+            registration.addEventListener("updatefound", () => watchWorkerState(registration.installing, registration));
+          }
+          watchWorkerState(registration.installing, registration);
+          watchWorkerState(registration.waiting, registration);
+          nudgeWaitingWorker(registration.waiting);
+          if (!isTargetWorker(registration.active)) {
+            if (!isTargetWorker(registration.installing) && !isTargetWorker(registration.waiting)) {
+              void registration.update().catch(() => {});
+              scheduleReleaseRetry();
+            } else if (isTargetWorker(registration.waiting)) {
+              scheduleReleaseRetry();
+            }
           }
         })
-        .catch(() => {
-          if (attempt < 3) setTimeout(() => registerReleaseWorker(attempt + 1), 500 * (attempt + 1));
-        });
+        .catch(() => scheduleReleaseRetry());
     };
     registerReleaseWorker();
   }

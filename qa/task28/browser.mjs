@@ -12,6 +12,7 @@ import { isAllowedPagesFile } from '../../scripts/stage_pages_deploy.mjs';
 import { hashSecret } from '../../functions/_lib/task12-crypto.mjs';
 
 const root=path.resolve(import.meta.dirname,'../..'),out=path.join(root,'.wrangler/task28/evidence',`browser-${crypto.randomUUID()}`);
+const ownerIsolationOnly=process.argv.includes('--owner-isolation-only');
 await mkdir(out,{recursive:true});
 const config=JSON.parse(await readFile(path.join(root,'wrangler.jsonc'),'utf8'));
 const mf=new Miniflare({modules:true,script:"export default {fetch(){return new Response('isolated fixture')}}",compatibilityDate:config.compatibility_date,
@@ -65,8 +66,13 @@ const child=spawn(chrome,['--headless=new',...(process.platform==='linux'?['--no
   '--no-first-run','--no-default-browser-check','--disable-background-networking','--disable-component-update','--disable-default-apps','--disable-sync',
   '--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1','about:blank'],{windowsHide:true,stdio:'ignore'});
 let browser,page,guest;
-const proof={scope:'isolated desktop Chrome + mobile viewport, real local D1/R2, synthetic account/files',checks:[],screenshots:[],hosted:'NOT_TESTED',android_webview:'NOT_TESTED',production:'NOT_TOUCHED'};
-async function check(name,fn){await fn();proof.checks.push({name,status:'PASS'});console.log('PASS '+name);}
+const proof={scope:'isolated desktop Chrome + mobile viewport, real local D1/R2, synthetic account/files',mode:ownerIsolationOnly?'owner-isolation-handoff':'full',checks:[],screenshots:[],hosted:'NOT_TESTED',android_webview:'NOT_TESTED',production:'NOT_TOUCHED'};
+async function check(name,fn){
+  if(ownerIsolationOnly && (name.startsWith('375px') || name.startsWith('revoke removes'))) {
+    proof.checks.push({name,status:'SKIPPED',reason:'already passed; outside targeted owner-isolation handoff check'});console.log('SKIPPED '+name);return;
+  }
+  await fn();proof.checks.push({name,status:'PASS'});console.log('PASS '+name);
+}
 async function screenshot(name){const capture=await page.send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});await writeFile(path.join(out,name+'.png'),Buffer.from(capture.data,'base64'));proof.screenshots.push(name+'.png');}
 try {
   let port;for(let i=0;i<100&&!port;i++){try{port=Number((await readFile(path.join(profile,'DevToolsActivePort'),'utf8')).split('\n')[0]);}catch{await delay(100);}}
@@ -149,5 +155,5 @@ finally{
   // This directory was created by mkdtemp for this synthetic browser alone.
   const resolved=path.resolve(profile),temporary=path.resolve(os.tmpdir())+path.sep;
   if(resolved.startsWith(temporary))await rm(resolved,{recursive:true,force:true,maxRetries:5,retryDelay:200});
-  console.log(JSON.stringify({status:proof.status,checks:proof.checks.length,evidence:path.relative(root,out)}));
+  console.log(JSON.stringify({status:proof.status,checks:proof.checks.length,passed:proof.checks.filter(c=>c.status==='PASS').length,skipped:proof.checks.filter(c=>c.status==='SKIPPED').length,mode:proof.mode,evidence:path.relative(root,out)}));
 }
