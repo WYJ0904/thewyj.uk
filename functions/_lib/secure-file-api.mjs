@@ -1,5 +1,6 @@
 import { apiError, jsonResponse, enforceD1RateLimit, featureFlags, sameOriginResult } from './cloudflare-foundation.mjs';
 import { resolveTask12Account } from './task12-auth.mjs';
+import { explicitWebSessionToken, webDownloadSessionCookie } from './task20-model.mjs';
 import { secureFilesV1 } from './secure-file-service.mjs';
 import { readFileJson, SecureFileError } from './secure-file-policy.mjs';
 import { Task22Error, requireAllowedFields } from './task22-model.mjs';
@@ -35,7 +36,12 @@ export async function handleSecureFileRequest(context) {
         result={file:await secureFilesV1.revoke(context,auth.account,handle)};
       } else throw new SecureFileError('method_not_allowed','请求方法无效',405);
     }
-    return jsonResponse({ok:true,version:1,...result},url.pathname.endsWith('/uploads')?201:200,requestId,{'Cache-Control':'private, no-store'});
+    const responseHeaders = { 'Cache-Control': 'private, no-store' };
+    if (url.pathname.endsWith('/authorize')) {
+      const webToken = explicitWebSessionToken(context.request);
+      if (webToken) responseHeaders['Set-Cookie'] = webDownloadSessionCookie(context.request, webToken);
+    }
+    return jsonResponse({ok:true,version:1,...result},url.pathname.endsWith('/uploads')?201:200,requestId,responseHeaders);
   } catch(error) {
     if(error instanceof SecureFileError || error instanceof Task22Error || ['Task12Error','Task14Error'].includes(error?.name)) {
       return apiError(error.code,error.message,error.status,requestId,{retryable:error.retryable});

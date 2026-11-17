@@ -4,7 +4,17 @@ import { accountPayload, requireAllowedFields, Task12Error } from './task12-mode
 import { issueTask12Session, deleteOwnAccount, recordLoginEvent } from './task12-service.mjs';
 import { enrichAccountWithTask13 } from './task13-service.mjs';
 import { createTask20DeviceSession, ensureTask20Schema } from './task20-service.mjs';
-import { requireTask20AndroidClient, task20AccessCookie, task20TokenFromRequest, TASK20_ACCESS_TTL_SECONDS, validateTask20DeviceId, validateTask20AppVersion } from './task20-model.mjs';
+import {
+  clearTask20AccessCookie,
+  clearWebDownloadSessionCookies,
+  requireTask20AndroidClient,
+  task20AccessCookie,
+  task20TokenFromRequest,
+  TASK20_ACCESS_TTL_SECONDS,
+  validateTask20DeviceId,
+  validateTask20AppVersion,
+  webDownloadSessionCookie,
+} from './task20-model.mjs';
 import { task20DeviceDigest } from './task20-crypto.mjs';
 import { sessionStorageKey } from './task12-crypto.mjs';
 import { EmailServiceError } from './email-service.mjs';
@@ -104,7 +114,12 @@ async function completeLogin(context,_account,payload) {
   let account=result.account;
   try { account=await enrichAccountWithTask13(db,account); } catch(_) {account={...account,membership_state_unavailable:true};}
   await recordLoginEvent(db,user.username,true,'mfa_success',{},user).catch(()=>undefined);
-  return jsonResponse({ok:true,...result,account},200,context.data?.requestId || '',android?{'Set-Cookie':task20AccessCookie(result.access_token)}:{});
+  return jsonResponse(
+    {ok:true,...result,account},
+    200,
+    context.data?.requestId || '',
+    android ? {'Set-Cookie':task20AccessCookie(result.access_token)} : {'Set-Cookie':webDownloadSessionCookie(context.request,result.session)},
+  );
 }
 export async function handleTask27Request(context) {
   const url=new URL(context.request.url),method=context.request.method.toUpperCase(),key=`${method} ${url.pathname}`;
@@ -135,7 +150,14 @@ export async function handleTask27Request(context) {
     const payload=method==='POST'?await readJsonBounded(context.request):{};
     requireAllowedFields(payload,new Set(descriptor.fields));checkTypes(payload);
     const result=await descriptor.run(context,account,payload);
-    return result instanceof Response?result:respond(result);
+    if (result instanceof Response) return result;
+    if (result?.session_invalidated) {
+      return jsonResponse({ok:true,...result},200,context.data?.requestId || '',{
+        'Cache-Control':'private, no-store',
+        'Set-Cookie':[clearTask20AccessCookie(),...clearWebDownloadSessionCookies(context.request)],
+      });
+    }
+    return respond(result);
   } catch(error) {
     if (error instanceof Task12Error || error instanceof EmailServiceError) return apiError(error.code,error.message,error.status,context.data?.requestId || '',{retryable:error.retryable,headers:error.status===429?{'Retry-After':'60'}:{}});
     console.error(JSON.stringify({event:'task27_error',request_id:context.data?.requestId || '',route:url.pathname,error_name:String(error?.name || 'Error')}));

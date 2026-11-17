@@ -12,6 +12,7 @@ import { recordLoginEvent } from "./task12-service.mjs";
 import { enrichAccountWithTask13 } from "./task13-service.mjs";
 import {
   clearTask20AccessCookie,
+  clearWebDownloadSessionCookies,
   requireTask20AndroidClient,
   task20AccessCookie,
   task20TokenFromRequest,
@@ -232,7 +233,9 @@ async function executeRoute(context, descriptor, account) {
   if (path === "/api/app/session/logout") {
     requireAllowedFields(payload, new Set(["refresh_token", "device_id"]));
     await logoutTask20Device(db, payload, task20TokenFromRequest(context.request));
-    return response({ ok: true }, 200, context, { "Set-Cookie": clearTask20AccessCookie() });
+    return response({ ok: true }, 200, context, {
+      "Set-Cookie": [clearTask20AccessCookie(), ...clearWebDownloadSessionCookies(context.request)],
+    });
   }
   throw new Task12Error("Android App 接口不存在", 404, "task20_route_not_found");
 }

@@ -47,7 +47,10 @@ try {
   await check('native fixed-length stream preserves wire length and whole download SHA-256',async()=>{
     const authorized=await call(`/api/files/v1/attachments/${handle.file_id}/authorize`,{});
     assert.equal(authorized.response.status,200,JSON.stringify(authorized.body));download=authorized.body.download;
-    const response=await mf.dispatchFetch('https://task28.local'+download.url);
+    const unauth=await mf.dispatchFetch('https://task28.local'+download.url);
+    assert.equal(unauth.status,401);await unauth.body.cancel();
+    assert.match(authorized.response.headers.get('Set-Cookie')||'',/__Host-wyj_web_download=/);
+    const response=await mf.dispatchFetch('https://task28.local'+download.url,{headers:{'X-Session-Token':token}});
     assert.equal(response.status,200);assert.equal(Number(response.headers.get('Content-Length')),source.length);
     assert.equal(response.headers.get('X-Content-Type-Options'),'nosniff');assert.match(response.headers.get('Cache-Control'),/no-store/);
     const hash=createHash('sha256'),reader=response.body.getReader();let length=0,maximumChunk=0;
@@ -56,12 +59,14 @@ try {
     proof.download={size_bytes:length,maximum_received_chunk:maximumChunk,wire_content_length:source.length,whole_sha256_compared:true};
   });
   await check('native range retry, private owner authorization and revocation work in compiled routing',async()=>{
-    const response=await mf.dispatchFetch('https://task28.local'+download.url,{headers:{Range:`bytes=${handle.part_size-5}-${handle.part_size+5}`}});
+    const response=await mf.dispatchFetch('https://task28.local'+download.url,{headers:{'X-Session-Token':token,Range:`bytes=${handle.part_size-5}-${handle.part_size+5}`}});
     assert.equal(response.status,206);assert.deepEqual(Buffer.from(await response.arrayBuffer()),source.subarray(handle.part_size-5,handle.part_size+6));
+    const cookieRange=await mf.dispatchFetch('https://task28.local'+download.url,{headers:{Cookie:`__Host-wyj_web_download=${token}`,Range:'bytes=0-15'}});
+    assert.equal(cookieRange.status,206);assert.deepEqual(Buffer.from(await cookieRange.arrayBuffer()),source.subarray(0,16));
     const foreign=await mf.dispatchFetch(`https://task28.local/api/transfer/shares/${share.id}/authorize`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
     assert.equal(foreign.status,404);await foreign.body.cancel();
     assert.equal((await call(`/api/files/v1/attachments/${handle.file_id}/revoke`,{})).response.status,200);
-    const revoked=await mf.dispatchFetch('https://task28.local'+download.url);assert.equal(revoked.status,403);await revoked.body.cancel();
+    const revoked=await mf.dispatchFetch('https://task28.local'+download.url,{headers:{'X-Session-Token':token}});assert.equal(revoked.status,403);await revoked.body.cancel();
   });
   proof.status='PASS';
 }catch(error){proof.status='FAIL';proof.error=error.stack;process.exitCode=1;console.error(error.stack);}

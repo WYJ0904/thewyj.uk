@@ -1,5 +1,8 @@
 import { scanFileOrphans, pruneFileAudit, cleanupStorageBudget,enqueueMultipartAbort,retryMultipartAborts,beginMultipartAllocation } from './secure-file-cleanup.mjs';
 import { sha256Hex } from "./cloudflare-foundation.mjs";
+import { resolveTask12Account } from "./task12-auth.mjs";
+import { sessionStorageKey } from "./task12-crypto.mjs";
+import { downloadSessionTokenFromRequest } from "./task20-model.mjs";
 import { hashTemporaryPassword, verifyTemporaryPassword } from "./task14-crypto.mjs";
 import { accountMembershipState } from "./task13-service.mjs";
 import {
@@ -696,7 +699,35 @@ export async function shareMetadata(db, storage, env, input, account = null) {
   return sharePayload(row, await shareFileRows(db, row.id));
 }
 
-export async function authorizeShareDownload(db, storage, env, input, account = null) {
+async function resolveGrantSessionBinding(db, accountId, sessionToken) {
+  const raw = String(sessionToken || "").trim();
+  if (!raw) throw new Task22Error("请先登录有效账户", 401, "authentication_required");
+  const digest = await sessionStorageKey(raw);
+  const now = isoNow();
+  try {
+    const device = await first(db, `SELECT d.id
+      FROM task20_device_sessions AS d
+      JOIN task12_users AS u ON u.id = d.user_id
+      WHERE d.access_token_digest = ?1 AND d.user_id = ?2 AND d.revoked = 0
+        AND d.refresh_expires_at > ?3 AND d.session_version = u.session_version
+        AND u.deleted = 0 AND u.banned = 0`, [digest, String(accountId), now]);
+    if (device?.id) return `device:${device.id}`;
+  } catch (error) {
+    if (!/no such table:\s*task20_device_sessions/i.test(String(error?.message || error || ""))) throw error;
+  }
+  const web = await first(db, `SELECT s.token_digest
+    FROM task12_sessions AS s
+    JOIN task12_users AS u ON u.id = s.user_id
+    WHERE s.token_digest = ?1 AND s.user_id = ?2 AND s.revoked = 0
+      AND s.expires_at > ?3 AND s.session_version = u.session_version
+      AND u.deleted = 0 AND u.banned = 0`, [digest, String(accountId), now]);
+  if (!web?.token_digest) {
+    throw new Task22Error("登录会话已失效，请重新登录", 401, "canonical_session_invalid");
+  }
+  return `web:${digest}`;
+}
+
+export async function authorizeShareDownload(db, storage, env, input, account = null, options = {}) {
   requireAllowedFields(input, new Set(["id", "password", "file_id"]));
   const row = await first(db, "SELECT * FROM task22_shares WHERE id = ?1", [cleanId(input.id)]);
   requireShareAccess(row,account);
@@ -706,6 +737,9 @@ export async function authorizeShareDownload(db, storage, env, input, account = 
   await checkPassword(row, input.password, env);
   const fileId = input.file_id ? cleanId(input.file_id,'文件标识') : '';
   if (row.access_scope === 'private' && !fileId) throw new Task22Error('请选择要访问的附件',400,'file_grant_scope_required');
+  const sessionBinding = row.access_scope === 'private'
+    ? await resolveGrantSessionBinding(db, account.id, options.sessionToken)
+    : '';
   const files = await shareFileRows(db,row.id);
   if (fileId && !files.some(f=>f.file_id===fileId)) throw new Task22Error('文件不存在',404,'file_not_found');
   // A file-scoped authorization checks that object before consuming a count.
@@ -729,10 +763,10 @@ export async function authorizeShareDownload(db, storage, env, input, account = 
   )));
   await requireDatabase(db).batch([
     db.prepare(`INSERT INTO task22_download_grants (
-        token_digest, share_id, created_at, expires_at, state, file_id
-      ) SELECT ?2, id, ?3, ?4, 'active', ?5 FROM task22_shares
+        token_digest, share_id, created_at, expires_at, state, file_id, session_binding
+      ) SELECT ?2, id, ?3, ?4, 'active', ?5, ?6 FROM task22_shares
       WHERE id = ?1 AND state = 'active' AND expires_at > ?3 AND download_count < max_downloads`)
-      .bind(row.id, digest, now, expiresAt,fileId),
+      .bind(row.id, digest, now, expiresAt, fileId, sessionBinding),
     db.prepare(`UPDATE task22_shares SET
         download_count = download_count + 1,
         state = CASE WHEN one_time = 1 OR download_count + 1 >= max_downloads
@@ -854,7 +888,8 @@ export async function streamFileDownload(context, shareIdValue, fileIdValue, tok
   const fileId = cleanId(fileIdValue, "文件标识");
   const digest = await sha256Hex(token);
   const now = isoNow();
-  const row = await first(db, `SELECT share.*, grant.state AS grant_state, grant.expires_at AS grant_expires_at
+  const row = await first(db, `SELECT share.*, grant.state AS grant_state, grant.expires_at AS grant_expires_at,
+      grant.session_binding AS grant_session_binding
     FROM task22_download_grants AS grant
     JOIN task22_shares AS share ON share.id = grant.share_id
     WHERE grant.token_digest = ?1 AND grant.share_id = ?2
@@ -864,6 +899,20 @@ export async function streamFileDownload(context, shareIdValue, fileIdValue, tok
       AND share.state IN ('active', 'delete_pending') AND share.deletion_reason != 'owner_revoked'
       AND share.expires_at > ?3`, [digest, shareId, now,fileId]);
   if (!row) throw new Task22Error("下载授权无效或已过期", 403, "transfer_download_grant_invalid");
+  if (row.access_scope === 'private') {
+    const sessionToken = downloadSessionTokenFromRequest(context.request);
+    const auth = await resolveTask12Account(context, { token: sessionToken });
+    if (!auth.authenticated) {
+      throw new Task22Error("请先登录有效账户后再访问私有附件", auth.status || 401, auth.code || "authentication_required");
+    }
+    if (row.owner_kind !== 'user' || row.owner_ref !== String(auth.account.id)) {
+      throw new Task22Error("无权访问该私有附件", 403, "file_access_denied");
+    }
+    const callerBinding = await resolveGrantSessionBinding(db, auth.account.id, sessionToken);
+    if (!row.grant_session_binding || row.grant_session_binding !== callerBinding) {
+      throw new Task22Error("下载授权已因会话变更失效，请重新获取下载授权", 403, "transfer_download_grant_invalid");
+    }
+  }
   const file = await first(db, "SELECT * FROM task22_share_files WHERE share_id = ?1 AND file_id = ?2", [shareId, fileId]);
   if (!file) throw new Task22Error("分享文件不存在", 404, "transfer_share_file_not_found");
   const totalBytes = Number(file.size_bytes);

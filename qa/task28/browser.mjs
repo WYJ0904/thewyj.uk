@@ -37,7 +37,7 @@ await db.prepare(`INSERT INTO task12_users(id,username,username_normalized,passw
   VALUES('task28-fixture-owner','task28-fixture-owner','task28-fixture-owner','','reset_required',0,'super_admin',?1,?1,?1)`).bind(now).run();
 const fixture=path.join(out,'synthetic-attachment.txt');await writeFile(fixture,'Synthetic attachment integrity 中文\n'.repeat(64));
 const csp=(await readFile(path.join(root,'_headers'),'utf8')).match(/Content-Security-Policy: (.+)/)[1].trim();
-let base;const apiErrors=[];let holdAuthorization=false,releaseAuthorization=null;
+let base;const apiErrors=[];let holdAuthorization=false,releaseAuthorization=null;const downloadRecords=[];
 const server=createServer(async(req,res)=>{
   try {
     const url=new URL(req.url,base);
@@ -48,10 +48,14 @@ const server=createServer(async(req,res)=>{
         ...(['GET','HEAD'].includes(req.method)?{}:{body:Buffer.concat(chunks)})}),env,data:{requestId:crypto.randomUUID()},waitUntil(p){tasks.push(p);}};
       const response=await (url.pathname==='/api/status'?status:onRequest)(context);
       if(response.status>=500)apiErrors.push({path:url.pathname,status:response.status,code:(await response.clone().json()).code});
+      if(/^\/api\/transfer\/shares\/.+\/download$/.test(url.pathname))downloadRecords.push({url:url.pathname+url.search,status:response.status});
       if(holdAuthorization && /\/api\/transfer\/shares\/.+\/authorize$/.test(url.pathname) && response.ok) {
         holdAuthorization=false;await new Promise(resolve=>{releaseAuthorization=resolve;});
       }
-      res.writeHead(response.status,Object.fromEntries(response.headers));res.end(Buffer.from(await response.arrayBuffer()));await Promise.all(tasks);return;
+      const headersOut=Object.fromEntries(response.headers);
+      const setCookies=typeof response.headers.getSetCookie==='function'?response.headers.getSetCookie():[];
+      if(setCookies.length)headersOut['set-cookie']=setCookies;
+      res.writeHead(response.status,headersOut);res.end(Buffer.from(await response.arrayBuffer()));await Promise.all(tasks);return;
     }
     const file=['/','/login','/transfer','/select','/account'].includes(url.pathname)?'index.html':url.pathname.slice(1);
     if(!isAllowedPagesFile(file)||file.startsWith('functions/')){res.writeHead(404);res.end();return;}
@@ -88,6 +92,7 @@ try {
     assert.equal(await page.evaluate("document.getElementById('transferPrivate').checked"),false);
     assert.match(await page.evaluate("document.getElementById('transferSafetyHint').textContent"),/HTML、SVG/);
   });
+  let privateDownloadUrl='';
   await check('private upload, validated completion, owner-only management and file-scoped download use the real UI',async()=>{
     if(!(await page.evaluate("document.getElementById('transferPrivate').checked")))await page.click('#transferPrivate');
     await page.setFile('#transferFileInput',[fixture]);
@@ -98,7 +103,11 @@ try {
     assert.match(await page.evaluate("document.getElementById('transferShareFiles').textContent"),/完整文件 SHA-256 已校验/);
     const share=await db.prepare("SELECT * FROM task22_shares WHERE owner_ref='task28-browser' AND state='active'").first();assert.equal(share.access_scope,'private');
     await page.click('[data-transfer-download]');await page.waitFor("document.getElementById('transferMessage').textContent.includes('下载已开始')",20000);
-    const grant=await db.prepare('SELECT file_id FROM task22_download_grants WHERE share_id=?1').bind(share.id).first();assert.ok(grant.file_id);
+    for(let i=0;i<40&&!downloadRecords.length;i++)await delay(50);
+    assert.ok(downloadRecords.length>=1&&downloadRecords[0].status===200,'real browser download GET succeeded with session cookie');
+    privateDownloadUrl=downloadRecords[0].url;
+    const grant=await db.prepare('SELECT file_id, session_binding FROM task22_download_grants WHERE share_id=?1').bind(share.id).first();
+    assert.ok(grant.file_id);assert.match(grant.session_binding,/^web:/);
     const denied=await fetch(base+`/api/transfer/shares/${share.id}/authorize`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});assert.equal(denied.status,404);
     await screenshot('private-desktop');
   });
@@ -116,10 +125,14 @@ try {
     async function login(name){await page.setFields({'#usernameInput':name,'#secretInput':password});await page.click('#loginSubmitBtn');await page.waitFor(`location.pathname==='/'&&document.getElementById('accountBadge').textContent.includes('${name}')`,30000);await page.click('a[data-site-nav=transfer]');await page.waitFor("document.getElementById('transferPage').checkVisibility()&&!document.getElementById('transferQuotaText').textContent.includes('加载中')",20000);}
     await logout();
     assert.equal(await page.evaluate("document.getElementById('transferShareFiles').textContent"),'','logout clears private file metadata from the DOM');
+    assert.equal(await page.evaluate(`fetch(${JSON.stringify(privateDownloadUrl)}).then(r=>r.status)`),401,'logged-out browser cannot replay previous private download URL');
     await login('task28-browser-other');
     assert.equal(await page.evaluate("document.getElementById('transferShareCard').classList.contains('hidden')"),true);
     assert.equal(await page.evaluate("document.getElementById('transferMyShares').textContent.includes('synthetic-attachment.txt')"),false);
-    await logout();await login('task28-browser');await page.waitFor("document.querySelector('[data-transfer-open]')",20000);await page.click('[data-transfer-open]');
+    assert.equal(await page.evaluate(`fetch(${JSON.stringify(privateDownloadUrl)}).then(r=>r.status)`),403,'second account cannot replay first account private download URL');
+    await logout();await login('task28-browser');await page.waitFor("document.querySelector('[data-transfer-open]')",20000);
+    assert.equal(await page.evaluate(`fetch(${JSON.stringify(privateDownloadUrl)}).then(r=>r.status)`),403,'re-logged-in owner cannot reuse pre-logout private grant without re-authorizing');
+    await page.click('[data-transfer-open]');
     await page.waitFor("document.getElementById('transferShareFiles').textContent.includes('synthetic-attachment.txt')",20000);
     await page.evaluate("window.__task28DownloadClicks=0;window.__task28HeldDownloadButton=document.querySelector('[data-transfer-download]');const original=HTMLAnchorElement.prototype.click;HTMLAnchorElement.prototype.click=function(){if(this.download)window.__task28DownloadClicks++;return original.call(this);};");
     holdAuthorization=true;await page.click('[data-transfer-download]');

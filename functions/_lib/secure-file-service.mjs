@@ -5,6 +5,7 @@ import {
 import { cleanId, cleanFileName, normalizeMime, safeInteger, MAX_SHARE_BYTES, sharePayload, Task22Error, requireAllowedFields } from './task22-model.mjs';
 import { authorizeFileDownload, cancelFileReservation } from './task14-service.mjs';
 import { filePayload } from './task14-model.mjs';
+import { task20TokenFromRequest } from './task20-model.mjs';
 
 const requireUser = account => {
   if (!account?.id) throw new Task22Error('请先登录',401,'authentication_required');
@@ -87,7 +88,9 @@ export const secureFilesV1=Object.freeze({
     await secureFilesV1.metadata(context,account,{source,file_id});
     if(source==='temporary') return await authorizeFileDownload(context.env.WYJ_DB,context.env.WYJ_STORAGE,context.env,{id:file_id,password});
     const share=await ownedTransfer(context.env.WYJ_DB,account,file_id);
-    const result=await authorizeShareDownload(context.env.WYJ_DB,context.env.WYJ_STORAGE,context.env,{id:share.id,file_id,password},account);
+    const result=await authorizeShareDownload(context.env.WYJ_DB,context.env.WYJ_STORAGE,context.env,{id:share.id,file_id,password},account,{
+      sessionToken: task20TokenFromRequest(context.request),
+    });
     return {...result,url:`/api/transfer/shares/${share.id}/download?file=${encodeURIComponent(file_id)}&grant=${encodeURIComponent(result.token)}`};
   },
   async revoke(context,account,{source='transfer',file_id}) {

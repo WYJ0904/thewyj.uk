@@ -9,7 +9,7 @@ import {
 import { SecureFileError, readFileJson } from './secure-file-policy.mjs';
 import { authorizeFileMaintenance } from './secure-file-maintenance.mjs';
 import { resolveTask12Account } from "./task12-auth.mjs";
-import { task20TokenFromRequest } from './task20-model.mjs';
+import { explicitWebSessionToken, task20TokenFromRequest, webDownloadSessionCookie } from './task20-model.mjs';
 import {
   TASK22_BUILD,
   Task22Error,
@@ -45,7 +45,7 @@ const ROUTES = new Map([
   ["GET /api/transfer/shares", { mode: "read", auth: "optional", limit: 60, window: 60 }],
   ["GET /api/transfer/shares/metadata", { mode: "read", auth: "public", limit: 60, window: 60 }],
   ["POST /api/transfer/shares/authorize", { mode: "read", auth: "public", limit: 30, window: 60, body: 8 * 1024 }],
-  ["GET /api/transfer/shares/download", { mode: "read", auth: "public", limit: 180, window: 60, raw: true }],
+  ["GET /api/transfer/shares/download", { mode: "read", auth: "download", limit: 180, window: 60, raw: true }],
   ["POST /api/transfer/shares/revoke", { mode: "write", auth: "optional", limit: 30, window: 60, body: 8 * 1024 }],
   ["POST /api/admin/task22/cleanup", { mode: "admin", auth: "owner", limit: 10, window: 60, body: 2 * 1024 }],
 ]);
@@ -88,6 +88,7 @@ function guestIdFrom(context, payload = null) {
 }
 
 async function authenticate(context, requirement) {
+  if (requirement === "download") return null;
   const result = await resolveTask12Account(context);
   if (result.authenticated) {
     if (requirement === "owner" && !result.account.is_super_admin) {
@@ -174,8 +175,13 @@ async function execute(context, account, descriptor) {
   if (authorizeMatch) {
     const payload = await payloadFor(descriptor.body);
     requireAllowedFields(payload, new Set(["password", "file_id"]));
-    const download = await authorizeShareDownload(db, storage, context.env, { ...payload, id: authorizeMatch[1] },account);
-    return response({ ok: true, download }, 200, context, { "Cache-Control": "private, no-store" });
+    const download = await authorizeShareDownload(db, storage, context.env, { ...payload, id: authorizeMatch[1] }, account, {
+      sessionToken: task20TokenFromRequest(context.request),
+    });
+    const headers = { "Cache-Control": "private, no-store" };
+    const webToken = account ? explicitWebSessionToken(context.request) : "";
+    if (webToken) headers["Set-Cookie"] = webDownloadSessionCookie(context.request, webToken);
+    return response({ ok: true, download }, 200, context, headers);
   }
   const downloadMatch = /^\/api\/transfer\/shares\/([A-Za-z0-9_-]{16,80})\/download$/.exec(path);
   if (downloadMatch) {

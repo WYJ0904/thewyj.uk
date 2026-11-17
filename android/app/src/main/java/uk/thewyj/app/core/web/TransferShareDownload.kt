@@ -67,6 +67,19 @@ private val CONTENT_RANGE = Regex("^bytes (\\d+)-(\\d+)/(\\d+)$")
 private const val RANGE_BYTES = 8L * 1024 * 1024
 private const val MAX_DOWNLOAD_BYTES = 5L * 1024 * 1024 * 1024
 
+internal fun applyTransferRangeHeaders(
+    connection: HttpURLConnection,
+    start: Long,
+    end: Long,
+    userAgent: String,
+    cookie: String?,
+) {
+    connection.setRequestProperty("Range", "bytes=$start-$end")
+    connection.setRequestProperty("Accept-Encoding", "identity")
+    if (userAgent.isNotBlank()) connection.setRequestProperty("User-Agent", userAgent)
+    cookie?.trim()?.takeIf(String::isNotEmpty)?.let { connection.setRequestProperty("Cookie", it) }
+}
+
 /** Copies bounded ranges and resumes from the last byte actually written. */
 internal fun copyTransferRanges(
     total: Long,
@@ -119,6 +132,7 @@ internal fun copyTransferRanges(
 /** Keeps incomplete bytes hidden in MediaStore until the full transfer is verified. */
 internal class TransferShareDownloader(
     private val context: Context,
+    private val cookieProvider: (String) -> String? = { null },
     private val onStatus: (TransferDownloadStatus) -> Unit,
 ) {
     companion object {
@@ -209,9 +223,7 @@ internal class TransferShareDownloader(
         connection.instanceFollowRedirects = false
         connection.connectTimeout = 15_000
         connection.readTimeout = 30_000
-        connection.setRequestProperty("Range", "bytes=$start-$end")
-        connection.setRequestProperty("Accept-Encoding", "identity")
-        if (userAgent.isNotBlank()) connection.setRequestProperty("User-Agent", userAgent)
+        applyTransferRangeHeaders(connection, start, end, userAgent, cookieProvider(url))
         val status = try { connection.responseCode } catch (error: Exception) {
             connection.disconnect()
             throw error

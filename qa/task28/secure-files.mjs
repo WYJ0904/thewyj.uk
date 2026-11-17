@@ -5,6 +5,8 @@ import { Miniflare } from 'miniflare';
 import { onRequest } from '../../functions/api/[[path]].js';
 import { sessionStorageKey,hashSecret } from '../../functions/_lib/task12-crypto.mjs';
 import { sha256Hex } from '../../functions/_lib/cloudflare-foundation.mjs';
+import { task20DeviceDigest } from '../../functions/_lib/task20-crypto.mjs';
+import { deriveTask20Token } from '../../functions/_lib/task20-crypto.mjs';
 import { securityState, activeUser } from '../../functions/_lib/task27-store.mjs';
 import { createChallenge } from '../../functions/_lib/task27-auth.mjs';
 import { secureFilesV1 } from '../../functions/_lib/secure-file-service.mjs';
@@ -128,17 +130,22 @@ try {
     assert.equal((await call(h.file?`/api/transfer/uploads/${h.session_id}/files/${h.file_id}/parts/1`:'',{token:users.b.token,raw:h.data})).status,404);
     await abort(h);
   });
-  await check('file-scoped grants reject forgery, cross-file replay and expiry while preserving range retry',async()=>{
+  await check('file-scoped grants reject forgery, cross-file replay, non-owners and expiry while preserving range retry',async()=>{
     const authorized=await call(`/api/files/v1/attachments/${privateHandle.file_id}/authorize`,{body:{}});
     assert.equal(authorized.status,200,JSON.stringify(authorized.payload));
     const url=authorized.payload.download.url;
-    const read=await call(url,{token:''});assert.equal(read.status,200);assert.deepEqual(read.payload,privateHandle.data);
-    const range=await call(url,{token:'',headers:{Range:'bytes=1-4'}});assert.equal(range.status,206);assert.deepEqual(range.payload,privateHandle.data.subarray(1,5));
-    assert.equal((await call(url.replace(privateHandle.file_id,'another-file-000001'),{token:''})).status,403);
-    assert.equal((await call(url.replace(/grant=.*/,`grant=${'x'.repeat(43)}`),{token:''})).status,403);
+    assert.equal((await call(url,{token:''})).status,401);
+    assert.equal((await call(url,{token:users.b.token})).status,403);
+    assert.equal((await call(url,{token:users.admin.token})).status,403);
+    const read=await call(url,{token:users.a.token});assert.equal(read.status,200);assert.deepEqual(read.payload,privateHandle.data);
+    const cookieRead=await call(url,{token:'',headers:{Cookie:`__Host-wyj_web_download=${users.a.token}`}});
+    assert.equal(cookieRead.status,200);assert.deepEqual(cookieRead.payload,privateHandle.data);
+    const range=await call(url,{token:users.a.token,headers:{Range:'bytes=1-4'}});assert.equal(range.status,206);assert.deepEqual(range.payload,privateHandle.data.subarray(1,5));
+    assert.equal((await call(url.replace(privateHandle.file_id,'another-file-000001'),{token:users.a.token})).status,403);
+    assert.equal((await call(url.replace(/grant=.*/,`grant=${'x'.repeat(43)}`),{token:users.a.token})).status,403);
     const expired=await db.prepare("UPDATE task22_download_grants SET expires_at='2000-01-01T00:00:00Z' WHERE token_digest=?1")
       .bind(await sha256Hex(authorized.payload.download.token)).run();assert.equal(expired.meta.changes,1);
-    assert.equal((await call(url,{token:''})).status,403);
+    assert.equal((await call(url,{token:users.a.token})).status,403);
   });
   await check('known-type spoofing and forged hashes fail before committing; correct retry succeeds',async()=>{
     const data=new Uint8Array(64);data.set([137,80,78,71,13,10,26,10]);
@@ -426,6 +433,82 @@ try {
       const response=await Promise.race([onRequest(context(request)),new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('oversized audited request did not settle')),10000);})]);
       assert.equal(response.status,413);assert.equal((await response.json()).code,'request_too_large');assert.ok(chunks<1024);
     } finally {clearTimeout(timer);}
+  });
+  await check('private grants enforce current session binding across logout, relogin, ban, admin and Android refresh',async()=>{
+    const password='Synthetic-Task28-Session-Password!',ts=new Date().toISOString();
+    await db.prepare("UPDATE task12_users SET password_hash=?2,password_scheme='pbkdf2_sha256',password_iterations=310000 WHERE id=?1")
+      .bind(users.a.id,await hashSecret(password,env.WYJ_TASK12_PASSWORD_PEPPER)).run();
+    const loginA1=await call('/api/login',{token:'',body:{username:users.a.id,secret:password}});
+    assert.equal(loginA1.status,200,JSON.stringify(loginA1.payload));
+    const tokenA1=loginA1.payload.session;
+    assert.match(loginA1.headers.get('Set-Cookie')||'',/__Host-wyj_web_download=/);
+    const data=bytes('session-bound private payload bytes');
+    const up=await call('/api/files/v1/uploads',{token:tokenA1,body:{file_name:'bound.txt',mime_type:'text/plain',size_bytes:data.length}});
+    assert.equal(up.status,201);
+    const h={...up.payload.upload,data,account:users.a};
+    await put(h,data,1,storage,await fileSha256Hex(data));
+    await complete(h);
+    const authA1=await call(`/api/files/v1/attachments/${h.file_id}/authorize`,{token:tokenA1,body:{}});
+    assert.equal(authA1.status,200);
+    const urlA1=authA1.payload.download.url;
+    assert.equal((await call(urlA1,{token:tokenA1})).status,200);
+
+    // 2. Logout invalidates the session & clears the cookie; old token and anonymous access fail.
+    const outRes=await call('/api/logout',{token:tokenA1,body:{}});
+    assert.equal(outRes.status,200);
+    assert.match(outRes.headers.get('Set-Cookie')||'',/Max-Age=0/);
+    assert.equal((await call(urlA1,{token:''})).status,401);
+    assert.equal((await call(urlA1,{token:tokenA1})).status,401);
+    assert.equal((await call(urlA1,{token:'',headers:{Cookie:`__Host-wyj_web_download=${tokenA1}`}})).status,401);
+
+    // 3 & 5. B and Admin cannot use A's grant.
+    assert.equal((await call(urlA1,{token:users.b.token})).status,403);
+    assert.equal((await call(urlA1,{token:users.admin.token})).status,403);
+
+    // 4. Re-login as A creates a new session; old grant remains rejected, fresh authorization succeeds.
+    const loginA2=await call('/api/login',{token:'',body:{username:users.a.id,secret:password}});
+    assert.equal(loginA2.status,200);
+    const tokenA2=loginA2.payload.session;
+    assert.equal((await call(urlA1,{token:tokenA2})).status,403);
+    const authA2=await call(`/api/files/v1/attachments/${h.file_id}/authorize`,{token:tokenA2,body:{}});
+    assert.equal(authA2.status,200);
+    const urlA2=authA2.payload.download.url;
+    assert.equal((await call(urlA2,{token:tokenA2})).status,200);
+
+    // 6. Ban immediately blocks unexpired private grants; unban + logout-all also blocks old grant.
+    await db.prepare('UPDATE task12_users SET banned=1, session_version=session_version+1 WHERE id=?1').bind(users.a.id).run();
+    assert.equal((await call(urlA2,{token:tokenA2})).status,403);
+    await db.prepare('UPDATE task12_users SET banned=0 WHERE id=?1').bind(users.a.id).run();
+    assert.equal((await call(urlA2,{token:tokenA2})).status,401);
+
+    // 7. Android device session cookie works across Range requests and silent access-token refresh, and rejects after app logout.
+    const deviceSecret='task28-synthetic-device-secret-0123456789abcdef';
+    const deviceId=crypto.randomUUID();
+    const androidLogin=await call('/api/app/login',{token:'',headers:{'User-Agent':'thewyj-android/1.3.41 Android/35'},
+      body:{username:users.a.id,secret:password,device_id:deviceId,app_version:'1.3.41'},overrides:{TASK20_ANDROID_APP_ENABLED:'true',WYJ_TASK20_DEVICE_SESSION_SECRET:deviceSecret}});
+    assert.equal(androidLogin.status,200,JSON.stringify(androidLogin.payload));
+    const appAccess1=androidLogin.payload.access_token,appRefresh1=androidLogin.payload.refresh_token;
+    const authApp=await call(`/api/files/v1/attachments/${h.file_id}/authorize`,{token:'',headers:{Cookie:`__Host-wyj_app_access=${appAccess1}`},body:{}});
+    assert.equal(authApp.status,200);
+    const urlApp=authApp.payload.download.url;
+    assert.equal((await call(urlApp,{token:'',headers:{Cookie:`__Host-wyj_app_access=${appAccess1}`,Range:'bytes=0-9'}})).status,206);
+    const refreshed=await call('/api/app/session/refresh',{token:'',headers:{'User-Agent':'thewyj-android/1.3.41 Android/35'},
+      body:{refresh_token:appRefresh1,device_id:deviceId,rotation_key:'rot-'+crypto.randomUUID(),app_version:'1.3.41'},
+      overrides:{TASK20_ANDROID_APP_ENABLED:'true',WYJ_TASK20_DEVICE_SESSION_SECRET:deviceSecret}});
+    assert.equal(refreshed.status,200);
+    const appAccess2=refreshed.payload.access_token;
+    assert.equal((await call(urlApp,{token:'',headers:{Cookie:`__Host-wyj_app_access=${appAccess1}`,Range:'bytes=10-19'}})).status,401);
+    const rangeAfterRefresh=await call(urlApp,{token:'',headers:{Cookie:`__Host-wyj_app_access=${appAccess2}`,Range:'bytes=10-19'}});
+    assert.equal(rangeAfterRefresh.status,206);
+    assert.deepEqual(rangeAfterRefresh.payload,data.subarray(10,20));
+    const appLogout=await call('/api/app/session/logout',{token:'',headers:{'User-Agent':'thewyj-android/1.3.41 Android/35',Cookie:`__Host-wyj_app_access=${appAccess2}`},
+      body:{refresh_token:refreshed.payload.refresh_token,device_id:deviceId},overrides:{TASK20_ANDROID_APP_ENABLED:'true',WYJ_TASK20_DEVICE_SESSION_SECRET:deviceSecret}});
+    assert.equal(appLogout.status,200);
+    assert.equal((await call(urlApp,{token:'',headers:{Cookie:`__Host-wyj_app_access=${appAccess2}`,Range:'bytes=0-9'}})).status,401);
+
+    // Cleanup synthetic private share created for this check.
+    const relogin=await call('/api/login',{token:'',body:{username:users.a.id,secret:password}});
+    assert.equal((await call(`/api/files/v1/attachments/${h.file_id}/revoke`,{token:relogin.payload.session,body:{}})).status,200);
   });
   proof.status='PASS';
 } catch(error) {proof.status='FAIL';proof.error=error.stack;process.exitCode=1;console.error(error.stack);}

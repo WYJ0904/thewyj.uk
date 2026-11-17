@@ -307,7 +307,16 @@ private fun createWebView(
     CookieManager.getInstance().setAcceptCookie(true)
     CookieManager.getInstance().setAcceptThirdPartyCookies(this, false)
     val downloadView = this
-    val transferDownloader = TransferShareDownloader(context.applicationContext) { status ->
+    val transferDownloader = TransferShareDownloader(
+        context.applicationContext,
+        cookieProvider = { downloadUrl ->
+            if (TransferShareDownloadUrl.accepts(downloadUrl, BuildConfig.THEWYJ_BASE_URL)) {
+                CookieManager.getInstance().getCookie(downloadUrl)
+            } else {
+                null
+            }
+        },
+    ) { status ->
         val detail = JSONObject()
             .put("state", status.state)
             .put("bytes", status.bytes)

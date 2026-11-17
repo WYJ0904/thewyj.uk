@@ -11,6 +11,7 @@ ALTER TABLE task22_shares ADD COLUMN access_scope TEXT NOT NULL DEFAULT 'share'
     CHECK (access_scope IN ('share', 'private'));
 ALTER TABLE task22_shares ADD COLUMN cleanup_progress TEXT NOT NULL DEFAULT '{}';
 ALTER TABLE task22_download_grants ADD COLUMN file_id TEXT NOT NULL DEFAULT '';
+ALTER TABLE task22_download_grants ADD COLUMN session_binding TEXT NOT NULL DEFAULT '';
 ALTER TABLE task22_upload_files ADD COLUMN validation_status TEXT NOT NULL DEFAULT 'legacy_unverified';
 ALTER TABLE task22_upload_files ADD COLUMN detected_mime TEXT NOT NULL DEFAULT '';
 ALTER TABLE task22_upload_files ADD COLUMN integrity_status TEXT NOT NULL DEFAULT 'legacy_unverified';

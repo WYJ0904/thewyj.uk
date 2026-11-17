@@ -7,7 +7,12 @@ import {
   sha256Hex,
 } from "./cloudflare-foundation.mjs";
 import { resolveTask12Account } from "./task12-auth.mjs";
-import { clearTask20AccessCookie, task20TokenFromRequest } from "./task20-model.mjs";
+import {
+  clearTask20AccessCookie,
+  clearWebDownloadSessionCookies,
+  task20TokenFromRequest,
+  webDownloadSessionCookie,
+} from "./task20-model.mjs";
 import { importTask12Batch, task12ImportCounts } from "./task12-import.mjs";
 import { passwordPepperConfigured } from "./task12-crypto.mjs";
 import {
@@ -280,7 +285,9 @@ async function executeRoute(context, descriptor, account, flags) {
       } catch (_) {
         enriched = { ...result.account, membership_state_unavailable: true };
       }
-      return response({ ok: true, session: result.session, model: "Cloudflare account", account: enriched }, 200, context);
+      return response({ ok: true, session: result.session, model: "Cloudflare account", account: enriched }, 200, context, {
+        "Set-Cookie": webDownloadSessionCookie(context.request, result.session),
+      });
     } catch (error) {
       await settleLoginError(context,identifier,error);
       if (error instanceof Task12Error) {
@@ -292,7 +299,9 @@ async function executeRoute(context, descriptor, account, flags) {
   }
   if (path === "/api/logout") {
     await logoutAccount(db, task20TokenFromRequest(context.request));
-    return response({ ok: true }, 200, context, { "Set-Cookie": clearTask20AccessCookie() });
+    return response({ ok: true }, 200, context, {
+      "Set-Cookie": [clearTask20AccessCookie(), ...clearWebDownloadSessionCookies(context.request)],
+    });
   }
   if (path === "/api/account/logout-all") {
     await logoutAllAccounts(db, account);
@@ -307,7 +316,9 @@ async function executeRoute(context, descriptor, account, flags) {
     } catch {
       // non-blocking
     }
-    return response({ ok: true, session_invalidated: true }, 200, context);
+    return response({ ok: true, session_invalidated: true }, 200, context, {
+      "Set-Cookie": [clearTask20AccessCookie(), ...clearWebDownloadSessionCookies(context.request)],
+    });
   }
   if (path === "/api/account/secret") {
     requireAllowedFields(payload, new Set(["current_secret", "new_secret", "confirm_secret"]));
@@ -326,12 +337,16 @@ async function executeRoute(context, descriptor, account, flags) {
     } catch {
       // non-blocking
     }
-    return response({ ok: true, session_invalidated: true }, 200, context);
+    return response({ ok: true, session_invalidated: true }, 200, context, {
+      "Set-Cookie": [clearTask20AccessCookie(), ...clearWebDownloadSessionCookies(context.request)],
+    });
   }
   if (path === "/api/account/delete") {
     requireAllowedFields(payload, new Set(["secret"]));
     await deleteOwnAccount(db, account, payload.secret, passwordOptions(context));
-    return response({ ok: true, account_deleted: true }, 200, context);
+    return response({ ok: true, account_deleted: true }, 200, context, {
+      "Set-Cookie": [clearTask20AccessCookie(), ...clearWebDownloadSessionCookies(context.request)],
+    });
   }
   const userId = String(payload.user_id || "");
   if (path === "/api/admin/secret") {
