@@ -22,7 +22,7 @@ export async function policyReacceptRequired(db, userId) {
     [userId,POLICY_VERSIONS.terms,POLICY_VERSIONS.privacy,POLICY_VERSIONS.security]);
 }
 export function publicPolicyConfig() {
-  return {versions:POLICY_VERSIONS,links:{terms:'/terms',privacy:'/privacy',security:'/security-privacy'},status:'draft',effective_date:null};
+  return {versions:POLICY_VERSIONS,links:{terms:'/terms',privacy:'/privacy',security:'/security-privacy'},status:'published',effective_date:'2026-11-16'};
 }
 const escape = value => String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function markdownBody(body) {
@@ -40,6 +40,6 @@ export function policyPage(context, key) {
   const policy=version?POLICY_ARCHIVE[version]?.[key]:POLICY_CONTENT[key];
   if (!policy) return new Response('政策版本不存在',{status:404});
   const year=Math.max(2025,new Date().getUTCFullYear());
-  const html=`<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>${escape(policy.title)} · Aeris</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/design-system.css"><link rel="stylesheet" href="/product-ui.css"></head><body class="policy-document"><header class="policy-nav"><a href="/" aria-label="Aeris 首页">Aeris</a><nav aria-label="政策"><a href="/terms">使用条款</a><a href="/privacy">隐私政策</a><a href="/security-privacy">安全与隐私</a></nav></header><main class="policy-article">${markdownBody(policy.body)}<p class="meta-line">版本归档：<a href="?version=${policy.version}">${policy.version}</a>。当前为待正式发布草案。</p></main><footer class="site-help-footer"><p>© 2025–<span data-copyright-year>${year}</span> Aeris. All rights reserved.</p><p>遇到问题？请联系 <a href="mailto:support@thewyj.uk">support@thewyj.uk</a></p><p>回复邮件可能使用其他邮箱地址。</p></footer><script type="module" src="/js/account/policy-page.js"></script></body></html>`;
+  const html=`<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>${escape(policy.title)} · Aeris</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/design-system.css"><link rel="stylesheet" href="/product-ui.css"></head><body class="policy-document"><header class="policy-nav"><a href="/" aria-label="Aeris 首页">Aeris</a><nav aria-label="政策"><a href="/terms">使用条款</a><a href="/privacy">隐私政策</a><a href="/security-privacy">安全与隐私</a></nav></header><main class="policy-article">${markdownBody(policy.body)}<p class="meta-line">版本归档：<a href="?version=${policy.version}">${policy.version}</a>。${policy.version === '2026-11-14-v1' ? '历史草案归档。' : '正式生效日期：2026 年 11 月 16 日。'}</p></main><footer class="site-help-footer"><p>© 2025–<span data-copyright-year>${year}</span> Aeris. All rights reserved.</p><p>遇到问题？请联系 <a href="mailto:support@thewyj.uk">support@thewyj.uk</a></p><p>回复邮件可能使用其他邮箱地址。</p></footer><script type="module" src="/js/account/policy-page.js"></script></body></html>`;
   return new Response(html,{headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-cache','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer'}});
 }
