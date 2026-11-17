@@ -655,7 +655,7 @@ export function buildEmailMessage(options = {}, env = {}) {
   if (requestedFrom === SUPPORT_FROM_EMAIL && !supportSenderAuthorized(env) && !options.allowUnauthorizedSupportTest) {
     throw new EmailServiceError(
       "email_sender_unauthorized",
-      "当前环境尚未授权直接以 support@thewyj.uk 发信（需启用 EMAIL_SUPPORT_SENDER_AUTHORIZED=true 或改用 noreply@thewyj.uk 并设置 Reply-To）",
+      "当前环境尚未启用 support@thewyj.uk 发件身份配置（EMAIL_SUPPORT_SENDER_AUTHORIZED=true），与账户管理权限无关；请先使用 noreply@thewyj.uk（Reply-To: support@thewyj.uk）",
       403
     );
   }
@@ -2038,7 +2038,7 @@ export async function sendSupportReplyEmail(env, options = {}) {
   if (requestedFrom === SUPPORT_FROM_EMAIL && !authorized) {
     throw new EmailServiceError(
       "email_sender_unauthorized",
-      "support@thewyj.uk 发件身份尚未在 Cloudflare 授权，已拒绝直接伪造发件身份；请启用 EMAIL_SUPPORT_SENDER_AUTHORIZED=true 或使用 noreply@thewyj.uk + Reply-To: support@thewyj.uk",
+      "当前环境尚未启用 support@thewyj.uk 发件身份配置（EMAIL_SUPPORT_SENDER_AUTHORIZED=true），与账户权限无关；请改用 auto 自动降级或 noreply@thewyj.uk（Reply-To: support@thewyj.uk）",
       403
     );
   }

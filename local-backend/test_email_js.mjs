@@ -265,6 +265,9 @@ async function run() {
     assert.equal(FORBIDDEN_GMAIL_RE.test(wranglerText), false, "wrangler.jsonc must not contain any gmail address");
     assert.match(wranglerText, /"production"\s*:\s*\{[\s\S]*"TASK27_SECURITY_ENABLED"\s*:\s*"true"/);
     assert.match(wranglerText, /"production"\s*:\s*\{[\s\S]*"EMAIL_SENDING_ENABLED"\s*:\s*"true"/);
+    assert.match(wranglerText, /"production"\s*:\s*\{[\s\S]*"EMAIL_SUPPORT_SENDER_AUTHORIZED"\s*:\s*"true"/);
+    assert.match(wranglerText, /"preview"\s*:\s*\{[\s\S]*"EMAIL_SUPPORT_SENDER_AUTHORIZED"\s*:\s*"true"/);
+    assert.match(wranglerText, /"preview"\s*:\s*\{[\s\S]*"EMAIL_TEST_RECIPIENTS"\s*:\s*"support@thewyj\.uk"/);
     assert.doesNotMatch(wranglerText, /"production"\s*:\s*\{[\s\S]*"EMAIL_TEST_RECIPIENTS"/);
 
     const filesToScan = [
@@ -1793,6 +1796,212 @@ async function run() {
       ).results;
       assert.equal(followMsgs.length, 2, "Follow-up referencing <outbound-reply-id-999> must attach to existing thread");
       assert.equal(followMsgs[1].rfc_message_id, "<followup-002@example.org>");
+    });
+
+    await suite("11. Hotfix permissions matrix, support@ config vs role, Production allowlist isolation & reply idempotency", async () => {
+      const mockRest = mockCloudflareRestFetch("delivered");
+      try {
+        // 11a. Status distinguishes sender configuration from super_admin role
+        const unauthEnv = makeEnv(db, { EMAIL_SUPPORT_SENDER_AUTHORIZED: "false", EMAIL_TEST_RECIPIENTS: "" });
+        const superStatusUnauth = await callApi(unauthEnv, "/api/admin/email/status", { token: superAdmin.token });
+        assert.equal(superStatusUnauth.status, 200);
+        assert.equal(superStatusUnauth.data.actor.role, "super_admin");
+        assert.equal(superStatusUnauth.data.actor.is_super_admin, true);
+        assert.equal(superStatusUnauth.data.support_sender_authorized, false);
+        assert.equal(superStatusUnauth.data.support_sender_reason, "sender_not_configured");
+        assert.equal(superStatusUnauth.data.actor.capabilities.can_send_all_verified, true);
+        assert.equal(superStatusUnauth.data.actor.capabilities.can_use_support_sender_bulk, false);
+
+        const superBulkBlockedUnauth = await callApi(unauthEnv, "/api/admin/email/preview", {
+          method: "POST",
+          token: superAdmin.token,
+          body: { target_mode: "single", recipient_user_ids: [verifiedUser.id], sender_kind: "support", subject: "Hi", body: "Body" },
+        });
+        assert.equal(superBulkBlockedUnauth.status, 403);
+        assert.equal(superBulkBlockedUnauth.data.code, "email_sender_unauthorized");
+
+        // 11b. Authorized super_admin can send directly as support@thewyj.uk
+        const authProdEnv = makeEnv(db, { EMAIL_SUPPORT_SENDER_AUTHORIZED: "true", EMAIL_TEST_RECIPIENTS: "" });
+        const superStatusAuth = await callApi(authProdEnv, "/api/admin/email/status", { token: superAdmin.token });
+        assert.equal(superStatusAuth.status, 200);
+        assert.equal(superStatusAuth.data.support_sender_authorized, true);
+        assert.equal(superStatusAuth.data.support_sender_reason, "authorized");
+        assert.equal(superStatusAuth.data.test_recipients_restricted, false);
+        assert.equal(superStatusAuth.data.actor.capabilities.can_use_support_sender_bulk, true);
+
+        const supDirectPrev = await callApi(authProdEnv, "/api/admin/email/preview", {
+          method: "POST",
+          token: superAdmin.token,
+          body: { target_mode: "single", recipient_user_ids: [verifiedUser.id], sender_kind: "support", subject: "Official Support", body: "Direct support notice." },
+        });
+        assert.equal(supDirectPrev.status, 200);
+        assert.equal(supDirectPrev.data.from_email, "support@thewyj.uk");
+        const supGrant = await issueStepup(authProdEnv, superAdmin.token, superAdmin.password, "email_center:send");
+        const supDirectSend = await callApi(authProdEnv, "/api/admin/email/send", {
+          method: "POST",
+          token: superAdmin.token,
+          headers: { "X-Aeris-Stepup": supGrant },
+          body: { preview_token: supDirectPrev.data.preview_token, confirmed: true },
+        });
+        assert.equal(supDirectSend.status, 200);
+        assert.equal(supDirectSend.data.from_email, "support@thewyj.uk");
+
+        // 11c. Regular admin permissions & hard boundaries (no all_verified, no bulk support@, no templates POST, no delete)
+        const regStatus = await callApi(authProdEnv, "/api/admin/email/status", { token: regularAdmin.token });
+        assert.equal(regStatus.status, 200);
+        assert.equal(regStatus.data.actor.role, "admin");
+        assert.equal(regStatus.data.actor.is_super_admin, false);
+        assert.equal(regStatus.data.actor.capabilities.can_reply_inbound, true);
+        assert.equal(regStatus.data.actor.capabilities.can_use_support_sender_reply, true);
+        assert.equal(regStatus.data.actor.capabilities.can_use_support_sender_bulk, false);
+        assert.equal(regStatus.data.actor.capabilities.can_send_all_verified, false);
+
+        const regSupportBulk = await callApi(authProdEnv, "/api/admin/email/preview", {
+          method: "POST",
+          token: regularAdmin.token,
+          body: { target_mode: "single", recipient_user_ids: [verifiedUser.id], sender_kind: "support", subject: "Hi", body: "Nope" },
+        });
+        assert.equal(regSupportBulk.status, 403);
+        assert.equal(regSupportBulk.data.code, "email_sender_requires_super_admin");
+
+        const regAllDraft = await callApi(authProdEnv, "/api/admin/email/drafts", {
+          method: "POST",
+          token: regularAdmin.token,
+          body: { target_mode: "all_verified", subject: "All", body: "Blocked" },
+        });
+        assert.equal(regAllDraft.status, 403);
+
+        const regTplGrant = await issueStepup(authProdEnv, regularAdmin.token, regularAdmin.password, "email_center:templates");
+        const regTplPost = await callApi(authProdEnv, "/api/admin/email/templates", {
+          method: "POST",
+          token: regularAdmin.token,
+          headers: { "X-Aeris-Stepup": regTplGrant },
+          body: { template_key: "unauthorized_tpl", title: "X", subject_template: "S", body_template: "B" },
+        });
+        assert.equal(regTplPost.status, 403);
+
+        // 11d. Regular admin handles inbound support thread cleanly + idempotency prevents double reply + super_admin-only delete enforced
+        const extRaw = [
+          "From: Real Customer <legit-prod-customer@example.org>",
+          "To: support@thewyj.uk",
+          "Subject: Production Customer Question",
+          "Message-ID: <prod-cust-901@example.org>",
+          "",
+          "Can regular admin help with this ticket?",
+        ].join("\r\n");
+        const custIn = await handleInboundSupportEmail(
+          {
+            from: "legit-prod-customer@example.org",
+            to: "support@thewyj.uk",
+            rawSize: Buffer.byteLength(extRaw, "utf8"),
+            raw: extRaw,
+            headers: new Headers({ from: "legit-prod-customer@example.org", subject: "Production Customer Question", "message-id": "<prod-cust-901@example.org>" }),
+            async forward() {},
+          },
+          makeEnv(db, { EMAIL_FORWARD_TO_ADDRESS: "private-op-stub.invalid", EMAIL_TEST_RECIPIENTS: "" })
+        );
+        const delThreadGrant = await issueStepup(authProdEnv, regularAdmin.token, regularAdmin.password, "email_center:inbound");
+        const regDelAttempt = await callApi(authProdEnv, "/api/admin/email/inbound/status", {
+          method: "POST",
+          token: regularAdmin.token,
+          headers: { "X-Aeris-Stepup": delThreadGrant },
+          body: { thread_id: custIn.thread_id, action: "delete" },
+        });
+        assert.equal(regDelAttempt.status, 403);
+
+        const pendGrant = await issueStepup(authProdEnv, regularAdmin.token, regularAdmin.password, "email_center:inbound");
+        const pendRes = await callApi(authProdEnv, "/api/admin/email/inbound/status", {
+          method: "POST",
+          token: regularAdmin.token,
+          headers: { "X-Aeris-Stepup": pendGrant },
+          body: { thread_id: custIn.thread_id, action: "pending" },
+        });
+        assert.equal(pendRes.status, 200);
+        assert.equal(pendRes.data.status, "pending");
+
+        const callsBeforeReply = mockRest.calls.length;
+        const regReplyGrant1 = await issueStepup(authProdEnv, regularAdmin.token, regularAdmin.password, "email_center:reply");
+        const regReply1 = await callApi(authProdEnv, "/api/admin/email/inbound/reply", {
+          method: "POST",
+          token: regularAdmin.token,
+          headers: { "X-Aeris-Stepup": regReplyGrant1 },
+          body: {
+            thread_id: custIn.thread_id,
+            from_mode: "auto",
+            body: "Regular admin official support reply in authorized production env.",
+            idempotency_key: "reg_reply_key_001",
+            confirmed: true,
+          },
+        });
+        assert.equal(regReply1.status, 200);
+        assert.equal(regReply1.data.delivery.from, "support@thewyj.uk");
+        assert.equal(regReply1.data.delivery.reply_to, "support@thewyj.uk");
+        assert.equal(mockRest.calls.length, callsBeforeReply + 1);
+        const sentHeaders = mockRest.calls[mockRest.calls.length - 1].body?.headers || {};
+        assert.equal(sentHeaders["In-Reply-To"], "<prod-cust-901@example.org>");
+        assert.equal(sentHeaders["References"], "<prod-cust-901@example.org>");
+        assert.equal(sentHeaders["X-Aeris-Thread"], custIn.thread_id);
+
+        // Replaying same idempotency_key does NOT call REST provider twice!
+        const regReplyGrant2 = await issueStepup(authProdEnv, regularAdmin.token, regularAdmin.password, "email_center:reply");
+        const regReplyDup = await callApi(authProdEnv, "/api/admin/email/inbound/reply", {
+          method: "POST",
+          token: regularAdmin.token,
+          headers: { "X-Aeris-Stepup": regReplyGrant2 },
+          body: {
+            thread_id: custIn.thread_id,
+            from_mode: "auto",
+            body: "Regular admin official support reply in authorized production env.",
+            idempotency_key: "reg_reply_key_001",
+            confirmed: true,
+          },
+        });
+        assert.equal(regReplyDup.status, 200);
+        assert.equal(regReplyDup.data.delivery.idempotent_reused, true);
+        assert.equal(mockRest.calls.length, callsBeforeReply + 1, "Idempotent reply must not dispatch a duplicate email");
+
+        // 11e. Non-allowlisted Production customer works without EMAIL_TEST_RECIPIENTS, blocked in Preview
+        const previewOnlyEnv = makeEnv(db, { EMAIL_TEST_RECIPIENTS: "support@thewyj.uk" });
+        const previewBlockGrant = await issueStepup(previewOnlyEnv, superAdmin.token, superAdmin.password, "email_center:reply");
+        const previewBlock = await callApi(previewOnlyEnv, "/api/admin/email/inbound/reply", {
+          method: "POST",
+          token: superAdmin.token,
+          headers: { "X-Aeris-Stepup": previewBlockGrant },
+          body: { thread_id: custIn.thread_id, from_mode: "auto", body: "Should block in preview", confirmed: true },
+        });
+        assert.equal(previewBlock.status, 403);
+        assert.equal(previewBlock.data.code, "email_recipient_not_allowlisted");
+
+        // 11f. Unavailable mail service gives clear 503 error
+        const disabledEnv = makeEnv(db, { EMAIL_SENDING_ENABLED: "false", EMAIL_TEST_RECIPIENTS: "" });
+        const disGrant = await issueStepup(disabledEnv, regularAdmin.token, regularAdmin.password, "email_center:reply");
+        const disRes = await callApi(disabledEnv, "/api/admin/email/inbound/reply", {
+          method: "POST",
+          token: regularAdmin.token,
+          headers: { "X-Aeris-Stepup": disGrant },
+          body: { thread_id: custIn.thread_id, from_mode: "auto", body: "Should fail cleanly", confirmed: true },
+        });
+        assert.equal(disRes.status, 503);
+        assert.equal(disRes.data.code, "email_sending_disabled");
+
+        // 11g. Deliveries retryable reflects actor boundary consistently
+        await db.prepare(
+          `INSERT INTO email_center_deliveries (
+            delivery_id, kind, channel, trigger_source, actor_user_id, actor_role,
+            recipient_email, from_email, reply_to, subject, body_preview, body_redacted,
+            status, retryable, retry_count, max_retries, thread_id, created_at, updated_at
+          ) VALUES ('dlv_other_admin_fail', 'support_reply', 'support_reply', 'support_reply', ?, 'super_admin',
+            'legit-prod-customer@example.org', 'support@thewyj.uk', 'support@thewyj.uk', 'Re: Test', 'Fail', 0,
+            'failed', 1, 0, 3, ?, '2026-11-17T00:00:00Z', '2026-11-17T00:00:00Z')`
+        ).bind(superAdmin.id, custIn.thread_id).run();
+        const regDlvs = await callApi(authProdEnv, "/api/admin/email/deliveries?channel=support_reply", { token: regularAdmin.token });
+        assert.equal(regDlvs.status, 200);
+        const otherRow = regDlvs.data.deliveries.find((d) => d.delivery_id === "dlv_other_admin_fail");
+        assert.ok(otherRow);
+        assert.equal(otherRow.retryable, false, "Regular admin UI must not offer retry on another admin's delivery");
+      } finally {
+        mockRest.restore();
+      }
     });
 
     process.stdout.write(`Cloudflare Email Center tests passed: ${passedSuites} suites\n`);
