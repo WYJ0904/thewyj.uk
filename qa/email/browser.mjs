@@ -152,7 +152,16 @@ async function main() {
     const db = await mf.getD1Database("WYJ_DB");
     await applyMigrations(db);
 
+    const ADMIN_PASSWORD = "OpsAdminBrowserPass-2026!";
     await seedUser(db, { id: "u_qa_super", username: "wyj", role: "super_admin", password: OWNER_PASSWORD });
+    await seedUser(db, { id: "u_qa_admin", username: "qa_ops", role: "user", password: ADMIN_PASSWORD });
+    await db
+      .prepare(
+        `INSERT INTO task18_admin_roles (user_id, role, granted_by_user_id, granted_by_username, granted_at, updated_at)
+         VALUES ('u_qa_admin', 'admin', 'u_qa_super', 'wyj', ?, ?)`
+      )
+      .bind(new Date().toISOString(), new Date().toISOString())
+      .run();
     await seedUser(db, { id: "u_qa_alice", username: "qa_alice", role: "user" });
     await seedUser(db, { id: "u_qa_unv", username: "qa_carol", role: "user" });
 
@@ -390,6 +399,8 @@ async function main() {
     await waitFor("Boolean(document.querySelector('[data-email-subtab=overview]')) && document.querySelectorAll('.admin-email-stat-card').length >= 8", 15_000, "overview loaded");
     const overviewText = await evaluate("document.querySelector('#adminEmailCenterRoot').textContent || ''");
     assert.equal(overviewText.includes("待配置"), false, "BUG-11: Overview must never falsely display '待配置' when Pages env lacks standalone Worker secret");
+    assert.equal(overviewText.includes("超级管理员 (super_admin)"), true, "Overview must explicitly identify super_admin role");
+    assert.equal(overviewText.includes("发件身份尚未在环境配置授权"), true, "Overview must clarify sender config state vs super_admin role when unauthorized");
     process.stdout.write("[email-browser] PASS overview\n");
 
     // 3. Compose -> filter verified recipient -> verify template isolation & interpolation -> preview -> confirm & send
@@ -540,6 +551,96 @@ async function main() {
     await evaluate("document.querySelector('[data-email-subtab=templates]').click(); true");
     await waitFor("Boolean(document.querySelector('#adminEmailTplKey'))", 10_000, "templates loaded");
     process.stdout.write("[email-browser] PASS templates view\n");
+
+    // 6b. Super Admin all_verified phrase clarity check in Compose preview
+    await evaluate("document.querySelector('[data-email-subtab=compose]').click(); true");
+    await waitFor("Boolean(document.querySelector('#adminEmailTargetMode'))", 10_000, "compose reloaded");
+    await evaluate(`(() => {
+      const mode = document.querySelector('#adminEmailTargetMode');
+      mode.value = 'all_verified';
+      mode.dispatchEvent(new Event('change', { bubbles: true }));
+      const subj = document.querySelector('#adminEmailSubjectInput');
+      const body = document.querySelector('#adminEmailBodyInput');
+      subj.value = 'QA All Verified Preview Notice';
+      subj.dispatchEvent(new Event('input', { bubbles: true }));
+      body.value = 'Confirm phrase UI clarity check.';
+      body.dispatchEvent(new Event('input', { bubbles: true }));
+      document.querySelector('#adminEmailPreviewBtn').click();
+      return true;
+    })()`);
+    await waitFor("Boolean(document.querySelector('#adminEmailConfirmPhrase'))", 10_000, "all_verified phrase input visible");
+    const bulkPreviewText = await evaluate("document.querySelector('#adminEmailPreviewCard').textContent || ''");
+    assert.equal(bulkPreviewText.includes("全站群发二次确认短语"), true, "UI must label CONFIRM-ALL-VERIFIED as 全站群发二次确认短语");
+    assert.equal(bulkPreviewText.includes("CONFIRM-ALL-VERIFIED"), true);
+    assert.equal(bulkPreviewText.includes("不是超级管理员登录密码"), true);
+    process.stdout.write("[email-browser] PASS all_verified phrase UX check\n");
+
+    // 6c. Regular Admin browser context: inbound ticket handling + reply allowed, high-risk controls hidden
+    const regCtx = await cdp.send("Target.createBrowserContext");
+    const regTarget = await cdp.send("Target.createTarget", { url: "about:blank", browserContextId: regCtx.browserContextId });
+    const regAttach = await cdp.send("Target.attachToTarget", { targetId: regTarget.targetId, flatten: true });
+    const regSid = regAttach.sessionId;
+    const regSend = (method, params = {}) => cdp.send(method, params, regSid);
+    await regSend("Page.enable");
+    await regSend("Runtime.enable");
+    const regEval = async (expr) => {
+      const res = await regSend("Runtime.evaluate", { expression: expr, awaitPromise: true, returnByValue: true });
+      if (res.exceptionDetails) throw new Error(res.exceptionDetails.exception?.description || res.exceptionDetails.text || expr);
+      return res.result?.value;
+    };
+    const regWaitFor = async (expr, timeout = 15_000, label = expr) => {
+      const start = Date.now();
+      while (Date.now() - start < timeout) {
+        if (await regEval(`Boolean(${expr})`)) return true;
+        await delay(80);
+      }
+      throw new Error(`Regular admin browser timeout: ${label}`);
+    };
+    await regSend("Page.navigate", { url: `${baseUrl}/login` });
+    await regWaitFor("!document.querySelector('#appShell')?.classList.contains('app-shell-pending') && !document.querySelector('#loginForm')?.classList.contains('hidden')", 15_000, "reg admin login ready");
+    await regEval(`(() => {
+      const u = document.querySelector('#usernameInput');
+      const s = document.querySelector('#secretInput');
+      u.value = 'qa_ops';
+      u.dispatchEvent(new Event('input', { bubbles: true }));
+      s.value = ${JSON.stringify(ADMIN_PASSWORD)};
+      s.dispatchEvent(new Event('input', { bubbles: true }));
+      document.querySelector('#loginSubmitBtn').click();
+      return true;
+    })()`);
+    await regWaitFor("Boolean(localStorage.getItem('wyjAccountSession')) && location.pathname === '/'", 15_000, "reg admin logged in");
+    await regSend("Page.navigate", { url: `${baseUrl}/admin` });
+    await regWaitFor("Boolean(document.querySelector('#adminEmailTab')) && !document.querySelector('#adminPanel')?.classList.contains('hidden')", 15_000, "reg admin panel ready");
+    await regEval("document.querySelector('#adminEmailTab').click(); true");
+    await regWaitFor("document.querySelector('#adminEmailCenterRoot')?.textContent?.includes('普通管理员 (admin)')", 15_000, "reg admin email overview");
+    await regEval("document.querySelector('[data-email-subtab=compose]').click(); true");
+    await regWaitFor("Boolean(document.querySelector('#adminEmailTargetMode'))", 10_000, "reg admin compose");
+    assert.equal(await regEval("Boolean(document.querySelector('#adminEmailTargetMode option[value=all_verified]'))"), false, "Regular admin must NOT see all_verified target option");
+    await regEval("document.querySelector('[data-email-subtab=inbound]').click(); true");
+    await regWaitFor("document.querySelectorAll('[data-open-thread]').length >= 1", 10_000, "reg admin inbound list");
+    await regEval("document.querySelector('[data-open-thread]').click(); true");
+    await regWaitFor("Boolean(document.querySelector('#adminEmailReplyBody'))", 10_000, "reg admin thread opened");
+    assert.equal(await regEval("Boolean(document.querySelector('[data-thread-status=delete]'))"), false, "Regular admin must NOT see thread delete button");
+    await regEval(`(() => {
+      const rb = document.querySelector('#adminEmailReplyBody');
+      rb.value = 'Handled by regular support admin in browser QA.';
+      rb.dispatchEvent(new Event('input', { bubbles: true }));
+      const chk = document.querySelector('#adminEmailReplyConfirmCheck');
+      chk.checked = true;
+      chk.dispatchEvent(new Event('change', { bubbles: true }));
+      document.querySelector('#adminEmailSendReplyBtn').click();
+      return true;
+    })()`);
+    await regWaitFor("Boolean(document.querySelector('#task27Prompt [name=password]'))", 10_000, "reg admin step-up modal");
+    await regEval(`(() => {
+      const input = document.querySelector('#task27Prompt [name=password]');
+      input.value = ${JSON.stringify(ADMIN_PASSWORD)};
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      document.querySelector('#task27Prompt button[type=submit]').click();
+      return true;
+    })()`);
+    await regWaitFor("document.querySelector('#adminEmailCenterRoot').textContent.includes('Handled by regular support admin in browser QA.')", 10_000, "reg admin reply sent & rendered");
+    process.stdout.write("[email-browser] PASS regular_admin RBAC & support reply browser flow\n");
 
     // 7. Mobile 375x812 responsive check (zero horizontal overflow)
     await send("Emulation.setDeviceMetricsOverride", { width: 375, height: 812, deviceScaleFactor: 1, mobile: true });
