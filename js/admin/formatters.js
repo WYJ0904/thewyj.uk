@@ -210,14 +210,43 @@ export function createAdminEmailCenter({ root, apiGet, apiPost, getAccount }) {
     replyBody: "",
     replyFromMode: "auto",
     replyPreviewConfirmed: false,
+    replyRequestKey: "",
+    submittingSend: false,
+    submittingReply: false,
     templates: [],
     message: "",
     error: "",
     busy: false,
   };
 
+  function generateClientKey() {
+    if (typeof crypto?.randomUUID === "function") {
+      return crypto.randomUUID().replace(/-/g, "").slice(0, 24);
+    }
+    return `rk_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+  }
+
+  function ensureReplyRequestKey() {
+    if (!state.replyRequestKey) state.replyRequestKey = generateClientKey();
+    return state.replyRequestKey;
+  }
+
+  function currentActor() {
+    const client = getAccount?.();
+    const server = state.overview?.status?.actor;
+    if (server && (!client || !client.id || server.user_id === client.id)) {
+      return server;
+    }
+    return client || null;
+  }
+
   function isSuperAdmin() {
-    return Boolean(getAccount?.()?.is_super_admin);
+    const actor = currentActor();
+    return Boolean(actor?.is_super_admin || actor?.role === "super_admin");
+  }
+
+  function supportSenderAuthorized() {
+    return Boolean(state.overview?.status?.support_sender_authorized);
   }
 
   function setFeedback({ message = "", error = "" }) {
@@ -270,6 +299,7 @@ export function createAdminEmailCenter({ root, apiGet, apiPost, getAccount }) {
     const data = await apiGet(`/api/admin/email/inbound?thread_id=${encodeURIComponent(threadId)}`);
     state.activeThreadDetail = data;
     state.replyTemplateKey = "";
+    state.replyRequestKey = "";
     state.replySubject = data?.thread?.normalized_subject
       ? `Re: ${data.thread.normalized_subject}`
       : "Re: Aeris 客服回复";
@@ -284,19 +314,26 @@ export function createAdminEmailCenter({ root, apiGet, apiPost, getAccount }) {
   async function refreshCurrentTab() {
     state.busy = true;
     setFeedback({ message: "", error: "" });
+    const client = getAccount?.();
+    const serverUserId = state.overview?.status?.actor?.user_id;
+    const needOverview = !state.overview || (client?.id && serverUserId && client.id !== serverUserId);
     try {
       if (state.tab === "overview") {
         await loadOverview();
       } else if (state.tab === "compose") {
         await Promise.all([
-          state.overview ? Promise.resolve() : loadOverview(),
+          needOverview ? loadOverview() : Promise.resolve(),
           loadRecipients(),
           state.templates.length ? Promise.resolve() : loadTemplates(),
         ]);
       } else if (state.tab === "deliveries") {
-        await loadDeliveries();
+        await Promise.all([
+          needOverview ? loadOverview() : Promise.resolve(),
+          loadDeliveries(),
+        ]);
       } else if (state.tab === "inbound") {
         await Promise.all([
+          needOverview ? loadOverview() : Promise.resolve(),
           loadInboundList(),
           state.templates.length ? Promise.resolve() : loadTemplates(),
         ]);
@@ -304,7 +341,10 @@ export function createAdminEmailCenter({ root, apiGet, apiPost, getAccount }) {
           await loadInboundThread(state.activeThreadDetail.thread.thread_id);
         }
       } else if (state.tab === "templates") {
-        await loadTemplates();
+        await Promise.all([
+          needOverview ? loadOverview() : Promise.resolve(),
+          loadTemplates(),
+        ]);
       }
     } catch (err) {
       state.error = err?.message || "加载邮件中心数据失败";
@@ -336,7 +376,7 @@ export function createAdminEmailCenter({ root, apiGet, apiPost, getAccount }) {
         <div class="admin-email-stats-grid">
           <div class="admin-email-stat-card"><span>发送开关</span><strong>${st.email_sending_enabled ? "已开启" : "已关闭"}</strong></div>
           <div class="admin-email-stat-card"><span>发信传输通道</span><strong>${escapeHtml(st.transport || "unconfigured")}</strong></div>
-          <div class="admin-email-stat-card"><span>support@ 授权发信</span><strong>${st.support_sender_authorized ? "已授权" : "未授权（仅 Reply-To）"}</strong></div>
+          <div class="admin-email-stat-card"><span>support@ 发件授权</span><strong>${st.support_sender_authorized ? "已授权" : "尚未配置（降级 noreply@）"}</strong></div>
           <div class="admin-email-stat-card"><span>入站路由与转发</span><strong>${escapeHtml(inboundSummary)}</strong></div>
         </div>
         <div class="admin-email-stats-grid">
@@ -345,12 +385,21 @@ export function createAdminEmailCenter({ root, apiGet, apiPost, getAccount }) {
           <div class="admin-email-stat-card"><span>失败 / 拒收</span><strong>${Number(stats.failed || 0)} / ${Number(stats.rejected || 0)}</strong></div>
           <div class="admin-email-stat-card"><span>客服待处理 / 总会话</span><strong>${Number(stats.inbound_open_threads || 0)} / ${Number(stats.inbound_threads_total || 0)}</strong></div>
         </div>
+        <div class="admin-email-alert ${st.support_sender_authorized ? "" : "is-warn"}">
+          <strong>当前账户权限：${superAdmin ? "超级管理员 (super_admin)" : "普通管理员 (admin)"}</strong> ·
+          ${st.support_sender_authorized
+            ? (superAdmin
+              ? "已开启 support@thewyj.uk 发件身份授权，超级管理员可直接选择 support@thewyj.uk 或 noreply@thewyj.uk 发信。"
+              : "已开启 support@thewyj.uk 发件身份授权；普通管理员可在「客服邮件及回复」使用官方回复身份，或在「新建邮件」向指定已验证用户发送服务通知（不可群发全站）。")
+            : "support@thewyj.uk 直接发件身份尚未在环境配置授权（EMAIL_SUPPORT_SENDER_AUTHORIZED=true），与账户管理员角色无关；所有发信及客服回复将安全降级为 From: noreply@thewyj.uk + Reply-To: support@thewyj.uk。"}
+        </div>
         <p class="meta-line">投递状态说明：Cloudflare 返回 <code>queued</code> 表示已接收进入异步投递队列，不等同于用户收件箱最终送达；OTP 与安全验证码日志均自动脱敏。</p>
         <p class="meta-line">配置边界说明：发信能力由 Pages 环境管理；客服入站接收、Email Routing 规则与 Gmail 转发目标由独立 Email Worker（<code>thewyj-support-inbound</code>）托管，当前入站观测状态为 <code>${escapeHtml(st.inbound_routing_state || "unverified")}</code> / <code>${escapeHtml(st.inbound_forwarding_state || "unverified")}</code>（Pages 侧无法直接读取外部 Worker 私密转发地址时显示「未验证」，不代表缺失配置）。</p>
         ${superAdmin ? `
           <div class="admin-email-dual-cards">
             <div class="admin-email-card">
               <h3>超级管理员 · 用户邮箱绑定与验证管理</h3>
+              <p class="meta-line">说明：启用 Task27 账户安全中心后，邮箱验证与变更统一由用户在安全中心通过所有权验证码完成，后台不再绕过校验代签。</p>
               <div class="admin-email-form-grid">
                 <label class="field-label"><span>用户 ID</span><input id="adminEmailBindUserId" placeholder="user_..." /></label>
                 <label class="field-label"><span>绑定邮箱</span><input id="adminEmailBindAddress" type="email" placeholder="name@example.com" /></label>
@@ -375,8 +424,22 @@ export function createAdminEmailCenter({ root, apiGet, apiPost, getAccount }) {
 
   function renderCompose() {
     const superAdmin = isSuperAdmin();
-    const supportAllowed = Boolean(state.overview?.status?.support_sender_authorized && superAdmin);
+    const supportAuthorized = supportSenderAuthorized();
+    const supportAllowed = Boolean(supportAuthorized && superAdmin);
+    if (!supportAllowed && state.senderKind === "support") {
+      state.senderKind = "noreply";
+    }
     const senderEmail = state.senderKind === "support" && supportAllowed ? "support@thewyj.uk" : "noreply@thewyj.uk";
+    const supportOptionLabel = !superAdmin
+      ? "support@thewyj.uk（直接外发/群发仅限超级管理员）"
+      : supportAuthorized
+        ? "support@thewyj.uk（官方客服发件身份·已授权）"
+        : "support@thewyj.uk（发件身份尚未配置授权·需 EMAIL_SUPPORT_SENDER_AUTHORIZED=true）";
+    const senderHelpText = !superAdmin
+      ? "当前为普通管理员：可使用 noreply@thewyj.uk 向指定已验证收件人发送通知；如需以客服名义回复用户工单，请前往「客服邮件及回复」。"
+      : supportAuthorized
+        ? "已识别超级管理员权限且 support@thewyj.uk 发件身份已授权，可根据需要选择发件身份。"
+        : "已识别超级管理员权限；当前提示 support@ 不可选是因为环境尚未配置 EMAIL_SUPPORT_SENDER_AUTHORIZED=true（非账户权限不足），已自动降级使用 noreply@thewyj.uk + Reply-To: support@thewyj.uk。";
     const selectedList = Array.from(state.selectedRecipients.values());
     const serviceTemplates = state.templates.filter((t) => t.enabled !== 0 && String(t.category || "") === "admin_service");
 
@@ -389,7 +452,7 @@ export function createAdminEmailCenter({ root, apiGet, apiPost, getAccount }) {
               <span>发件身份</span>
               <select id="adminEmailSenderKind">
                 <option value="noreply" ${state.senderKind === "noreply" ? "selected" : ""}>noreply@thewyj.uk（系统默认，Reply-To: support@thewyj.uk）</option>
-                <option value="support" ${state.senderKind === "support" ? "selected" : ""} ${supportAllowed ? "" : "disabled"}>support@thewyj.uk（需超级管理员且 Cloudflare 已授权）</option>
+                <option value="support" ${state.senderKind === "support" ? "selected" : ""} ${supportAllowed ? "" : "disabled"}>${escapeHtml(supportOptionLabel)}</option>
               </select>
             </label>
             <label class="field-label">
@@ -402,6 +465,7 @@ export function createAdminEmailCenter({ root, apiGet, apiPost, getAccount }) {
             </label>
           </div>
           <p class="meta-line">当前显示发件人：<strong>${escapeHtml(senderEmail)}</strong> · 回复地址（Reply-To）：<strong>support@thewyj.uk</strong></p>
+          <p class="meta-line">${escapeHtml(senderHelpText)}</p>
           ${state.targetMode === "all_verified" ? `
             <div class="admin-email-alert is-warn">高风险操作提醒：全站投递仅发送给已绑定且已验证邮箱、未封禁/未注销的活跃用户（单批上限 50 人，60 分钟冷却一次），预览确认后须输入确认口令与超管密码。</div>
           ` : `
@@ -476,12 +540,15 @@ export function createAdminEmailCenter({ root, apiGet, apiPost, getAccount }) {
             ${state.preview.excluded_recipients?.length ? `<p class="meta-line">已过滤收件人原因：${state.preview.excluded_recipients.map((e) => `${escapeHtml(e.username || e.user_id)}:${escapeHtml(e.reason)}`).join(", ")}</p>` : ""}
             <label class="admin-checkbox"><input id="adminEmailConfirmCheckbox" type="checkbox" /> 我已核对发件身份、有效人数与邮件内容，确认立即发送</label>
             ${state.preview.high_risk_all_verified ? `
+              <div class="admin-email-alert is-warn">
+                <strong>全站群发高风险复核说明</strong>：请先在下方输入界面显示的固定<strong>全站群发二次确认短语</strong>（<code>${escapeHtml(state.preview.confirm_phrase_required || "CONFIRM-ALL-VERIFIED")}</code>），该短语仅作防误触确认文本，<strong>不是</strong>超级管理员登录密码、Cloudflare API Token 或验证码；随后请在右侧使用您当前超级管理员登录密码完成服务端身份复核。
+              </div>
               <div class="admin-email-form-grid">
-                <label class="field-label"><span>输入确认口令（${escapeHtml(state.preview.confirm_phrase_required || "CONFIRM-ALL-VERIFIED")}）</span><input id="adminEmailConfirmPhrase" autocomplete="off" placeholder="CONFIRM-ALL-VERIFIED" /></label>
-                <label class="field-label"><span>超级管理员密码复核</span><input id="adminEmailAdminPassword" type="password" autocomplete="current-password" placeholder="输入当前登录密码以授权全站发信" /></label>
+                <label class="field-label"><span>全站群发二次确认短语（照此输入：${escapeHtml(state.preview.confirm_phrase_required || "CONFIRM-ALL-VERIFIED")}）</span><input id="adminEmailConfirmPhrase" autocomplete="off" placeholder="请输入界面显示的短语 ${escapeHtml(state.preview.confirm_phrase_required || "CONFIRM-ALL-VERIFIED")}" /></label>
+                <label class="field-label"><span>超级管理员登录密码复核</span><input id="adminEmailAdminPassword" type="password" autocomplete="current-password" placeholder="输入您当前的超级管理员登录密码" /></label>
               </div>
             ` : ""}
-            <div class="action-row"><button class="primary" id="adminEmailConfirmSendBtn" type="button">确认并投递邮件</button></div>
+            <div class="action-row"><button class="primary" id="adminEmailConfirmSendBtn" type="button" ${state.submittingSend ? "disabled" : ""}>${state.submittingSend ? "正在提交投递…" : "确认并投递邮件"}</button></div>
           </div>
         ` : ""}
 
@@ -584,6 +651,7 @@ export function createAdminEmailCenter({ root, apiGet, apiPost, getAccount }) {
                   </div>
                   <div class="action-row">
                     ${inboundStatusBadge(thread.status)}
+                    <button data-thread-status="pending" data-thread-id="${escapeHtml(thread.thread_id)}" type="button">标记处理中</button>
                     <button data-thread-status="closed" data-thread-id="${escapeHtml(thread.thread_id)}" type="button">关闭工单</button>
                     <button data-thread-status="open" data-thread-id="${escapeHtml(thread.thread_id)}" type="button">重开</button>
                     ${isSuperAdmin() ? `<button data-thread-status="delete" data-thread-id="${escapeHtml(thread.thread_id)}" type="button">删除记录</button>` : ""}
@@ -633,20 +701,29 @@ export function createAdminEmailCenter({ root, apiGet, apiPost, getAccount }) {
                       </label>
                     ` : "";
                   })()}
+                  ${(() => {
+                    const supportAuthorized = supportSenderAuthorized();
+                    if (!supportAuthorized && state.replyFromMode === "support") {
+                      state.replyFromMode = "auto";
+                    }
+                    return `
                   <div class="admin-email-form-grid">
                     <label class="field-label">
                       <span>发件身份策略</span>
                       <select id="adminEmailReplyFromMode">
-                        <option value="auto" ${state.replyFromMode === "auto" ? "selected" : ""}>自动策略（已授权用 support@thewyj.uk，否则 noreply@ + Reply-To）</option>
+                        <option value="auto" ${state.replyFromMode === "auto" ? "selected" : ""}>${supportAuthorized ? "自动策略（当前已授权，使用 support@thewyj.uk）" : "自动策略（当前未授权 support@，安全降级 noreply@ + Reply-To）"}</option>
                         <option value="noreply" ${state.replyFromMode === "noreply" ? "selected" : ""}>noreply@thewyj.uk（Reply-To: support@thewyj.uk）</option>
-                        <option value="support" ${state.replyFromMode === "support" ? "selected" : ""}>support@thewyj.uk（仅授权时允许）</option>
+                        <option value="support" ${state.replyFromMode === "support" ? "selected" : ""} ${supportAuthorized ? "" : "disabled"}>${supportAuthorized ? "support@thewyj.uk（已授权官方客服发件身份）" : "support@thewyj.uk（发件身份尚未配置授权·请选自动策略或 noreply@）"}</option>
                       </select>
                     </label>
                     <label class="field-label"><span>回复主题</span><input id="adminEmailReplySubject" value="${escapeHtml(state.replySubject)}" maxlength="180" /></label>
                   </div>
+                  <p class="meta-line">${supportAuthorized ? "发件身份已就绪：普通管理员与超级管理员均可在客服工单内使用经服务端校验的 support@thewyj.uk 或安全降级身份回复，并保留 In-Reply-To / References 线程引用。" : "提示：当前环境尚未启用 EMAIL_SUPPORT_SENDER_AUTHORIZED=true（非账户权限问题），使用自动策略将安全通过 noreply@thewyj.uk 回复并设定 Reply-To: support@thewyj.uk。"}</p>
                   <label class="field-label"><span>回复正文</span><textarea id="adminEmailReplyBody" rows="4" maxlength="20000" placeholder="请输入对用户的客服回复内容...">${escapeHtml(state.replyBody)}</textarea></label>
                   <label class="admin-checkbox"><input id="adminEmailReplyConfirmCheck" type="checkbox" ${state.replyPreviewConfirmed ? "checked" : ""} /> 我已确认回复收件人、主题、引用线程和正式域名发信身份</label>
-                  <div class="action-row"><button class="primary" id="adminEmailSendReplyBtn" type="button">确认发送客服回复</button></div>
+                  <div class="action-row"><button class="primary" id="adminEmailSendReplyBtn" type="button" ${state.submittingReply ? "disabled" : ""}>${state.submittingReply ? "正在发送客服回复…" : "确认发送客服回复"}</button></div>
+                    `;
+                  })()}
                 </div>
               </div>
             `}
@@ -687,7 +764,7 @@ export function createAdminEmailCenter({ root, apiGet, apiPost, getAccount }) {
             <label class="field-label"><span>正文模板</span><textarea id="adminEmailTplBody" rows="4" placeholder="您好，\n\n请填写通知模板内容。"></textarea></label>
             <div class="action-row"><button class="primary" id="adminEmailTplSaveBtn" type="button">保存模板</button></div>
           </div>
-        ` : ""}
+        ` : `<p class="meta-line">普通管理员视图：可查看并套用现有已启用的客服与通知模板；新增或修改全局及系统模板仅限超级管理员。</p>`}
       </div>
     `;
   }
@@ -832,11 +909,15 @@ export function createAdminEmailCenter({ root, apiGet, apiPost, getAccount }) {
         }
       });
       root.querySelector("#adminEmailConfirmSendBtn")?.addEventListener("click", async () => {
+        if (state.submittingSend) return;
         const confirmed = Boolean(root.querySelector("#adminEmailConfirmCheckbox")?.checked);
         if (!confirmed) {
           setFeedback({ error: "请先勾选确认复选框再提交发送" });
           return;
         }
+        state.submittingSend = true;
+        const btn = root.querySelector("#adminEmailConfirmSendBtn");
+        if (btn) btn.disabled = true;
         try {
           const res = await apiPost("/api/admin/email/send", {
             preview_token: state.preview.preview_token,
@@ -853,6 +934,9 @@ export function createAdminEmailCenter({ root, apiGet, apiPost, getAccount }) {
           render();
         } catch (err) {
           setFeedback({ error: err?.message || "发送失败" });
+        } finally {
+          state.submittingSend = false;
+          if (btn && btn.isConnected) btn.disabled = false;
         }
       });
     }
@@ -953,38 +1037,51 @@ export function createAdminEmailCenter({ root, apiGet, apiPost, getAccount }) {
       });
       root.querySelector("#adminEmailReplyFromMode")?.addEventListener("change", (e) => {
         state.replyFromMode = e.target.value;
+        state.replyRequestKey = "";
       });
       root.querySelector("#adminEmailReplySubject")?.addEventListener("input", (e) => {
         state.replySubject = e.target.value;
+        state.replyRequestKey = "";
       });
       root.querySelector("#adminEmailReplyBody")?.addEventListener("input", (e) => {
         state.replyBody = e.target.value;
+        state.replyRequestKey = "";
       });
       root.querySelector("#adminEmailReplyConfirmCheck")?.addEventListener("change", (e) => {
         state.replyPreviewConfirmed = Boolean(e.target.checked);
       });
       root.querySelector("#adminEmailSendReplyBtn")?.addEventListener("click", async () => {
+        if (state.submittingReply) return;
         const threadId = state.activeThreadDetail?.thread?.thread_id;
         if (!threadId) return;
         if (!state.replyPreviewConfirmed) {
           setFeedback({ error: "发送客服回复前请勾选确认发件身份与引用线程" });
           return;
         }
+        state.submittingReply = true;
+        const btn = root.querySelector("#adminEmailSendReplyBtn");
+        if (btn) btn.disabled = true;
+        const replyKey = ensureReplyRequestKey();
         try {
           const res = await apiPost("/api/admin/email/inbound/reply", {
             thread_id: threadId,
             from_mode: state.replyFromMode,
             subject: state.replySubject,
             body: state.replyBody,
+            idempotency_key: replyKey,
             confirmed: true,
           });
           state.replyBody = "";
           state.replyPreviewConfirmed = false;
+          state.replyRequestKey = "";
           setFeedback({ message: `客服回复状态：${res.delivery?.delivery_status || "sent"}`, error: "" });
           await Promise.all([loadInboundList(), loadInboundThread(threadId)]);
           render();
         } catch (err) {
           setFeedback({ error: err?.message || "发送客服回复失败" });
+        } finally {
+          state.submittingReply = false;
+          if (btn && btn.isConnected) btn.disabled = false;
         }
       });
     }

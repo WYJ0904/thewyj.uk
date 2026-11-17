@@ -152,14 +152,14 @@ function resolveRequestedSender(payload, env, account) {
     if (!account?.is_super_admin) {
       throw new EmailServiceError(
         "email_sender_requires_super_admin",
-        "直接以 support@thewyj.uk 名义群发/外发仅限超级管理员且须已启用域名授权",
+        "直接以 support@thewyj.uk 身份新建外发或群发邮件仅限超级管理员（普通管理员可使用 noreply@thewyj.uk，或在「客服邮件及回复」工单会话中回复）",
         403
       );
     }
     if (!supportSenderAuthorized(env)) {
       throw new EmailServiceError(
         "email_sender_unauthorized",
-        "Cloudflare 尚未启用 support@thewyj.uk 发件身份授权（EMAIL_SUPPORT_SENDER_AUTHORIZED=true），请先使用 noreply@thewyj.uk",
+        "当前账户具备超级管理员身份，但环境尚未启用 support@thewyj.uk 发件身份配置（EMAIL_SUPPORT_SENDER_AUTHORIZED=true）；请使用 noreply@thewyj.uk（Reply-To: support@thewyj.uk）",
         403
       );
     }
@@ -200,11 +200,17 @@ function statusResponsePayload(env, account, inboundTelemetry = {}) {
     inboundForwardingConfigured = null;
   }
 
+  const supportAuthorized = supportSenderAuthorized(env);
+  const roleName = account.role || (account.is_super_admin ? "super_admin" : account.is_admin ? "admin" : "user");
   return {
     ok: true,
     build: EMAIL_BUILD,
     email_sending_enabled: emailSendingEnabled(env),
-    support_sender_authorized: supportSenderAuthorized(env),
+    support_sender_authorized: supportAuthorized,
+    support_sender_reason: supportAuthorized ? "authorized" : "sender_not_configured",
+    sender_config_notice: supportAuthorized
+      ? null
+      : "当前环境尚未启用 support@thewyj.uk 发件身份配置（EMAIL_SUPPORT_SENDER_AUTHORIZED=true）；系统已安全降级为 From: noreply@thewyj.uk + Reply-To: support@thewyj.uk（非账户权限不足）。",
     transport: resolveEmailTransport(env),
     binding_configured: emailNativeBindingConfigured(env),
     any_transport_configured: emailBindingConfigured(env),
@@ -215,7 +221,7 @@ function statusResponsePayload(env, account, inboundTelemetry = {}) {
     default_from: DEFAULT_FROM_EMAIL,
     default_reply_to: DEFAULT_REPLY_TO_EMAIL,
     allowed_senders: ALLOWED_SENDER_ADDRESSES.filter(
-      (addr) => addr !== SUPPORT_FROM_EMAIL || supportSenderAuthorized(env)
+      (addr) => addr !== SUPPORT_FROM_EMAIL || supportAuthorized
     ),
     allowed_reply_to: ALLOWED_REPLY_TO_ADDRESSES,
     inbound_forwarding_configured: inboundForwardingConfigured,
@@ -229,8 +235,21 @@ function statusResponsePayload(env, account, inboundTelemetry = {}) {
     actor: {
       user_id: account.id,
       username: account.username,
+      role: roleName,
       is_super_admin: Boolean(account.is_super_admin),
       is_admin: Boolean(account.is_admin),
+      capabilities: {
+        can_use_support_sender_bulk: Boolean(account.is_super_admin && supportAuthorized),
+        can_use_support_sender_reply: Boolean(account.is_admin && supportAuthorized),
+        can_send_all_verified: Boolean(account.is_super_admin),
+        can_test_send: Boolean(account.is_super_admin),
+        can_manage_templates: Boolean(account.is_super_admin),
+        can_manage_bindings: Boolean(account.is_super_admin),
+        can_delete_inbound_threads: Boolean(account.is_super_admin),
+        can_send_selected_recipients: Boolean(account.is_admin),
+        can_reply_inbound: Boolean(account.is_admin),
+        can_update_inbound_status: Boolean(account.is_admin),
+      },
     },
   };
 }
@@ -999,7 +1018,7 @@ export async function handleEmailRequest(context) {
         if (String(payload.confirm_phrase || "").trim() !== ALL_VERIFIED_CONFIRM_PHRASE) {
           throw new EmailServiceError(
             "email_confirm_phrase_invalid",
-            `请输入精确的高风险确认口令 ${ALL_VERIFIED_CONFIRM_PHRASE}`,
+            `请输入界面显示的固定「全站群发二次确认短语」 ${ALL_VERIFIED_CONFIRM_PHRASE}（非登录密码或密钥）`,
             400
           );
         }
@@ -1146,35 +1165,42 @@ export async function handleEmailRequest(context) {
           .all()
       ).results || [];
 
-      const deliveries = rows.map((row) => ({
-        delivery_id: row.delivery_id,
-        kind: row.kind,
-        channel: row.channel,
-        trigger_source: row.trigger_source,
-        actor_user_id: row.actor_user_id,
-        target_user_id: row.target_user_id,
-        recipient_masked: maskEmailAddress(row.recipient_email),
-        recipient_email: account.is_super_admin ? row.recipient_email : null,
-        from_email: row.from_email,
-        reply_to: row.reply_to,
-        subject: row.subject,
-        body_preview: row.body_preview,
-        body_redacted: Number(row.body_redacted) === 1,
-        delivery_status: row.status,
-        ...describeDeliverySemantics(row.status),
-        transport: row.transport,
-        provider_message_id: row.provider_message_id,
-        error_code: row.error_code,
-        error_message: row.error_message,
-        retryable: Number(row.retryable) === 1 && row.status === "failed" && Number(row.retry_count) < Number(row.max_retries || 3),
-        retry_count: Number(row.retry_count || 0),
-        max_retries: Number(row.max_retries || 3),
-        parent_delivery_id: row.parent_delivery_id,
-        batch_id: row.batch_id,
-        thread_id: row.thread_id,
-        sent_at: row.sent_at,
-        created_at: row.created_at,
-      }));
+      const deliveries = rows.map((row) => {
+        const canActorRetry =
+          account.is_super_admin ||
+          (row.actor_user_id === account.id &&
+            ["admin_manual", "support_reply"].includes(String(row.channel || "")) &&
+            !RESTRICTED_ADMIN_KINDS.has(String(row.kind || "")));
+        return {
+          delivery_id: row.delivery_id,
+          kind: row.kind,
+          channel: row.channel,
+          trigger_source: row.trigger_source,
+          actor_user_id: row.actor_user_id,
+          target_user_id: row.target_user_id,
+          recipient_masked: maskEmailAddress(row.recipient_email),
+          recipient_email: account.is_super_admin ? row.recipient_email : null,
+          from_email: row.from_email,
+          reply_to: row.reply_to,
+          subject: row.subject,
+          body_preview: row.body_preview,
+          body_redacted: Number(row.body_redacted) === 1,
+          delivery_status: row.status,
+          ...describeDeliverySemantics(row.status),
+          transport: row.transport,
+          provider_message_id: row.provider_message_id,
+          error_code: row.error_code,
+          error_message: row.error_message,
+          retryable: canActorRetry && Number(row.retryable) === 1 && row.status === "failed" && Number(row.retry_count) < Number(row.max_retries || 3),
+          retry_count: Number(row.retry_count || 0),
+          max_retries: Number(row.max_retries || 3),
+          parent_delivery_id: row.parent_delivery_id,
+          batch_id: row.batch_id,
+          thread_id: row.thread_id,
+          sent_at: row.sent_at,
+          created_at: row.created_at,
+        };
+      });
 
       return jsonResponse({ ok: true, deliveries, total: deliveries.length }, 200, reqId);
     }
@@ -1461,6 +1487,13 @@ export async function handleEmailRequest(context) {
         .trim()
         .slice(0, 380);
 
+      const clientReplyKey = payload.idempotency_key
+        ? cleanSingleLineText(String(payload.idempotency_key), { maxLength: 64, field: "idempotency_key" })
+        : "";
+      const scopedReplyIdempotencyKey = clientReplyKey
+        ? `support_reply:${threadId}:${account.id}:${clientReplyKey}`
+        : undefined;
+
       const replyRes = await sendSupportReplyEmail(env, {
         to: thread.sender_email,
         userId: thread.matched_user_id || undefined,
@@ -1473,6 +1506,7 @@ export async function handleEmailRequest(context) {
         references: referencesChain || undefined,
         actorUserId: account.id,
         actorRole: account.is_super_admin ? "super_admin" : "admin",
+        idempotencyKey: scopedReplyIdempotencyKey,
         enforceRateLimit: true,
       });
 
