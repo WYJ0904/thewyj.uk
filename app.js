@@ -1069,6 +1069,7 @@ function clearSession() {
   renderSiteMessageSaveStatus();
   closeModal("siteMessageModal", true);
   clearAccountSessionStorage();
+  transferController?.accountUpdated?.({deferLoad:true});
   ["secretInput", "registerSecretInput", "registerConfirmInput", "currentSecretInput", "newSecretInput", "newSecretConfirmInput", "deleteSecretInput", "adminNewSecretInput"].forEach((id) => {
     const input = $(id);
     if (input) input.value = "";
@@ -1092,6 +1093,7 @@ function adoptExternalAccountSession(nextSession) {
   financeController?.resetAccount();
   state.quizSession = "";
   localStorage.removeItem(ACCOUNT_CACHE_KEY);
+  transferController?.accountUpdated?.({deferLoad:true});
   resetLocalViewState();
   pendingScreen = "workspace";
   pendingAuthMessage = "正在验证另一页面的登录状态…";
@@ -1260,10 +1262,10 @@ function applyAccount(account) {
   if (previousAccountId !== nextAccountId) {
     financeController?.resetAccount();
     financeCandidatesController?.hide?.();
-    transferController?.accountUpdated?.();
     resetSiteMessageQueue();
   }
   state.account = account || null;
+  if (previousAccountId !== nextAccountId) transferController?.accountUpdated?.();
   financeController?.accountUpdated?.();
   financeCandidatesController?.accountUpdated?.();
   if (state.account) safeStorageSet(localStorage, "wyjAccountCache", JSON.stringify(state.account));

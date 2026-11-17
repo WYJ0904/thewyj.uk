@@ -9,6 +9,8 @@ import { handleTask18Request } from "../_lib/task18-api.mjs";
 import { handleTask20Request } from "../_lib/task20-api.mjs";
 import { handleTask21Request } from "../_lib/task21-api.mjs";
 import { handleTask22Request } from "../_lib/task22-api.mjs";
+import { handleSecureFileRequest } from '../_lib/secure-file-api.mjs';
+import { readFileJson } from '../_lib/secure-file-policy.mjs';
 import { handleTask25Request } from "../_lib/task25-api.mjs";
 import { handlePublicUiRequest } from "../_lib/p07-ui-api.mjs";
 import { handleTask26Request } from "../_lib/task26-api.mjs";
@@ -55,7 +57,7 @@ async function auditSensitiveAdminRequest(context, response, bodyRequest, descri
     const authenticated = await resolveTask12Account(context, { touch: false });
     if (!authenticated.authenticated || !authenticated.account.is_admin) return;
     let payload = {};
-    try { payload = await bodyRequest.json(); } catch (_) { payload = {}; }
+    try { payload = await readFileJson(bodyRequest,512*1024); } catch (_) { payload = {}; }
     const [action, targetType, targetField] = descriptor;
     let errorCode = "";
     if (!response.ok) {
@@ -95,6 +97,7 @@ export async function onRequest(context) {
     || await handlePublicUiRequest(context)
     || await handleTask26Request(context)
     || await handleTask21Request(context)
+    || await handleSecureFileRequest(context)
     || await handleTask22Request(context)
     || await handleTtsRequest(context)
     || await handleEmailRequest(context)

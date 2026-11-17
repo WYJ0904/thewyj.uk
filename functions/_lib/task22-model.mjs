@@ -62,7 +62,9 @@ export function guestOwnerRef(guestId) {
 }
 
 export function normalizeMime(value) {
-  return String(value || "application/octet-stream").trim().toLowerCase().split(";", 1)[0];
+  const mime=String(value || "application/octet-stream").trim().toLowerCase().split(";", 1)[0];
+  if(mime.length>120 || !/^[a-z0-9!#$&^_.+-]+\/[a-z0-9!#$&^_.+-]+$/.test(mime)) throw new Task22Error('文件类型声明无效',400,'file_mime_invalid');
+  return mime;
 }
 
 function safeComponent(value, maximum) {
@@ -165,9 +167,8 @@ export function safeContentDisposition(fileName) {
 }
 
 export function safeInteger(value, minimum, maximum, fallback, label = "数值") {
-  const parsed = Number.parseInt(String(value ?? ""), 10);
-  const result = Number.isFinite(parsed) ? parsed : fallback;
-  if (!Number.isInteger(result) || result < minimum || result > maximum) {
+  const result = value === undefined || value === null || value === '' ? fallback : Number(value);
+  if (!Number.isSafeInteger(result) || result < minimum || result > maximum) {
     throw new Task22Error(`${label}必须在 ${minimum} 到 ${maximum} 之间`, 400, "transfer_number_invalid");
   }
   return result;
@@ -243,6 +244,7 @@ export function sessionPayload(row, files = [], parts = {}) {
     id: String(row.id || ""),
     state: String(row.state || ""),
     owner_kind: String(row.owner_kind || ""),
+    access_scope: String(row.access_scope || 'share'),
     file_count: Number(row.file_count || 0),
     total_bytes: Number(row.total_bytes || 0),
     expires_at: String(row.expires_at || ""),
@@ -257,6 +259,8 @@ export function sessionPayload(row, files = [], parts = {}) {
       part_count: Number(file.part_count || 0),
       preview_policy: String(file.preview_policy || "download_only"),
       state: String(file.state || ""),
+      validation_status: String(file.validation_status || 'legacy_unverified'),
+      integrity_status: String(file.integrity_status || 'legacy_unverified'),
       uploaded_parts: parts[String(file.id)] || [],
     })),
   };
@@ -265,6 +269,7 @@ export function sessionPayload(row, files = [], parts = {}) {
 export function sharePayload(row, files = []) {
   return {
     id: String(row.id || ""),
+    access_scope: String(row.access_scope || 'share'),
     state: String(row.state || ""),
     expires_at: String(row.expires_at || ""),
     total_bytes: Number(row.total_bytes || 0),
@@ -275,7 +280,7 @@ export function sharePayload(row, files = []) {
     password_required: Boolean(row.password_hash),
     revoked: String(row.state || "") === "revoked",
     destroyed: String(row.state || "") === "delete_pending",
-    can_authorize: String(row.state || "") === "active",
+    can_authorize: String(row.state || "") === "active" && Date.parse(row.expires_at)>Date.now(),
     files: files.map((file) => ({
       file_id: String(file.file_id || ""),
       relative_path: String(file.relative_path || ""),
@@ -285,6 +290,9 @@ export function sharePayload(row, files = []) {
       part_size: Number(file.part_size || 0),
       part_count: Number(file.part_count || 0),
       preview_policy: String(file.preview_policy || "download_only"),
+      validation_status: String(file.validation_status || 'legacy_unverified'),
+      integrity_status: String(file.integrity_status || 'legacy_unverified'),
+      sha256_hex: file.integrity_status === 'full_sha256_verified' ? String(file.sha256_hex || '') : '',
     })),
   };
 }

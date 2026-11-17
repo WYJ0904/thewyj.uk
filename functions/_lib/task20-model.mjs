@@ -5,6 +5,8 @@ export const TASK20_ACCESS_TTL_SECONDS = 15 * 60;
 export const TASK20_REFRESH_TTL_SECONDS = 180 * 24 * 60 * 60;
 export const TASK20_ACCESS_COOKIE = "__Host-wyj_app_access";
 export const TASK20_NATIVE_SESSION_SENTINEL = "__wyj_native_cookie__";
+export const WEB_DOWNLOAD_COOKIE_SECURE = "__Host-wyj_web_download";
+export const WEB_DOWNLOAD_COOKIE_LOCAL = "wyj_web_download";
 
 const DEVICE_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const ROTATION_KEY_PATTERN = /^[A-Za-z0-9._:-]{8,80}$/;
@@ -79,6 +81,48 @@ export function task20TokenFromRequest(request) {
   for (const part of cookie.split(";")) {
     const [name, ...rest] = part.trim().split("=");
     if (name === TASK20_ACCESS_COOKIE) return rest.join("=").trim();
+  }
+  return "";
+}
+
+export function explicitWebSessionToken(request) {
+  const supplied = String(request?.headers?.get("X-Session-Token") || "").trim();
+  return supplied && supplied !== TASK20_NATIVE_SESSION_SENTINEL ? supplied : "";
+}
+
+export function webDownloadCookieName(request) {
+  try {
+    return new URL(request.url).protocol === "https:" ? WEB_DOWNLOAD_COOKIE_SECURE : WEB_DOWNLOAD_COOKIE_LOCAL;
+  } catch (_) {
+    return WEB_DOWNLOAD_COOKIE_SECURE;
+  }
+}
+
+export function webDownloadSessionCookie(request, token, maxAge = 7 * 24 * 60 * 60) {
+  const safeToken = String(token || "").replace(/[^A-Za-z0-9_-]/g, "");
+  const name = webDownloadCookieName(request);
+  const age = Math.max(0, Math.min(7 * 24 * 60 * 60, Number(maxAge) || 0));
+  const secureAttr = name === WEB_DOWNLOAD_COOKIE_SECURE ? "; Secure" : "";
+  return `${name}=${safeToken}; Path=/; Max-Age=${age}${secureAttr}; HttpOnly; SameSite=Strict`;
+}
+
+export function clearWebDownloadSessionCookies(request) {
+  const name = webDownloadCookieName(request);
+  const list = [`${WEB_DOWNLOAD_COOKIE_SECURE}=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Strict`];
+  if (name === WEB_DOWNLOAD_COOKIE_LOCAL) {
+    list.push(`${WEB_DOWNLOAD_COOKIE_LOCAL}=; Path=/; Max-Age=0; HttpOnly; SameSite=Strict`);
+  }
+  return list;
+}
+
+export function downloadSessionTokenFromRequest(request) {
+  const primary = task20TokenFromRequest(request);
+  if (primary) return primary;
+  const preferred = webDownloadCookieName(request);
+  const cookie = String(request?.headers?.get("Cookie") || "");
+  for (const part of cookie.split(";")) {
+    const [name, ...rest] = part.trim().split("=");
+    if (name === preferred) return rest.join("=").trim();
   }
   return "";
 }

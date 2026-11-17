@@ -4,7 +4,10 @@ import {
   enforceD1RateLimit,
   featureFlags,
   jsonResponse,
+  sameOriginResult,
 } from "./cloudflare-foundation.mjs";
+import { SecureFileError, readFileJson } from './secure-file-policy.mjs';
+import { authorizeFileMaintenance } from './secure-file-maintenance.mjs';
 import { resolveTask12Account } from "./task12-auth.mjs";
 import { importTask14Batch, rollbackTask14Import, task14ImportStatus } from "./task14-import.mjs";
 import {
@@ -75,17 +78,7 @@ function response(payload, status, context, headers = {}) {
 }
 
 async function readJson(request, maximumBytes) {
-  const declared = Number(request.headers.get("Content-Length") || 0);
-  if (declared > maximumBytes) throw new Task14Error("请求内容过大", 413, "request_too_large");
-  const body = await request.arrayBuffer();
-  if (body.byteLength > maximumBytes) throw new Task14Error("请求内容过大", 413, "request_too_large");
-  try {
-    const payload = JSON.parse(new TextDecoder().decode(body) || "{}");
-    if (!payload || typeof payload !== "object" || Array.isArray(payload)) throw new Error("object required");
-    return payload;
-  } catch (_) {
-    throw new Task14Error("请求 JSON 格式无效", 400, "invalid_json");
-  }
+  return await readFileJson(request,maximumBytes);
 }
 
 function authenticationError(result, context) {
@@ -276,11 +269,13 @@ export async function handleTask14Request(context) {
     );
   }
   try {
+    if (!sameOriginResult(context.request).allowed) throw new Task14Error('只接受同源请求',403,'cross_origin_rejected');
     if (descriptor.mode !== "capability" && !await ensureTask14Schema(context.env.WYJ_DB)) {
       throw new Task14Error("云端临时分享数据结构尚未就绪", 503, "task14_schema_not_ready", true);
     }
     const account = await authenticate(context, descriptor.auth);
     if (account instanceof Response) return account;
+    if (descriptor.mode==='import' && method!=='GET') await authorizeFileMaintenance(context,account);
     const rate = await enforceD1RateLimit(context, {
       enabled: flags.d1RateLimit,
       limit: descriptor.limit,
@@ -296,7 +291,7 @@ export async function handleTask14Request(context) {
     }
     return await executeRoute(context, descriptor, account, flags);
   } catch (error) {
-    if (error instanceof Task14Error) {
+    if (error instanceof Task14Error || error instanceof SecureFileError || error?.name==='Task12Error') {
       return apiError(error.code, error.message, error.status, requestId(context), { retryable: error.retryable });
     }
     console.error(JSON.stringify({

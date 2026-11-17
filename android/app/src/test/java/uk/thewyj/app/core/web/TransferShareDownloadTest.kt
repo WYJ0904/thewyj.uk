@@ -4,9 +4,12 @@ import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.io.InputStream
+import java.net.HttpURLConnection
+import java.net.URL
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -78,5 +81,19 @@ class TransferShareDownloadTest {
             }, chunkBytes = 8)
         }
         assertEquals(0, output.size())
+    }
+
+    @Test fun rangeHeadersAttachCookieOnlyWhenProvided() {
+        val withCookie = URL(url).openConnection() as HttpURLConnection
+        applyTransferRangeHeaders(withCookie, 0L, 1023L, "thewyj-android/1.3.40", "__Host-wyj_app_access=tok123")
+        assertEquals("bytes=0-1023", withCookie.getRequestProperty("Range"))
+        assertEquals("identity", withCookie.getRequestProperty("Accept-Encoding"))
+        assertEquals("thewyj-android/1.3.40", withCookie.getRequestProperty("User-Agent"))
+        assertEquals("__Host-wyj_app_access=tok123", withCookie.getRequestProperty("Cookie"))
+
+        val withoutCookie = URL(url).openConnection() as HttpURLConnection
+        applyTransferRangeHeaders(withoutCookie, 1024L, 2047L, "", "   ")
+        assertEquals("bytes=1024-2047", withoutCookie.getRequestProperty("Range"))
+        assertNull(withoutCookie.getRequestProperty("Cookie"))
     }
 }

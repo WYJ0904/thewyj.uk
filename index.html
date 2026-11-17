@@ -531,12 +531,14 @@
           <label><span>访问密码（可选）</span><input id="transferPassword" type="text" maxlength="120" autocomplete="off" /></label>
           <label><span>最大下载次数</span><input id="transferMaxDownloads" type="number" min="1" max="100" value="5" /></label>
           <label class="transfer-check"><input id="transferOneTime" type="checkbox" /><span>阅后即焚（下载一次后销毁）</span></label>
+          <label class="transfer-check"><input id="transferPrivate" type="checkbox" disabled /><span>私有附件（登录后仅自己可访问）</span></label>
         </section>
 
         <section class="transfer-drop-zone" id="transferDropZone">
           <div>
             <strong>把文件拖到这里</strong>
             <p>支持多文件、文件夹、相对目录结构与 Ctrl+V 粘贴；大文件自动分片续传。</p>
+            <p class="meta-line" id="transferSafetyHint">支持常用文件和普通二进制；已知类型会校验内容。HTML、SVG 和未知格式仅安全下载，到期或撤销后无法获取新授权。</p>
             <div class="transfer-drop-actions">
               <button class="primary" id="transferSelectFilesBtn" type="button">选择文件</button>
               <button class="button-secondary" id="transferSelectFolderBtn" type="button">选择文件夹</button>
@@ -559,7 +561,7 @@
 
         <section class="transfer-share-card hidden" id="transferShareCard" aria-labelledby="transferShareTitle">
           <div class="transfer-section-heading">
-            <div><h2 id="transferShareTitle">分享已创建</h2><p>复制链接或扫码，下载次数与有效期由服务端强制执行。</p></div>
+            <div><h2 id="transferShareTitle">分享已创建</h2><p id="transferShareAccessHint">复制链接或扫码，下载次数与有效期由服务端强制执行。</p></div>
           </div>
           <div class="transfer-share-link-row">
             <input id="transferShareLink" readonly />
@@ -569,14 +571,14 @@
           <div class="transfer-share-files" id="transferShareFiles"></div>
           <div class="hidden" id="transferShareOwnerActions">
             <div class="transfer-share-actions">
-              <button class="danger-text" id="transferCurrentRevokeBtn" type="button"><span data-pending-label="撤销中…">撤销这个分享</span></button>
+              <button class="danger-text" id="transferCurrentRevokeBtn" type="button"><span id="transferCurrentRevokeLabel" data-pending-label="撤销中…">撤销这个分享</span></button>
             </div>
-            <p class="meta-line">已发布文件不能就地更改；撤销后可以重新选择文件创建新分享。</p>
+            <p class="meta-line" id="transferShareOwnerNote">已发布文件不能就地更改；撤销后可以重新选择文件创建新分享。</p>
           </div>
         </section>
 
         <section class="transfer-my-shares" aria-labelledby="transferMySharesTitle">
-          <div class="transfer-section-heading"><div><h2 id="transferMySharesTitle">我的分享</h2><p>撤销后分享立即失效，私有文件由清理任务回收。</p></div></div>
+          <div class="transfer-section-heading"><div><h2 id="transferMySharesTitle">我的分享与附件</h2><p>私有附件仅自己可访问；撤销立即使后续访问失效，文件由清理任务回收。</p></div></div>
           <div id="transferMyShares"></div>
         </section>
         <p class="meta-line" id="transferMessage" aria-live="polite"></p>

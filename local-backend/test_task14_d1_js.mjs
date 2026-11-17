@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
@@ -17,6 +17,8 @@ import {
   validateFileMetadata,
 } from "../functions/_lib/task14-model.mjs";
 import { sessionStorageKey } from "../functions/_lib/task12-crypto.mjs";
+import { securityState, activeUser } from '../functions/_lib/task27-store.mjs';
+import { createChallenge } from '../functions/_lib/task27-auth.mjs';
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 const SECRET = "task14-preview-secret-fixture-0123456789abcdef";
@@ -90,6 +92,11 @@ function jsonBody(value) {
 async function requestTask14(db, storage, route, options = {}) {
   const headers = new Headers(options.headers || {});
   if (options.token) headers.set("X-Session-Token", options.token);
+  if (route.startsWith('/api/admin/task14/') && options.method==='POST' && options.token===USERS.admin.token) {
+    const user=await activeUser(db,USERS.admin.id),state=await securityState(db,user.id);
+    const grant=await createChallenge(db,{user,state,kind:'grant',sessionDigest:await sessionStorageKey(options.token),scope:'files_cleanup',env:{...ENVIRONMENT}});
+    headers.set('X-Aeris-Stepup',grant.token);
+  }
   let body;
   if (options.body !== undefined) {
     const encoded = options.raw ? { bytes: options.body, contentType: options.contentType } : jsonBody(options.body);
@@ -174,12 +181,7 @@ let completed = 0;
 try {
   const db = await mf.getD1Database("WYJ_DB");
   const storage = await mf.getR2Bucket("WYJ_STORAGE");
-  for (const filename of [
-    "0001_foundation.sql", "0002_low_risk_cloud_services.sql", "0003_accounts_sessions.sql",
-    "0004_session_limit_trigger.sql", "0005_session_limit_ordering.sql",
-    "0006_memberships_payments.sql", "0007_temporary_sharing.sql",
-    "0008_task14_user_storage_trigger.sql", "0009_task14_global_storage_trigger.sql",
-  ]) {
+  for (const filename of (await readdir(path.join(ROOT,'cloudflare/migrations'))).filter(n=>/^\d{4}_.+\.sql$/.test(n)).sort()) {
     const sql = await readFile(path.join(ROOT, "cloudflare", "migrations", filename), "utf8");
     await db.exec(sql.replace(/\r?\n/g, " "));
   }

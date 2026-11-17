@@ -4,8 +4,12 @@ import {
   enforceD1RateLimit,
   featureFlags,
   jsonResponse,
+  sameOriginResult,
 } from "./cloudflare-foundation.mjs";
+import { SecureFileError, readFileJson } from './secure-file-policy.mjs';
+import { authorizeFileMaintenance } from './secure-file-maintenance.mjs';
 import { resolveTask12Account } from "./task12-auth.mjs";
+import { explicitWebSessionToken, task20TokenFromRequest, webDownloadSessionCookie } from './task20-model.mjs';
 import {
   TASK22_BUILD,
   Task22Error,
@@ -41,7 +45,7 @@ const ROUTES = new Map([
   ["GET /api/transfer/shares", { mode: "read", auth: "optional", limit: 60, window: 60 }],
   ["GET /api/transfer/shares/metadata", { mode: "read", auth: "public", limit: 60, window: 60 }],
   ["POST /api/transfer/shares/authorize", { mode: "read", auth: "public", limit: 30, window: 60, body: 8 * 1024 }],
-  ["GET /api/transfer/shares/download", { mode: "read", auth: "public", limit: 180, window: 60, raw: true }],
+  ["GET /api/transfer/shares/download", { mode: "read", auth: "download", limit: 180, window: 60, raw: true }],
   ["POST /api/transfer/shares/revoke", { mode: "write", auth: "optional", limit: 30, window: 60, body: 8 * 1024 }],
   ["POST /api/admin/task22/cleanup", { mode: "admin", auth: "owner", limit: 10, window: 60, body: 2 * 1024 }],
 ]);
@@ -76,17 +80,7 @@ function response(payload, status, context, headers = {}) {
 }
 
 async function readJson(request, maximumBytes) {
-  const declared = Number(request.headers.get("Content-Length") || 0);
-  if (declared > maximumBytes) throw new Task22Error("请求内容过大", 413, "request_too_large");
-  const body = await request.arrayBuffer();
-  if (body.byteLength > maximumBytes) throw new Task22Error("请求内容过大", 413, "request_too_large");
-  try {
-    const payload = JSON.parse(new TextDecoder().decode(body) || "{}");
-    if (!payload || typeof payload !== "object" || Array.isArray(payload)) throw new Error("object required");
-    return payload;
-  } catch (_) {
-    throw new Task22Error("请求 JSON 格式无效", 400, "invalid_json");
-  }
+  return await readFileJson(request, maximumBytes);
 }
 
 function guestIdFrom(context, payload = null) {
@@ -94,6 +88,7 @@ function guestIdFrom(context, payload = null) {
 }
 
 async function authenticate(context, requirement) {
+  if (requirement === "download") return null;
   const result = await resolveTask12Account(context);
   if (result.authenticated) {
     if (requirement === "owner" && !result.account.is_super_admin) {
@@ -103,6 +98,9 @@ async function authenticate(context, requirement) {
   }
   if (requirement === "owner") {
     return apiError("authentication_required", "请先登录", 401, requestId(context));
+  }
+  if(requirement==='optional' && task20TokenFromRequest(context.request)) {
+    return apiError(result.code || 'canonical_session_invalid','登录会话不可用，请重新登录',result.status || 401,requestId(context));
   }
   return null;
 }
@@ -130,9 +128,9 @@ async function execute(context, account, descriptor) {
   }
   if (path === "/api/transfer/uploads") {
     const payload = await payloadFor(descriptor.body);
-    requireAllowedFields(payload, new Set(["guest_id", "password", "minutes", "max_downloads", "one_time", "file_count", "total_bytes"]));
+    requireAllowedFields(payload, new Set(["guest_id", "password", "minutes", "max_downloads", "one_time", "file_count", "total_bytes", "access_scope", "idempotency_key"]));
     const upload = await createUploadSession(db, account, context.env, payload);
-    return response({ ok: true, upload: { id: upload.id, state: upload.state, expires_at: upload.expires_at } }, 201, context);
+    return response({ ok: true, upload: { id: upload.id, state: upload.state, expires_at: upload.expires_at,access_scope:upload.access_scope } }, 201, context);
   }
   if (path === "/api/transfer/uploads/files") {
     const payload = await payloadFor(descriptor.body);
@@ -176,9 +174,14 @@ async function execute(context, account, descriptor) {
   const authorizeMatch = /^\/api\/transfer\/shares\/([A-Za-z0-9_-]{16,80})\/authorize$/.exec(path);
   if (authorizeMatch) {
     const payload = await payloadFor(descriptor.body);
-    requireAllowedFields(payload, new Set(["password"]));
-    const download = await authorizeShareDownload(db, storage, context.env, { ...payload, id: authorizeMatch[1] });
-    return response({ ok: true, download }, 200, context, { "Cache-Control": "private, no-store" });
+    requireAllowedFields(payload, new Set(["password", "file_id"]));
+    const download = await authorizeShareDownload(db, storage, context.env, { ...payload, id: authorizeMatch[1] }, account, {
+      sessionToken: task20TokenFromRequest(context.request),
+    });
+    const headers = { "Cache-Control": "private, no-store" };
+    const webToken = account ? explicitWebSessionToken(context.request) : "";
+    if (webToken) headers["Set-Cookie"] = webDownloadSessionCookie(context.request, webToken);
+    return response({ ok: true, download }, 200, context, headers);
   }
   const downloadMatch = /^\/api\/transfer\/shares\/([A-Za-z0-9_-]{16,80})\/download$/.exec(path);
   if (downloadMatch) {
@@ -195,7 +198,7 @@ async function execute(context, account, descriptor) {
     const share = await shareMetadata(db, storage, context.env, {
       id: metadataMatch[1],
       password: url.searchParams.get("password") || "",
-    });
+    },account);
     return response({ ok: true, share, build: TASK22_BUILD }, 200, context, { "Cache-Control": "no-store" });
   }
   if (path === "/api/admin/task22/cleanup") {
@@ -222,11 +225,13 @@ export async function handleTask22Request(context) {
     return apiError("task22_transfer_not_enabled", "文件传输 2.0 尚未启用", 503, requestId(context), { retryable: true });
   }
   try {
+    if (!sameOriginResult(context.request).allowed) throw new Task22Error('只接受同源请求',403,'cross_origin_rejected');
     if (!await ensureTask22Schema(context.env.WYJ_DB)) {
       throw new Task22Error("文件传输数据结构尚未就绪", 503, "task22_schema_not_ready", true);
     }
     const account = await authenticate(context, descriptor.auth);
     if (account instanceof Response) return account;
+    if (descriptor.mode === 'admin') await authorizeFileMaintenance(context,account);
     if (descriptor.auth === "optional" && !account && !guestIdFrom(context)) {
       return apiError("authentication_required", "请先登录或提供访客设备标识", 401, requestId(context));
     }
@@ -245,7 +250,7 @@ export async function handleTask22Request(context) {
     }
     return await execute(context, account, descriptor);
   } catch (error) {
-    if (error instanceof Task22Error) {
+    if (error instanceof Task22Error || error instanceof SecureFileError || error?.name === 'Task12Error') {
       return apiError(error.code, error.message, error.status, requestId(context), {
         retryable: error.retryable,
         details: error.details,

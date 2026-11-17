@@ -94,14 +94,24 @@ export function requestIdFor(request) {
 
 export function jsonResponse(payload, status = 200, requestId = "", extraHeaders = {}) {
   const body = requestId && !payload.request_id ? { ...payload, request_id: requestId } : payload;
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: {
-      "Content-Type": "application/json; charset=utf-8",
-      "Cache-Control": "no-store",
-      ...extraHeaders,
-    },
+  const headers = new Headers({
+    "Content-Type": "application/json; charset=utf-8",
+    "Cache-Control": "no-store",
   });
+  if (extraHeaders instanceof Headers) {
+    for (const [key, value] of extraHeaders.entries()) headers.append(key, value);
+  } else if (Array.isArray(extraHeaders)) {
+    for (const [key, value] of extraHeaders) headers.append(key, value);
+  } else if (extraHeaders && typeof extraHeaders === "object") {
+    for (const [key, value] of Object.entries(extraHeaders)) {
+      if (Array.isArray(value)) {
+        for (const item of value) headers.append(key, item);
+      } else if (value !== undefined && value !== null) {
+        headers.set(key, value);
+      }
+    }
+  }
+  return new Response(JSON.stringify(body), { status, headers });
 }
 
 export function apiError(code, message, status, requestId, options = {}) {

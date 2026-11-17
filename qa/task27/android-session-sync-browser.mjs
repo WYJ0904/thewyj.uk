@@ -227,9 +227,13 @@ try {
   console.log('PASS Case 3: Slow boot auto-recovers into authenticated Learning route once /api/health settles');
 } finally {
   try { await page?.close(); } catch {}
+  // Chrome may exit before acknowledging Browser.close; bound teardown only.
+  try { if(browser)await Promise.race([browser.send('Browser.close').catch(()=>undefined),delay(1000)]); } catch {}
   try { await browser?.close?.(); } catch {}
   child.kill();
   await new Promise((resolve) => server.close(resolve));
   await mf.dispose();
-  await rm(profile, { recursive: true, force: true });
+  const resolvedProfile=path.resolve(profile);
+  assert.ok(resolvedProfile.startsWith(path.resolve(os.tmpdir())+path.sep),'only remove this isolated temporary Chrome profile');
+  await rm(resolvedProfile, { recursive: true, force: true, maxRetries:5, retryDelay:200 });
 }

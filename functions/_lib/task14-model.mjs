@@ -94,9 +94,8 @@ export function cleanTextContent(value, maximumBytes = MAX_TEMP_TEXT_BYTES, labe
 }
 
 export function safeInteger(value, minimum, maximum, fallback, label = "数值") {
-  const parsed = Number.parseInt(String(value ?? ""), 10);
-  const result = Number.isFinite(parsed) ? parsed : fallback;
-  if (!Number.isInteger(result) || result < minimum || result > maximum) {
+  const result = value===undefined || value===null || value==='' ? fallback : Number(value);
+  if (!Number.isSafeInteger(result) || result < minimum || result > maximum) {
     throw new Task14Error(`${label}必须在 ${minimum} 到 ${maximum} 之间`, 400, "temporary_number_invalid");
   }
   return result;
@@ -116,8 +115,7 @@ export function normalizeMime(value) {
 }
 
 export function cleanFileName(value) {
-  const input = String(value || "").replace(/\\/g, "/");
-  const name = input.split("/").pop() || "";
+  const name = String(value || '').trim();
   if (!name || name === "." || name === ".." || name.length > 120 || CONTROL_PATTERN.test(name)
       || !/^[\p{L}\p{N} _().-]+$/u.test(name)) {
     throw new Task14Error("文件名无效", 400, "file_name_invalid");
@@ -221,6 +219,9 @@ export function filePayload(row) {
     file_name: String(row.file_name || ""),
     mime_type: String(row.mime_type || ""),
     size_bytes: Number(row.size_bytes || 0),
+    validation_status: String(row.validation_status || 'legacy_unverified'),
+    integrity_status: String(row.integrity_status || 'legacy_unverified'),
+    sha256_hex: row.integrity_status==='full_sha256_verified' ? String(row.sha256_hex || '') : '',
     expires_at: String(row.expires_at || ""),
     max_downloads: Number(row.max_downloads || 0),
     download_count: Number(row.download_count || 0),

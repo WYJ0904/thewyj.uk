@@ -9,13 +9,15 @@ async function runCleanup(env) {
     scanOrphans: true,
     environment: env.WYJ_ENVIRONMENT,
   });
-  if (cleanup.sessions_cleanup_pending || cleanup.sessions_retry_failed || cleanup.shares_failed) {
+  if (cleanup.sessions_cleanup_pending || cleanup.sessions_retry_failed || cleanup.shares_failed || cleanup.multipart_aborts_failed || cleanup.multipart_unknown_pending) {
     console.error(JSON.stringify({
       event: "task22_cleanup_pending",
       environment: String(env.WYJ_ENVIRONMENT || "unknown"),
       sessions_cleanup_pending: cleanup.sessions_cleanup_pending,
       sessions_retry_failed: cleanup.sessions_retry_failed,
       shares_failed: cleanup.shares_failed,
+      multipart_aborts_failed: cleanup.multipart_aborts_failed,
+      multipart_unknown_pending: cleanup.multipart_unknown_pending,
     }));
   }
   return { ok: true, cleanup };

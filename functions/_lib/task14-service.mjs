@@ -1,4 +1,6 @@
+import { scanFileOrphans, cleanupStorageBudget } from './secure-file-cleanup.mjs';
 import { accountMembershipState } from "./task13-service.mjs";
+import { fileAuditStatement, inspectFileBytes, readBoundedBytes, requireObjectKey, secureDownloadHeaders, fileSha256Hex } from './secure-file-policy.mjs';
 import {
   connectionCodeDigest,
   grantTokenDigest,
@@ -28,12 +30,10 @@ import {
   randomToken,
   safeInteger,
   sharePayload,
-  validateFileContent,
   validateFileMetadata,
 } from "./task14-model.mjs";
 
 const ACTIVE_STATES = Object.freeze(["active", "delete_pending"]);
-const FULL_FILE_VALIDATION_EXTENSIONS = new Set([".txt", ".csv", ".json"]);
 const CLEANUP_LIMIT = 100;
 
 function requireDatabase(db) {
@@ -186,15 +186,19 @@ async function markCleanupFailure(db, row, reason = "r2_delete_failed") {
 
 async function removeFileShare(db, storage, row, reason = "cleanup") {
   const now = isoNow();
-  await run(db, `UPDATE task14_shares SET state = 'delete_pending', deletion_reason = ?2,
-    cleanup_retry_at = '', updated_at = ?3 WHERE id = ?1 AND state != 'deleted'`, [row.id, reason, now]);
+  const claimed = await first(db, `UPDATE task14_shares SET state = 'delete_pending', deletion_reason = ?2,
+    cleanup_retry_at = '', updated_at = ?3 WHERE id = ?1 AND state != 'deleted' RETURNING *`, [row.id, reason, now]);
+  if (!claimed) return true;
   try {
-    if (row.r2_object_key) await requireStorage(storage).delete(row.r2_object_key);
+    if (claimed.r2_object_key) await requireStorage(storage).delete(requireObjectKey(claimed.r2_object_key,'temporary'));
   } catch (_) {
     await markCleanupFailure(db, row);
     return false;
   }
-  await run(db, "DELETE FROM task14_shares WHERE id = ?1", [row.id]);
+  await db.batch([
+    fileAuditStatement(db,claimed.owner_user_id,row.id,'temporary_cleaned'),
+    db.prepare("DELETE FROM task14_shares WHERE id = ?1 AND state='delete_pending' AND r2_object_key=?2").bind(row.id,claimed.r2_object_key),
+  ]);
   return true;
 }
 
@@ -403,18 +407,11 @@ export async function createFileReservation(db, account, env, input) {
   };
 }
 
-async function validationBytes(storage, row) {
-  const object = FULL_FILE_VALIDATION_EXTENSIONS.has(row.file_extension)
-    ? await storage.get(row.r2_object_key)
-    : await storage.get(row.r2_object_key, { range: { offset: 0, length: Math.min(4096, Number(row.size_bytes)) } });
-  if (!object) throw new Task14Error("上传文件未写入云存储", 503, "temporary_upload_missing", true);
-  return new Uint8Array(await object.arrayBuffer());
-}
 
 export async function uploadFileObject(db, storage, account, request, id) {
   await requireTemporaryEntitlement(db, account);
   const row = await shareRow(db, id, ["file"]);
-  if (!row || row.owner_user_id !== account.id || row.state !== "uploading") {
+  if (!row || row.owner_user_id !== account.id || !['uploading','active'].includes(row.state)) {
     throw new Task14Error("上传任务不存在或已结束", 404, "temporary_upload_not_found");
   }
   if (isExpired(row)) {
@@ -431,43 +428,53 @@ export async function uploadFileObject(db, storage, account, request, id) {
   }
   if (!request.body) throw new Task14Error("上传文件为空", 400, "file_empty");
   const bucket = requireStorage(storage);
-  let uploaded;
+  const bytes = await readBoundedBytes(request,Number(row.size_bytes),Number(row.size_bytes));
+  const actualHash = await fileSha256Hex(bytes);
+  if (row.state === 'active') {
+    if (row.sha256_hex === actualHash) return filePayload(row);
+    throw new Task14Error('重复上传的文件内容不一致',409,'temporary_upload_hash_conflict');
+  }
+  const inspection = inspectFileBytes(row.file_name,row.mime_type,bytes,{complete:true});
+  const token = randomToken(24);
+  const scope = requireObjectKey(row.r2_object_key,'temporary').split('/')[2];
+  const attemptKey = `${objectKeyFor(scope,row.id)}/${token}`;
+  const claimed = await first(db,`UPDATE task14_shares SET upload_token=?2,upload_until=?3,r2_object_key=?4
+    WHERE id=?1 AND state='uploading' AND expires_at>?5 AND (upload_token='' OR upload_until<=?5) RETURNING id`,
+  [row.id,token,isoNow(new Date(Date.now()+10*60*1000)),attemptKey,isoNow()]);
+  if (!claimed) throw new Task14Error('上传正在进行或状态已变化，请稍后重试',409,'temporary_upload_in_progress',true);
+  let publicationAttempted=false;
   try {
     const putOptions = {
       httpMetadata: { contentType: row.mime_type, cacheControl: "private, no-store" },
       customMetadata: { task: "14", share: row.id },
     };
-    if (typeof globalThis.FixedLengthStream === "function") {
-      const fixed = new globalThis.FixedLengthStream(Number(row.size_bytes));
-      const [putResult, pipeResult] = await Promise.allSettled([
-        bucket.put(row.r2_object_key, fixed.readable, putOptions),
-        request.body.pipeTo(fixed.writable),
-      ]);
-      if (pipeResult.status === "rejected") throw pipeResult.reason;
-      if (putResult.status === "rejected") throw putResult.reason;
-      uploaded = putResult.value;
-    } else {
-      // Miniflare's in-process binding does not expose FixedLengthStream. The
-      // metadata limit still caps this compatibility path at 30 MiB.
-      const bytes = await request.arrayBuffer();
-      uploaded = await bucket.put(row.r2_object_key, bytes, putOptions);
-    }
+    const uploaded = await bucket.put(attemptKey,bytes,putOptions);
     if (!uploaded || Number(uploaded.size) !== Number(row.size_bytes)) {
       throw new Task14Error("上传文件大小校验失败", 400, "temporary_upload_size_mismatch");
     }
-    const bytes = await validationBytes(bucket, row);
-    if (!validateFileContent(row.file_extension, bytes)) {
-      throw new Task14Error("文件内容与扩展名不匹配或格式无效", 400, "file_signature_invalid");
-    }
-    const updated = await first(db, `UPDATE task14_shares SET state = 'active', updated_at = ?2
-      WHERE id = ?1 AND state = 'uploading' RETURNING *`, [row.id, isoNow()]);
+    publicationAttempted=true;
+    const result = await db.batch([
+      db.prepare(`UPDATE task14_shares SET state='active',updated_at=?2,sha256_hex=?4,validation_status=?5,integrity_status='full_sha256_verified',upload_token='',upload_until=''
+        WHERE id=?1 AND state='uploading' AND upload_token=?3 AND expires_at>?2 RETURNING *`)
+        .bind(row.id,isoNow(),token,actualHash,inspection.validation_status),
+      fileAuditStatement(db,account.id,row.id,'temporary_uploaded','ok','task14_shares','','active'),
+    ]);
+    const updated = result[0]?.results?.[0];
     if (!updated) throw new Task14Error("上传任务状态已变化，请重试", 409, "temporary_upload_state_conflict");
     return filePayload(updated);
   } catch (error) {
-    try { await bucket.delete(row.r2_object_key); } catch (_) { /* cleanup retries use metadata below */ }
-    await run(db, `UPDATE task14_shares SET state = 'failed', deletion_reason = ?2,
-      cleanup_retry_at = ?3, cleanup_attempts = cleanup_attempts + 1, updated_at = ?3 WHERE id = ?1`, [
-      row.id, error instanceof Task14Error ? error.code : "temporary_upload_failed", isoNow(),
+    if(publicationAttempted) {
+      let settled;
+      try { settled=await shareRow(db,row.id,['file']); }
+      catch { throw error; } // Unknown D1 outcome: preserve the possibly-published object.
+      if(settled?.state==='active' && settled.r2_object_key===attemptKey && settled.sha256_hex===actualHash) return filePayload(settled);
+    }
+    let cleanupPending=false;
+    try { await bucket.delete(attemptKey); } catch (_) { cleanupPending=true; }
+    await run(db, `UPDATE task14_shares SET state = ?5, deletion_reason = ?2,
+      cleanup_retry_at = ?3, cleanup_attempts = cleanup_attempts + 1, updated_at = ?3,upload_token='',upload_until=''
+      WHERE id = ?1 AND state='uploading' AND upload_token=?4`, [
+      row.id, error.code || "temporary_upload_failed", isoNow(),token,cleanupPending?'delete_pending':'failed',
     ]).catch(() => undefined);
     throw error;
   }
@@ -475,9 +482,15 @@ export async function uploadFileObject(db, storage, account, request, id) {
 
 export async function cancelFileReservation(db, storage, account, id) {
   const row = await shareRow(db, id, ["file"]);
-  if (!row || (row.owner_user_id !== account.id && !account.is_super_admin)) {
+  if (!row) return { no_change:true };
+  if (row.owner_user_id !== account.id) {
     throw new Task14Error("上传任务不存在", 404, "temporary_upload_not_found");
   }
+  await db.batch([
+    db.prepare("UPDATE task14_shares SET state='delete_pending',deletion_reason='owner_cancelled' WHERE id=?1").bind(row.id),
+    db.prepare("UPDATE task14_download_grants SET state='revoked' WHERE share_id=?1").bind(row.id),
+    fileAuditStatement(db,account.id,row.id,'temporary_revoked'),
+  ]);
   await removeFileShare(db, storage, row, "owner_cancelled");
 }
 
@@ -487,7 +500,8 @@ export async function authorizeFileDownload(db, storage, env, input) {
     throw new Task14Error("文件不存在或已过期", 404, "share_not_found");
   }
   await checkPassword(row, input.password, env);
-  if (!await requireStorage(storage).head(row.r2_object_key)) {
+  const head = await requireStorage(storage).head(requireObjectKey(row.r2_object_key,'temporary',env?.WYJ_ENVIRONMENT));
+  if (!head || Number(head.size)!==Number(row.size_bytes)) {
     await markCleanupFailure(db, row, "r2_object_missing");
     throw new Task14Error("临时文件内容暂时不可用", 503, "temporary_file_missing", true);
   }
@@ -514,6 +528,7 @@ export async function authorizeFileDownload(db, storage, env, input) {
       WHERE id = ?1 AND EXISTS (
         SELECT 1 FROM task14_download_grants WHERE token_digest = ?2 AND share_id = ?1
       )`).bind(row.id, digest, now),
+    fileAuditStatement(db,'guest',row.id,'temporary_download_authorized','ok','task14_download_grants',digest),
   ]);
   const grant = await first(db, `SELECT share.*, grant.expires_at AS grant_expires_at
     FROM task14_download_grants AS grant
@@ -578,7 +593,8 @@ export async function streamFileDownload(context, id, token) {
     JOIN task14_shares AS share ON share.id = grant.share_id
     WHERE grant.token_digest = ?1 AND grant.share_id = ?2
       AND grant.state IN ('active', 'completed') AND grant.expires_at > ?3
-      AND share.state IN ('active', 'delete_pending')`, [digest, shareId, now]);
+      AND share.expires_at>?3
+      AND (share.state='active' OR (share.state='delete_pending' AND share.deletion_reason='download_limit'))`, [digest, shareId, now]);
   if (!row) throw new Task14Error("下载授权无效或已过期", 403, "temporary_download_grant_invalid");
   const rangeHeader = context.request.headers.get("Range");
   const requestedRange = parseByteRange(rangeHeader, Number(row.size_bytes));
@@ -595,7 +611,7 @@ export async function streamFileDownload(context, id, token) {
   const options = requestedRange ? { range: requestedRange } : {};
   let object;
   try {
-    object = await storage.get(row.r2_object_key, options);
+    object = await storage.get(requireObjectKey(row.r2_object_key,'temporary',context.env.WYJ_ENVIRONMENT), options);
   } catch (error) {
     await releaseDownloadRequest(db, digest, requestId).catch(() => undefined);
     throw error;
@@ -615,13 +631,7 @@ export async function streamFileDownload(context, id, token) {
     await releaseDownloadRequest(db, digest, requestId).catch(() => undefined);
     throw error;
   }
-  const headers = new Headers({
-    "Content-Type": row.mime_type,
-    "Content-Disposition": safeContentDisposition(row.file_name),
-    "Cache-Control": "private, no-store",
-    "X-Content-Type-Options": "nosniff",
-    "Accept-Ranges": "bytes",
-  });
+  const headers = secureDownloadHeaders({...row,detected_mime:['legacy_unverified','download_only'].includes(row.validation_status) ? '' : row.mime_type});
   if (object.httpEtag) headers.set("ETag", object.httpEtag);
   const length = parseRangeLength(object.range, Number(object.size || row.size_bytes));
   headers.set("Content-Length", String(length));
@@ -654,26 +664,28 @@ async function cleanupOne(db, storage, row, reason) {
 
 export async function cleanupExpiredShares(db, storage, options = {}) {
   const limit = safeInteger(options.limit, 1, 500, CLEANUP_LIMIT, "清理数量");
+  const objectBudget=safeInteger(options.objectBudget,1,80,40,'对象操作预算');
+  if(storage?.delete)storage=cleanupStorageBudget(storage,objectBudget);
   const now = isoNow();
   await run(db, `UPDATE task14_download_grants SET state = 'expired'
-    WHERE expires_at <= ?1 AND state = 'active'`, [now]);
+    WHERE rowid IN(SELECT rowid FROM task14_download_grants WHERE expires_at<=?1 AND state='active' ORDER BY expires_at LIMIT ?2)`, [now,limit]);
   await run(db, `DELETE FROM task14_download_grants
-    WHERE expires_at <= ?1 AND state IN ('completed', 'expired', 'revoked')`, [now]);
+    WHERE rowid IN(SELECT rowid FROM task14_download_grants WHERE expires_at<=?1 AND state IN('completed','expired','revoked') ORDER BY expires_at LIMIT ?2)`, [now,limit]);
   const rows = await all(db, `SELECT * FROM task14_shares
-    WHERE expires_at <= ?1
-       OR state = 'failed' AND (cleanup_retry_at = '' OR cleanup_retry_at <= ?1)
+    WHERE (expires_at <= ?1
+       OR state = 'failed'
        OR state = 'delete_pending'
-          AND (cleanup_retry_at = '' OR cleanup_retry_at <= ?1)
           AND NOT EXISTS (
             SELECT 1 FROM task14_download_grants AS grant
             WHERE grant.share_id = task14_shares.id
               AND ((grant.state = 'active' AND grant.expires_at > ?1)
                 OR grant.active_request_expires_at > ?1)
-          )
+          )) AND (cleanup_retry_at='' OR cleanup_retry_at<=?1)
     ORDER BY expires_at ASC LIMIT ?2`, [now, limit]);
   let removed = 0;
   let failed = 0;
   for (const row of rows) {
+    if(storage?.cleanupRemaining===0)break;
     try {
       if (await cleanupOne(db, storage, row, isExpired(row) ? "expired" : row.deletion_reason || "cleanup")) removed += 1;
       else failed += 1;
@@ -682,27 +694,10 @@ export async function cleanupExpiredShares(db, storage, options = {}) {
       await markCleanupFailure(db, row).catch(() => undefined);
     }
   }
-  let orphanRemoved = 0;
-  let orphanInspected = 0;
-  if (options.scanOrphans && storage?.list) {
-    const prefix = `temporary/v1/${String(options.environment || "development")}/files/`;
-    let cursor;
-    do {
-      const page = await storage.list({ prefix, cursor, limit: Math.min(1000, limit) });
-      for (const object of page.objects || []) {
-        if (orphanInspected >= limit) break;
-        orphanInspected += 1;
-        const linked = await first(db, "SELECT id FROM task14_shares WHERE r2_object_key = ?1", [object.key]);
-        const age = Date.now() - new Date(object.uploaded || 0).getTime();
-        if (!linked && age > 60 * 60 * 1000) {
-          await storage.delete(object.key);
-          orphanRemoved += 1;
-        }
-      }
-      cursor = page.truncated ? page.cursor : undefined;
-    } while (cursor && orphanInspected < limit);
-  }
-  return { inspected: rows.length, removed, failed, orphan_inspected: orphanInspected, orphan_removed: orphanRemoved };
+  const orphans = options.scanOrphans && storage?.cleanupRemaining!==0
+    ? await scanFileOrphans(db,storage,{family:'temporary',environment:options.environment,limit})
+    : {orphan_inspected:0,orphan_removed:0,orphan_failed:0};
+  return { inspected: rows.length, removed, failed, ...orphans,object_operations:storage?.cleanupRemaining===undefined?0:objectBudget-storage.cleanupRemaining };
 }
 
 export async function task14Counts(db) {

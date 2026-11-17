@@ -4,7 +4,7 @@ import { task20TokenFromRequest } from "./task20-model.mjs";
 import { policyReacceptRequired } from './task27-policy.mjs';
 
 export async function resolveTask12Account(context, options = {}) {
-  const token = task20TokenFromRequest(context.request);
+  const token = options.token !== undefined ? String(options.token || "") : task20TokenFromRequest(context.request);
   if (!token) return { authenticated: false, status: 401, code: "authentication_required" };
   if (!await ensureTask12Schema(context.env?.WYJ_DB)) {
     throw new Task12Error("云端账户数据结构尚未就绪", 503, "task12_schema_not_ready", true);
@@ -15,5 +15,5 @@ export async function resolveTask12Account(context, options = {}) {
   if (path !== '/api/policies/accept' && await policyReacceptRequired(context.env.WYJ_DB,state.account.id)) {
     return {authenticated:false,status:428,code:'policy_consent_required'};
   }
-  return { authenticated: true, account: state.account };
+  return { authenticated: true, account: state.account, token };
 }

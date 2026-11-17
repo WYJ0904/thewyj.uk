@@ -560,6 +560,12 @@ export function createTransferController({
   }
 
   function renderQueue() {
+    const privacy = element('transferPrivate');
+    if (privacy) {
+      privacy.disabled = !authenticated() || Boolean(activeSession?.id);
+      if (activeSession?.accessScope) privacy.checked = activeSession.accessScope === 'private';
+      setText('transferCompleteBtn',privacy.checked ? '保存私有附件' : '创建分享链接');
+    }
     updates.cancelProgress();
     const list = element("transferQueue");
     if (!list) return;
@@ -713,7 +719,9 @@ export function createTransferController({
         password: String(element("transferPassword")?.value || ""),
         file_count: openedPlan.fileCount,
         total_bytes: openedPlan.totalBytes,
+        idempotency_key: randomId(),
       };
+      if (authenticated() && element('transferPrivate')?.checked) body.access_scope = 'private';
       if (!authenticated()) body.guest_id = guestId();
       return await request("/api/transfer/uploads", { method: "POST", body });
     })();
@@ -731,6 +739,7 @@ export function createTransferController({
     activeSession = {
       id: payload.upload.id,
       expiresAt: payload.upload.expires_at,
+      accessScope: payload.upload.access_scope || 'share',
       fileCount: openedPlan.fileCount,
       totalBytes: openedPlan.totalBytes,
       batchIds,
@@ -1047,6 +1056,7 @@ export function createTransferController({
   }
 
   async function complete() {
+    const operationOwner=currentOwner();
     if (!queue.length || queue.some((item) => item.status !== "done")) {
       setMessage("还有文件没有上传完成。", "error");
       return;
@@ -1071,9 +1081,11 @@ export function createTransferController({
       try {
         await ensureSession();
       } catch (error) {
+        if(operationOwner!==currentOwner())return;
         setMessage(error.message || "重新上传任务创建失败，请重试。", "error");
         return;
       }
+      if(operationOwner!==currentOwner())return;
       void run();
       setMessage("已按当前文件列表重新上传，请稍候再创建分享。", "info");
       return;
@@ -1083,6 +1095,7 @@ export function createTransferController({
       const body = {};
       if (!authenticated()) body.guest_id = guestId();
       const payload = await request(`/api/transfer/uploads/${activeSession.id}/complete`, { method: "POST", body });
+      if(operationOwner!==currentOwner())return;
       currentShare = payload.share;
       queue = [];
       activeSession = null;
@@ -1091,11 +1104,12 @@ export function createTransferController({
       renderQueue();
       renderShare(payload.share);
       element("transferShareCard")?.scrollIntoView({ block: "start", behavior: "smooth" });
-      setMessage("分享已创建。", "success");
+      setMessage(payload.share.access_scope === 'private' ? '私有附件已保存，仅当前账户可获取下载授权。' : "分享已创建。", "success");
       // Publication moves the reservation into stored usage and creates an
       // owner-list entry. Refresh both existing owners without another upload.
-      void Promise.all([loadCapabilities(), loadMyShares()]);
+      void Promise.all([loadCapabilities(), loadMyShares(),loadUnfinishedSessions()]);
     } catch (error) {
+      if(operationOwner!==currentOwner())return;
       setMessage(error.message || "创建分享失败。", "error");
     }
   }
@@ -1139,29 +1153,40 @@ export function createTransferController({
   function renderShare(share) {
     currentShare = share;
     element("transferShareCard")?.classList.remove("hidden");
-    const url = `${location.origin}/transfer#share=${encodeURIComponent(share.id)}`;
+    const privateFile = share.access_scope === 'private';
+    setText('transferShareTitle', privateFile ? '私有附件已保存' : '分享已创建');
+    setText('transferShareAccessHint', privateFile ? `仅当前账户可访问，${new Date(share.expires_at).toLocaleString('zh-CN')} 到期。` : '复制链接或扫码，下载次数与有效期由服务端强制执行。');
+    setText('transferCurrentRevokeLabel',privateFile ? '撤销这个附件' : '撤销这个分享');
+    setText('transferShareOwnerNote',privateFile ? '附件内容不能就地更改；撤销后可以重新选择文件保存新附件。' : '已发布文件不能就地更改；撤销后可以重新选择文件创建新分享。');
+    element('transferShareLink')?.parentElement?.classList.toggle('hidden', privateFile);
+    element('transferQr')?.classList.toggle('hidden', privateFile);
+    const url = privateFile ? '' : `${location.origin}/transfer#share=${encodeURIComponent(share.id)}`;
     element("transferShareLink").value = url;
     element("transferShareLink").href = url;
-    qrDataUrl(url);
-    element("transferShareFiles").innerHTML = share.files.map((file) => `<div class="transfer-share-file"><strong>${escapeHtml(file.file_name)}</strong><small>${escapeHtml(file.relative_path)} · ${formatBytes(file.size_bytes)} · ${file.preview_policy === "preview" ? "可预览" : "仅下载"}</small><button type="button" data-transfer-download="${escapeHtml(share.id)}|${escapeHtml(file.file_id)}">下载</button></div>`).join("");
+    if (!privateFile) qrDataUrl(url);
+    element("transferShareFiles").innerHTML = share.files.map((file) => `<div class="transfer-share-file"><strong>${escapeHtml(file.file_name)}</strong><small>${escapeHtml(file.relative_path)} · ${formatBytes(file.size_bytes)} · ${file.integrity_status === 'full_sha256_verified' ? '完整文件 SHA-256 已校验' : file.integrity_status === 'parts_verified' ? '分片 SHA-256 已校验' : '历史文件'} · 安全下载</small><button type="button" data-transfer-download="${escapeHtml(share.id)}|${escapeHtml(file.file_id)}">下载</button></div>`).join("");
     updateCurrentShareActions();
     void loadMyShares();
   }
 
   async function downloadShareFile(shareId, fileId, passwordRequired = false) {
+    const operationOwner=currentOwner();
     // Only a share that really carries a password may open a modal prompt: an
     // unconditional window.prompt blocked the renderer (and every headless
     // browser flow) even for public shares, and asked users for a password that
     // does not exist.
-    const cached = downloadGrants.get(shareId);
+    const privateFile = currentShare?.id === shareId && currentShare.access_scope === 'private';
+    const grantKey = privateFile ? `${operationOwner}:${shareId}:${fileId}` : shareId;
+    const cached = downloadGrants.get(grantKey);
     const reusable = cached && cached.expiresAt > Date.now() + 5_000;
     const password = !reusable && passwordRequired
       ? (window.prompt("该分享设有访问密码，请输入：") || "")
       : "";
     try {
       const payload = reusable ? cached.payload
-        : await request(`/api/transfer/shares/${shareId}/authorize`, { method: "POST", body: { password } });
-      if (!reusable) downloadGrants.set(shareId, {
+        : await request(`/api/transfer/shares/${shareId}/authorize`, { method: "POST", body: { password, ...(privateFile ? {file_id:fileId} : {}) } });
+      if(operationOwner!==currentOwner())return;
+      if (!reusable) downloadGrants.set(grantKey, {
         payload, expiresAt: Date.parse(payload.download.expires_at) || 0,
       });
       const token = payload.download.token;
@@ -1182,6 +1207,7 @@ export function createTransferController({
       setMessage(nativeDownload ? "正在交给 Android 下载，请等待完整性校验。" : "下载已开始，请查看浏览器下载列表。",
         nativeDownload ? "info" : "success");
     } catch (error) {
+      if(operationOwner!==currentOwner())return;
       if (error?.name === "AbortError") setMessage("下载已取消，需要时可再次点击下载。", "info");
       else setMessage(error.message || "下载失败。", "error");
     }
@@ -1207,7 +1233,7 @@ export function createTransferController({
         key: share => share.id,
         signature: share => JSON.stringify(share),
         render: share => `<article class="transfer-share-row">
-        <div><strong>${escapeHtml(share.file_count)} 个文件 · ${formatBytes(share.total_bytes)}</strong><small>${escapeHtml((share.files || []).map((file) => file.file_name).join("、") || "文件名暂不可用")}</small><small>${new Date(share.expires_at).toLocaleString("zh-CN")} 到期 · 下载 ${share.download_count}/${share.max_downloads}${share.password_required ? " · 有密码" : ""}</small></div>
+        <div><strong>${share.access_scope === 'private' ? '私有附件 · ' : ''}${escapeHtml(share.file_count)} 个文件 · ${formatBytes(share.total_bytes)}</strong><small>${escapeHtml((share.files || []).map((file) => file.file_name).join("、") || "文件名暂不可用")}</small><small>${new Date(share.expires_at).toLocaleString("zh-CN")} 到期 · 下载 ${share.download_count}/${share.max_downloads}${share.password_required ? " · 有密码" : ""}</small></div>
         <div class="transfer-share-actions">
           <button type="button" data-transfer-open="${escapeHtml(share.id)}">查看</button>
           <button class="danger-text" type="button" data-transfer-revoke="${escapeHtml(share.id)}"><span data-pending-label="撤销中…">撤销</span></button>
@@ -1221,11 +1247,13 @@ export function createTransferController({
   }
 
   async function refreshQueueState() {
+    const operationOwner=currentOwner();
     for (const item of queue) {
       if (!item.sessionId || item.status === "done" || item.status === "cancelled") continue;
       try {
         const query = authenticated() ? "" : `?guest_id=${encodeURIComponent(guestId())}`;
         const payload = await request(`/api/transfer/uploads/${item.sessionId}${query}`);
+        if(operationOwner!==currentOwner())return;
         if (!["active", "published"].includes(String(payload.state || ""))) {
           const staleSessionId = item.sessionId;
           resetQueueForStaleSession(queue, staleSessionId);
@@ -1248,10 +1276,12 @@ export function createTransferController({
           item.status = "done";
           item.uploaded = item.size;
           const sharePayload = await request(`/api/transfer/shares/${payload.share_id}`);
+          if(operationOwner!==currentOwner())return;
           currentShare = sharePayload.share;
           renderShare(currentShare);
         }
       } catch (error) {
+        if(operationOwner!==currentOwner())return;
         if (isRecoverableUploadSessionError(error)) {
           const staleSessionId = item.sessionId;
           resetQueueForStaleSession(queue, staleSessionId);
@@ -1294,6 +1324,9 @@ export function createTransferController({
     updateCurrentShareActions();
     if (element("transferShareFiles")) element("transferShareFiles").innerHTML = "";
     if (element("transferShareLink")) element("transferShareLink").value = "";
+    if (element('transferShareLink')) element('transferShareLink').href='';
+    const qr=element('transferQr');if(qr){qr.width=0;qr.height=0;}
+    setText('transferShareAccessHint','');
   }
 
   async function revokeShare(shareId) {
@@ -1332,12 +1365,15 @@ export function createTransferController({
   }
 
   async function loadUnfinishedSessions() {
+    const operationOwner=currentOwner();
     try {
       const query = authenticated() ? "" : `?guest_id=${encodeURIComponent(guestId())}`;
       const payload = await request(`/api/transfer/uploads${query}`);
+      if(operationOwner!==currentOwner())return;
       serverSessions = Array.isArray(payload.uploads) ? payload.uploads : [];
       renderUnfinishedSessions();
     } catch (error) {
+      if(operationOwner!==currentOwner())return;
       const list = element("transferUnfinishedSessions");
       if (list) list.innerHTML = `<div class="transfer-empty">未完成上传暂时无法读取：${escapeHtml(error.message || "请稍后重试")}</div>`;
     }
@@ -1506,6 +1542,8 @@ export function createTransferController({
       const payload = await request(`/api/transfer/capabilities${query}`);
       if (generation !== quotaGeneration || owner !== ownerGeneration) return;
       capabilities = payload;
+      const privacy = element('transferPrivate');
+      if (privacy) { privacy.disabled = !authenticated() || Boolean(activeSession?.id); if (!authenticated()) privacy.checked = false; }
       renderQuota();
     } catch (error) {
       if (generation !== quotaGeneration || owner !== ownerGeneration) return;
@@ -1521,6 +1559,7 @@ export function createTransferController({
       else updates.cancelProgress();
     });
     element("transferPage")?.addEventListener("click", handleClick);
+    element('transferPrivate')?.addEventListener('change',renderQueue);
     element("transferDropZone")?.addEventListener("dragover", (event) => event.preventDefault());
     element("transferDropZone")?.addEventListener("drop", handleDrop);
     element("transferFileInput")?.addEventListener("change", (event) => {
@@ -1583,13 +1622,26 @@ export function createTransferController({
     updates.cancelProgress();
   }
 
-  function accountUpdated() {
+  function accountUpdated({deferLoad=false}={}) {
+    const ownerChanged=currentOwner()!==queueOwner;
     updates.cancel();
     ownerGeneration += 1;
     ownedShareIds = new Set();
+    if(ownerChanged) {
+      clearShare();downloadGrants.clear();serverSessions=[];
+      capabilities={storage_limit_bytes:0,stored_bytes:0,reserved_bytes:0,used_bytes:0};
+      if(element('transferPrivate'))element('transferPrivate').checked=false;
+      if(element('transferMyShares'))element('transferMyShares').innerHTML='<div class="transfer-empty">正在加载当前账户的分享与附件…</div>';
+      if(element('transferQueue'))element('transferQueue').innerHTML='';progressNodes=new Map();
+      if(element('transferUnfinishedSessions'))element('transferUnfinishedSessions').innerHTML='<div class="transfer-empty">正在加载当前账户的上传任务…</div>';
+      setText('transferQuotaText','配额加载中');
+      const quotaBar=element('transferQuotaBar');if(quotaBar){quotaBar.value=0;quotaBar.max=1;}
+      setMessage('');
+    }
     updateCurrentShareActions();
     restoreQueue();
     restoreCleanupQueue();
+    if(deferLoad || (!authenticated() && Boolean(storage.getItem(ACCOUNT_SESSION_KEY)))) {visible=false;return;}
     if (visible) {
       renderQueue();
       void loadCapabilities();
