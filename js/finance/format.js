@@ -1,4 +1,4 @@
-import { currencyDigits, moneyText, SUPPORTED_CURRENCIES } from './money.js?release=20261116-aeris-task27-release';
+import { currencyDigits, moneyText, SUPPORTED_CURRENCIES } from './money.js?release=20261117-aeris-task28-release';
 const moneyFormatters = new Map();
 export function formatFinanceMoney(minor, currency) {
   try {
