@@ -1,7 +1,22 @@
 # Aeris V6.3 — Task28：统一安全文件与附件基础层（P1）
 
-日期：2026-11-16，香港。交付范围：实现、隔离测试、独立分支和 Draft PR；
-正式发布仍为 `RELEASE_HELD`。本报告不批准 Task27 或 Task28 的 Production 发布。
+历史实现记录：2026-11-16；最终交接整理：2026-11-17（香港）。
+Task27 已上线；Task28 后续收尾、集成验证和正式发布转交 Hydrogen，保持
+`Draft / RELEASE_HELD`。Codex 完成本次交接后停止 Task28 工作。
+
+## 交接结论（优先于下方历史验证）
+
+- 最终代码/集成提交：`4b456e9a9f446ccd86266be6ff9de1b6431119c0`，已包含
+  main `aec4857546c53505f05a8da5ce8e3460223b4742`；旧未完成基线合并已保存。
+- 本轮只重测账户隔离：2 个必要准备步骤 + 1 个安全场景 PASS，2 个无关场景
+  SKIPPED；未重跑 Android 大套件或已通过的 Task28 全功能。
+- 客户端退出/换账户/迟到响应修复已提交；私有下载仍是 bearer grant，退出不
+  自动吊销所有已发 token。这一旧凭证安全合同交由 Hydrogen 优先复核，未关闭。
+- 旧 SHA `97c406c0` 的 Core CI 为 FAIL：Cloud-only 浏览器的回滚慢恢复用例
+  帧采样为空；其他 7 个 Actions job 成功，2 个跳过，Cloudflare Pages 成功。
+  最新资料提交的 CI 单独看 PR Checks，不复制旧结果，也不在本轮持续等待。
+- [HYDROGEN_HANDOFF.md](HYDROGEN_HANDOFF.md) 给出准确顺序、剩余失败和保护边界。
+  以下 PASS 为历史隔离证据，不能当作最终 main 集成、Hosted 或真机全验收。
 
 ## 基线与隔离
 
@@ -14,7 +29,9 @@
   `d13a588fa5475305252a4f9a1e10d656a98f384f`（Android/WebView 会话同步）。
   已仅在 Task28 分支普通 merge 该基线；唯一冲突是 SW 派生哈希，使用既有
   publication 脚本重算，保留双方源码，不 force push。后端 Task28 代码未被覆盖。
-- Draft PR 暂比较 `hydrogen/task27-final-integration`；文件模块接入账户状态更新、
+- 随后保存了 `ea283933` 发布准备基线的待提交合并；本轮普通 merge 已发布的
+  main，并将 PR #156 比较基线改为 `main`，不再比较已合并的 Hydrogen 分支。
+- 文件模块接入账户状态更新、
   退出和跨窗口会话变化时增加最小通知，隔离浏览器脚本另含 Windows 退出清理修复。
   不重复提交 Task27 基线增量，完整路径见变更清单。
   原 Hotfix 分支/WIP、Hydrogen 分支、原工作区及发布证据均未修改。
@@ -72,7 +89,7 @@ Task28 新增：
 | Task22 原回归 | PASS，等级配额、访客、续传、并发、幂等、下载次数、Range、逻辑引用与旧 API |
 | 传输字节完整性 | PASS；源文件/R2/下载长度与 SHA-256、文件名、扩展名、Range 和安全 MIME |
 | 队列/网络恢复 | PASS；账户隔离、session plan、暂停、断线、重试、取消和持久化边界 |
-| Task27 安全回归 | PASS，32 组；MFA、旧会话、设备撤销、邮件、通知隔离、step-up、隐私同意 |
+| Task27 安全回归 | 历史 PASS，早期 32 组，ea 集成工作区 33 组；含政策发布与轮换；本轮未重跑 |
 | Android | PASS，新基线完整 121 suites / 834 tests / 0 failures/errors/skips（含 Task22 25 项）；Lint、Debug 构建成功；未安装手机 |
 | 新基线会话桥接 | 原阈值复跑 PASS，JS 单测和 4 个浏览器仿真场景；首次慢恢复分支 FAIL 保留，原因未证实，稳定性不据此判定通过 |
 | 迁移 | PASS，独立本地 Wrangler 台账 38 条，外键检查为空；旧用户/分享行与 R2 字节快照保持 |

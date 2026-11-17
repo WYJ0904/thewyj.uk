@@ -3,12 +3,18 @@
 本轮交付是独立 Draft PR。Production 发布、迁移、R2 设置、邮件路由、Android
 Stable、真机资料和权限均未获授权，也未执行。原 Hotfix 工作区及其未提交内容保留。
 
+2026-11-17：已完成交接整理，后续由 Hydrogen 负责。本轮只保存、定向验证和
+安全接入已发布 main；没有继续发布。完整状态见 [HYDROGEN_HANDOFF.md](HYDROGEN_HANDOFF.md)。
+
 ## 门禁
 
-1. Task27 #155 正式合并并完成其自身发布；Task28 不代替该任务验收。
+1. Task27 #155 已合并 main `aec48575`，上线状态由所有者确认；此前置条件已变化，
+   不再以未合并的 Hydrogen 分支作为 Task28 发布目标。Task28 不代替 Task27 验收。
 2. 重新核对 main/Task27 最新 HEAD、0038 编号和祖先关系；安全整理独立 Task28
    差异。不得把 Task27 全部改动再次作为 Task28 提交，不 force push 他人分支。
 3. 最终 Task28 HEAD 的必要 CI 通过；构建绿灯不等同 Hosted/真机验收。
+   先关闭私有 bearer 旧凭证的会话/所有者语义门禁，以及交接记录中的旧 CI 失败；
+   客户端账户隔离已定向通过不等于服务端在注销时吊销所有旧 token。
 4. 获授权后在专用隔离 Preview 应用 `0038_task28_secure_files.sql`，检查迁移
    台账、外键、历史文件和 D1/R2 数据摘要。不抢占 Hydrogen 的共享 Preview。
 5. 隔离 Preview 复核实际私有 R2 设置、跨账户、分片/续传/范围下载、限流、

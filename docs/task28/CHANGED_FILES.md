@@ -1,7 +1,7 @@
 # Task28 变更文件清单
 
-相对临时比较基线 `d13a588fa5475305252a4f9a1e10d656a98f384f`，共 37 个文件。
-仅 Task28 增量及必要账户/测试接入，不包含 Task27 基线增量、原 Hotfix WIP、缓存或本地日志。
+2026-11-17 交接；相对 main `aec4857546c53505f05a8da5ce8e3460223b4742`，共 38 个文件。
+只列 Task28 增量、必要账户/测试接入和交接资料，不重复计入 Task27 合并历史。
 
 | 文件 | 状态 |
 | --- | --- |
@@ -11,6 +11,7 @@
 | `cloudflare/task22-cleanup-worker.mjs` | 修改 |
 | `docs/task28/CHANGED_FILES.md` | 新增 |
 | `docs/task28/EXISTING_CAPABILITIES.md` | 新增 |
+| `docs/task28/HYDROGEN_HANDOFF.md` | 新增 |
 | `docs/task28/RELEASE_AND_ROLLBACK.md` | 新增 |
 | `docs/task28/SERVICE_CONTRACT.md` | 新增 |
 | `docs/task28/TASK28_IMPLEMENTATION_REPORT.md` | 新增 |

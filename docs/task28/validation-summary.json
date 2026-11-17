@@ -3,15 +3,16 @@
   "date_hong_kong": "2026-11-16",
   "recorded_at_hong_kong": "2026-11-16T02:47:24.320987+08:00",
   "branch": "codex/task28-secure-file-foundation",
-  "base_task27_sha": "d13a588fa5475305252a4f9a1e10d656a98f384f",
-  "main_observed_sha": "7766b80eb2c9e448dc08a3a4b317bfa62e0dff6e",
+  "base_task27_sha": "ba7b932e7d23e05eb59dfb54dc599f101d8da473",
+  "main_observed_sha": "aec4857546c53505f05a8da5ce8e3460223b4742",
   "release": "RELEASE_HELD",
   "scope": "Synthetic local isolated D1/R2 only; not Hosted, device or Production acceptance",
   "checks": {
     "task28": {
       "status": "PASS",
       "groups": 30,
-      "raw_log": ".wrangler/task28/evidence/task28-submission.log",
+      "raw_log": ".wrangler/task28/evidence/task28-ea-baseline.log",
+      "local_evidence": ".wrangler/task28/evidence/180f8c5d-1843-4932-a2f0-ab8ba1a80ca5/result.json",
       "detail": {
         "scope": "local isolated Miniflare D1/R2; synthetic files and accounts only",
         "checks": [
@@ -142,12 +143,13 @@
         "maximum_buffer_bytes": 33554432,
         "status": "PASS"
       },
-      "local_evidence": ".wrangler/task28/evidence/bcd0e3aa-1caf-4722-b2f8-81a551d03e39/result.json"
+      "scope": "HISTORICAL: pending ea283933 integration worktree (then HEAD d2a9ec28 + staged merge); not final-handoff full acceptance"
     },
     "compiled_workerd": {
       "status": "PASS",
       "groups": 3,
-      "raw_log": ".wrangler/task28/evidence/workerd-submission.log",
+      "raw_log": ".wrangler/task28/evidence/workerd-ea-baseline.log",
+      "local_evidence": ".wrangler/task28/evidence/workerd-75929f85-abcc-4afe-bc1e-e1a7033120ce/result.json",
       "detail": {
         "scope": "compiled Pages Worker in local workerd; isolated D1/R2; streaming synthetic bytes",
         "checks": [
@@ -175,13 +177,13 @@
         },
         "status": "PASS"
       },
-      "local_evidence": ".wrangler/task28/evidence/workerd-2eebe5ae-cbf0-4f49-aea3-a34989107a93/result.json"
+      "scope": "HISTORICAL: pending ea283933 integration worktree (then HEAD d2a9ec28 + staged merge); not final-handoff full acceptance"
     },
     "browser": {
       "status": "PASS",
       "groups": 5,
-      "raw_log": ".wrangler/task28/evidence/owner-isolation-submission.log",
-      "local_evidence": ".wrangler/task28/evidence/browser-4ad1ae74-de65-422c-a98f-eb7d853080e8/result.json",
+      "raw_log": ".wrangler/task28/evidence/browser-ea-baseline.log",
+      "local_evidence": ".wrangler/task28/evidence/browser-a69ffdb7-fdb7-4f81-82c9-3eac678ecc62/result.json",
       "detail": {
         "scope": "isolated desktop Chrome + mobile viewport, real local D1/R2, synthetic account/files",
         "checks": [
@@ -215,7 +217,8 @@
         "production": "NOT_TOUCHED",
         "browser": "Chrome/157.0.8103.52",
         "status": "PASS"
-      }
+      },
+      "scope": "HISTORICAL: pending ea283933 integration worktree (then HEAD d2a9ec28 + staged merge); not final-handoff full acceptance"
     },
     "task14": {
       "status": "PASS",
@@ -309,6 +312,24 @@
       "unchanged_threshold_retest": "PASS",
       "failure_cause": "UNCONFIRMED",
       "stability": "NOT_ESTABLISHED"
+    },
+    "task27_latest_historical": {
+      "status": "PASS",
+      "groups": 33,
+      "log": ".wrangler/task28/evidence/task27-ea-baseline.log",
+      "scope": "HISTORICAL: pending ea283933 integration worktree (then HEAD d2a9ec28 + staged merge); not final-handoff full acceptance"
+    },
+    "android_latest_ea_historical": {
+      "status": "PASS",
+      "suites": 121,
+      "tests": 834,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "lint": "PASS",
+      "assembleDebug": "PASS",
+      "log": ".wrangler/task28/evidence/android-ea-baseline.log",
+      "scope": "HISTORICAL: pending ea283933 integration worktree (then HEAD d2a9ec28 + staged merge); not final-handoff full acceptance"
     }
   },
   "remote": {
@@ -317,7 +338,8 @@
     "shared_hydrogen_preview": "NOT_OVERWRITTEN",
     "production": "NOT_TOUCHED",
     "android_real_device": "NOT_TESTED",
-    "android_stable": "NOT_CHANGED"
+    "android_stable": "NOT_CHANGED",
+    "actor_scope": "Codex Task28 only; Task27 release is separately owner-confirmed."
   },
   "limitations": [
     "Runtime stream fixture: 16 MiB + 123 bytes; no GB heap-peak/WAN benchmark",
@@ -329,8 +351,10 @@
     "preserved": true,
     "index": ".wrangler/task28/evidence/development-failures.md",
     "logs": [
+      "android-ea-baseline.log",
       "android-latest-baseline.log",
       "android-task22-initial.log",
+      "browser-ea-baseline.log",
       "browser-fifth.log",
       "browser-final-integration.log",
       "browser-fourth.log",
@@ -347,6 +371,8 @@
       "functional-audit.log",
       "functions-build-second.log",
       "functions-build.log",
+      "handoff-ci-97c406c0-cloud-only-failure.log",
+      "handoff-owner-isolation-2026-11-17.log",
       "local-ledger.log",
       "local-migrations.log",
       "owner-isolation-after-fix.log",
@@ -374,11 +400,13 @@
       "task22-second.log",
       "task22-sixth.log",
       "task22-third.log",
+      "task27-ea-baseline.log",
       "task27-regression.log",
       "task27-session-bridge-js.log",
       "task27-session-bridge-latest.log",
       "task27-session-bridge-retry.log",
       "task27-session-bridge-submission.log",
+      "task28-ea-baseline.log",
       "task28-final-candidate.log",
       "task28-final.log",
       "task28-fourth.log",
@@ -389,6 +417,7 @@
       "task28-third.log",
       "transfer-integrity-final.log",
       "transfer-integrity-initial.log",
+      "workerd-ea-baseline.log",
       "workerd-final.log",
       "workerd-initial.log",
       "workerd-memory-final.log",
@@ -402,10 +431,12 @@
     ]
   },
   "source_manifest": {
-    "normalization": "UTF-8 text bytes with CR/CRLF normalized to LF; describes submitted sources, not a remote CI claim",
+    "normalization": "CR/CRLF normalized to LF; final code commit, not a claim that all historical tests were rerun",
+    "code_commit_sha": "4b456e9a9f446ccd86266be6ff9de1b6431119c0",
+    "comparison_base_sha": "aec4857546c53505f05a8da5ce8e3460223b4742",
     "sha256": {
       ".github/workflows/ci.yml": "815b1cee42438243238313bca695c2d5b493e3ab7784d2688e79b192786bedf9",
-      "app.js": "023ff7d27cc51462ef48fcf0ce2b1aab07a5466f272b16981c70e4325321aa09",
+      "app.js": "e0ab7857558793444cbef2a9479d9076da6e0f79ebc46d019d22ca15833719f8",
       "cloudflare/migrations/0038_task28_secure_files.sql": "464f54f36bf312b297a267118286b9d43618f7abfbb0f5eca364c419fd4c0bff",
       "cloudflare/task22-cleanup-worker.mjs": "e69da54eab37e1ef66d4499a64d8bd79c9826b5aa92b7bbc22333f2f8df5923e",
       "functions/_lib/secure-file-api.mjs": "6c86f5407c89d800410c6db75f18c9d0dd120bd6a1d6ea60b6e3968bfbd2efd9",
@@ -421,25 +452,25 @@
       "functions/_lib/task22-service.mjs": "32c08aa778b4b0ef133338de743f3ee9de40e6eecd0edc6af633d1645d4b7e2f",
       "functions/_lib/task27-auth.mjs": "6efc1c044bba6b0d03b153cac2f1e48abaf3731fcce7db6d6471d81e9def8e9d",
       "functions/api/[[path]].js": "fae7e884844a98b233c6b0d0d1eeb2063ca905eca4f09819a39a5d55276eee34",
-      "index.html": "0c4af6f8b76c5b794d73395d0f27daa415a2c39e4b619715f049c278d3d17ee4",
-      "js/transfer/app.js": "5a1623e406e4dd9bf77cbedf25b974d8c22e8de13fa8eb0855cfe39b4cf62c08",
+      "index.html": "9d12eddb61a18db053367f3d01b2bc3b07266d3061c1285c0a9bef7390cb7bf0",
+      "js/transfer/app.js": "b1a027dc49c3aa3eecc085d3ad7b526bb31095099b98d048e1a8f0a9fb6237ed",
       "local-backend/test_task14_d1_js.mjs": "bcbf77d953fc9b4653d163a3dc8afd1a185ba46b5faac939403457bcf31a290b",
       "local-backend/test_task22_d1_js.mjs": "451a0b58dd709fce6f9d1cae5b27ee31678d344d0c7223a3d90007b2170f61ff",
       "local-backend/test_transfer_integrity_js.mjs": "ef91486a11d060cf6207532457b57216117ec12ccdfeefbd8fa9dd7db62823da",
       "package.json": "62f17b989c9dedd3b768404430036302d3fce9c6eb4356988de4aac04ab6b9bd",
       "product-ui.css": "752cbf9388843818974e19597ea2bb771bf8689d655e4c6efc59286aca8834de",
       "qa/task27/android-session-sync-browser.mjs": "6404bc53f68cd24f61b1072d89ee95f47415585431f0f5648c88b8e2056ebe02",
-      "qa/task28/browser.mjs": "2386754f5ea9a6f3a68e65ac998b197691382a8821e3c0289c2ed5a857050f03",
+      "qa/task28/browser.mjs": "bb1bfaf98879c4592bb7b356e0d124b711d8cf7fc38b5334af9e5f4056263a14",
       "qa/task28/secure-files.mjs": "ba3ceeb1cea9b35b447362878258d1f7e11b4fa8a181277e5ef53acf4229eebc",
       "qa/task28/workerd.mjs": "58bbfa42e6d5fdb770a9f743cabcd4766615b513e72fe04d9b3816a461011365",
-      "sw.js": "957cbb40f556384b388bc8baf0c9b628869161ad9d161a2fb1c8225bf8aaf2a3"
+      "sw.js": "03a07da96a0f04f4ba5dd682238afb82844d1827a2524dc57170447832594182"
     }
   },
   "screenshots": {
     "private-desktop.png": "85d913abba21edd534068f7a49e72990f7989495742e7ffb77fb9a151cd4bdd4",
     "private-mobile.png": "90ed2b4f8248678dff49cb907a6ea7251abf19dc76d96fdb63be2feed12998a3"
   },
-  "changed_file_count": 37,
+  "changed_file_count": 38,
   "initial_task27_sha": "8109e90fd83da110959a988f2a4aa692fee15051",
   "baseline_update": {
     "method": "normal merge on Task28 branch; no force push",
@@ -475,7 +506,9 @@
     },
     "conflict": "sw.js derived integrity/publication only; regenerated with existing script",
     "task28_backend_unchanged": true,
-    "test_teardown_fix": "bounded CDP shutdown and safe temporary-profile cleanup in isolated browser fixtures; assertions/product timeouts unchanged"
+    "test_teardown_fix": "bounded CDP shutdown and safe temporary-profile cleanup in isolated browser fixtures; assertions/product timeouts unchanged",
+    "historical_record": true,
+    "superseded_by": "comparison_base main aec48575 and handoff section"
   },
   "client_owner_isolation": {
     "regression_before_fix": "FAIL",
@@ -484,5 +517,115 @@
     "after_log": ".wrangler/task28/evidence/owner-isolation-submission.log",
     "late_authorization_observed_until_settled": true,
     "new_owner_downloads_from_old_grant": 0
+  },
+  "checks_scope": "Historical results preserved; only handoff.focused_verification was re-executed during this handoff.",
+  "comparison_base": {
+    "ref": "main",
+    "sha": "aec4857546c53505f05a8da5ce8e3460223b4742"
+  },
+  "code_commit_sha": "4b456e9a9f446ccd86266be6ff9de1b6431119c0",
+  "handoff_owner": "Hydrogen",
+  "handoff": {
+    "date_hong_kong": "2026-11-17",
+    "status": "PRESERVED_FOR_HYDROGEN_STOP_AFTER_HANDOFF",
+    "code_commit_sha": "4b456e9a9f446ccd86266be6ff9de1b6431119c0",
+    "documentation_head": "This document commit; exact package HEAD recorded in PR #156 description and final reply",
+    "main": "aec4857546c53505f05a8da5ce8e3460223b4742",
+    "pr": 156,
+    "draft": true,
+    "pr_base_target": "main",
+    "initial_remote_head": "97c406c07cd7d373a17c6704d9c6a18799afb752",
+    "preservation_snapshot": ".wrangler/task28/handoff-preservation/2026-11-17-7edfb12c0e",
+    "snapshot_bundle_verified": true,
+    "snapshot_staged_files": 47,
+    "pending_merge_saved_as": "2ce2ca3e6d1d9c4baca88caf8705c3eda89a8bf4",
+    "main_ancestor_of_code": true,
+    "unresolved_conflicts": [],
+    "focused_verification": {
+      "status": "PASS",
+      "passed": 3,
+      "skipped": 2,
+      "setup_cases": 2,
+      "security_scenarios": 1,
+      "command": "node qa/task28/browser.mjs --owner-isolation-only",
+      "log": ".wrangler/task28/evidence/handoff-owner-isolation-2026-11-17.log",
+      "local_evidence": ".wrangler/task28/evidence/browser-b16f0d32-e79c-4944-bbdd-396b5c5c8ed7/result.json",
+      "detail": {
+        "scope": "isolated desktop Chrome + mobile viewport, real local D1/R2, synthetic account/files",
+        "mode": "owner-isolation-handoff",
+        "checks": [
+          {
+            "name": "account login exposes the private attachment option in the existing transfer page",
+            "status": "PASS"
+          },
+          {
+            "name": "private upload, validated completion, owner-only management and file-scoped download use the real UI",
+            "status": "PASS"
+          },
+          {
+            "name": "375px mobile layout keeps controls visible and the transfer region has no serious accessibility violations",
+            "status": "SKIPPED",
+            "reason": "already passed; outside targeted owner-isolation handoff check"
+          },
+          {
+            "name": "account switches clear private views and grants and discard a late authorization from the previous owner",
+            "status": "PASS"
+          },
+          {
+            "name": "revoke removes private access and ordinary shared links still open in an independent guest browser context",
+            "status": "SKIPPED",
+            "reason": "already passed; outside targeted owner-isolation handoff check"
+          }
+        ],
+        "screenshots": [
+          "private-desktop.png"
+        ],
+        "hosted": "NOT_TESTED",
+        "android_webview": "NOT_TESTED",
+        "production": "NOT_TOUCHED",
+        "browser": "Chrome/157.0.8103.52",
+        "status": "PASS"
+      },
+      "code_sha": "4b456e9a9f446ccd86266be6ff9de1b6431119c0"
+    },
+    "large_suite_reexecution": {
+      "android": "SKIPPED by owner instruction",
+      "task28_full": "SKIPPED by owner instruction"
+    },
+    "old_ci": {
+      "head": "97c406c07cd7d373a17c6704d9c6a18799afb752",
+      "run_id": 43748832337,
+      "url": "https://github.com/WYJ0904/thewyj.uk/actions/runs/43748832337",
+      "status": "FAIL",
+      "actions_success": 7,
+      "actions_failure": 1,
+      "actions_skipped": 2,
+      "cloudflare_pages": "PASS",
+      "failed_job": "Cloud-only browser, canonical session and toolbox",
+      "failed_step": "Safe presentation rollback and roll-forward without clearing user storage",
+      "immediate_cause": "empty __rollbackFrames; assert.ok(frames.length)",
+      "root_cause": "UNCONFIRMED; newer main changed SW and rollback diagnostics; not re-run this handoff",
+      "failure_log": ".wrangler/task28/evidence/handoff-ci-97c406c0-cloud-only-failure.log"
+    },
+    "current_head_ci": "No full-CI PASS claimed; final PR head checks are authoritative, delegated without waiting or manual rerun",
+    "priority_security_review": {
+      "state": "OPEN",
+      "topic": "private bearer grants remain valid until TTL/file revocation; logout is not automatic server-side revocation",
+      "current_behavior_test": "secure-files.mjs anonymous token-holder download succeeds",
+      "client_owner_switch_fix": "COMMITTED and targeted PASS",
+      "session_binding": "NOT_IMPLEMENTED / contract decision deferred to Hydrogen"
+    },
+    "production_operations": 0,
+    "remote_migrations": 0,
+    "real_r2_writes": 0,
+    "stable_generated": false,
+    "task29_started": false,
+    "owner_confirmed_task27": {
+      "merged_pr": 155,
+      "main_merge": "aec4857546c53505f05a8da5ce8e3460223b4742",
+      "production_migrations": "0035-0037 applied",
+      "android_stable": "1.3.40 published",
+      "remote_d1_or_apk_reprobed_by_this_handoff": false
+    }
   }
 }
