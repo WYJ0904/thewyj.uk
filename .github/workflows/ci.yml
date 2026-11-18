@@ -436,6 +436,8 @@ jobs:
           npm install --prefix .wrangler/task27-reference/otpauth-lab --ignore-scripts --no-audit --no-fund --no-save otpauth@9.6.0 jsqr@1.4.0
           npm run cf:check
           node qa/task27/workerd.mjs 2>&1 | tee artifacts/task27-workerd.log
+          npm run test:task29 2>&1 | tee artifacts/task29-backup-restore.log
+          node qa/task29/workerd.mjs 2>&1 | tee artifacts/task29-workerd.log
           node qa/task27/upgrade-and-strength.mjs 2>&1 | tee artifacts/task27-upgrade-strength.log
           npm run test:task27:oracle 2>&1 | tee artifacts/task27-reference-oracle.log
 
@@ -1117,6 +1119,7 @@ jobs:
           npm install --prefix .wrangler/task27-reference/otpauth-lab --ignore-scripts --no-audit --no-fund --no-save otpauth@9.6.0 jsqr@1.4.0
           npm run test:task27:browser 2>&1 | tee artifacts/task27-browser.log
           npm run test:task28:browser 2>&1 | tee artifacts/task28-browser.log
+          npm run test:task29:browser 2>&1 | tee artifacts/task29-browser.log
 
       - name: Task 25 feature administration and release channel browser acceptance
         run: |

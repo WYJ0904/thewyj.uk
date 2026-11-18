@@ -5083,6 +5083,13 @@ financeController = createLazyController({
   }),
 });
 
+window.addEventListener("aeris:finance-data-restored", () => {
+  try {
+    void financeController?.syncNow?.({ force: true });
+    void financeCandidatesController?.reload?.({ force: true });
+  } catch (_) {}
+});
+
 financeCandidatesController = createLazyController({
   loadForSummary: false,
   methods: ["reload", "handleClick"],

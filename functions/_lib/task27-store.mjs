@@ -71,6 +71,11 @@ export const EVENT_TEXT = Object.freeze({
   recovery_regenerated:['恢复码已重新生成','旧恢复码已全部撤销，请妥善保管本次显示的新恢复码。'],
   session_revoked:['登录会话已撤销','您选择的登录会话已在服务端撤销。'],
   refresh_reuse:['检测到刷新凭据重复使用','检测到设备刷新凭据重复使用，相关设备会话已撤销。请检查登录设备。'],
+  backup_export_created:['已生成账户数据导出/加密备份','您已为当前账户生成结构化数据导出或加密备份包，请妥善保存备份文件及口令。'],
+  backup_restore_prechecked:['已执行备份恢复预检','您对当前账户执行了只读备份预检与差异分析，未写入业务账目。'],
+  backup_restore_completed:['账户数据备份恢复已完成','您已通过身份核验并完成加密备份恢复；已自动跳过重复记录并保留冲突保护。'],
+  backup_restore_failed:['账户数据备份恢复失败','备份恢复未能完成，已中断当前写入作业，请查看恢复报告。'],
+  backup_restore_rolled_back:['备份恢复失败并已回滚','备份恢复过程中检测到异常，本次作业新写入的记录已撤销，已有账目未被破坏。'],
 });
 export function eventStatements(db, userId, event, actorId = userId, requestId = '') {
   if (!EVENT_TEXT[event]) throw new TypeError('Unknown security event');

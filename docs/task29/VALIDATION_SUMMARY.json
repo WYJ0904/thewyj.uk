@@ -1,0 +1,93 @@
+{
+  "task": "Aeris V6.3 Task29 - Encrypted Backup, Export, Precheck & Restorable Recovery",
+  "priority": "P1",
+  "base_commit": "63bcf0b821d3d381513bcb7cc2dee1926b4e1b30",
+  "branch": "hydrogen/task29-encrypted-backup-restore",
+  "migration": "cloudflare/migrations/0039_task29_encrypted_backup_restore.sql",
+  "status_markers": {
+    "LOCAL_AUTOMATED_TESTS": "PASS",
+    "LOCAL_BROWSER_DESKTOP_AND_MOBILE": "PASS",
+    "HOSTED_PREVIEW_E2E": "PASS",
+    "ANDROID_PHYSICAL_DEVICE": "NOT_TESTED — NOT REQUIRED FOR TASK29 ACCEPTANCE",
+    "PRODUCTION_NOT_RELEASED": true
+  },
+  "task29_suites": {
+    "test_task29": {
+      "command": "npm run test:task29",
+      "status": "PASS",
+      "passed": 6,
+      "failed": 0,
+      "cases": [
+        "12.1a encrypted/json/csv export with unique salt & iv, privacy declaration, and big-int formatting",
+        "12.1b wrong passphrase, tampered ciphertext/iv/salt/AAD header/manifest, CSV restore rejected",
+        "12.2 unauthenticated, cross-account, tampered user_id, missing/wrong stepup rejected",
+        "12.3a privacy boundary blocks raw text & P03-P06 invariants block invalid records",
+        "12.3b read-only precheck does not mutate tables + empty/clean recovery + idempotent replay + conflict blocking",
+        "12.4 fault injection mid-restore rolls back newly inserted batch and preserves pre-existing records"
+      ]
+    },
+    "test_task29_runtime": {
+      "command": "npm run test:task29:runtime",
+      "status": "PASS",
+      "passed": 3,
+      "failed": 0,
+      "cases": [
+        "compiled workerd exports encrypted package and exposes scopes",
+        "compiled workerd rejects wrong passphrase & cross-account precheck",
+        "compiled workerd runs precheck, enforces stepup, restores missing tx, and stays idempotent"
+      ]
+    },
+    "test_task29_browser": {
+      "command": "npm run test:task29:browser",
+      "status": "PASS",
+      "passed": 5,
+      "failed": 0,
+      "viewports_tested": ["1440x900", "768x1024", "390x844", "375x667"],
+      "themes_tested": ["light", "dark"],
+      "axe_serious_or_critical_violations": 0,
+      "screenshots_count": 9
+    }
+  },
+  "hosted_preview_acceptance": {
+    "status": "PASS",
+    "url": "https://thewyj-task29-preview.pages.dev",
+    "deployment_url": "https://0c0db46c.thewyj-task29-preview.pages.dev",
+    "d1_database_name": "thewyj-task29-preview",
+    "d1_database_id": "88ba104f-1855-47ae-843e-a527b63979b4",
+    "r2_bucket_name": "thewyj-task29-preview-files",
+    "applied_migrations_count": 39,
+    "browser_version": "Chrome/157.0.8103.79",
+    "checks_passed": 4,
+    "checks_failed": 0,
+    "leftover_test_users": 0,
+    "production_touched": false,
+    "evidence_dir_gitignored": ".wrangler/task29/evidence/hosted-preview-41bbea75-b43e-4b7f-800b-cd4db7463fd7"
+  },
+  "regression_suites": {
+    "test_task27": { "status": "PASS", "passed": 33, "failed": 0 },
+    "test_task28": { "status": "PASS", "passed": 31, "failed": 0 },
+    "test_task12": { "status": "PASS", "passed": 15, "failed": 0 },
+    "test_task16_d1": { "status": "PASS", "passed": 11, "failed": 0 },
+    "test_task17": { "status": "PASS" },
+    "test_task20": { "status": "PASS", "passed": 18, "failed": 0, "android_contract_check": "PASS" },
+    "test_task21_payment": { "status": "PASS" },
+    "test_task21_notification": { "status": "PASS" },
+    "test_task22": { "status": "PASS" },
+    "sw_install": { "status": "PASS", "passed": 20, "failed": 0 },
+    "js_module_graph": { "status": "PASS", "files": 67, "imports": 110 },
+    "storage_contract": { "status": "PASS", "families": 31 },
+    "async_interaction_audit": { "status": "PASS", "handlers": 346 }
+  },
+  "finance_p04_baseline_checks": {
+    "unit_review": { "status": "PASS", "passed": 19, "failed": 0 },
+    "default_currency": { "status": "PASS", "passed": 11, "failed": 0 },
+    "contracts": { "status": "PASS", "passed": 39, "failed": 0 },
+    "raw_transport": {
+      "status": "PARTIAL_MISSING_GITIGNORED_FIXTURE",
+      "passed": 35,
+      "failed": 1,
+      "failed_case": "old-exact-raw-receipt-stays-CNY-after-additive-upgrade",
+      "reason": "git-ignored docs/migration-evidence/finance-p04/local/baseline-modules is absent in clean worktrees"
+    }
+  }
+}
