@@ -76,6 +76,10 @@ export const EVENT_TEXT = Object.freeze({
   backup_restore_completed:['账户数据备份恢复已完成','您已通过身份核验并完成加密备份恢复；已自动跳过重复记录并保留冲突保护。'],
   backup_restore_failed:['账户数据备份恢复失败','备份恢复未能完成，已中断当前写入作业，请查看恢复报告。'],
   backup_restore_rolled_back:['备份恢复失败并已回滚','备份恢复过程中检测到异常，本次作业新写入的记录已撤销，已有账目未被破坏。'],
+  privacy_consent_revoked:['已撤回可选隐私同意','您已撤回可选数据处理同意或访问授权，对应后台处理与分享链接已停止或撤销。'],
+  privacy_erasure_requested:['已受理隐私数据删除请求','您的隐私数据安全删除请求已通过二次验证，相关访问已立即撤销，正在完成安全清理。'],
+  privacy_erasure_completed:['隐私数据安全删除已完成','您提交的隐私数据安全删除已完成D1/R2清理与防复活保护，可在隐私中心查看结果报告。'],
+  privacy_account_erased:['账户注销与关联数据擦除已启动','您的账户已关闭并撤销所有登录会话与设备授权，关联业务数据按隐私策略进入安全清理。'],
 });
 export function eventStatements(db, userId, event, actorId = userId, requestId = '') {
   if (!EVENT_TEXT[event]) throw new TypeError('Unknown security event');

@@ -22,6 +22,7 @@ import { recordAdminAction } from "../_lib/task18-service.mjs";
 import { handleTask27Request } from '../_lib/task27-api.mjs';
 import { handleTask27EmailRequest } from '../_lib/task27-email-gateway.mjs';
 import { handleTask29Request } from '../_lib/task29-backup-api.mjs';
+import { handleTask30Request } from '../_lib/task30-privacy-api.mjs';
 
 const SENSITIVE_ADMIN_ACTIONS = Object.freeze({
   "/api/admin/secret": ["password_reset", "user", "user_id"],
@@ -92,6 +93,7 @@ export async function onRequest(context) {
   const response = await handleTask27EmailRequest(context,handleEmailRequest)
     || await handleTask27Request(context)
     || await handleTask29Request(context)
+    || await handleTask30Request(context)
     || await handleTask12Request(context)
     || await handleTask20Request(context)
     || await handleTask18Request(context)

@@ -55,6 +55,7 @@
     "TASK25_FEATURE_FLAGS_ENABLED": "true",
     "TASK26_ADAPTIVE_LEARNING_ENABLED": "true",
     "TASK29_BACKUP_ENABLED": "true",
+    "TASK30_PRIVACY_ENABLED": "true",
     "EMAIL_SENDING_ENABLED": "false"
   },
   "env": {
@@ -111,6 +112,7 @@
         "TASK26_ADAPTIVE_LEARNING_ENABLED": "true",
         "TASK27_SECURITY_ENABLED": "true",
         "TASK29_BACKUP_ENABLED": "true",
+        "TASK30_PRIVACY_ENABLED": "true",
         "AZURE_SPEECH_REGION": "eastasia",
         "EMAIL_SENDING_ENABLED": "true",
         "EMAIL_SUPPORT_SENDER_AUTHORIZED": "true",
@@ -193,6 +195,7 @@
         "TASK26_ADAPTIVE_LEARNING_ENABLED": "true",
         "TASK27_SECURITY_ENABLED": "true",
         "TASK29_BACKUP_ENABLED": "true",
+        "TASK30_PRIVACY_ENABLED": "true",
         "AZURE_SPEECH_REGION": "eastasia",
         "EMAIL_SENDING_ENABLED": "true",
         "EMAIL_SUPPORT_SENDER_AUTHORIZED": "true"

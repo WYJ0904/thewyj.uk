@@ -8,6 +8,13 @@ import {explicitReviewCurrency,finishReviewCurrency} from './finance-review-curr
 import {lifecycleRows,lifecycleBalance,lifecycleReason,lifecycleGuardStatement,RECOVERABLE_LIFECYCLE_REASONS} from './task21-lifecycle.mjs';
 import {paymentReviewReason, financeReferenceProvider, financeReplayReference, referenceNamespaceForSource} from "./task21-event-safety.mjs";
 import {
+  checkTombstoneCollision,
+  computeRecordTombstoneIdentities,
+  hasTask30,
+  isCloudNotificationSyncAllowed,
+  recordTombstonesStatements,
+} from "./task30-privacy-service.mjs";
+import {
   MAX_EVENT_PAGE,
   MAX_INGEST_OPERATIONS,
   NOTIFICATION_ENTITLEMENT,
@@ -199,6 +206,13 @@ export async function correctedPaymentHintReceipt(db,account,event) {
 }
 
 export async function createAutomaticFinanceTransaction(db, account, deviceId, event) {
+  const permMatch = await checkTombstoneCollision(db, account.id, [
+    ...computeRecordTombstoneIdentities("finance", "raw_event", event),
+    ...computeRecordTombstoneIdentities("notifications_cloud", "notification_event", event),
+  ], { permanentOnly: true });
+  if (permMatch) {
+    throw new Task21Error("关联支付事件或账目已通过隐私清理永久删除，禁止重复自动入账", 409, "erased_record_resurrection_blocked");
+  }
   if(await correctedPaymentIdentity(db,account,event)) {
     const receipt=await reconciledIngestReceipt(db,account,event.event_id,{});
     if(receipt.reconciliation_status==='applied'&&receipt.transaction_id)return {transaction_id:receipt.transaction_id,duplicate:true};
@@ -687,7 +701,19 @@ async function processIngest(db, account, deviceId, operation) {
   requireAllowedFields(operation, new Set(["operation_id", "type", "payload"]));
   cleanId(operation.operation_id, "操作标识");
   if (operation.type !== "event.ingest") throw new Task21Error("采集操作类型无效", 400, "operation_type_invalid");
+  if (!(await isCloudNotificationSyncAllowed(db, account.id))) {
+    throw new Task21Error("您已撤销云端结构化通知同步授权，新通知事件不会上传至云端", 403, "cloud_notification_sync_revoked");
+  }
   const event = normalizeNotificationEvent(operation.payload);
+  const permMatch = await checkTombstoneCollision(
+    db,
+    account.id,
+    computeRecordTombstoneIdentities("notifications_cloud", "notification_event", event),
+    { permanentOnly: true },
+  );
+  if (permMatch) {
+    throw new Task21Error("该通知事件及关联支付识别记录已通过隐私清理永久清除，禁止重传复活", 409, "erased_record_resurrection_blocked");
+  }
   const now = isoNow();
 
   try {
@@ -698,6 +724,15 @@ async function processIngest(db, account, deviceId, operation) {
     const existingEvent = await first(db, `SELECT * FROM task21_notification_events
       WHERE user_id = ?1 AND event_id = ?2`, [account.id, event.event_id]);
     if (!existingEvent) throw error;
+    if (existingEvent.status === "deleted") {
+      return {
+        event: publicNotificationEvent(existingEvent),
+        duplicate: true,
+        suppressed_deleted: true,
+        transaction_id: "",
+        candidate_id: existingEvent.candidate_id || "",
+      };
+    }
     if (event.currency_roles) {
       const stored = await first(db, 'SELECT roles_json FROM task16_currency_role_evidence WHERE user_id=?1 AND event_id=?2', [account.id, event.event_id]);
       const sameRoles = ['original', 'settlement', 'fee'].every(name => {
@@ -817,6 +852,9 @@ export async function ingestNotificationEvents(db, account, input, authority) {
   requireAllowedFields(input, new Set(["schema_version", "device_id", "operations"]));
   if (Number(input.schema_version) !== Number(TASK21_SCHEMA_VERSION)) {
     throw new Task21Error("通知采集版本不兼容", 409, "schema_version_unsupported");
+  }
+  if (!(await isCloudNotificationSyncAllowed(db, account.id))) {
+    throw new Task21Error("您已撤销云端结构化通知同步授权，新通知事件不会上传至云端", 403, "cloud_notification_sync_revoked");
   }
   const deviceId = validateDeviceId(input.device_id);
   const operations = Array.isArray(input.operations) ? input.operations : [];
@@ -1122,6 +1160,16 @@ export async function rejectNotificationCandidate(db, account, input) {
     WHERE user_id = ?1 AND source_event_id = ?2 AND state = 'pending'`, [
     account.id, row.event_id, now,
   ]);
+  if (await hasTask30(db)) {
+    const tombStmts = recordTombstonesStatements(
+      db,
+      account.id,
+      "notifications_cloud",
+      computeRecordTombstoneIdentities("notifications_cloud", "notification_candidate", row),
+      { tombstoneLevel: "soft_delete", reason: "notification_candidate_rejected", now },
+    );
+    if (tombStmts.length) await db.batch(tombStmts);
+  }
   const updated = await candidateById(db, account, candidateId);
   return { candidate: publicNotificationCandidate(updated) };
 }
@@ -1132,11 +1180,21 @@ export async function deleteNotificationEvent(db, account, eventIdValue) {
   const row = await eventById(db, account, eventId);
   if (row.status === "deleted") return { event: publicNotificationEvent(row), no_change: true };
   const now = isoNow();
+  const task30Ready = await hasTask30(db);
   await db.batch([
     db.prepare(`UPDATE task21_notification_events SET status = 'deleted', deleted_at = ?2,
       updated_at = ?2 WHERE user_id = ?1 AND event_id = ?3`).bind(account.id, now, eventId),
     db.prepare(`UPDATE task21_notification_candidates SET status = 'rejected', updated_at = ?2
       WHERE user_id = ?1 AND event_id = ?3 AND status = 'pending'`).bind(account.id, now, eventId),
+    ...(task30Ready
+      ? recordTombstonesStatements(
+          db,
+          account.id,
+          "notifications_cloud",
+          computeRecordTombstoneIdentities("notifications_cloud", "notification_event", row),
+          { tombstoneLevel: "soft_delete", reason: "notification_event_deleted", now },
+        )
+      : []),
   ]);
   const updated = await eventById(db, account, eventId);
   return { event: publicNotificationEvent(updated) };

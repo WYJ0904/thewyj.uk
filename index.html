@@ -1164,7 +1164,7 @@
         <button class="modal-close" data-close-modal="accountModal" type="button" aria-label="关闭"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
         <p class="section-kicker">账户中心</p>
         <h1 id="accountTitle">我的账户 · 设置与偏好</h1>
-        <div class="action-row"><button class="button-secondary" id="openSecurityCenterBtn" type="button">账户安全 · 邮箱、双重验证与登录设备</button><button class="button-secondary" id="accountBackupOpen" type="button">数据导出、加密备份与恢复</button></div>
+        <div class="action-row"><button class="button-secondary" id="openSecurityCenterBtn" type="button">账户安全 · 邮箱、双重验证与登录设备</button><button class="button-secondary" id="accountBackupOpen" type="button">数据导出、加密备份与恢复</button><button class="button-secondary" id="accountPrivacyOpen" type="button">隐私与数据管理</button></div>
 
         <!-- Dual Summary Cards (07-账户及现有设置) -->
         <div class="account-profile-summary-grid">
@@ -1265,7 +1265,7 @@
     <div class="modal-layer hidden" id="deleteAccountModal" aria-hidden="true">
       <section class="modal-panel confirm-panel" role="alertdialog" aria-modal="true" aria-labelledby="deleteAccountTitle" aria-describedby="deleteAccountWarning">
         <h2 id="deleteAccountTitle">确认永久注销账户</h2>
-          <p class="danger-note" id="deleteAccountWarning">注销后无法继续使用原账户及其会员权益，已有登录会话将被撤销。必要的业务记录、安全审计和备份可能按实际规则继续保留，不会在同一时刻全部物理删除。</p>
+          <p class="danger-note" id="deleteAccountWarning">注销后无法继续使用原账户及其会员权益，Web 与 Android 登录会话、双重验证与联系邮箱将立即撤销，关联业务数据将进入安全清理与防复活保护。系统防刷审计、支付订单及您本机保存的离线文件/备份不会在同一时刻全部抹除，您可在「隐私与数据管理」查看完整留存例外与提前导出备份。</p>
         <form id="deleteAccountForm" class="stack-form">
           <label data-p07-label for="deleteSecretInput">当前登录密钥</label>
             <input id="deleteSecretInput" type="password" autocomplete="current-password" maxlength="256" placeholder="重新输入当前登录密钥" required />

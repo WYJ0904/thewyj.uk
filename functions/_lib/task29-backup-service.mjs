@@ -8,6 +8,12 @@ import { authorize, identity as task27Identity } from "./task27-security.mjs";
 import { challengeRow } from "./task27-auth.mjs";
 import { currencyDigits } from "../../js/finance/money.js";
 import {
+  checkTombstoneCollision,
+  computeRecordTombstoneIdentities,
+  getUserErasureGenerationsMap,
+  hasTask30,
+} from "./task30-privacy-service.mjs";
+import {
   BACKUP_CONTAINER_VERSION,
   BACKUP_SCHEMA_VERSION,
   MAX_BACKUP_BYTES,
@@ -858,6 +864,26 @@ export async function precheckBackupRestore(context, account, input = {}) {
         continue;
       }
 
+      const tombIdentities = tombstoneIdentitiesForBackupSection(section, row);
+      if (tombIdentities.length > 0) {
+        const matchExisting = findMatchingExisting(section, row, lookup);
+        const tombMatch = await checkTombstoneCollision(db, account.id, tombIdentities, {
+          permanentOnly: Boolean(matchExisting),
+        });
+        if (tombMatch && (tombMatch.tombstone_level === "permanent_erasure" || !matchExisting)) {
+          counts.rejected += 1;
+          counts.by_section[section].rejected += 1;
+          const isSourceEvent = ["source_event", "provider_reference", "lifecycle_identity", "raw_event"].includes(tombMatch.entity_type);
+          diffPreview.rejected.push({
+            section,
+            id,
+            reason: isSourceEvent ? "ERASED_SOURCE_EVENT_RESURRECTION_BLOCKED" : "ERASED_RECORD_RESURRECTION_BLOCKED",
+            detail: `记录 ${section}:${id} 或关联来源事件 (${tombMatch.entity_type}) 已通过隐私控制永久清除，禁止从历史备份恢复复活`,
+          });
+          continue;
+        }
+      }
+
       if (section === "transactions" && row.currency === "JPY" && (row.amount_exponent === null || row.amount_exponent === undefined)) {
         warnings.push({
           code: "LEGACY_JPY_UNVERIFIED_UNIT",
@@ -946,6 +972,7 @@ export async function precheckBackupRestore(context, account, input = {}) {
     const now = nowIso();
     const expiresAt = new Date(Date.now() + JOB_TTL_MS).toISOString().replace(/\.\d{3}Z$/, "Z");
     const totalBatches = stagedPlan.length === 0 ? 0 : Math.ceil(stagedPlan.length / RESTORE_BATCH_SIZE);
+    const precheckGenerations = await getUserErasureGenerationsMap(db, account.id);
     const summaryObj = {
       added: counts.added,
       skipped_identical: counts.skipped_identical,
@@ -955,6 +982,8 @@ export async function precheckBackupRestore(context, account, input = {}) {
       conflict_policy: conflictPolicy,
       source_export_id: String(envelope.export_id || ""),
       source_created_at: String(envelope.created_at || ""),
+      erasure_generation_snapshot: precheckGenerations,
+      prechecked_at: now,
     };
 
     await db.prepare(`INSERT INTO task29_restore_jobs (
@@ -1294,6 +1323,38 @@ function insertStatementForRecord(db, section, row) {
   }
 }
 
+function tombstoneIdentitiesForBackupSection(section, row) {
+  if (!row || typeof row !== "object") return [];
+  if (section === "categories") {
+    return row.id ? [{ categoryKey: "finance", entityType: "category", entityKey: String(row.id) }] : [];
+  }
+  if (section === "budgets") {
+    return row.id ? [{ categoryKey: "finance", entityType: "budget", entityKey: String(row.id) }] : [];
+  }
+  if (section === "transactions") {
+    return computeRecordTombstoneIdentities("finance", "transaction", row);
+  }
+  if (section === "raw_events") {
+    return computeRecordTombstoneIdentities("finance", "raw_event", row);
+  }
+  if (section === "transaction_events") {
+    const out = [];
+    if (row.transaction_id) out.push({ categoryKey: "finance", entityType: "transaction", entityKey: String(row.transaction_id) });
+    if (row.raw_event_id) out.push({ categoryKey: "finance", entityType: "raw_event", entityKey: String(row.raw_event_id) });
+    return out;
+  }
+  if (section === "notification_events") {
+    return computeRecordTombstoneIdentities("notifications_cloud", "notification_event", row);
+  }
+  if (section === "notification_candidates") {
+    return computeRecordTombstoneIdentities("notifications_cloud", "notification_candidate", row);
+  }
+  if (section === "pending_hints" || section === "notification_hints") {
+    return computeRecordTombstoneIdentities("notifications_cloud", "notification_hint", row);
+  }
+  return [];
+}
+
 async function authorizeBackupStepup(context, account, grant, jobId) {
   if (!grant || typeof grant !== "string") {
     throw new Task29Error("STEPUP_REQUIRED", "高风险数据恢复操作需要重新验证身份（Step-up 授权）", 403);
@@ -1432,6 +1493,40 @@ export async function commitRestoreJob(context, account, jobId, input = {}) {
     : null;
 
   try {
+    // Re-verify account is still active and no Task30 erasure invalidated this staged plan since precheck.
+    const activeCheck = await safeFirst(db, "SELECT deleted FROM task12_users WHERE id = ?1", [account.id]);
+    if (!activeCheck || Number(activeCheck.deleted) !== 0) {
+      throw new Task29Error("BACKUP_PLAN_INVALIDATED_BY_ERASURE", "账户已注销或进入删除流程，恢复已中止", 409);
+    }
+    if (await hasTask30(db)) {
+      const precheckGen = precheckSummary.erasure_generation_snapshot || {};
+      const liveGen = await getUserErasureGenerationsMap(db, account.id);
+      for (const catKey of Object.keys(liveGen)) {
+        const beforeGen = Number(precheckGen[catKey]?.generation || 0);
+        const afterGen = Number(liveGen[catKey]?.generation || 0);
+        if (afterGen > beforeGen) {
+          throw new Task29Error(
+            "BACKUP_PLAN_INVALIDATED_BY_ERASURE",
+            "检测到在备份恢复预检之后执行了隐私数据删除，原恢复计划已失效，请重新发起预检",
+            409,
+          );
+        }
+      }
+      for (const item of stagedPlan) {
+        const tombIds = tombstoneIdentitiesForBackupSection(item.section, item.row);
+        if (tombIds.length > 0) {
+          const hit = await checkTombstoneCollision(db, account.id, tombIds, { permanentOnly: true });
+          if (hit) {
+            throw new Task29Error(
+              "BACKUP_PLAN_INVALIDATED_BY_ERASURE",
+              `待恢复记录 ${item.section} 已在提交前被永久删除，恢复作业已回滚`,
+              409,
+            );
+          }
+        }
+      }
+    }
+
     // Re-read current user snapshot to detect concurrent writes or concurrent identical inserts.
     const liveSnapshot = await readUserSnapshot(db, account.id, ["finance_core", "finance_review", "notifications_cloud"]);
     const liveLookup = buildExistingLookupMaps(liveSnapshot.data);

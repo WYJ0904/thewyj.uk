@@ -152,7 +152,7 @@ export function ownerBoundRequest(request,getOwner) {
 
 export function createSecurityCenter({api,apiGet,publicApi,getSession,getAccount,openModal,closeModal,onInvalidated,onNativeLogout=()=>{}}) {
   const $=id=>document.getElementById(id);
-  let pendingPrompt=null,owner='',badgeAt=0,badgePromise=null,filter='all',page=1,inboxState=null,mailState=null,policyConfig=null,consentPromise=null,backupPrecheckState=null;
+  let pendingPrompt=null,owner='',badgeAt=0,badgePromise=null,filter='all',page=1,inboxState=null,mailState=null,policyConfig=null,consentPromise=null,backupPrecheckState=null,privacyState=null,privacyPreviewState=null,privacyRequestsState=null,privacyTab='data';
   const key=()=>`${getSession() || ''}:${getAccount()?.id || ''}`;
   api=ownerBoundRequest(api,key);apiGet=ownerBoundRequest(apiGet,key);
   function modal(id,title) {
@@ -207,7 +207,8 @@ export function createSecurityCenter({api,apiGet,publicApi,getSession,getAccount
     openModal('task27Secrets');await finished;
   }
   async function invalidate(result,message) {
-    for(const id of ['task27Security','task27Inbox','task27Mail'])if($(id))closeModal(id,true);
+    for(const id of ['task27Security','task27Inbox','task27Mail','task30PrivacyModal'])if($(id))closeModal(id,true);
+    privacyState=null;privacyPreviewState=null;privacyRequestsState=null;
     onInvalidated(message,{deferNative:Boolean(result.recovery_codes?.length)});
     if(result.recovery_codes?.length){await showCodes(result.recovery_codes);onNativeLogout();}
   }
@@ -216,7 +217,7 @@ export function createSecurityCenter({api,apiGet,publicApi,getSession,getAccount
     try {
       const data=await apiGet('/api/security/overview');if(snapshot!==key())return;
       const valid=data.sessions.filter(session=>session.valid);
-      body(node).innerHTML=`<div class="task27-security-summary"><article><h3>登录密码</h3><p>${data.password_changed_at?`最近修改：${esc(date(data.password_changed_at))}`:'历史修改时间未知，从功能启用后开始计算提醒。'}</p><p>30 天提醒仅为个人安全建议，不强制修改。</p><button type="button" data-security-password>修改密码</button></article><article><h3>绑定邮箱</h3><p>${esc(data.email || '尚未绑定已验证邮箱')}</p>${data.email_test_allowlist_active?'<p class="task27-note">测试环境仅允许向授权测试邮箱发送验证码。</p>':''}<button type="button" data-security-email>${data.email?'更换邮箱':'绑定并验证邮箱'}</button></article><article><h3>双重验证</h3><p>当前方式：${esc(labels[data.mfa_method])}</p><p>普通用户自主开启，不影响会员权益。</p>${data.enrollment_enabled&&!data.email?'<p class="task27-note">需先完成“绑定并验证邮箱”，才能切换为邮箱双重验证。</p>':''}<div class="action-row">${data.enrollment_enabled?'<button type="button" data-security-mfa="email">使用邮箱</button><button type="button" data-security-mfa="totp">使用验证器</button>':'<p>新的验证方式设置尚未开放。</p>'}${data.mfa_method!=='none'?'<button type="button" data-security-disable>关闭双重验证</button>':''}</div></article><article><h3>一次性恢复码</h3><p>${data.mfa_method==='totp'?`剩余 ${Number(data.recovery_codes_remaining)} 个；已有恢复码无法再次查看。`:'开启 TOTP 后可获得恢复码。'}</p>${data.mfa_method==='totp'?'<button type="button" data-security-recovery>重新生成恢复码</button>':''}</article><article><h3>数据导出与加密备份</h3><p>导出云端财务账目、审核候选与云端结构化通知（不含 Android 本地原始正文），支持加密恢复与只读预检。</p><button type="button" data-security-backup>打开数据备份中心</button></article></div><h3>登录设备与会话</h3><p>Web 会话显示可确认的客户端类型，不推测具体设备型号。</p><div class="task27-session-list">${valid.map(session=>`<article><div><strong>${esc(session.client || '浏览器会话')}${session.current?' · 当前会话':''}</strong><p>创建：${esc(date(session.created_at))}<br>最近活动：${esc(date(session.last_seen_at))}</p></div><button type="button" data-revoke-id="${esc(session.id)}" data-kind="${session.kind}">退出此会话</button></article>`).join('') || '<p>暂无有效会话。</p>'}</div><div class="action-row"><button type="button" data-revoke-mode="others">退出其他设备</button><button type="button" data-revoke-mode="all">退出全部设备</button></div><h3>最近安全活动</h3><ul>${data.events.map(event=>`<li>${esc(eventLabels[event.event_type] || '账户安全操作')} · ${esc(date(event.created_at))}</li>`).join('') || '<li>暂无记录</li>'}</ul>`;
+      body(node).innerHTML=`<div class="task27-security-summary"><article><h3>登录密码</h3><p>${data.password_changed_at?`最近修改：${esc(date(data.password_changed_at))}`:'历史修改时间未知，从功能启用后开始计算提醒。'}</p><p>30 天提醒仅为个人安全建议，不强制修改。</p><button type="button" data-security-password>修改密码</button></article><article><h3>绑定邮箱</h3><p>${esc(data.email || '尚未绑定已验证邮箱')}</p>${data.email_test_allowlist_active?'<p class="task27-note">测试环境仅允许向授权测试邮箱发送验证码。</p>':''}<button type="button" data-security-email>${data.email?'更换邮箱':'绑定并验证邮箱'}</button></article><article><h3>双重验证</h3><p>当前方式：${esc(labels[data.mfa_method])}</p><p>普通用户自主开启，不影响会员权益。</p>${data.enrollment_enabled&&!data.email?'<p class="task27-note">需先完成“绑定并验证邮箱”，才能切换为邮箱双重验证。</p>':''}<div class="action-row">${data.enrollment_enabled?'<button type="button" data-security-mfa="email">使用邮箱</button><button type="button" data-security-mfa="totp">使用验证器</button>':'<p>新的验证方式设置尚未开放。</p>'}${data.mfa_method!=='none'?'<button type="button" data-security-disable>关闭双重验证</button>':''}</div></article><article><h3>一次性恢复码</h3><p>${data.mfa_method==='totp'?`剩余 ${Number(data.recovery_codes_remaining)} 个；已有恢复码无法再次查看。`:'开启 TOTP 后可获得恢复码。'}</p>${data.mfa_method==='totp'?'<button type="button" data-security-recovery>重新生成恢复码</button>':''}</article><article><h3>数据导出与加密备份</h3><p>导出云端财务账目、审核候选与云端结构化通知（不含 Android 本地原始正文），支持加密恢复与只读预检。</p><button type="button" data-security-backup>打开数据备份中心</button></article><article><h3>隐私与数据管理</h3><p>查看云端与设备端数据分类、撤回可选处理授权、发起不可逆安全删除并查看结果报告。</p><button type="button" data-security-privacy>打开隐私控制中心</button></article></div><h3>登录设备与会话</h3><p>Web 会话显示可确认的客户端类型，不推测具体设备型号。</p><div class="task27-session-list">${valid.map(session=>`<article><div><strong>${esc(session.client || '浏览器会话')}${session.current?' · 当前会话':''}</strong><p>创建：${esc(date(session.created_at))}<br>最近活动：${esc(date(session.last_seen_at))}</p></div><button type="button" data-revoke-id="${esc(session.id)}" data-kind="${session.kind}">退出此会话</button></article>`).join('') || '<p>暂无有效会话。</p>'}</div><div class="action-row"><button type="button" data-revoke-mode="others">退出其他设备</button><button type="button" data-revoke-mode="all">退出全部设备</button></div><h3>最近安全活动</h3><ul>${data.events.map(event=>`<li>${esc(eventLabels[event.event_type] || '账户安全操作')} · ${esc(date(event.created_at))}</li>`).join('') || '<li>暂无记录</li>'}</ul>`;
       bind(node,'[data-security-password]',async()=>{
         const grant=await stepup('password_change');
         const values=await prompt('修改登录密码',[{name:'new_secret',label:'新密码（至少 9 位混合密码）',type:'password',autocomplete:'new-password'},{name:'confirm_secret',label:'再次输入新密码',type:'password',autocomplete:'new-password'}]);
@@ -261,6 +262,7 @@ export function createSecurityCenter({api,apiGet,publicApi,getSession,getAccount
       bind(node,'[data-security-disable]',async()=>{await prompt('确认关闭双重验证',[{name:'confirm',label:'我确认关闭双重验证',type:'checkbox'}],{button:'继续验证'});await invalidate(await api('/api/security/mfa/disable',{grant:await stepup('mfa_change')}),'双重验证已关闭，请重新登录');});
       bind(node,'[data-security-recovery]',async()=>{const result=await api('/api/security/recovery/regenerate',{grant:await stepup('recovery_regenerate')});await showCodes(result.recovery_codes);});
       bind(node,'[data-security-backup]',()=>{closeModal('task27Security',true);void openBackupCenter();});
+      bind(node,'[data-security-privacy]',()=>{closeModal('task27Security',true);void openPrivacyCenter();});
       const revoke=async payload=>{await prompt('确认退出登录会话',[{name:'confirm',label:'我确认退出所选设备',type:'checkbox'}]);const result=await api('/api/security/sessions/revoke',{...payload,grant:await stepup('sessions_revoke')});if(result.session_invalidated)await invalidate(result,'会话已退出，请重新登录');else await openSecurity();};
       bind(node,'[data-revoke-id]',button=>revoke({mode:'single',id:button.dataset.revokeId,kind:button.dataset.kind}));
       bind(node,'[data-revoke-mode]',button=>revoke({mode:button.dataset.revokeMode}));
@@ -564,8 +566,8 @@ export function createSecurityCenter({api,apiGet,publicApi,getSession,getAccount
     const snapshot=key();badgeAt=Date.now();
     badgePromise=apiGet('/api/notifications?filter=unread').then(data=>{if(snapshot===key())setBadge(data.unread_count);}).catch(()=>{}).finally(()=>{badgePromise=null;});return badgePromise;
   }
-  function updateAccount(){const current=key();if(current!==owner){owner=current;badgeAt=0;inboxState=null;mailState=null;backupPrecheckState=null;setBadge(0);for(const id of ['task27Security','task27Inbox','task27Mail','task27Prompt','task27Secrets','task29BackupModal'])if($(id))closeModal(id,true);}
-    void isSupported().then(supported=>{if(current!==key())return;const authenticated=Boolean(getSession()&&getAccount());$('notificationBellBtn')?.classList.toggle('hidden',!authenticated||!supported);$('securityCenterMenuBtn')?.classList.toggle('hidden',!authenticated||!supported);$('openSecurityCenterBtn')?.classList.toggle('hidden',!supported);$('accountBackupOpen')?.classList.toggle('hidden',!authenticated);$('finOpenBackupBtn')?.classList.toggle('hidden',!authenticated);$('task27MailOpenBtn')?.classList.toggle('hidden',!getAccount()?.is_admin||!supported||policyConfig?.mail_center_integrated===true);$('forgotPasswordBtn')?.classList.toggle('hidden',!supported);$('adminNewSecretInput')?.closest('.admin-secret-field')?.classList.toggle('hidden',supported);$('adminNewSecretInput')?.closest('.admin-secret-field')?.setAttribute('aria-hidden',String(supported));$('generateAdminSecretBtn')?.classList.toggle('hidden',supported);if($('generateAdminSecretBtn'))$('generateAdminSecretBtn').disabled=supported;if(authenticated&&supported)void refreshBadge();}).catch(()=>{});}
+  function updateAccount(){const current=key();if(current!==owner){owner=current;badgeAt=0;inboxState=null;mailState=null;backupPrecheckState=null;privacyState=null;privacyPreviewState=null;privacyRequestsState=null;setBadge(0);for(const id of ['task27Security','task27Inbox','task27Mail','task27Prompt','task27Secrets','task29BackupModal','task30PrivacyModal'])if($(id))closeModal(id,true);}
+    void isSupported().then(supported=>{if(current!==key())return;const authenticated=Boolean(getSession()&&getAccount());$('notificationBellBtn')?.classList.toggle('hidden',!authenticated||!supported);$('securityCenterMenuBtn')?.classList.toggle('hidden',!authenticated||!supported);$('openSecurityCenterBtn')?.classList.toggle('hidden',!supported);$('accountBackupOpen')?.classList.toggle('hidden',!authenticated);$('accountPrivacyOpen')?.classList.toggle('hidden',!authenticated);$('finOpenBackupBtn')?.classList.toggle('hidden',!authenticated);$('task27MailOpenBtn')?.classList.toggle('hidden',!getAccount()?.is_admin||!supported||policyConfig?.mail_center_integrated===true);$('forgotPasswordBtn')?.classList.toggle('hidden',!supported);$('adminNewSecretInput')?.closest('.admin-secret-field')?.classList.toggle('hidden',supported);$('adminNewSecretInput')?.closest('.admin-secret-field')?.setAttribute('aria-hidden',String(supported));$('generateAdminSecretBtn')?.classList.toggle('hidden',supported);if($('generateAdminSecretBtn'))$('generateAdminSecretBtn').disabled=supported;if(authenticated&&supported)void refreshBadge();}).catch(()=>{});}
   async function policies(){if(!policyConfig){const response=await fetch('/api/policies',{cache:'no-store'});if(response.status===404){policyConfig={legacy:true,versions:POLICY_VERSIONS,security_center_ready:false};return policyConfig;}if(!response.ok)throw new Error('无法读取当前政策版本，请稍后重试');policyConfig=await response.json();}return policyConfig;}
   async function isSupported(){return (await policies()).security_center_ready===true;}
   async function registrationConsent(){if(!$('registerTermsConsent')?.checked)throw new Error('请主动勾选同意使用条款');return {terms_accepted:true,policy_versions:(await policies()).versions};}
@@ -603,12 +605,214 @@ export function createSecurityCenter({api,apiGet,publicApi,getSession,getAccount
     $('task27MailForm').addEventListener('submit',async event=>{event.preventDefault();const button=event.submitter;button.disabled=true;try{const form=new FormData(event.currentTarget);await api('/api/admin/email/drafts',{subject:form.get('subject'),body:form.get('body'),recipient_ids:[...$('task27MailRecipients').querySelectorAll('input:checked')].map(input=>input.value)});await openMail();}catch(error){status(node,error.message);}finally{button.disabled=false;}});
     bind(node,'[data-mail-preview]',async button=>{const preview=await api('/api/admin/email/preview',{id:button.dataset.mailPreview});const draft=preview.draft;await prompt(draft.status==='partial'?'确认受控重试':'确认发送服务邮件',[{name:'confirm',label:`确认向 ${preview.recipients.length} 个已验证邮箱发送`,type:'checkbox'}],{message:'已接受、排队或结果未知的投递不会重复发送。失败投递至少等待一分钟，最多尝试三次。',content:`<article><h3>${esc(draft.subject)}</h3><p>${preview.recipients.map(r=>esc(r.username+' · '+r.email_masked)).join('<br>')}</p><p class="task27-message-body">${esc(draft.body)}</p></article>`,button:'继续身份验证'});await api('/api/admin/email/send',{id:draft.id,revision:draft.revision,preview:preview.preview,confirm:true,retry:draft.status==='partial',grant:await stepup(`email_send:${draft.id}:${draft.revision}`)});await openMail();});
   }
+  const privacyStatusLabels={
+    requested:'已预览待确认',
+    verified:'身份已核验',
+    access_revoked:'主访问已立即撤销',
+    cleanup_pending:'正在异步安全清理',
+    completed:'已完成安全删除',
+    retry_pending:'访问已禁用 · R2 清理待重试',
+    partially_completed:'部分清理（含法定/安全保留例外）',
+    blocked_by_retention:'受保留例外保护（已按规则保留）',
+    failed:'清理失败',
+    cancelled:'已取消',
+  };
+  const privacyCountSummary=(counts={})=>Object.entries(counts).filter(([k])=>k!=='total_items').map(([k,v])=>`${k}: ${v}`).join(' · ');
+  async function loadPrivacyData() {
+    const [overview,requests]=await Promise.all([apiGet('/api/privacy/v1/overview'),apiGet('/api/privacy/v1/requests')]);
+    privacyState=overview;privacyRequestsState=requests;
+    return overview;
+  }
+  async function openPrivacyCenter(initialTab='') {
+    if(initialTab)privacyTab=initialTab;
+    const snapshot=key(),node=modal('task30PrivacyModal','隐私与数据管理');
+    privacyPreviewState=null;
+    body(node).innerHTML='<p class="task27-note">正在读取当前账户的数据目录、授权状态与删除记录…</p>';
+    status(node,'');
+    openModal('task30PrivacyModal');
+    try {
+      await loadPrivacyData();
+      if(snapshot!==key())return;
+      renderPrivacyCenter(node);
+    } catch(error) {
+      status(node,error?.message||'无法读取隐私与数据管理信息');
+    }
+  }
+  function renderPrivacyCenter(node) {
+    if(!privacyState)return;
+    const tabs=[
+      ['data','我的数据'],
+      ['consents','授权和同意'],
+      ['erasure','删除我的数据'],
+      ['requests','数据请求记录'],
+    ];
+    const navHtml=`<div class="sc-privacy-tabs" role="tablist" aria-label="隐私与数据管理功能分组">${tabs.map(([id,label])=>`<button type="button" role="tab" aria-selected="${privacyTab===id?'true':'false'}" class="sc-privacy-tab ${privacyTab===id?'is-active':''}" data-privacy-tab="${id}">${esc(label)}</button>`).join('')}</div>`;
+    let panelHtml='';
+    if(privacyTab==='data') {
+      panelHtml=`<div class="sc-privacy-banner"><p>基线政策版本：<strong>${esc(privacyState.policy_version)}</strong> · 账号：<strong>${esc(privacyState.account?.username||'')}</strong>（仅展示本人账号数据，严格隔离）。</p>${privacyState.last_cleanup_run?`<p class="task27-note">最近定期保留清理：${esc(privacyState.last_cleanup_run.status)} · 完成于 ${esc(date(privacyState.last_cleanup_run.finished_at||privacyState.last_cleanup_run.started_at))}</p>`:''}</div>
+        <div class="sc-privacy-grid">${(privacyState.categories||[]).map(cat=>`<article class="sc-privacy-card" data-privacy-category="${esc(cat.key)}">
+          <div class="sc-privacy-card-head"><h3>${esc(cat.title)}</h3><span class="sc-privacy-pill">${esc(cat.retention_badge||'按规则保留')}</span></div>
+          <p>${esc(cat.summary)}</p>
+          <p class="task27-note"><strong>存储位置：</strong>${esc(cat.residency_label)}</p>
+          <p class="task27-note"><strong>云端计数：</strong>${Number(cat.cloud_counts?.total_items||0)} 项（${esc(privacyCountSummary(cat.cloud_counts)||'0 项')}）</p>
+          <p class="task27-note"><strong>留存策略：</strong>${esc(cat.retention_policy)}</p>
+          ${cat.erasure_generation?`<p class="task27-note">已执行安全删除代际：v${Number(cat.erasure_generation)}（${esc(date(cat.last_erasure_at))}）</p>`:''}
+          ${cat.active_request?`<p class="sc-privacy-active-tag">存在进行中/待处理请求：${esc(privacyStatusLabels[cat.active_request.status]||cat.active_request.status)}</p>`:''}
+          ${(cat.retention_exceptions||[]).length?`<p class="task27-note"><strong>留存例外：</strong>${cat.retention_exceptions.map(e=>esc(e.label)).join('、')}</p>`:''}
+          <div class="action-row">${cat.can_export_via_task29?'<button type="button" class="button-secondary" data-privacy-open-backup>用 Task29 导出备份</button>':''}<button type="button" class="button-secondary" data-privacy-goto-erase="${esc(cat.key)}">前往删除此类别</button></div>
+        </article>`).join('')}</div>`;
+    } else if(privacyTab==='consents') {
+      const consents=privacyState.consents||[];
+      const deviceDisclosures=privacyState.device_permissions_disclosure||[];
+      const essential=privacyState.essential_processing||[];
+      panelHtml=`<section class="sc-privacy-section"><h3>可选授权与同意（可随时在网页撤回）</h3>
+        <div class="sc-privacy-list">${consents.map(c=>`<article class="sc-privacy-card" data-consent-card="${esc(c.key)}">
+          <div class="sc-privacy-card-head"><h4>${esc(c.title)}</h4><span class="sc-privacy-pill ${c.granted?'is-on':'is-off'}">${c.granted?'已启用/有效':'已撤回/未启用'}</span></div>
+          <p>${esc(c.description)}</p>
+          <p class="task27-note"><strong>撤回效果：</strong>${esc(c.revoke_effect)}</p>
+          ${c.key==='active_shares_and_grants'?`<p class="task27-note">当前有效数量：临时分享 ${Number(c.active_temporary_shares||0)} · 私有文件分享 ${Number(c.active_file_shares||0)} · 上传会话 ${Number(c.active_upload_sessions||0)}</p>`:''}
+          ${c.requires_os_action?`<p class="sc-privacy-warn-inline"><strong>设备权限边界：</strong>${esc(c.os_action_notice)}</p>`:''}
+          <div class="action-row">
+            ${c.key==='active_shares_and_grants'?`<button type="button" data-privacy-consent="${esc(c.key)}" data-next-granted="false" ${Number(c.total_active_grants||0)>0?'':'disabled'}>一键撤销全部有效分享与下载授权</button>`:
+              `<button type="button" data-privacy-consent="${esc(c.key)}" data-next-granted="${c.granted?'false':'true'}">${c.granted?'立即撤回此授权':'开启此可选授权'}</button>`}
+          </div>
+        </article>`).join('')}</div></section>
+        <section class="sc-privacy-section"><h3>Android 系统与本机设备权限（不能由网页远程修改）</h3>
+        <div class="sc-privacy-list">${deviceDisclosures.map(d=>`<article class="sc-privacy-card">
+          <div class="sc-privacy-card-head"><h4>${esc(d.title)}</h4><span class="sc-privacy-pill">${esc(d.platform)}</span></div>
+          <p class="task27-note">${esc(d.how_to_revoke||d.note||'')}</p>
+        </article>`).join('')}</div></section>
+        <section class="sc-privacy-section"><h3>账户运行必需处理与底层边界</h3>
+        <div class="sc-privacy-list">${essential.map(e=>`<article class="sc-privacy-card">
+          <h4>${esc(e.title)}</h4><p class="task27-note"><strong>依据：</strong>${esc(e.basis)}</p><p>${esc(e.description)}</p>
+        </article>`).join('')}</div></section>`;
+    } else if(privacyTab==='erasure') {
+      const cats=privacyState.categories||[];
+      const prev=privacyPreviewState;
+      panelHtml=`<section class="sc-privacy-section"><h3>选择要安全删除的数据范围</h3>
+        <p class="task27-note">安全删除会先立即切断主业务读取与分享下载入口，再执行异步清理。财务与云端通知彻底清除后将写入永久防复活墓碑，旧设备或旧加密备份不可再次复活。</p>
+        <div class="sc-privacy-erase-options">
+          <label class="admin-checkbox"><input type="radio" name="privacyEraseScope" value="category" ${!prev||prev.scope_type==='category'?'checked':''}> 按数据类别删除（保留账号登录态，未选类别不受影响）</label>
+          <label class="admin-checkbox"><input type="radio" name="privacyEraseScope" value="account" ${prev?.scope_type==='account'?'checked':''}> 永久注销账户并擦除全部可删关联数据</label>
+        </div>
+        <div class="sc-privacy-cat-checks" id="privacyCategoryCheckboxes">${cats.map(cat=>`<label class="admin-checkbox"><input type="checkbox" value="${esc(cat.key)}" ${prev?.categories?.includes(cat.key)?'checked':''}> <span><strong>${esc(cat.title)}</strong>（云端 ${Number(cat.cloud_counts?.total_items||0)} 项）</span></label>`).join('')}</div>
+        <div class="action-row"><button type="button" class="primary" data-privacy-preview>第 1 步：生成删除影响预检报告</button><button type="button" class="button-secondary" data-privacy-open-backup>删除前用 Task29 导出加密备份</button></div>
+        ${prev?`<div class="sc-privacy-preview-box" id="privacyPreviewBox">
+          <h4>不可逆安全删除影响预检报告</h4>
+          <p class="danger-note">此操作不可撤销！请核实影响范围后再通过身份核验提交。</p>
+          <p><strong>范围：</strong>${esc(prev.categories.join(', '))} · <strong>待清理 R2 对象：</strong>${Number(prev.r2_objects_count||0)} 个 · <strong>分片上传：</strong>${Number(prev.multipart_uploads_count||0)} 个</p>
+          ${prev.admin_protected?'<p class="sc-privacy-warn-inline">管理员角色保护：此账号持有管理员权限，禁止通过自助注销接口直接删除账户。</p>':''}
+          ${(prev.impact_summary||[]).map(i=>`<p class="task27-note">· <strong>${esc(i.title)}：</strong>${esc(i.immediate_effect)}</p>`).join('')}
+          ${(prev.retention_exceptions||[]).length?`<div class="sc-privacy-warn-inline"><strong>明确留存例外说明：</strong><ul>${prev.retention_exceptions.map(e=>`<li>${esc(e.label)}：${esc(e.user_facing_reason)}</li>`).join('')}</ul></div>`:''}
+          <label class="field-label"><span>输入准确确认口令：<code>${esc(prev.required_confirmation)}</code></span><input id="privacyConfirmInput" type="text" maxlength="80" placeholder="${esc(prev.required_confirmation)}" autocomplete="off"></label>
+          <div class="action-row"><button type="button" class="primary" data-privacy-commit>第 2 步：完成身份验证并不可逆删除</button><button type="button" class="button-secondary" data-privacy-cancel-preview>取消此次删除请求</button></div>
+        </div>`:''}
+      </section>`;
+    } else if(privacyTab==='requests') {
+      const reqs=privacyRequestsState?.requests||privacyState.recent_requests||[];
+      const exports=privacyRequestsState?.exports||[];
+      panelHtml=`<section class="sc-privacy-section">
+        <div class="action-row"><button type="button" class="button-secondary" data-privacy-refresh>刷新最新处理进度与结果报告</button></div>
+        <h3>删除与授权撤销请求记录</h3>
+        <div class="sc-privacy-list">${reqs.map(r=>`<article class="sc-privacy-card" data-privacy-req="${esc(r.id)}">
+          <div class="sc-privacy-card-head"><strong>${esc(r.request_type==='consent_revocation'?'同意/授权撤回':r.request_type==='account_erasure'?'账户注销与全量清除':'分类安全删除')}</strong><span class="sc-privacy-pill ${r.status==='completed'?'is-on':r.status==='retry_pending'||r.status==='failed'?'is-warn':''}">${esc(privacyStatusLabels[r.status]||r.status)}</span></div>
+          <p class="task27-note">请求编号：<code>${esc(r.id)}</code> · 类别：${esc((r.categories||[]).join(', '))}</p>
+          <p class="task27-note">提交时间：${esc(date(r.created_at))}${r.access_revoked_at?` · 访问失效：${esc(date(r.access_revoked_at))}`:''}${r.completed_at?` · 完成时间：${esc(date(r.completed_at))}`:''}</p>
+          ${r.error_message?`<p class="sc-privacy-warn-inline">${esc(r.error_message)}</p>`:''}
+          ${(r.exceptions||[]).length?`<p class="task27-note">留存例外说明：${r.exceptions.map(e=>esc(e.label)).join('、')}</p>`:''}
+          <div class="action-row">
+            <button type="button" class="button-secondary" data-privacy-detail="${esc(r.id)}">查看可核验结果详情</button>
+            ${r.status==='retry_pending'?`<button type="button" class="primary" data-privacy-retry="${esc(r.id)}">立即重试清理待完成项</button>`:''}
+          </div>
+          <div class="sc-privacy-detail-slot" data-privacy-detail-slot="${esc(r.id)}" hidden></div>
+        </article>`).join('')||'<p class="task27-note">暂无隐私删除或授权撤销记录。</p>'}</div>
+        <h3>我的数据导出记录（Task29）</h3>
+        <div class="sc-privacy-list">${exports.map(ex=>`<article class="sc-privacy-card">
+          <p><strong>${esc(String(ex.format||'').toUpperCase())} 导出</strong> · <code>${esc(ex.id)}</code> · ${esc(date(ex.created_at))}</p>
+          <p class="task27-note">导出范围：${esc((ex.scopes||[]).join(', '))}</p>
+        </article>`).join('')||'<p class="task27-note">暂无加密备份或结构化导出历史。</p>'}</div>
+      </section>`;
+    }
+    body(node).innerHTML=`${navHtml}<div class="sc-privacy-panel">${panelHtml}</div>`;
+    bind(node,'[data-privacy-tab]',async b=>{privacyTab=b.dataset.privacyTab||'data';renderPrivacyCenter(node);});
+    bind(node,'[data-privacy-open-backup]',()=>{closeModal('task30PrivacyModal',true);void openBackupCenter();});
+    bind(node,'[data-privacy-goto-erase]',b=>{privacyTab='erasure';privacyPreviewState={scope_type:'category',categories:[b.dataset.privacyGotoErase],required_confirmation:`DELETE ${String(b.dataset.privacyGotoErase||'').toUpperCase()}`,stepup_scope:'privacy_data_delete',impact_summary:[],retention_exceptions:[]};renderPrivacyCenter(node);const cb=node.querySelector(`#privacyCategoryCheckboxes input[value="${CSS.escape(b.dataset.privacyGotoErase||'')}"]`);if(cb)cb.checked=true;});
+    bind(node,'[data-privacy-consent]',async b=>{
+      const consentKey=b.dataset.privacyConsent,nextGranted=b.dataset.nextGranted==='true';
+      if(!nextGranted){await prompt('确认撤回可选授权',[{name:'confirm',label:'我理解撤回后将立即停止对应云端处理或废除有效分享链接',type:'checkbox'}],{button:'确认撤回'});}
+      await api('/api/privacy/v1/consents',{consent_key:consentKey,granted:nextGranted});
+      await loadPrivacyData();
+      renderPrivacyCenter(node);
+      status(node,nextGranted?'已重新开启可选授权。':'授权已撤回并在服务端立即生效（若涉及 Android 系统权限请在手机设置中确认）。','info');
+    });
+    const scopeRadios=node.querySelectorAll('input[name="privacyEraseScope"]');
+    scopeRadios.forEach(r=>r.addEventListener('change',()=>{
+      const isAcc=node.querySelector('input[name="privacyEraseScope"]:checked')?.value==='account';
+      const boxWrap=$('privacyCategoryCheckboxes');
+      if(boxWrap)boxWrap.querySelectorAll('input').forEach(cb=>{cb.disabled=isAcc;if(isAcc)cb.checked=true;});
+    }));
+    bind(node,'[data-privacy-preview]',async()=>{
+      const scopeType=node.querySelector('input[name="privacyEraseScope"]:checked')?.value||'category';
+      const checked=[...node.querySelectorAll('#privacyCategoryCheckboxes input:checked')].map(i=>i.value);
+      const res=await api('/api/privacy/v1/erasure/preview',{scope_type:scopeType,categories:scopeType==='account'?['account_security']:checked});
+      privacyPreviewState=res.preview;
+      renderPrivacyCenter(node);
+      status(node,'已生成不可逆删除影响预检报告，请在核对范围与例外后确认执行。','info');
+    });
+    bind(node,'[data-privacy-cancel-preview]',async()=>{
+      if(!privacyPreviewState?.request_id)return;
+      await api('/api/privacy/v1/erasure/cancel',{request_id:privacyPreviewState.request_id});
+      privacyPreviewState=null;
+      await loadPrivacyData();
+      renderPrivacyCenter(node);
+      status(node,'已取消该删除预览请求，业务数据保持原样。','info');
+    });
+    bind(node,'[data-privacy-commit]',async()=>{
+      if(!privacyPreviewState)return;
+      const conf=$('privacyConfirmInput')?.value?.trim()||'';
+      if(conf!==privacyPreviewState.required_confirmation)throw new Error(`请准确输入确认口令：${privacyPreviewState.required_confirmation}`);
+      const grant=await stepup(privacyPreviewState.stepup_scope||'privacy_data_delete');
+      const res=await api('/api/privacy/v1/erasure/commit',{
+        scope_type:privacyPreviewState.scope_type,
+        categories:privacyPreviewState.categories,
+        preview_request_id:privacyPreviewState.request_id||'',
+        confirmation_text:conf,
+        idempotency_key:`ui-${crypto.randomUUID()}`,
+        grant,
+      });
+      privacyPreviewState=null;
+      if(res.account_deleted){
+        await invalidate(res,'账户已安全注销并撤销所有登录会话，关联数据清理已启动。');
+        return;
+      }
+      privacyTab='requests';
+      await loadPrivacyData();
+      renderPrivacyCenter(node);
+      status(node,`删除请求已提交，当前状态：${privacyStatusLabels[res.request?.status]||res.request?.status}`,'info');
+    });
+    bind(node,'[data-privacy-refresh]',async()=>{await loadPrivacyData();renderPrivacyCenter(node);});
+    bind(node,'[data-privacy-retry]',async b=>{
+      const res=await api('/api/privacy/v1/erasure/retry',{request_id:b.dataset.privacyRetry});
+      await loadPrivacyData();
+      renderPrivacyCenter(node);
+      status(node,`重试完成，状态：${privacyStatusLabels[res.request?.status]||res.request?.status}`,'info');
+    });
+    bind(node,'[data-privacy-detail]',async b=>{
+      const id=b.dataset.privacyDetail;
+      const slot=node.querySelector(`[data-privacy-detail-slot="${CSS.escape(id)}"]`);
+      if(!slot)return;
+      const detail=await apiGet(`/api/privacy/v1/requests/detail?request_id=${encodeURIComponent(id)}`);
+      slot.innerHTML=`<pre class="sc-privacy-json">${esc(JSON.stringify({status:detail.request?.status,result:detail.request?.result,tasks:detail.tasks,audit:detail.audit_trail},null,2))}</pre>`;
+      slot.hidden=false;
+    });
+  }
   $('notificationBellBtn')?.addEventListener('click',()=>void openInbox());
   wireNewPasswordField($('registerSecretInput'));wirePasswordVisibility($('registerConfirmInput'));wireNewPasswordField($('newSecretInput'));
   $('securityCenterMenuBtn')?.addEventListener('click',()=>void openSecurity());$('openSecurityCenterBtn')?.addEventListener('click',()=>void openSecurity());
   $('accountBackupOpen')?.addEventListener('click',()=>void openBackupCenter());$('finOpenBackupBtn')?.addEventListener('click',()=>void openBackupCenter());
+  $('accountPrivacyOpen')?.addEventListener('click',()=>void openPrivacyCenter());
   $('forgotPasswordBtn')?.addEventListener('click',()=>void forgotPassword());$('task27MailOpenBtn')?.addEventListener('click',()=>void openMail());
   window.addEventListener('focus',()=>void refreshBadge(true));document.addEventListener('visibilitychange',()=>{if(!document.hidden)void refreshBadge(true);});window.setInterval(()=>void refreshBadge(),60000);
   updateCopyrightYear();
-  return {stepup,completeLogin,openSecurity,openBackupCenter,openInbox,updateAccount,registrationConsent,reaccept,forgotPassword,openMail,refreshBadge,isSupported};
+  return {stepup,completeLogin,openSecurity,openBackupCenter,openPrivacyCenter,openInbox,updateAccount,registrationConsent,reaccept,forgotPassword,openMail,refreshBadge,isSupported};
 }

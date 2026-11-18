@@ -26,6 +26,7 @@ import {
 import { beginTask27Login } from './task27-auth.mjs';
 import { hasTask27, securityState } from './task27-store.mjs';
 import { validateConsent, consentStatement } from './task27-policy.mjs';
+import { executeAccountErasure } from './task30-privacy-service.mjs';
 
 function requireDatabase(db) {
   if (!db?.prepare) throw new Task12Error("云端账户数据库暂时不可用", 503, "task12_database_unavailable", true);
@@ -350,6 +351,11 @@ export async function deleteOwnAccount(db, account, secret, options = {}) {
       .bind(row.id, now),
   ]);
   await accountAudit(db, row, "self_delete", row, before, auditSnapshot(await userById(db, row.id)));
+  await executeAccountErasure(db, options.storage || options.env?.WYJ_STORAGE || null, row, {
+    httpRequestId: options.requestId,
+    environment: options.env?.WYJ_ENVIRONMENT,
+    skipUserSessions: true,
+  });
 }
 
 function adminUserListOptions(options = {}) {
