@@ -6,7 +6,7 @@ import path from "node:path";
 import { openPage, delay } from "../../local-backend/browser_harness.mjs";
 
 const root = path.resolve(import.meta.dirname, "../..");
-const baseUrl = String(process.env.TASK30_PREVIEW_URL || "https://thewyj-task30-preview.pages.dev").replace(/\/$/, "");
+const baseUrl = String(process.env.TASK30_PREVIEW_URL || "https://task30-preview.thewyj-task30-preview.pages.dev").replace(/\/$/, "");
 const out = path.join(root, ".wrangler/task30/evidence", `preview-${crypto.randomUUID()}`);
 await mkdir(out, { recursive: true });
 
@@ -101,26 +101,29 @@ try {
     assert.match(await pol.text(), /Task30/);
   });
 
-  await check("Register synthetic preview user, seed temporary share, inspect Privacy Center in real Chrome", async () => {
+  await check("Register synthetic preview user, seed Task29 backup export, inspect Privacy Center in real Chrome", async () => {
     const policies = await api("/api/policies");
     assert.equal(policies.status, 200);
     const reg = await api("/api/register", {
       body: {
         username,
         secret: password,
+        confirm_secret: password,
         terms_accepted: true,
         policy_versions: policies.body.versions,
       },
     });
     assert.ok([200, 201].includes(reg.status), JSON.stringify(reg.body));
-    sessionToken = reg.body.token || reg.body.session?.token || "";
+    const login = await api("/api/login", { body: { username, secret: password } });
+    assert.equal(login.status, 200, JSON.stringify(login.body));
+    sessionToken = typeof login.body.session === "string" ? login.body.session : (login.body.session?.token || "");
     assert.ok(sessionToken, "registered preview session token");
 
-    const clip = await api("/api/temporary/clipboards", {
+    const bkpRes = await api("/api/backup/v1/export", {
       token: sessionToken,
-      body: { content: "Preview Synthetic Clipboard Text", ttl_minutes: 60 },
+      body: { format: "json", scopes: ["finance_core"] },
     });
-    assert.ok([200, 201].includes(clip.status), JSON.stringify(clip.body));
+    assert.equal(bkpRes.status, 200, JSON.stringify(bkpRes.body));
 
     page = await openPage({ cdpUrl, baseUrl, width: 1440, height: 900, mobile: false });
     await page.navigate("/login");
@@ -135,7 +138,7 @@ try {
     await capture("preview-desktop-data.png");
   });
 
-  await check("Consent toggle, temporary erasure with Step-up, and verifiable report work on HTTPS Preview", async () => {
+  await check("Consent toggle, backups erasure with Step-up, and verifiable report work on HTTPS Preview", async () => {
     await page.click('#task30PrivacyModal [data-privacy-tab="consents"]');
     await page.waitFor("document.querySelectorAll('#task30PrivacyModal [data-consent-card]').length === 4");
     await page.click('#task30PrivacyModal [data-privacy-consent="cloud_notification_sync"]');
@@ -145,11 +148,11 @@ try {
     await page.waitFor("document.querySelector('#task30PrivacyModal [data-consent-card=\"cloud_notification_sync\"] .sc-privacy-pill')?.classList.contains('is-off')");
 
     await page.click('#task30PrivacyModal [data-privacy-tab="erasure"]');
-    await page.waitFor("document.querySelector('#privacyCategoryCheckboxes input[value=\"temporary\"]')");
-    await page.evaluate("document.querySelector('#privacyCategoryCheckboxes input[value=\"temporary\"]').checked = true");
+    await page.waitFor("document.querySelector('#privacyCategoryCheckboxes input[value=\"backups\"]')");
+    await page.evaluate("document.querySelector('#privacyCategoryCheckboxes input[value=\"backups\"]').checked = true");
     await page.click('#task30PrivacyModal [data-privacy-preview]');
     await page.waitFor("document.querySelector('#privacyPreviewBox')");
-    await page.setFields({ "#privacyConfirmInput": "DELETE TEMPORARY" });
+    await page.setFields({ "#privacyConfirmInput": "DELETE BACKUPS" });
     await page.click('#task30PrivacyModal [data-privacy-commit]');
     await page.waitFor("document.querySelector('#task27Prompt [name=\"password\"]')");
     await page.setFields({ "#task27Prompt [name=\"password\"]": password });
