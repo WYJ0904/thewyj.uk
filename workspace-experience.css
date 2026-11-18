@@ -811,13 +811,12 @@ body[data-experience="workspace"] .account-badge {
 
 .admin-tabs {
   position: sticky;
-  top: calc(var(--site-nav-height, calc(68px + env(safe-area-inset-top))) + 8px);
-  z-index: 680;
+  top: calc(var(--site-nav-height, calc(64px + env(safe-area-inset-top))) + 8px);
+  z-index: var(--ds-z-sticky-tabs, 40);
   overflow-x: auto;
   overscroll-behavior-inline: contain;
   scrollbar-width: thin;
-  background: color-mix(in srgb, var(--ds-workspace-canvas-warm) 94%, transparent);
-  backdrop-filter: blur(10px);
+  background: var(--ds-workspace-canvas);
 }
 
 .admin-tabs button {

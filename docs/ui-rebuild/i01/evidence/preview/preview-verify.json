@@ -1,0 +1,52 @@
+{
+  "previewUrl": "https://i01-design-foundation.thewyj-p07-ui-rc.pages.dev",
+  "branchUrl": "https://i01-design-foundation.thewyj-p07-ui-rc.pages.dev",
+  "commit": "35c54e4ce29d688eedc2a9565c4a1ba43aa7fbf0",
+  "runtimeErrors": [],
+  "checks": [
+    {
+      "vpName": "desktop-1440",
+      "theme": "light",
+      "url": "https://i01-design-foundation.thewyj-p07-ui-rc.pages.dev/",
+      "p07": "enabled",
+      "previewHidden": false,
+      "sidebarVisible": true,
+      "overflowX": 0,
+      "navHeight": 61,
+      "cardsCount": 3
+    },
+    {
+      "vpName": "desktop-1440",
+      "theme": "dark",
+      "url": "https://i01-design-foundation.thewyj-p07-ui-rc.pages.dev/",
+      "p07": "enabled",
+      "previewHidden": false,
+      "sidebarVisible": true,
+      "overflowX": 0,
+      "navHeight": 61,
+      "cardsCount": 3
+    },
+    {
+      "vpName": "mobile-390",
+      "theme": "light",
+      "url": "https://i01-design-foundation.thewyj-p07-ui-rc.pages.dev/",
+      "p07": "enabled",
+      "previewHidden": false,
+      "sidebarVisible": false,
+      "overflowX": 0,
+      "navHeight": 108,
+      "cardsCount": 3
+    },
+    {
+      "vpName": "mobile-390",
+      "theme": "dark",
+      "url": "https://i01-design-foundation.thewyj-p07-ui-rc.pages.dev/",
+      "p07": "enabled",
+      "previewHidden": false,
+      "sidebarVisible": false,
+      "overflowX": 0,
+      "navHeight": 108,
+      "cardsCount": 3
+    }
+  ]
+}
