@@ -1,11 +1,11 @@
-import { randomId as capabilityRandomId } from "../core/capabilities.js?release=20261117-aeris-task28-release";
-import { createFinanceDisclosure } from "./disclosure.js?release=20261117-aeris-task28-release";
-import { mergeLocalNotificationLedger } from "./notification-ledger.js?release=20261117-aeris-task28-release";
-import { reconcileKeyedRows } from "../core/keyed-list.js?release=20261117-aeris-task28-release";
-import { formatFinanceMoney } from "./format.js?release=20261117-aeris-task28-release";
-import { createParkedRows } from "../core/parked-rows.js?release=20261117-aeris-task28-release";
-import { moneyText, referenceValue, SUPPORTED_CURRENCIES, currencyDigits } from "./money.js?release=20261117-aeris-task28-release";
-export { formatFinanceMoney } from "./format.js?release=20261117-aeris-task28-release";
+import { randomId as capabilityRandomId } from "../core/capabilities.js?release=20261118-aeris-task29-web-release";
+import { createFinanceDisclosure } from "./disclosure.js?release=20261118-aeris-task29-web-release";
+import { mergeLocalNotificationLedger } from "./notification-ledger.js?release=20261118-aeris-task29-web-release";
+import { reconcileKeyedRows } from "../core/keyed-list.js?release=20261118-aeris-task29-web-release";
+import { formatFinanceMoney } from "./format.js?release=20261118-aeris-task29-web-release";
+import { createParkedRows } from "../core/parked-rows.js?release=20261118-aeris-task29-web-release";
+import { moneyText, referenceValue, SUPPORTED_CURRENCIES, currencyDigits } from "./money.js?release=20261118-aeris-task29-web-release";
+export { formatFinanceMoney } from "./format.js?release=20261118-aeris-task29-web-release";
 // Authorization holds/releases are lifecycle controls, never real spending.
 const AUTHORIZATION_CONTROL_STATES = new Set(["pending_authorization", "authorization_release", "authorization_expired"]);
 const AUTHORIZATION_CONTROL_DIRECTIONS = new Set(["authorization_release", "authorization_expired"]);
