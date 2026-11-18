@@ -5285,12 +5285,23 @@ progress {
   gap: 8px;
   margin: 10px 0;
 }
-.sc-privacy-erase-options input[type="radio"],
-.sc-privacy-cat-checks input[type="checkbox"] {
+.task27-modal .sc-privacy-erase-options input[type="radio"],
+.task27-modal .sc-privacy-cat-checks input[type="checkbox"] {
   width: 18px;
   height: 18px;
-  min-height: 0;
+  min-width: 18px;
+  min-height: 18px;
   flex: 0 0 auto;
+  margin-top: 3px;
+}
+.sc-privacy-erase-options .admin-checkbox,
+.sc-privacy-cat-checks .admin-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  line-height: 1.5;
 }
 .sc-privacy-panel button,
 .sc-privacy-panel input[type="text"] {
