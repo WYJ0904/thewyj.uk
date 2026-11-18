@@ -5,7 +5,7 @@
 - 仓库：`WYJ0904/thewyj.uk`
 - 开发分支：`hydrogen/task30-privacy-retention-erasure`
 - 基线提交：最新 `origin/main`（`bb41a0a5`，含 PR #160 发布后清单基线）
-- 工作树位置：`C:\Users\78252\.gemini\antigravity\worktrees\thewyj.uk\privacy_control_data_erasure`
+- 工作树说明：独立隔离工作树（对应任务分支 `hydrogen/task30-privacy-retention-erasure`）
 
 ---
 
