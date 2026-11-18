@@ -1,0 +1,1022 @@
+{
+  "mode": "before",
+  "capturedAt": "2026-11-18T11:32:40.273Z",
+  "checks": [
+    {
+      "route": "/",
+      "viewport": "1440x900",
+      "theme": "light",
+      "scrollWidth": 1425,
+      "clientWidth": 1425,
+      "overflowX": 0,
+      "navHeight": 63,
+      "navWrap": false,
+      "sidebarVisible": true,
+      "sidebarWidth": 204,
+      "footerVisible": true,
+      "bodyBg": "rgb(244, 246, 249)",
+      "navBg": "rgb(255, 255, 255)",
+      "smallTargetsCount": 1,
+      "smallTargets": [
+        {
+          "id": "themeToggleBtn",
+          "h": 38
+        }
+      ],
+      "modalTop": null
+    },
+    {
+      "route": "/",
+      "viewport": "1440x900",
+      "theme": "dark",
+      "scrollWidth": 1425,
+      "clientWidth": 1425,
+      "overflowX": 0,
+      "navHeight": 63,
+      "navWrap": false,
+      "sidebarVisible": true,
+      "sidebarWidth": 204,
+      "footerVisible": true,
+      "bodyBg": "rgb(15, 18, 23)",
+      "navBg": "rgb(23, 28, 36)",
+      "smallTargetsCount": 1,
+      "smallTargets": [
+        {
+          "id": "themeToggleBtn",
+          "h": 38
+        }
+      ],
+      "modalTop": null
+    },
+    {
+      "route": "/",
+      "viewport": "1920x1080",
+      "theme": "light",
+      "scrollWidth": 1905,
+      "clientWidth": 1905,
+      "overflowX": 0,
+      "navHeight": 63,
+      "navWrap": false,
+      "sidebarVisible": true,
+      "sidebarWidth": 204,
+      "footerVisible": true,
+      "bodyBg": "rgb(244, 246, 249)",
+      "navBg": "rgb(255, 255, 255)",
+      "smallTargetsCount": 1,
+      "smallTargets": [
+        {
+          "id": "themeToggleBtn",
+          "h": 38
+        }
+      ],
+      "modalTop": null
+    },
+    {
+      "route": "/",
+      "viewport": "1920x1080",
+      "theme": "dark",
+      "scrollWidth": 1905,
+      "clientWidth": 1905,
+      "overflowX": 0,
+      "navHeight": 63,
+      "navWrap": false,
+      "sidebarVisible": true,
+      "sidebarWidth": 204,
+      "footerVisible": true,
+      "bodyBg": "rgb(15, 18, 23)",
+      "navBg": "rgb(23, 28, 36)",
+      "smallTargetsCount": 1,
+      "smallTargets": [
+        {
+          "id": "themeToggleBtn",
+          "h": 38
+        }
+      ],
+      "modalTop": null
+    },
+    {
+      "route": "/",
+      "viewport": "1024x768",
+      "theme": "light",
+      "scrollWidth": 1009,
+      "clientWidth": 1009,
+      "overflowX": 0,
+      "navHeight": 101,
+      "navWrap": true,
+      "sidebarVisible": true,
+      "sidebarWidth": 204,
+      "footerVisible": true,
+      "bodyBg": "rgb(244, 246, 249)",
+      "navBg": "rgb(255, 255, 255)",
+      "smallTargetsCount": 1,
+      "smallTargets": [
+        {
+          "id": "themeToggleBtn",
+          "h": 38
+        }
+      ],
+      "modalTop": null
+    },
+    {
+      "route": "/",
+      "viewport": "1024x768",
+      "theme": "dark",
+      "scrollWidth": 1009,
+      "clientWidth": 1009,
+      "overflowX": 0,
+      "navHeight": 101,
+      "navWrap": true,
+      "sidebarVisible": true,
+      "sidebarWidth": 204,
+      "footerVisible": true,
+      "bodyBg": "rgb(15, 18, 23)",
+      "navBg": "rgb(23, 28, 36)",
+      "smallTargetsCount": 1,
+      "smallTargets": [
+        {
+          "id": "themeToggleBtn",
+          "h": 38
+        }
+      ],
+      "modalTop": null
+    },
+    {
+      "route": "/",
+      "viewport": "768x1024",
+      "theme": "light",
+      "scrollWidth": 768,
+      "clientWidth": 768,
+      "overflowX": 0,
+      "navHeight": 101,
+      "navWrap": true,
+      "sidebarVisible": false,
+      "sidebarWidth": 0,
+      "footerVisible": true,
+      "bodyBg": "rgb(244, 246, 249)",
+      "navBg": "rgb(255, 255, 255)",
+      "smallTargetsCount": 1,
+      "smallTargets": [
+        {
+          "id": "themeToggleBtn",
+          "h": 38
+        }
+      ],
+      "modalTop": null
+    },
+    {
+      "route": "/",
+      "viewport": "768x1024",
+      "theme": "dark",
+      "scrollWidth": 768,
+      "clientWidth": 768,
+      "overflowX": 0,
+      "navHeight": 101,
+      "navWrap": true,
+      "sidebarVisible": false,
+      "sidebarWidth": 0,
+      "footerVisible": true,
+      "bodyBg": "rgb(15, 18, 23)",
+      "navBg": "rgb(23, 28, 36)",
+      "smallTargetsCount": 1,
+      "smallTargets": [
+        {
+          "id": "themeToggleBtn",
+          "h": 38
+        }
+      ],
+      "modalTop": null
+    },
+    {
+      "route": "/",
+      "viewport": "420x900",
+      "theme": "light",
+      "scrollWidth": 420,
+      "clientWidth": 420,
+      "overflowX": 0,
+      "navHeight": 101,
+      "navWrap": true,
+      "sidebarVisible": false,
+      "sidebarWidth": 0,
+      "footerVisible": true,
+      "bodyBg": "rgb(244, 246, 249)",
+      "navBg": "rgb(255, 255, 255)",
+      "smallTargetsCount": 1,
+      "smallTargets": [
+        {
+          "id": "themeToggleBtn",
+          "h": 38
+        }
+      ],
+      "modalTop": null
+    },
+    {
+      "route": "/",
+      "viewport": "420x900",
+      "theme": "dark",
+      "scrollWidth": 420,
+      "clientWidth": 420,
+      "overflowX": 0,
+      "navHeight": 101,
+      "navWrap": true,
+      "sidebarVisible": false,
+      "sidebarWidth": 0,
+      "footerVisible": true,
+      "bodyBg": "rgb(15, 18, 23)",
+      "navBg": "rgb(23, 28, 36)",
+      "smallTargetsCount": 1,
+      "smallTargets": [
+        {
+          "id": "themeToggleBtn",
+          "h": 38
+        }
+      ],
+      "modalTop": null
+    },
+    {
+      "route": "/",
+      "viewport": "390x844",
+      "theme": "light",
+      "scrollWidth": 390,
+      "clientWidth": 390,
+      "overflowX": 0,
+      "navHeight": 101,
+      "navWrap": true,
+      "sidebarVisible": false,
+      "sidebarWidth": 0,
+      "footerVisible": true,
+      "bodyBg": "rgb(244, 246, 249)",
+      "navBg": "rgb(255, 255, 255)",
+      "smallTargetsCount": 1,
+      "smallTargets": [
+        {
+          "id": "themeToggleBtn",
+          "h": 38
+        }
+      ],
+      "modalTop": null
+    },
+    {
+      "route": "/",
+      "viewport": "390x844",
+      "theme": "dark",
+      "scrollWidth": 390,
+      "clientWidth": 390,
+      "overflowX": 0,
+      "navHeight": 101,
+      "navWrap": true,
+      "sidebarVisible": false,
+      "sidebarWidth": 0,
+      "footerVisible": true,
+      "bodyBg": "rgb(15, 18, 23)",
+      "navBg": "rgb(23, 28, 36)",
+      "smallTargetsCount": 1,
+      "smallTargets": [
+        {
+          "id": "themeToggleBtn",
+          "h": 38
+        }
+      ],
+      "modalTop": null
+    },
+    {
+      "route": "/",
+      "viewport": "375x667",
+      "theme": "light",
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "overflowX": 0,
+      "navHeight": 101,
+      "navWrap": true,
+      "sidebarVisible": false,
+      "sidebarWidth": 0,
+      "footerVisible": true,
+      "bodyBg": "rgb(244, 246, 249)",
+      "navBg": "rgb(255, 255, 255)",
+      "smallTargetsCount": 1,
+      "smallTargets": [
+        {
+          "id": "themeToggleBtn",
+          "h": 38
+        }
+      ],
+      "modalTop": null
+    },
+    {
+      "route": "/",
+      "viewport": "375x667",
+      "theme": "dark",
+      "scrollWidth": 375,
+      "clientWidth": 375,
+      "overflowX": 0,
+      "navHeight": 101,
+      "navWrap": true,
+      "sidebarVisible": false,
+      "sidebarWidth": 0,
+      "footerVisible": true,
+      "bodyBg": "rgb(15, 18, 23)",
+      "navBg": "rgb(23, 28, 36)",
+      "smallTargetsCount": 1,
+      "smallTargets": [
+        {
+          "id": "themeToggleBtn",
+          "h": 38
+        }
+      ],
+      "modalTop": null
+    },
+    {
+      "route": "/",
+      "viewport": "360x800",
+      "theme": "light",
+      "scrollWidth": 360,
+      "clientWidth": 360,
+      "overflowX": 0,
+      "navHeight": 155,
+      "navWrap": true,
+      "sidebarVisible": false,
+      "sidebarWidth": 0,
+      "footerVisible": true,
+      "bodyBg": "rgb(244, 246, 249)",
+      "navBg": "rgb(255, 255, 255)",
+      "smallTargetsCount": 1,
+      "smallTargets": [
+        {
+          "id": "themeToggleBtn",
+          "h": 38
+        }
+      ],
+      "modalTop": null
+    },
+    {
+      "route": "/",
+      "viewport": "360x800",
+      "theme": "dark",
+      "scrollWidth": 360,
+      "clientWidth": 360,
+      "overflowX": 0,
+      "navHeight": 155,
+      "navWrap": true,
+      "sidebarVisible": false,
+      "sidebarWidth": 0,
+      "footerVisible": true,
+      "bodyBg": "rgb(15, 18, 23)",
+      "navBg": "rgb(23, 28, 36)",
+      "smallTargetsCount": 1,
+      "smallTargets": [
+        {
+          "id": "themeToggleBtn",
+          "h": 38
+        }
+      ],
+      "modalTop": null
+    },
+    {
+      "route": "/login",
+      "viewport": "1440x900",
+      "theme": "light",
+      "scrollWidth": 1425,
+      "clientWidth": 1440,
+      "overflowX": -15,
+      "navHeight": 63,
+      "navWrap": false,
+      "sidebarVisible": true,
+      "sidebarWidth": 204,
+      "footerVisible": false,
+      "bodyBg": "rgb(244, 246, 249)",
+      "navBg": "rgb(255, 255, 255)",
+      "smallTargetsCount": 1,
+      "smallTargets": [
+        {
+          "id": "themeToggleBtn",
+          "h": 38
+        }
+      ],
+      "modalTop": null
+    },
+    {
+      "route": "/login",
+      "viewport": "1440x900",
+      "theme": "dark",
+      "scrollWidth": 1425,
+      "clientWidth": 1440,
+      "overflowX": -15,
+      "navHeight": 63,
+      "navWrap": false,
+      "sidebarVisible": true,
+      "sidebarWidth": 204,
+      "footerVisible": false,
+      "bodyBg": "rgb(15, 18, 23)",
+      "navBg": "rgb(23, 28, 36)",
+      "smallTargetsCount": 1,
+      "smallTargets": [
+        {
+          "id": "themeToggleBtn",
+          "h": 38
+        }
+      ],
+      "modalTop": null
+    },
+    {
+      "route": "/login",
+      "viewport": "768x1024",
+      "theme": "light",
+      "scrollWidth": 768,
+      "clientWidth": 768,
+      "overflowX": 0,
+      "navHeight": 101,
+      "navWrap": true,
+      "sidebarVisible": false,
+      "sidebarWidth": 0,
+      "footerVisible": true,
+      "bodyBg": "rgb(244, 246, 249)",
+      "navBg": "rgb(255, 255, 255)",
+      "smallTargetsCount": 1,
+      "smallTargets": [
+        {
+          "id": "themeToggleBtn",
+          "h": 38
+        }
+      ],
+      "modalTop": null
+    },
+    {
+      "route": "/login",
+      "viewport": "768x1024",
+      "theme": "dark",
+      "scrollWidth": 768,
+      "clientWidth": 768,
+      "overflowX": 0,
+      "navHeight": 101,
+      "navWrap": true,
+      "sidebarVisible": false,
+      "sidebarWidth": 0,
+      "footerVisible": true,
+      "bodyBg": "rgb(15, 18, 23)",
+      "navBg": "rgb(23, 28, 36)",
+      "smallTargetsCount": 1,
+      "smallTargets": [
+        {
+          "id": "themeToggleBtn",
+          "h": 38
+        }
+      ],
+      "modalTop": null
+    },
+    {
+      "route": "/login",
+      "viewport": "390x844",
+      "theme": "light",
+      "scrollWidth": 390,
+      "clientWidth": 390,
+      "overflowX": 0,
+      "navHeight": 101,
+      "navWrap": true,
+      "sidebarVisible": false,
+      "sidebarWidth": 0,
+      "footerVisible": true,
+      "bodyBg": "rgb(244, 246, 249)",
+      "navBg": "rgb(255, 255, 255)",
+      "smallTargetsCount": 1,
+      "smallTargets": [
+        {
+          "id": "themeToggleBtn",
+          "h": 38
+        }
+      ],
+      "modalTop": null
+    },
+    {
+      "route": "/login",
+      "viewport": "390x844",
+      "theme": "dark",
+      "scrollWidth": 390,
+      "clientWidth": 390,
+      "overflowX": 0,
+      "navHeight": 101,
+      "navWrap": true,
+      "sidebarVisible": false,
+      "sidebarWidth": 0,
+      "footerVisible": true,
+      "bodyBg": "rgb(15, 18, 23)",
+      "navBg": "rgb(23, 28, 36)",
+      "smallTargetsCount": 1,
+      "smallTargets": [
+        {
+          "id": "themeToggleBtn",
+          "h": 38
+        }
+      ],
+      "modalTop": null
+    },
+    {
+      "route": "/finance",
+      "viewport": "1440x900",
+      "theme": "light",
+      "scrollWidth": 1425,
+      "clientWidth": 1440,
+      "overflowX": -15,
+      "navHeight": 63,
+      "navWrap": false,
+      "sidebarVisible": true,
+      "sidebarWidth": 204,
+      "footerVisible": true,
+      "bodyBg": "rgb(244, 246, 249)",
+      "navBg": "rgb(255, 255, 255)",
+      "smallTargetsCount": 1,
+      "smallTargets": [
+        {
+          "id": "themeToggleBtn",
+          "h": 38
+        }
+      ],
+      "modalTop": 214
+    },
+    {
+      "route": "/finance",
+      "viewport": "1440x900",
+      "theme": "dark",
+      "scrollWidth": 1425,
+      "clientWidth": 1440,
+      "overflowX": -15,
+      "navHeight": 63,
+      "navWrap": false,
+      "sidebarVisible": true,
+      "sidebarWidth": 204,
+      "footerVisible": true,
+      "bodyBg": "rgb(15, 18, 23)",
+      "navBg": "rgb(23, 28, 36)",
+      "smallTargetsCount": 1,
+      "smallTargets": [
+        {
+          "id": "themeToggleBtn",
+          "h": 38
+        }
+      ],
+      "modalTop": 214
+    },
+    {
+      "route": "/finance",
+      "viewport": "1920x1080",
+      "theme": "light",
+      "scrollWidth": 1905,
+      "clientWidth": 1920,
+      "overflowX": -15,
+      "navHeight": 63,
+      "navWrap": false,
+      "sidebarVisible": true,
+      "sidebarWidth": 204,
+      "footerVisible": true,
+      "bodyBg": "rgb(244, 246, 249)",
+      "navBg": "rgb(255, 255, 255)",
+      "smallTargetsCount": 1,
+      "smallTargets": [
+        {
+          "id": "themeToggleBtn",
+          "h": 38
+        }
+      ],
+      "modalTop": 304
+    },
+    {
+      "route": "/finance",
+      "viewport": "1920x1080",
+      "theme": "dark",
+      "scrollWidth": 1905,
+      "clientWidth": 1920,
+      "overflowX": -15,
+      "navHeight": 63,
+      "navWrap": false,
+      "sidebarVisible": true,
+      "sidebarWidth": 204,
+      "footerVisible": true,
+      "bodyBg": "rgb(15, 18, 23)",
+      "navBg": "rgb(23, 28, 36)",
+      "smallTargetsCount": 1,
+      "smallTargets": [
+        {
+          "id": "themeToggleBtn",
+          "h": 38
+        }
+      ],
+      "modalTop": 304
+    },
+    {
+      "route": "/finance",
+      "viewport": "1024x768",
+      "theme": "light",
+      "scrollWidth": 1009,
+      "clientWidth": 1024,
+      "overflowX": -15,
+      "navHeight": 101,
+      "navWrap": true,
+      "sidebarVisible": true,
+      "sidebarWidth": 204,
+      "footerVisible": true,
+      "bodyBg": "rgb(244, 246, 249)",
+      "navBg": "rgb(255, 255, 255)",
+      "smallTargetsCount": 1,
+      "smallTargets": [
+        {
+          "id": "themeToggleBtn",
+          "h": 38
+        }
+      ],
+      "modalTop": 148
+    },
+    {
+      "route": "/finance",
+      "viewport": "1024x768",
+      "theme": "dark",
+      "scrollWidth": 1009,
+      "clientWidth": 1024,
+      "overflowX": -15,
+      "navHeight": 101,
+      "navWrap": true,
+      "sidebarVisible": true,
+      "sidebarWidth": 204,
+      "footerVisible": true,
+      "bodyBg": "rgb(15, 18, 23)",
+      "navBg": "rgb(23, 28, 36)",
+      "smallTargetsCount": 1,
+      "smallTargets": [
+        {
+          "id": "themeToggleBtn",
+          "h": 38
+        }
+      ],
+      "modalTop": 148
+    },
+    {
+      "route": "/finance",
+      "viewport": "768x1024",
+      "theme": "light",
+      "scrollWidth": 768,
+      "clientWidth": 768,
+      "overflowX": 0,
+      "navHeight": 101,
+      "navWrap": true,
+      "sidebarVisible": false,
+      "sidebarWidth": 0,
+      "footerVisible": true,
+      "bodyBg": "rgb(244, 246, 249)",
+      "navBg": "rgb(255, 255, 255)",
+      "smallTargetsCount": 1,
+      "smallTargets": [
+        {
+          "id": "themeToggleBtn",
+          "h": 38
+        }
+      ],
+      "modalTop": 276
+    },
+    {
+      "route": "/finance",
+      "viewport": "768x1024",
+      "theme": "dark",
+      "scrollWidth": 768,
+      "clientWidth": 768,
+      "overflowX": 0,
+      "navHeight": 101,
+      "navWrap": true,
+      "sidebarVisible": false,
+      "sidebarWidth": 0,
+      "footerVisible": true,
+      "bodyBg": "rgb(15, 18, 23)",
+      "navBg": "rgb(23, 28, 36)",
+      "smallTargetsCount": 1,
+      "smallTargets": [
+        {
+          "id": "themeToggleBtn",
+          "h": 38
+        }
+      ],
+      "modalTop": 276
+    },
+    {
+      "route": "/finance",
+      "viewport": "390x844",
+      "theme": "light",
+      "scrollWidth": 390,
+      "clientWidth": 390,
+      "overflowX": 0,
+      "navHeight": 101,
+      "navWrap": true,
+      "sidebarVisible": false,
+      "sidebarWidth": 0,
+      "footerVisible": true,
+      "bodyBg": "rgb(244, 246, 249)",
+      "navBg": "rgb(255, 255, 255)",
+      "smallTargetsCount": 1,
+      "smallTargets": [
+        {
+          "id": "themeToggleBtn",
+          "h": 38
+        }
+      ],
+      "modalTop": 151
+    },
+    {
+      "route": "/finance",
+      "viewport": "390x844",
+      "theme": "dark",
+      "scrollWidth": 390,
+      "clientWidth": 390,
+      "overflowX": 0,
+      "navHeight": 101,
+      "navWrap": true,
+      "sidebarVisible": false,
+      "sidebarWidth": 0,
+      "footerVisible": true,
+      "bodyBg": "rgb(15, 18, 23)",
+      "navBg": "rgb(23, 28, 36)",
+      "smallTargetsCount": 1,
+      "smallTargets": [
+        {
+          "id": "themeToggleBtn",
+          "h": 38
+        }
+      ],
+      "modalTop": 151
+    },
+    {
+      "route": "/finance",
+      "viewport": "360x800",
+      "theme": "light",
+      "scrollWidth": 360,
+      "clientWidth": 360,
+      "overflowX": 0,
+      "navHeight": 155,
+      "navWrap": true,
+      "sidebarVisible": false,
+      "sidebarWidth": 0,
+      "footerVisible": true,
+      "bodyBg": "rgb(244, 246, 249)",
+      "navBg": "rgb(255, 255, 255)",
+      "smallTargetsCount": 1,
+      "smallTargets": [
+        {
+          "id": "themeToggleBtn",
+          "h": 38
+        }
+      ],
+      "modalTop": 116
+    },
+    {
+      "route": "/finance",
+      "viewport": "360x800",
+      "theme": "dark",
+      "scrollWidth": 360,
+      "clientWidth": 360,
+      "overflowX": 0,
+      "navHeight": 155,
+      "navWrap": true,
+      "sidebarVisible": false,
+      "sidebarWidth": 0,
+      "footerVisible": true,
+      "bodyBg": "rgb(15, 18, 23)",
+      "navBg": "rgb(23, 28, 36)",
+      "smallTargetsCount": 1,
+      "smallTargets": [
+        {
+          "id": "themeToggleBtn",
+          "h": 38
+        }
+      ],
+      "modalTop": 116
+    },
+    {
+      "route": "/account",
+      "viewport": "1440x900",
+      "theme": "light",
+      "scrollWidth": 1425,
+      "clientWidth": 1425,
+      "overflowX": 0,
+      "navHeight": 63,
+      "navWrap": false,
+      "sidebarVisible": true,
+      "sidebarWidth": 204,
+      "footerVisible": true,
+      "bodyBg": "rgb(244, 246, 249)",
+      "navBg": "rgb(255, 255, 255)",
+      "smallTargetsCount": 1,
+      "smallTargets": [
+        {
+          "id": "themeToggleBtn",
+          "h": 38
+        }
+      ],
+      "modalTop": null
+    },
+    {
+      "route": "/account",
+      "viewport": "1440x900",
+      "theme": "dark",
+      "scrollWidth": 1425,
+      "clientWidth": 1425,
+      "overflowX": 0,
+      "navHeight": 63,
+      "navWrap": false,
+      "sidebarVisible": true,
+      "sidebarWidth": 204,
+      "footerVisible": true,
+      "bodyBg": "rgb(15, 18, 23)",
+      "navBg": "rgb(23, 28, 36)",
+      "smallTargetsCount": 1,
+      "smallTargets": [
+        {
+          "id": "themeToggleBtn",
+          "h": 38
+        }
+      ],
+      "modalTop": null
+    },
+    {
+      "route": "/account",
+      "viewport": "768x1024",
+      "theme": "light",
+      "scrollWidth": 768,
+      "clientWidth": 768,
+      "overflowX": 0,
+      "navHeight": 101,
+      "navWrap": true,
+      "sidebarVisible": false,
+      "sidebarWidth": 0,
+      "footerVisible": true,
+      "bodyBg": "rgb(244, 246, 249)",
+      "navBg": "rgb(255, 255, 255)",
+      "smallTargetsCount": 1,
+      "smallTargets": [
+        {
+          "id": "themeToggleBtn",
+          "h": 38
+        }
+      ],
+      "modalTop": null
+    },
+    {
+      "route": "/account",
+      "viewport": "768x1024",
+      "theme": "dark",
+      "scrollWidth": 768,
+      "clientWidth": 768,
+      "overflowX": 0,
+      "navHeight": 101,
+      "navWrap": true,
+      "sidebarVisible": false,
+      "sidebarWidth": 0,
+      "footerVisible": true,
+      "bodyBg": "rgb(15, 18, 23)",
+      "navBg": "rgb(23, 28, 36)",
+      "smallTargetsCount": 1,
+      "smallTargets": [
+        {
+          "id": "themeToggleBtn",
+          "h": 38
+        }
+      ],
+      "modalTop": null
+    },
+    {
+      "route": "/account",
+      "viewport": "390x844",
+      "theme": "light",
+      "scrollWidth": 390,
+      "clientWidth": 390,
+      "overflowX": 0,
+      "navHeight": 101,
+      "navWrap": true,
+      "sidebarVisible": false,
+      "sidebarWidth": 0,
+      "footerVisible": true,
+      "bodyBg": "rgb(244, 246, 249)",
+      "navBg": "rgb(255, 255, 255)",
+      "smallTargetsCount": 1,
+      "smallTargets": [
+        {
+          "id": "themeToggleBtn",
+          "h": 38
+        }
+      ],
+      "modalTop": null
+    },
+    {
+      "route": "/account",
+      "viewport": "390x844",
+      "theme": "dark",
+      "scrollWidth": 390,
+      "clientWidth": 390,
+      "overflowX": 0,
+      "navHeight": 101,
+      "navWrap": true,
+      "sidebarVisible": false,
+      "sidebarWidth": 0,
+      "footerVisible": true,
+      "bodyBg": "rgb(15, 18, 23)",
+      "navBg": "rgb(23, 28, 36)",
+      "smallTargetsCount": 1,
+      "smallTargets": [
+        {
+          "id": "themeToggleBtn",
+          "h": 38
+        }
+      ],
+      "modalTop": null
+    },
+    {
+      "route": "/account",
+      "viewport": "360x800",
+      "theme": "light",
+      "scrollWidth": 360,
+      "clientWidth": 360,
+      "overflowX": 0,
+      "navHeight": 155,
+      "navWrap": true,
+      "sidebarVisible": false,
+      "sidebarWidth": 0,
+      "footerVisible": true,
+      "bodyBg": "rgb(244, 246, 249)",
+      "navBg": "rgb(255, 255, 255)",
+      "smallTargetsCount": 1,
+      "smallTargets": [
+        {
+          "id": "themeToggleBtn",
+          "h": 38
+        }
+      ],
+      "modalTop": null
+    },
+    {
+      "route": "/account",
+      "viewport": "360x800",
+      "theme": "dark",
+      "scrollWidth": 360,
+      "clientWidth": 360,
+      "overflowX": 0,
+      "navHeight": 155,
+      "navWrap": true,
+      "sidebarVisible": false,
+      "sidebarWidth": 0,
+      "footerVisible": true,
+      "bodyBg": "rgb(15, 18, 23)",
+      "navBg": "rgb(23, 28, 36)",
+      "smallTargetsCount": 1,
+      "smallTargets": [
+        {
+          "id": "themeToggleBtn",
+          "h": 38
+        }
+      ],
+      "modalTop": null
+    }
+  ],
+  "shots": [
+    "home-1440x900-light.png",
+    "home-1440x900-dark.png",
+    "home-1920x1080-light.png",
+    "home-1920x1080-dark.png",
+    "home-1024x768-light.png",
+    "home-1024x768-dark.png",
+    "home-768x1024-light.png",
+    "home-768x1024-dark.png",
+    "home-420x900-light.png",
+    "home-420x900-dark.png",
+    "home-390x844-light.png",
+    "home-390x844-dark.png",
+    "home-375x667-light.png",
+    "home-375x667-dark.png",
+    "home-360x800-light.png",
+    "home-360x800-dark.png",
+    "login-1440x900-light.png",
+    "login-1440x900-dark.png",
+    "login-768x1024-light.png",
+    "login-768x1024-dark.png",
+    "login-390x844-light.png",
+    "login-390x844-dark.png",
+    "finance-1440x900-light.png",
+    "finance-1440x900-dark.png",
+    "finance-1920x1080-light.png",
+    "finance-1920x1080-dark.png",
+    "finance-1024x768-light.png",
+    "finance-1024x768-dark.png",
+    "finance-768x1024-light.png",
+    "finance-768x1024-dark.png",
+    "finance-390x844-light.png",
+    "finance-390x844-dark.png",
+    "finance-360x800-light.png",
+    "finance-360x800-dark.png",
+    "account-1440x900-light.png",
+    "account-1440x900-dark.png",
+    "account-768x1024-light.png",
+    "account-768x1024-dark.png",
+    "account-390x844-light.png",
+    "account-390x844-dark.png",
+    "account-360x800-light.png",
+    "account-360x800-dark.png",
+    "security-modal-1440x900-light.png",
+    "security-modal-1440x900-dark.png",
+    "security-modal-390x844-dark.png",
+    "security-modal-390x844-light.png",
+    "privacy-modal-1440x900-light.png",
+    "privacy-modal-1440x900-dark.png"
+  ]
+}

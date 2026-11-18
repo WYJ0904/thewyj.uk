@@ -83,8 +83,10 @@ function setupTheme() {
 
   const apply = () => {
     const resolved = preference === "system" ? (colorScheme?.matches ? "dark" : "light") : preference;
-    document.documentElement.dataset.theme = resolved;
-    document.documentElement.dataset.themePreference = preference;
+    const root = document.documentElement;
+    root.dataset.themeSwitching = "true";
+    root.dataset.theme = resolved;
+    root.dataset.themePreference = preference;
     const visibleLabel = { system: "系统", light: "浅色", dark: "深色" }[preference];
     const description = `外观：${visibleLabel}`;
     if (label) label.textContent = visibleLabel;
@@ -96,19 +98,24 @@ function setupTheme() {
     const themeMeta = document.querySelector('meta[name="theme-color"]');
     if (themeMeta) {
       themeMeta.content = resolved === "dark"
-        ? (interfaceEnhancementsEnabled ? "#0f1217" : "#111318")
-        : (interfaceEnhancementsEnabled ? "#f4f6f9" : "#f3f2ef");
+        ? (interfaceEnhancementsEnabled ? "#0b0e14" : "#111318")
+        : (interfaceEnhancementsEnabled ? "#f6f7f9" : "#f3f2ef");
     }
     // Native shell follows the web preference: one theme source of truth.
     document.dispatchEvent(new CustomEvent("wyj:theme-changed", { detail: { preference, resolved } }));
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        delete root.dataset.themeSwitching;
+      });
+    });
   };
   syncThemeMeta = () => {
     const resolved = document.documentElement.dataset.theme || "light";
     const themeMeta = document.querySelector('meta[name="theme-color"]');
     if (themeMeta) {
       themeMeta.content = resolved === "dark"
-        ? (interfaceEnhancementsEnabled ? "#0f1217" : "#111318")
-        : (interfaceEnhancementsEnabled ? "#f4f6f9" : "#f3f2ef");
+        ? (interfaceEnhancementsEnabled ? "#0b0e14" : "#111318")
+        : (interfaceEnhancementsEnabled ? "#f6f7f9" : "#f3f2ef");
     }
   };
 
