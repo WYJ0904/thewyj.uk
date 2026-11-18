@@ -4,7 +4,8 @@ import path from "node:path";
 import { Miniflare } from "miniflare";
 import { onRequest } from "../../functions/api/[[path]].js";
 import { hashSecret, sessionStorageKey } from "../../functions/_lib/task12-crypto.mjs";
-import { executeAccountErasure, runPrivacyRetentionCleanup } from "../../functions/_lib/task30-privacy-service.mjs";
+import { executeAccountErasure, executeErasureR2Tasks, runPrivacyRetentionCleanup } from "../../functions/_lib/task30-privacy-service.mjs";
+import { __testing as retentionWorker } from "../../cloudflare/task30-retention-worker.mjs";
 import { PRIVACY_CATEGORY_ORDER } from "../../functions/_lib/task30-privacy-catalog.mjs";
 
 const root = path.resolve(import.meta.dirname, "../..");
@@ -136,9 +137,12 @@ async function test(name, fn) {
 
 try {
   // Seed diverse business data for User A and User B
-  await storage.put("transfer/development/files/task30-share22/f1", new Uint8Array([1, 2, 3, 4]));
-  await storage.put("transfer/development/uploads/task30-sess22/part1", new Uint8Array([5, 6]));
-  await storage.put("temporary/development/task30-share14/clip.bin", new Uint8Array([7, 8, 9]));
+  const CANON_FILE_A = "transfers/v2/development/objects/task30share22f100001/file";
+  const CANON_PART_A = "transfers/v2/development/files/task30sess22f100001/part-1";
+  const CANON_TEMP_A = "temporary/v1/development/files/task30share14clip01";
+  await storage.put(CANON_FILE_A, new Uint8Array([1, 2, 3, 4]));
+  await storage.put(CANON_PART_A, new Uint8Array([5, 6]));
+  await storage.put(CANON_TEMP_A, new Uint8Array([7, 8, 9]));
 
   await db.batch([
     db.prepare(`INSERT INTO task16_finance_user_versions VALUES (?1, 3, ?2)`).bind(userA, now),
@@ -172,7 +176,7 @@ try {
     db.prepare(`INSERT INTO task14_shares (id, owner_user_id, share_type, kind, content_text, r2_object_key, created_at, updated_at, expires_at, state, deletion_reason)
       VALUES
       ('t14_clip_a_00001', ?1, 'clipboard', 'clipboard', 'SENSITIVE_CLIPBOARD_SECRET', '', ?2, ?2, ?3, 'active', ''),
-      ('t14_file_a_00002', ?1, 'file', 'file', '', 'temporary/development/task30-share14/clip.bin', ?2, ?2, ?3, 'active', ''),
+      ('t14_file_a_00002', ?1, 'file', 'file', '', 'temporary/v1/development/files/task30share14clip01', ?2, ?2, ?3, 'active', ''),
       ('t14_exp_a_000003', ?1, 'text', 'text', 'Expired Temp Text', '', ?2, ?2, ?4, 'active', '')`).bind(userA, now, expiresFuture, expiresPast),
     db.prepare(`INSERT INTO task14_room_messages (id, room_id, author, message, created_at)
       VALUES ('t14_msg_a_000001', 't14_clip_a_00001', 'usera', 'SENSITIVE_ROOM_CHAT_LINE', ?1)`).bind(now),
@@ -183,13 +187,13 @@ try {
       ('t22_share_a_0001', 'user', ?1, 1, 4, 'active', ?3, ?2, ?2),
       ('t22_exp_share_a_2', 'user', ?1, 0, 0, 'active', ?4, ?2, ?2)`).bind(userA, now, expiresFuture, expiresPast),
     db.prepare(`INSERT INTO task22_share_files (share_id, file_id, relative_path, file_name, mime_type, size_bytes, part_size, part_count, sha256_hex, preview_policy, object_key)
-      VALUES ('t22_share_a_0001', 't22_file_a_00001', 'secret.txt', 'secret.txt', 'text/plain', 4, 5242880, 1, 'dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd', 'download_only', 'transfer/development/files/task30-share22/f1')`),
+      VALUES ('t22_share_a_0001', 't22_file_a_00001', 'secret.txt', 'secret.txt', 'text/plain', 4, 5242880, 1, 'dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd', 'download_only', 'transfers/v2/development/objects/task30share22f100001/file')`),
     db.prepare(`INSERT INTO task22_download_grants (token_digest, share_id, created_at, expires_at, state)
       VALUES ('bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', 't22_share_a_0001', ?1, ?2, 'active')`).bind(now, expiresFuture),
     db.prepare(`INSERT INTO task22_upload_sessions (id, owner_kind, owner_ref, state, file_count, total_bytes, created_at, updated_at, expires_at)
       VALUES ('t22_sess_a_00001', 'user', ?1, 'active', 1, 1024, ?2, ?2, ?3)`).bind(userA, now, expiresFuture),
     db.prepare(`INSERT INTO task22_upload_files (id, session_id, relative_path, file_name, size_bytes, part_count, preview_policy, state, object_key, created_at, updated_at)
-      VALUES ('t22_ufile_a_0001', 't22_sess_a_00001', 'part.bin', 'part.bin', 1024, 1, 'download_only', 'allocated', 'transfer/development/uploads/task30-sess22/part1', ?1, ?1)`).bind(now),
+      VALUES ('t22_ufile_a_0001', 't22_sess_a_00001', 'part.bin', 'part.bin', 1024, 1, 'download_only', 'allocated', 'transfers/v2/development/files/task30sess22f100001/part-1', ?1, ?1)`).bind(now),
     db.prepare(`INSERT INTO task26_question_tickets (id, user_id, language, knowledge_id, question_id, question_json, point_json, course_version, algorithm_version, mode, issued_at, expires_at)
       VALUES ('tkt_a_001', ?1, 'english', 'k1', 'q1', '{}', '{}', 'v1', 'alg1', 'adaptive', ?2, ?3)`).bind(userA, now, expiresFuture),
     db.prepare(`INSERT INTO task26_learning_events (user_id, event_id, ticket_id, language, knowledge_id, question_id, family, kind, correct, difficulty, accepted_at, algorithm_version, source, platform, channel, input_digest)
@@ -211,7 +215,44 @@ try {
       VALUES ('ord_a_001', 'ORD-30-A1', ?1, 'task30usera', 'all_access_lifetime', 'All Access', 9900, 'CNY', 'approved', ?2, ?2)`).bind(userA, now),
   ]);
 
-  await test("1. Data catalog & unauth fail-closed check & owner overview", async () => {
+  await test("1. 0040 default-off & Feature Flag Fail-Closed checks + Data catalog & owner overview", async () => {
+    const seedFlag = await db.prepare("SELECT enabled, kill_switch FROM task25_feature_flags WHERE flag_key = 'task30_privacy_v1'").first();
+    assert.equal(Number(seedFlag?.enabled), 0, "0040 migration must seed task30_privacy_v1 with enabled=0");
+    assert.equal(Number(seedFlag?.kill_switch), 0, "0040 migration must keep kill_switch=0");
+
+    // Disabled by default (enabled=0) -> fail closed 503
+    assert.equal((await apiCall("/api/privacy/v1/catalog", { token: "" })).status, 503);
+    assert.equal((await apiCall("/api/privacy/v1/overview", { token: tokenA })).status, 503);
+
+    // Env switch off, missing WYJ_DB, D1 query error/timeout, missing flag row, kill_switch=1 -> all 503
+    assert.equal((await apiCall("/api/privacy/v1/overview", { token: tokenA, envOverrides: { TASK30_PRIVACY_ENABLED: "false" } })).status, 503);
+    assert.equal((await apiCall("/api/privacy/v1/overview", { token: tokenA, envOverrides: { WYJ_DB: null } })).status, 503);
+    const failingDb = {
+      prepare() {
+        return {
+          bind() { return this; },
+          first() { return Promise.reject(new Error("D1_TIMEOUT")); },
+          all() { return Promise.reject(new Error("D1_TIMEOUT")); },
+          run() { return Promise.reject(new Error("D1_TIMEOUT")); },
+        };
+      },
+    };
+    assert.equal((await apiCall("/api/privacy/v1/overview", { token: tokenA, envOverrides: { WYJ_DB: failingDb } })).status, 503);
+
+    // Activate feature flag explicitly
+    await db.prepare("UPDATE task25_feature_flags SET enabled = 1, kill_switch = 0 WHERE flag_key = 'task30_privacy_v1'").run();
+
+    // Missing flag row still fails closed
+    await db.prepare("DELETE FROM task25_feature_flags WHERE flag_key = 'task30_privacy_v1'").run();
+    assert.equal((await apiCall("/api/privacy/v1/overview", { token: tokenA })).status, 503);
+
+    // Re-insert enabled=1 & test kill_switch=1
+    await db.prepare(`INSERT INTO task25_feature_flags (flag_key, description, enabled, kill_switch, channels_json, rollout_basis_points, revision, updated_at, mutation_id, request_id)
+      VALUES ('task30_privacy_v1', 'Task30', 1, 1, '["production","preview","local"]', 10000, 2, ?1, 'm2', 'r2')`).bind(now).run();
+    assert.equal((await apiCall("/api/privacy/v1/overview", { token: tokenA })).status, 503);
+
+    await db.prepare("UPDATE task25_feature_flags SET enabled = 1, kill_switch = 0 WHERE flag_key = 'task30_privacy_v1'").run();
+
     const unauth = await apiCall("/api/privacy/v1/overview", { token: "" });
     assert.equal(unauth.status, 401);
 
@@ -394,7 +435,7 @@ try {
     const roomMsgs = await db.prepare("SELECT COUNT(*) AS cnt FROM task14_room_messages WHERE room_id = 't14_clip_a_00001'").first();
     assert.equal(roomMsgs.cnt, 0);
     // R2 object still exists while retry_pending
-    assert.ok(await storage.get("transfer/development/files/task30-share22/f1") !== null);
+    assert.ok(await storage.get(CANON_FILE_A) !== null);
 
     // Retry cleanup -> R2 deleted & request completes
     const retryRes = await apiCall("/api/privacy/v1/erasure/retry", {
@@ -403,9 +444,10 @@ try {
     });
     assert.equal(retryRes.status, 200, JSON.stringify(retryRes.body));
     assert.equal(retryRes.body.request.status, "completed");
-    assert.equal(await storage.get("transfer/development/files/task30-share22/f1"), null);
-    assert.equal(await storage.get("transfer/development/uploads/task30-sess22/part1"), null);
-    assert.equal(await storage.get("temporary/development/task30-share14/clip.bin"), null);
+    assert.equal(retryRes.body.r2_summary.physically_erased_confirmed, true);
+    assert.equal(await storage.get(CANON_FILE_A), null);
+    assert.equal(await storage.get(CANON_PART_A), null);
+    assert.equal(await storage.get(CANON_TEMP_A), null);
 
     // Idempotent replay without consuming another Step-up grant
     const replayRes = await apiCall("/api/privacy/v1/erasure/commit", {
@@ -717,6 +759,194 @@ try {
     const directCleanup = await runPrivacyRetentionCleanup({ env }, { triggerSource: "scheduled" });
     assert.ok(["completed", "partial"].includes(directCleanup.status));
     assert.ok(executeAccountErasure);
+  });
+
+  await test("9. R2 fault injection: missing binding/method, delete/abort errors, not-found idempotency, D1 commit fail, concurrent claim, owner/key mismatch", async () => {
+    const reqR2 = `privreq:fault:${crypto.randomUUID()}`;
+    const objKey = "temporary/v1/development/files/task30faulttemp0001";
+    const mpuKey = "transfers/v2/development/objects/task30faultmpu00001/file";
+    await storage.put(objKey, new Uint8Array([1, 2, 3]));
+    await db.batch([
+      db.prepare(`INSERT INTO task14_shares (id, owner_user_id, share_type, kind, r2_object_key, created_at, updated_at, expires_at, state, deletion_reason)
+        VALUES ('t14_fault_share_0001', ?1, 'file', 'file', ?2, ?3, ?3, ?4, 'delete_pending', 'privacy_erasure')`).bind(userB, objKey, now, expiresFuture),
+      db.prepare(`INSERT INTO task22_upload_sessions (id, owner_kind, owner_ref, state, file_count, total_bytes, created_at, updated_at, expires_at)
+        VALUES ('t22_fault_session_01', 'user', ?1, 'aborted', 1, 10, ?2, ?2, ?3)`).bind(userB, now, expiresFuture),
+      db.prepare(`INSERT INTO task22_upload_files (id, session_id, relative_path, file_name, size_bytes, part_count, preview_policy, state, object_key, upload_id, created_at, updated_at)
+        VALUES ('t22_fault_ufile_0001', 't22_fault_session_01', 'a.bin', 'a.bin', 10, 1, 'download_only', 'allocated', ?1, 'mpu_fault_001', ?2, ?2)`).bind(mpuKey, now),
+      db.prepare(`INSERT INTO task30_erasure_requests (id, user_id, request_type, scope_type, categories_json, mode, status, confirmation_text, stepup_verified, requested_by, request_id, created_at, updated_at)
+        VALUES (?1, ?2, 'category_erasure', 'category', '["files","temporary"]', 'commit', 'cleanup_pending', 'DELETE SELECTED DATA', 1, ?2, 'req-fault', ?3, ?3)`).bind(reqR2, userB, now),
+      db.prepare(`INSERT INTO task30_erasure_tasks (id, request_id_ref, user_id, category_key, target_type, target_ref, r2_key, status, details_json, created_at, updated_at)
+        VALUES ('prtask_fault_obj_0001', ?1, ?2, 'temporary', 'r2_object', 't14_fault_share_0001', ?3, 'access_revoked', '{"table":"task14_shares"}', ?4, ?4)`).bind(reqR2, userB, objKey, now),
+      db.prepare(`INSERT INTO task30_erasure_tasks (id, request_id_ref, user_id, category_key, target_type, target_ref, r2_key, upload_id, status, details_json, created_at, updated_at)
+        VALUES ('prtask_fault_mpu_0001', ?1, ?2, 'files', 'r2_multipart', 't22_fault_session_01', ?3, 'mpu_fault_001', 'access_revoked', '{"table":"task22_upload_sessions"}', ?4, ?4)`).bind(reqR2, userB, mpuKey, now),
+    ]);
+
+    // 1) Missing R2 binding -> must NEVER complete
+    const noStorage = await executeErasureR2Tasks(db, null, reqR2, { environment: "development" });
+    assert.equal(noStorage.physically_erased_confirmed, false);
+    assert.equal(noStorage.retry_pending_count, 2);
+    assert.ok(await storage.get(objKey) !== null);
+
+    // 2) Missing methods on storage -> retry_pending
+    const noMethods = await executeErasureR2Tasks(db, {}, reqR2, { environment: "development" });
+    assert.equal(noMethods.physically_erased_confirmed, false);
+    assert.equal(noMethods.retry_pending_count, 2);
+
+    // 3) Throwing delete & non-404 abort -> retry_pending
+    let abortErrCalls = 0;
+    const errStorage = {
+      async delete() { throw new Error("R2_NET_503"); },
+      resumeMultipartUpload() { return { async abort() { abortErrCalls += 1; throw new Error("MPU_NET_503"); } }; },
+    };
+    const errRes = await executeErasureR2Tasks(db, errStorage, reqR2, { environment: "development" });
+    assert.equal(abortErrCalls, 1);
+    assert.equal(errRes.retry_pending_count, 2);
+    assert.equal(errRes.physically_erased_confirmed, false);
+
+    // 4) Simulate D1 commit failure after R2 succeeds -> must stay incomplete and retry idempotently
+    const d1FailRes = await executeErasureR2Tasks(db, {
+      async delete(k) { return storage.delete(k); },
+      resumeMultipartUpload() { return { async abort() {} }; },
+    }, reqR2, { environment: "development", simulateD1CommitFailure: true });
+    assert.equal(d1FailRes.retry_pending_count, 2);
+    assert.equal(d1FailRes.physically_erased_confirmed, false);
+
+    // 5) Retry after object & upload already gone (credible 404/NoSuchKey/NoSuchUpload) -> completes cleanly & idempotently
+    let deleteCalls = 0;
+    const goneStorage = {
+      async delete() {
+        deleteCalls += 1;
+        const e = new Error("NoSuchKey");
+        e.status = 404;
+        throw e;
+      },
+      resumeMultipartUpload() {
+        return {
+          async abort() {
+            const e = new Error("NoSuchUpload");
+            e.status = 404;
+            throw e;
+          },
+        };
+      },
+    };
+    const [concurrent1, concurrent2] = await Promise.all([
+      executeErasureR2Tasks(db, goneStorage, reqR2, { environment: "development" }),
+      executeErasureR2Tasks(db, goneStorage, reqR2, { environment: "development" }),
+    ]);
+    assert.equal(deleteCalls, 1, "concurrent claim must prevent duplicate R2 delete on same task");
+    assert.ok(concurrent1.physically_erased_confirmed || concurrent2.physically_erased_confirmed);
+    assert.equal(concurrent1.failed_count + concurrent2.failed_count, 0);
+
+    // Duplicate retry after completion is a safe no-op
+    const replayR2 = await executeErasureR2Tasks(db, goneStorage, reqR2, { environment: "development" });
+    assert.equal(deleteCalls, 1);
+    assert.equal(replayR2.physically_erased_confirmed, true);
+
+    // 6) Invalid namespace / mismatched owner -> rejected permanently as failed without touching R2
+    const foreignKey = "backups/private/secret.wyjbackup";
+    await storage.put(foreignKey, new Uint8Array([9, 9]));
+    const badReq = `privreq:bad:${crypto.randomUUID()}`;
+    await db.batch([
+      db.prepare(`INSERT INTO task30_erasure_requests (id, user_id, request_type, scope_type, categories_json, mode, status, confirmation_text, stepup_verified, requested_by, request_id, created_at, updated_at)
+        VALUES (?1, ?2, 'category_erasure', 'category', '["files"]', 'commit', 'cleanup_pending', 'DELETE FILES', 1, ?2, 'req-bad', ?3, ?3)`).bind(badReq, userB, now),
+      db.prepare(`INSERT INTO task30_erasure_tasks (id, request_id_ref, user_id, category_key, target_type, target_ref, r2_key, status, details_json, created_at, updated_at)
+        VALUES ('prtask_bad_key_00001', ?1, ?2, 'files', 'r2_object', 't14_fault_share_0001', ?3, 'access_revoked', '{"table":"task14_shares"}', ?4, ?4)`).bind(badReq, userB, foreignKey, now),
+    ]);
+    const badRes = await executeErasureR2Tasks(db, storage, badReq, { environment: "development" });
+    assert.equal(badRes.failed_count, 1);
+    assert.equal(badRes.physically_erased_confirmed, false);
+    assert.ok(await storage.get(foreignKey) !== null, "non-canonical key must NEVER be deleted from R2");
+  });
+
+  await test("10. Account closure interruption resumes via Scheduled Retention Worker & protections stay active while Task30 flag is OFF", async () => {
+    const userC = "task30-user-c-0009";
+    const tokenC = "task30_user_c_token_00000000000009";
+    await seedUser(userC, "task30userc", tokenC, "user");
+    await db.batch([
+      db.prepare(`INSERT INTO task16_finance_categories (id, user_id, name, applies_to, color, status, revision, sync_version, created_at, updated_at, deleted_at)
+        VALUES ('cat_c_001', ?1, 'C分类', 'expense', '#112233', 'active', 1, 1, ?2, ?2, '')`).bind(userC, now),
+      db.prepare(`INSERT INTO task16_finance_transactions (id, user_id, direction, amount_minor, currency, amount_exponent, category_id, merchant, counterparty, note, occurred_at_ms, source_kind, reconciliation_state, status, revision, sync_version, created_by_device, import_source_key, created_at, updated_at, deleted_at)
+        VALUES ('tx_c_001', ?1, 'expense', 4200, 'CNY', 2, 'cat_c_001', 'InterruptMerchant', '', '', 1763350000000, 'manual', 'confirmed', 'active', 1, 2, 'dev_android_c01', '', ?2, ?2, '')`).bind(userC, now),
+      db.prepare(`INSERT INTO task16_finance_raw_events (id, user_id, device_id, source_type, source_event_id, source_provider, provider_reference, direction, amount_minor, currency, merchant, counterparty, account_last4, occurred_at_ms, captured_at_ms, text_fingerprint_sha256, classification, classification_reason, metadata_json, sync_version, created_at)
+        VALUES ('raw_c_001', ?1, 'dev_android_c01', 'notification', 'ev_c_001', 'com.tencent.mm', 'wx_c_001', 'expense', 4200, 'CNY', 'InterruptMerchant', '', '', 1763350000000, 1763350001000, 'dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd', 'accepted', 'direct_match', '{}', 2, ?2)`).bind(userC, now),
+    ]);
+
+    const expC = await apiCall("/api/backup/v1/export", { token: tokenC, body: { format: "json" } });
+    assert.equal(expC.status, 200);
+    const oldBackupPkgC = expC.body.envelope;
+
+    // Also test Task16 raw_event ingest with altered raw id / op id while task30_privacy_v1 is later OFF
+    // First, inject interruption during account closure commit -> account locked immediately, durable retry_pending job recorded
+    const grantC = await getStepupGrant(tokenC, "privacy_account_delete");
+    const interrupted = await apiCall("/api/privacy/v1/erasure/commit", {
+      token: tokenC,
+      body: {
+        scope_type: "account",
+        categories: ["account_security"],
+        confirmation_text: "DELETE ACCOUNT",
+        idempotency_key: "idem_acc_c_interrupt",
+        simulate_account_closure_interruption: true,
+      },
+      headers: { "X-Aeris-Stepup": grantC },
+    });
+    assert.equal(interrupted.status, 503);
+
+    const rowC = await db.prepare("SELECT deleted, password_hash FROM task12_users WHERE id = ?1").bind(userC).first();
+    assert.equal(rowC.deleted, 1, "interrupted closure must NOT roll back account lock");
+    assert.equal(rowC.password_hash, "");
+    const pendingReqC = await db.prepare("SELECT id, status, error_code FROM task30_erasure_requests WHERE user_id = ?1 AND request_type = 'account_erasure'").bind(userC).first();
+    assert.equal(pendingReqC.status, "retry_pending");
+    assert.equal(pendingReqC.error_code, "account_erasure_interrupted");
+
+    // Scheduled Task30 Retention Worker resumes interrupted closure cleanly!
+    const cronRes = await retentionWorker.runRetention(env);
+    assert.equal(cronRes.ok, true, JSON.stringify(cronRes));
+    assert.ok(cronRes.cleanup.summary.interrupted_account_erasures_resumed >= 1);
+    const finishedReqC = await db.prepare("SELECT status FROM task30_erasure_requests WHERE id = ?1").bind(pendingReqC.id).first();
+    assert.equal(finishedReqC.status, "partially_completed");
+    assert.equal((await db.prepare("SELECT COUNT(*) AS cnt FROM task16_finance_transactions WHERE user_id = ?1").bind(userC).first()).cnt, 0);
+
+    // Turn Task30 UI/API kill_switch=1 & enabled=0 -> new requests fail closed 503, YET prior tombstones & backup guards stay active!
+    await db.prepare("UPDATE task25_feature_flags SET enabled = 0, kill_switch = 1 WHERE flag_key = 'task30_privacy_v1'").run();
+    assert.equal((await apiCall("/api/privacy/v1/erasure/commit", { token: tokenB, body: {} })).status, 503);
+
+    // Test Task29 precheck STILL rejects old valid backup & Task16 STILL blocks altered-ID source_event sync while task30_privacy_v1 is OFF!
+    await db.prepare("UPDATE task12_users SET deleted = 0 WHERE id = ?1").bind(userC).run();
+    await db.prepare("INSERT INTO task12_sessions (token_digest, user_id, session_version, created_at, last_seen_at, expires_at, client_kind) VALUES (?1, ?2, 99, ?3, ?3, ?4, 'browser')").bind(await sessionStorageKey("temp_verify_tomb_c"), userC, now, expiresFuture).run();
+    const preBlockedWhileOff = await apiCall("/api/backup/v1/precheck", { token: "temp_verify_tomb_c", body: { package: oldBackupPkgC } });
+    assert.equal(preBlockedWhileOff.status, 200);
+    assert.equal(preBlockedWhileOff.body.can_restore, false);
+    assert.ok(preBlockedWhileOff.body.summary.rejected > 0);
+    assert.ok(preBlockedWhileOff.body.diff_preview.rejected.some((r) => /ERASED_/.test(r.reason)));
+
+    const syncSourceBlockedWhileOff = await apiCall("/api/finance/sync", {
+      token: "temp_verify_tomb_c",
+      body: {
+        platform: "android",
+        device_id: "dev_old_android_offline",
+        since_version: 0,
+        operations: [{
+          operation_id: "op_offline_replay_c_01",
+          type: "raw_event.ingest",
+          payload: {
+            source_type: "notification",
+            source_event_id: "ev_c_001",
+            source_provider: "com.tencent.mm",
+            provider_reference: "wx_c_001",
+            direction: "expense",
+            amount_minor: 4200,
+            currency: "CNY",
+            merchant: "OfflineBypassAttempt",
+            occurred_at_ms: 1763350000000,
+            captured_at_ms: 1763350001000,
+          },
+        }],
+      },
+    });
+    assert.equal(syncSourceBlockedWhileOff.status, 409, JSON.stringify(syncSourceBlockedWhileOff.body));
+    assert.equal(syncSourceBlockedWhileOff.body.code, "erased_record_resurrection_blocked");
+    await db.prepare("UPDATE task12_users SET deleted = 1 WHERE id = ?1").bind(userC).run();
   });
 
   proof.status = "PASS";

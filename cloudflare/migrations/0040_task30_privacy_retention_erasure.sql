@@ -182,7 +182,7 @@ INSERT OR IGNORE INTO task25_feature_flags (
 VALUES (
   'task30_privacy_v1',
   'Task30 隐私控制、数据留存与安全删除中心',
-  1,
+  0,
   0,
   '["production","preview","local"]',
   10000,

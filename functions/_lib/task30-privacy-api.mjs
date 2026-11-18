@@ -25,6 +25,7 @@ import {
   getPrivacyOverview,
   getPrivacyRequestDetail,
   getPrivacyRequests,
+  hasTask30,
   previewPrivacyErasure,
   retryPrivacyErasureRequest,
   runPrivacyRetentionCleanup,
@@ -94,18 +95,24 @@ async function readJsonPayload(request, maximum = 16384) {
 async function isTask30FeatureEnabled(env) {
   const flags = featureFlags(env);
   if (!flags.task30Privacy || !flags.cloudFoundation) return false;
-  if (!env?.WYJ_DB) return false;
+  if (!env?.WYJ_DB || typeof env.WYJ_DB.prepare !== 'function') return false;
+  if (!(await hasTask30(env.WYJ_DB))) return false;
   try {
     const flagRow = await env.WYJ_DB.prepare(
       "SELECT enabled, kill_switch FROM task25_feature_flags WHERE flag_key = 'task30_privacy_v1'",
     ).first();
-    if (flagRow && (Number(flagRow.enabled) === 0 || Number(flagRow.kill_switch) === 1)) {
+    if (!flagRow || flagRow.enabled === null || flagRow.enabled === undefined) {
       return false;
     }
+    const enabled = Number(flagRow.enabled);
+    const killSwitch = Number(flagRow.kill_switch);
+    if (!Number.isSafeInteger(enabled) || !Number.isSafeInteger(killSwitch)) {
+      return false;
+    }
+    return enabled === 1 && killSwitch === 0;
   } catch {
-    /* Optional flag table in minimal environments */
+    return false;
   }
-  return true;
 }
 
 export async function handleTask30Request(context) {

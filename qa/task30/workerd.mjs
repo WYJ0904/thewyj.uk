@@ -90,17 +90,21 @@ try {
     VALUES (?1, 'task30-workerd-user', 1, ?2, ?2, ?3, 'browser')`).bind(await sessionStorageKey(token), now, future).run();
   await db.prepare("INSERT INTO task27_security (user_id, password_age_start_at) VALUES ('task30-workerd-user', ?1)").bind(now).run();
 
-  await storage.put("transfer/development/files/task30w-share/f1", new Uint8Array([9, 8, 7]));
+  await storage.put("transfers/v2/development/objects/t22wfile000000001/file", new Uint8Array([9, 8, 7]));
   await db.prepare(`INSERT INTO task22_shares (id, owner_kind, owner_ref, file_count, total_bytes, state, expires_at, created_at, updated_at)
     VALUES ('t22w_share_000001', 'user', 'task30-workerd-user', 1, 3, 'active', ?2, ?1, ?1)`).bind(now, future).run();
   await db.prepare(`INSERT INTO task22_share_files (share_id, file_id, relative_path, file_name, mime_type, size_bytes, part_size, part_count, sha256_hex, preview_policy, object_key)
-    VALUES ('t22w_share_000001', 't22w_file_0000001', 'doc.bin', 'doc.bin', 'application/octet-stream', 3, 5242880, 1, 'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', 'download_only', 'transfer/development/files/task30w-share/f1')`).run();
+    VALUES ('t22w_share_000001', 't22w_file_0000001', 'doc.bin', 'doc.bin', 'application/octet-stream', 3, 5242880, 1, 'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', 'download_only', 'transfers/v2/development/objects/t22wfile000000001/file')`).run();
 
-  await check("status reports task30_privacy enabled and policy archive 2026-11-18-v1 loads", async () => {
+  await check("status reports task30_privacy enabled while D1 default-off flag fails closed (503) before explicit activation", async () => {
     const st = await mf.dispatchFetch("https://task30.local/api/status");
     assert.equal(st.status, 200);
     const body = await st.json();
     assert.equal(body.features.task30_privacy, true);
+    const closed = await call("/api/privacy/v1/overview");
+    assert.equal(closed.status, 503);
+    assert.equal(closed.body.code, "privacy_feature_disabled");
+    await db.prepare("UPDATE task25_feature_flags SET enabled = 1, kill_switch = 0 WHERE flag_key = 'task30_privacy_v1'").run();
     const pol = await mf.dispatchFetch("https://task30.local/privacy?version=2026-11-18-v1");
     assert.equal(pol.status, 200);
     assert.match(await pol.text(), /Task30/);

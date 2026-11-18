@@ -56,6 +56,7 @@ const env = {
 for (const name of (await readdir(path.join(root, "cloudflare/migrations"))).filter((n) => /^\d{4}_.+\.sql$/.test(n)).sort()) {
   await db.exec((await readFile(path.join(root, "cloudflare/migrations", name), "utf8")).replace(/\r?\n/g, " "));
 }
+await db.prepare("UPDATE task25_feature_flags SET enabled = 1, kill_switch = 0 WHERE flag_key = 'task30_privacy_v1'").run();
 
 const password = "Synthetic-Task30-Browser-Password!";
 const now = new Date().toISOString();

@@ -161,14 +161,74 @@ try {
     await capture("preview-desktop-requests.png");
   });
 
-  await check("Mobile 390x844 Dark viewport passes layout & deletes synthetic test account cleanly", async () => {
+  await check("Cross-account isolation rejects second user attempts (403) & changelog renders Task30 v2026.11.18.2 first", async () => {
+    const policies = await api("/api/policies");
+    assert.equal(policies.status, 200);
+    const usernameB = `${username}b`;
+    const regB = await api("/api/register", {
+      body: {
+        username: usernameB,
+        secret: password,
+        confirm_secret: password,
+        terms_accepted: true,
+        policy_versions: policies.body.versions,
+      },
+    });
+    assert.ok([200, 201].includes(regB.status), JSON.stringify(regB.body));
+    const loginB = await api("/api/login", { body: { username: usernameB, secret: password } });
+    assert.equal(loginB.status, 200);
+    const tokenB = typeof loginB.body.session === "string" ? loginB.body.session : (loginB.body.session?.token || "");
+    const ovA = await api("/api/privacy/v1/overview", { token: sessionToken });
+    assert.equal(ovA.status, 200);
+    const userAId = ovA.body.account?.id;
+    assert.ok(userAId);
+
+    const crossPreview = await api("/api/privacy/v1/erasure/preview", {
+      token: tokenB,
+      body: { user_id: userAId, scope_type: "category", categories: ["backups"] },
+    });
+    assert.equal(crossPreview.status, 403, JSON.stringify(crossPreview.body));
+
+    // Delete second synthetic user cleanly
+    const stB = await api("/api/security/stepup", { token: tokenB, body: { password, scope: "privacy_account_delete" } });
+    assert.equal(stB.status, 200);
+    const delB = await fetch(`${baseUrl}/api/privacy/v1/erasure/commit`, {
+      method: "POST",
+      headers: { Origin: baseUrl, "Content-Type": "application/json", "X-Session-Token": tokenB, "X-Aeris-Stepup": stB.body.grant },
+      body: JSON.stringify({ scope_type: "account", categories: ["account_security"], confirmation_text: "DELETE ACCOUNT", idempotency_key: `cleanup_${usernameB}` }),
+    });
+    assert.equal(delB.status, 200);
+
+    // Verify changelog on live Preview shows Task30 first
+    await page.send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
+    await page.navigate("/changelog");
+    await page.waitFor("document.querySelector('#changelogList > article:first-child h2')?.textContent?.includes('Task30')");
+    const topTitle = await page.evaluate("document.querySelector('#changelogList > article:first-child h2').textContent");
+    const topVer = await page.evaluate("document.getElementById('changelogCurrentVersion')?.textContent || ''");
+    assert.ok(topTitle.includes("Task30"), topTitle);
+    assert.equal(topVer, "v2026.11.18.2");
+    await capture("preview-changelog.png");
+  });
+
+  await check("Mobile 390x844 Dark and 375x667 Light viewports pass layout & delete synthetic test account cleanly", async () => {
+    await page.navigate("/account");
+    await page.waitFor("document.querySelector('#accountPrivacyOpen') && !document.querySelector('#accountPrivacyOpen').classList.contains('hidden')");
+    await page.click("#accountPrivacyOpen");
+    await page.waitFor("document.querySelectorAll('#task30PrivacyModal [data-privacy-category]').length === 8");
+
     await page.send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
     await page.evaluate("document.documentElement.dataset.theme='dark';document.documentElement.classList.add('dark-theme');true");
     await page.click('#task30PrivacyModal [data-privacy-tab="data"]');
     await delay(200);
-    const overflow = await page.evaluate("document.documentElement.scrollWidth > window.innerWidth + 1");
-    assert.equal(overflow, false, "mobile dark overflow on preview");
+    assert.equal(await page.evaluate("document.documentElement.scrollWidth > window.innerWidth + 1"), false, "mobile 390 dark overflow");
     await capture("preview-mobile-dark.png");
+
+    await page.send("Emulation.setDeviceMetricsOverride", { width: 375, height: 667, deviceScaleFactor: 2, mobile: true });
+    await page.evaluate("document.documentElement.dataset.theme='light';document.documentElement.classList.remove('dark-theme');true");
+    await page.click('#task30PrivacyModal [data-privacy-tab="erasure"]');
+    await delay(200);
+    assert.equal(await page.evaluate("document.documentElement.scrollWidth > window.innerWidth + 1"), false, "mobile 375 light overflow");
+    await capture("preview-mobile-375-light.png");
 
     // Clean up synthetic test user via Privacy Center account erasure API
     const st = await api("/api/security/stepup", { token: sessionToken, body: { password, scope: "privacy_account_delete" } });

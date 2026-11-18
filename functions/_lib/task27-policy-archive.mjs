@@ -43,7 +43,7 @@ export const POLICY_ARCHIVE = Object.freeze({
     "privacy": {
       "title": "Aeris 隐私政策（Task30 修订归档）",
       "version": "2026-11-18-v1",
-      "body": "# Aeris 隐私政策（Task30 修订版）\n\n版本：2.0 修订归档（2026-11-18-v1）\n拟定日期：2026 年 11 月 18 日\n\n本修订版本在已发布的 2026-11-16-v1 正式政策基础上，补充说明 Task30「隐私与数据管理中心」、可选同意撤回机制、分类安全删除生命周期（requested → verified → access_revoked → cleanup_pending → completed）、R2 失败重试队列、去标识化防复活墓碑（task30_erasure_tombstones）与 Android 本机 Room 留存及系统权限控制边界。\n\n1. 网页端撤回可选同意立即停止云端对应处理与AI推理，但不等同于关闭 Android 系统设置中的通知读取权与无障碍服务。\n2. 分类安全删除进入执行阶段前优先撤销主业务读取与下载链接，随后异步执行 R2 物理清理。\n3. 已通过安全删除彻底抹除的财务及云端通知记录会写入防复活墓碑并递增清除代际，阻止离线旧设备及历史 .wyjbackup 加密备份恢复复活。"
+      "body": "# Aeris 隐私政策（Task30 修订版）\n\n版本：2.0 修订归档（2026-11-18-v1）\n拟定日期：2026 年 11 月 18 日\n\n本修订版本在已发布的 2026-11-16-v1 正式政策基础上，补充说明 Task30「隐私与数据管理中心」、可选同意撤回机制、分类安全删除生命周期（requested → verified → access_revoked → cleanup_pending → completed）、R2 失败重试队列、去标识化防复活墓碑（task30_erasure_tombstones）与 Android 本机 Room 留存及系统权限控制边界。\n\n1. 网页端撤回可选同意立即停止云端对应处理与AI推理，但不等同于关闭 Android 系统设置中的通知读取权与无障碍服务，也不远程擦除 Android 本机 Room 数据库（默认支持 7/30/90/365 天或 0=永久，星标免清理）。\n2. 分类安全删除进入执行阶段前优先撤销主业务读取与下载链接，随后异步执行 R2 物理清理。\n3. 已通过安全删除彻底抹除的财务及云端通知记录会写入防复活墓碑并递增清除代际，阻止离线旧设备及历史 .wyjbackup 加密备份恢复复活。\n4. 基础设施时间点快照（Cloudflare D1 Time Travel）按底层基础设施滚动周期自动覆盖淘汰，用户自行保管的离线 .wyjbackup 文件不受服务端远程粉碎。"
     },
     "security": {
       "title": "Aeris 安全与隐私说明（Task30 修订归档）",

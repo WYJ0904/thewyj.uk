@@ -1515,11 +1515,11 @@ export async function commitRestoreJob(context, account, jobId, input = {}) {
       for (const item of stagedPlan) {
         const tombIds = tombstoneIdentitiesForBackupSection(item.section, item.row);
         if (tombIds.length > 0) {
-          const hit = await checkTombstoneCollision(db, account.id, tombIds, { permanentOnly: true });
+          const hit = await checkTombstoneCollision(db, account.id, tombIds, { permanentOnly: false });
           if (hit) {
             throw new Task29Error(
               "BACKUP_PLAN_INVALIDATED_BY_ERASURE",
-              `待恢复记录 ${item.section} 已在提交前被永久删除，恢复作业已回滚`,
+              `待恢复记录 ${item.section} 已在提交前被永久删除或撤销，恢复作业已回滚`,
               409,
             );
           }
