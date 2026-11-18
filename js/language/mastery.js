@@ -1,7 +1,7 @@
 // Retirement adapter for previously issued tickets; no new course questions or UI.
-import { getSafeStorage, safeStorageSet } from '../core/storage.js?release=20261117-aeris-task28-release';
-import { parseLearningStore, masteryStorageKey, parseAnswerReceipt, enqueueAnswer, acknowledgeAnswer } from './mastery-state.js?release=20261117-aeris-task28-release';
-import { createMasteryJournal } from './mastery-journal.js?release=20261117-aeris-task28-release';
+import { getSafeStorage, safeStorageSet } from '../core/storage.js?release=20261118-aeris-task29-web-release';
+import { parseLearningStore, masteryStorageKey, parseAnswerReceipt, enqueueAnswer, acknowledgeAnswer } from './mastery-state.js?release=20261118-aeris-task29-web-release';
+import { createMasteryJournal } from './mastery-journal.js?release=20261118-aeris-task29-web-release';
 
 export function createMasteryController({getAccount,getLanguage,api,onChange=()=>{},storage=getSafeStorage(),
   locks=globalThis.navigator?.locks,journal=createMasteryJournal()}) {
