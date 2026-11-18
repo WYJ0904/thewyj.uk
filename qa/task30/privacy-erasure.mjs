@@ -904,7 +904,7 @@ try {
     assert.equal(cronRes.ok, true, JSON.stringify(cronRes));
     assert.ok(cronRes.cleanup.summary.interrupted_account_erasures_resumed >= 1);
     const finishedReqC = await db.prepare("SELECT status FROM task30_erasure_requests WHERE id = ?1").bind(pendingReqC.id).first();
-    assert.equal(finishedReqC.status, "partially_completed");
+    assert.equal(finishedReqC.status, "completed");
     assert.equal((await db.prepare("SELECT COUNT(*) AS cnt FROM task16_finance_transactions WHERE user_id = ?1").bind(userC).first()).cnt, 0);
 
     // Turn Task30 UI/API kill_switch=1 & enabled=0 -> new requests fail closed 503, YET prior tombstones & backup guards stay active!
@@ -913,7 +913,8 @@ try {
 
     // Test Task29 precheck STILL rejects old valid backup & Task16 STILL blocks altered-ID source_event sync while task30_privacy_v1 is OFF!
     await db.prepare("UPDATE task12_users SET deleted = 0 WHERE id = ?1").bind(userC).run();
-    await db.prepare("INSERT INTO task12_sessions (token_digest, user_id, session_version, created_at, last_seen_at, expires_at, client_kind) VALUES (?1, ?2, 99, ?3, ?3, ?4, 'browser')").bind(await sessionStorageKey("temp_verify_tomb_c"), userC, now, expiresFuture).run();
+    await db.prepare("UPDATE task13_user_memberships SET status = 'active' WHERE user_id = ?1").bind(userC).run();
+    await db.prepare("INSERT INTO task12_sessions (token_digest, user_id, session_version, created_at, last_seen_at, expires_at, client_kind) VALUES (?1, ?2, (SELECT session_version FROM task12_users WHERE id = ?2), ?3, ?3, ?4, 'browser')").bind(await sessionStorageKey("temp_verify_tomb_c"), userC, now, expiresFuture).run();
     const preBlockedWhileOff = await apiCall("/api/backup/v1/precheck", { token: "temp_verify_tomb_c", body: { package: oldBackupPkgC } });
     assert.equal(preBlockedWhileOff.status, 200);
     assert.equal(preBlockedWhileOff.body.can_restore, false);
@@ -946,6 +947,7 @@ try {
     });
     assert.equal(syncSourceBlockedWhileOff.status, 409, JSON.stringify(syncSourceBlockedWhileOff.body));
     assert.equal(syncSourceBlockedWhileOff.body.code, "erased_record_resurrection_blocked");
+    await db.prepare("UPDATE task13_user_memberships SET status = 'cancelled' WHERE user_id = ?1").bind(userC).run();
     await db.prepare("UPDATE task12_users SET deleted = 1 WHERE id = ?1").bind(userC).run();
   });
 
