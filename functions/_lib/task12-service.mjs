@@ -26,6 +26,7 @@ import {
 import { beginTask27Login } from './task27-auth.mjs';
 import { hasTask27, securityState } from './task27-store.mjs';
 import { validateConsent, consentStatement } from './task27-policy.mjs';
+import { executeAccountErasure, hasTask30, prepareAccountErasureStatement } from './task30-privacy-service.mjs';
 
 function requireDatabase(db) {
   if (!db?.prepare) throw new Task12Error("云端账户数据库暂时不可用", 503, "task12_database_unavailable", true);
@@ -342,14 +343,26 @@ export async function deleteOwnAccount(db, account, secret, options = {}) {
   if (!verified.valid) throw new Task12Error("当前登录密钥错误", 403, "invalid_secret");
   const now = isoNow();
   const before = auditSnapshot(row);
+  const task30Ready = await hasTask30(db);
+  const preReqId = task30Ready ? `privreq:${crypto.randomUUID()}` : "";
   await requireDatabase(db).batch([
     db.prepare(`UPDATE task12_users SET password_hash = '', password_scheme = 'invalid',
       password_iterations = 0, deleted = 1, session_version = session_version + 1,
       updated_at = ?2, source_updated_at = ?2 WHERE id = ?1`).bind(row.id, now),
     db.prepare("UPDATE task12_sessions SET revoked = 1, revoked_at = ?2 WHERE user_id = ?1 AND revoked = 0")
       .bind(row.id, now),
+    ...(task30Ready
+      ? [prepareAccountErasureStatement(db, row.id, now, preReqId, { httpRequestId: options.requestId, stepupScope: options.stepupScope || "account_delete" })]
+      : []),
   ]);
   await accountAudit(db, row, "self_delete", row, before, auditSnapshot(await userById(db, row.id)));
+  return await executeAccountErasure(db, options.storage || options.env?.WYJ_STORAGE || null, row, {
+    existingRequestId: preReqId || undefined,
+    httpRequestId: options.requestId,
+    environment: options.env?.WYJ_ENVIRONMENT,
+    skipUserSessions: true,
+    simulateAccountClosureInterruption: Boolean(options.simulateAccountClosureInterruption),
+  });
 }
 
 function adminUserListOptions(options = {}) {

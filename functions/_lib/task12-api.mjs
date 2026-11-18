@@ -343,7 +343,11 @@ async function executeRoute(context, descriptor, account, flags) {
   }
   if (path === "/api/account/delete") {
     requireAllowedFields(payload, new Set(["secret"]));
-    await deleteOwnAccount(db, account, payload.secret, passwordOptions(context));
+    await deleteOwnAccount(db, account, payload.secret, {
+      ...passwordOptions(context),
+      storage: context.env?.WYJ_STORAGE || null,
+      env: context.env,
+    });
     return response({ ok: true, account_deleted: true }, 200, context, {
       "Set-Cookie": [clearTask20AccessCookie(), ...clearWebDownloadSessionCookies(context.request)],
     });

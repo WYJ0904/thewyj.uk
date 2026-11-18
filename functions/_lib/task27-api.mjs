@@ -143,8 +143,15 @@ export async function handleTask27Request(context) {
     // must not silently halve the pre-existing 60/minute management limits.
     if(!legacyScope)await securityRate(context,key,account?.id,method==='GET'||url.pathname==='/api/security/stepup'?120:30,60);
     if (legacyScope) {
-      const {db,guards}=await authorize(context,account,context.request.headers.get('X-Aeris-Stepup'),legacyScope);
-      await atomic(db,guards);
+      const token=context.request.headers.get('X-Aeris-Stepup');
+      let authz;
+      if (url.pathname==='/api/account/delete') {
+        try { authz=await authorize(context,account,token,'account_delete'); }
+        catch { authz=await authorize(context,account,token,'privacy_account_delete'); }
+      } else {
+        authz=await authorize(context,account,token,legacyScope);
+      }
+      await atomic(authz.db,authz.guards);
       return null;
     }
     const payload=method==='POST'?await readJsonBounded(context.request):{};

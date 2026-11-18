@@ -3,6 +3,13 @@ import { unitStamp, hasMoneyUnits, currencyDecisionStamp } from './finance-money
 import { currencyPreferences } from './finance-fx.mjs';
 import { currencyDigits } from '../../js/finance/money.js';
 import {
+  checkTombstoneCollision,
+  clearSoftDeleteTombstonesStatements,
+  computeRecordTombstoneIdentities,
+  hasTask30,
+  recordTombstonesStatements,
+} from './task30-privacy-service.mjs';
+import {
   FINANCE_ENTITLEMENT,
   MAX_CHANGE_PAGE,
   MAX_SYNC_OPERATIONS,
@@ -313,6 +320,18 @@ async function upsertTransaction(db, account, deviceId, operation, digest, obser
   const existing = await first(db, "SELECT * FROM task16_finance_transactions WHERE id = ?1", [id]);
   if (existing && existing.user_id !== account.id) throw new Task16Error("账目不存在", 404, "transaction_not_found");
   if (existing?.system_superseded_by) throw new Task16Error("此历史账目已有明确的有效归属", 409, "transaction_superseded");
+  const permanentTomb = await checkTombstoneCollision(
+    db,
+    account.id,
+    computeRecordTombstoneIdentities("finance", "transaction", existing || { id }),
+    { permanentOnly: true },
+  );
+  if (permanentTomb) {
+    throw new Task16Error("该账目已通过隐私安全删除永久清除，禁止恢复或重传", 409, "erased_record_resurrection_blocked");
+  }
+  if (existing?.status === "deleted") {
+    throw new Task16Error("已删除账目不能通过同步覆盖复活，请使用恢复操作或创建新账目", 409, "transaction_deleted_resurrection_blocked");
+  }
   if (!existing && baseRevision !== 0) throw new Task16Error("账目版本冲突", 409, "transaction_conflict");
   if (existing && Number(existing.revision) !== baseRevision) {
     throw new Task16Error("账目已在另一设备更新", 409, "transaction_conflict", false, {
@@ -372,6 +391,17 @@ async function changeTransactionStatus(db, account, deviceId, operation, digest,
     WHERE id = ?1 AND user_id = ?2`, [id, account.id]);
   if (!existing) throw new Task16Error("账目不存在", 404, "transaction_not_found");
   if (existing.system_superseded_by) throw new Task16Error("此历史账目已有明确的有效归属", 409, "transaction_superseded");
+  if (targetStatus === "active") {
+    const permanentTomb = await checkTombstoneCollision(
+      db,
+      account.id,
+      computeRecordTombstoneIdentities("finance", "transaction", existing),
+      { permanentOnly: true },
+    );
+    if (permanentTomb) {
+      throw new Task16Error("该账目已通过隐私安全删除永久清除，不能恢复", 409, "erased_record_resurrection_blocked");
+    }
+  }
   if (Number(existing.revision) !== baseRevision) throw new Task16Error("账目已在另一设备更新", 409, "transaction_conflict");
   if (existing.status === targetStatus) {
     return await recordNoopOperation(db, account, deviceId, operation, digest, {
@@ -384,12 +414,28 @@ async function changeTransactionStatus(db, account, deviceId, operation, digest,
   const action = targetStatus === "deleted" ? "transaction_delete" : "transaction_restore";
   const changeOperation = targetStatus === "deleted" ? "delete" : "restore";
   const task21Ready = await task21FinanceLinkTablesReady(db);
+  const task30Ready = await hasTask30(db);
   return await commitMutation(db, account, deviceId, operation, digest, (version, now) => [
     db.prepare(`UPDATE task16_finance_transactions SET status = ?2, revision = ?3,
       sync_version = ?4, updated_at = ?5, deleted_at = ?6
       WHERE id = ?1 AND user_id = ?7 AND revision = ?8`)
       .bind(id, targetStatus, revision, version, now, targetStatus === "deleted" ? now : "", account.id, baseRevision),
     ...(task21Ready ? task21FinanceLinkMutationStatements(db, account.id, id, targetStatus, now) : []),
+    ...(task30Ready
+      ? targetStatus === "deleted"
+        ? recordTombstonesStatements(
+            db,
+            account.id,
+            "finance",
+            computeRecordTombstoneIdentities("finance", "transaction", existing),
+            { tombstoneLevel: "soft_delete", reason: "finance_transaction_delete", now },
+          )
+        : clearSoftDeleteTombstonesStatements(
+            db,
+            account.id,
+            computeRecordTombstoneIdentities("finance", "transaction", existing),
+          )
+      : []),
     auditStatement(db, account, deviceId, action, "transaction", id,
       publicTransaction(existing), { ...publicTransaction(planned), sync_version: version }, now),
   ], {
@@ -483,6 +529,15 @@ async function ingestRawEvent(db, account, deviceId, operation, digest, observed
     }
   }
   const event = normalizeRawEvent(payload,{currencyPolicyVersion:2,defaultCurrency});
+  const permanentTomb = await checkTombstoneCollision(
+    db,
+    account.id,
+    computeRecordTombstoneIdentities("finance", "raw_event", event),
+    { permanentOnly: true },
+  );
+  if (permanentTomb) {
+    throw new Task16Error("该原始支付事件已通过隐私安全删除永久清除，禁止同步复活", 409, "erased_record_resurrection_blocked");
+  }
   const reconciliationReady=await first(db,"SELECT COUNT(*) AS n FROM sqlite_master WHERE type='table' AND name='task21_payment_effective_events'");
   if(Number(reconciliationReady?.n||0)>0) {
     const scope=financeReferenceScope(event);
@@ -642,12 +697,19 @@ async function mutateSimpleEntity(db, account, deviceId, operation, digest, kind
   if (!existing && baseRevision !== 0) throw new Task16Error("记录版本冲突", 409, "finance_record_conflict");
   const removing = operation.type.endsWith(".delete");
   if (removing && !existing) throw new Task16Error("记录不存在", 404, "finance_record_not_found");
+  if (!removing) {
+    const permanentTomb = await checkTombstoneCollision(db, account.id, [{ entityType: kind, entityKey: id }], { permanentOnly: true });
+    if (permanentTomb) {
+      throw new Task16Error("该财务配置项已通过隐私安全删除永久清除，禁止重建复活", 409, "erased_record_resurrection_blocked");
+    }
+  }
   const normalized = removing ? null : kind === "category" ? normalizeCategory(operation.payload) : normalizeBudget(operation.payload);
   const unitStatements = kind === 'budget' && normalized ? await unitStamp(db, id, normalized.currency, normalized.amount_exponent, 'budget') : [];
   if (kind === "budget" && normalized) await requireOwnedCategory(db, account.id, normalized.category_id);
   const revision = existing ? baseRevision + 1 : 1;
   const status = removing ? "deleted" : "active";
   const planned = { ...(existing || {}), ...(normalized || {}), id, user_id: account.id, status, revision };
+  const task30Ready = await hasTask30(db);
   return await commitMutation(db, account, deviceId, operation, digest, (version, now) => {
     let statement;
     if (existing) {
@@ -677,7 +739,14 @@ async function mutateSimpleEntity(db, account, deviceId, operation, digest, kind
         .bind(id, account.id, planned.category_id, planned.period_type, planned.amount_minor,
           planned.currency, planned.starts_on, planned.ends_on, version, now);
     }
-    return [statement, ...unitStatements, auditStatement(db, account, deviceId, `${kind}_${removing ? "delete" : "upsert"}`, kind, id, existing || {}, planned, now)];
+    const tombStmts = task30Ready && removing
+      ? recordTombstonesStatements(db, account.id, "finance", [{ categoryKey: "finance", entityType: kind, entityKey: id }], {
+          tombstoneLevel: "soft_delete",
+          reason: `finance_${kind}_delete`,
+          now,
+        })
+      : [];
+    return [statement, ...unitStatements, ...tombStmts, auditStatement(db, account, deviceId, `${kind}_${removing ? "delete" : "upsert"}`, kind, id, existing || {}, planned, now)];
   }, {
     entityType: kind, entityId: id, operation: removing ? "delete" : "upsert", revision,
     result: (version) => ({ [kind]: { ...planned, sync_version: version } }),
@@ -832,6 +901,7 @@ export async function mergeFinanceTransactions(db, account, input) {
     }),
     sync_version: version,
   });
+  const task30Ready = await hasTask30(db);
   return await commitMutation(db, account, deviceId, operation, digest, (version, now) => {
     const statements = [
       db.prepare(`UPDATE task16_finance_transactions SET revision = ?2, sync_version = ?3,
@@ -850,6 +920,17 @@ export async function mergeFinanceTransactions(db, account, input) {
           WHERE id = ?1 AND user_id = ?5 AND revision = ?6`)
           .bind(sourceId, Number(source.revision) + 1, version, now, account.id, source.revision),
       );
+      if (task30Ready) {
+        statements.push(
+          ...recordTombstonesStatements(
+            db,
+            account.id,
+            "finance",
+            computeRecordTombstoneIdentities("finance", "transaction", source),
+            { tombstoneLevel: "soft_delete", reason: "finance_transaction_merge", now },
+          ),
+        );
+      }
     }
     statements.push(auditStatement(db, account, deviceId, "transaction_merge", "transaction", targetId,
       { target: publicTransaction(target), sources: sourceIds }, { target_id: targetId, sources_deleted: sourceIds }, now));

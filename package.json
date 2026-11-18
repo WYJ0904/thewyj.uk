@@ -4,6 +4,9 @@
   "version": "0.0.0",
   "description": "Cloudflare Pages development tooling for thewyj.uk",
   "scripts": {
+    "test:task30": "node qa/task30/privacy-erasure.mjs",
+    "test:task30:runtime": "npm run cf:check && node qa/task30/workerd.mjs",
+    "test:task30:browser": "node qa/task30/browser.mjs",
     "test:task29": "node qa/task29/backup-restore.mjs",
     "test:task29:runtime": "npm run cf:check && node qa/task29/workerd.mjs",
     "test:task29:browser": "node qa/task29/browser.mjs",

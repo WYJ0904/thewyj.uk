@@ -13,6 +13,13 @@ import {
 import { createAutomaticFinanceTransaction, correctedPaymentHintReceipt, reconcileLegacyCompleteCandidates, requireFinanceRecognitionAccess } from "./task21-service.mjs";
 import {recordPaymentUserDecision} from './task21-reconciliation.mjs';
 import {referenceNamespaceForSource} from "./task21-event-safety.mjs";
+import {
+  checkTombstoneCollision,
+  computeRecordTombstoneIdentities,
+  hasTask30,
+  isCloudNotificationSyncAllowed,
+  recordTombstonesStatements,
+} from "./task30-privacy-service.mjs";
 
 function hintFinanceIdentity(row) {
   const channel=String(row.payment_channel||'');
@@ -439,6 +446,9 @@ async function reconcileConfirmedHint(db, account, row) {
  */
 export async function upsertNotificationHints(db, account, input, retryDepth = 0) {
   requireFinanceRecognitionAccess(account);
+  if (retryDepth === 0 && !(await isCloudNotificationSyncAllowed(db, account.id))) {
+    throw new Task21Error("您已撤销云端结构化通知同步授权，暂不接收新的待确认通知线索", 403, "cloud_notification_sync_revoked");
+  }
   requireAllowedFields(input, new Set(["device_id", "hints"]));
   const deviceId = cleanId(input.device_id, "设备标识");
   const hints = Array.isArray(input.hints) ? input.hints : [];
@@ -470,6 +480,22 @@ export async function upsertNotificationHints(db, account, input, retryDepth = 0
     const lifecycleIdentity = cleanLifecycleIdentity(raw.lifecycle_identity);
     const merchant = cleanText(raw.merchant, 160, "商户");
     const currency = cleanText(raw.currency || "XXX", 8, "币种") || "XXX";
+    const permMatch = await checkTombstoneCollision(
+      db,
+      account.id,
+      computeRecordTombstoneIdentities("notifications_cloud", "notification_hint", {
+        source_event_id: sourceEventId,
+        source_type: sourceType,
+        source_package: sourcePackage,
+        payment_channel: paymentChannel,
+        provider_reference: providerReference,
+        lifecycle_identity: lifecycleIdentity,
+      }),
+      { permanentOnly: true },
+    );
+    if (permMatch) {
+      throw new Task21Error("该支付提示对应的记录已通过隐私清理永久删除，禁止重传复活", 409, "erased_record_resurrection_blocked");
+    }
     const unit = await sourceUnitStatement(db,account.id,sourceEventId,currency,raw.amount_exponent);
     const confidence = Math.min(1000, nonNegativeInteger(raw.confidence || 0, "置信度", 1000));
     const evidence = cleanEvidence(raw.evidence);
@@ -959,6 +985,16 @@ export async function ignoreNotificationHint(db, account, input) {
       SELECT event_id FROM task21_notification_review_aliases WHERE user_id = ?1 AND hint_id = ?4))`, [
     account.id, row.source_event_id, now, row.id,
   ]);
+  if (await hasTask30(db)) {
+    const tombStmts = recordTombstonesStatements(
+      db,
+      account.id,
+      "notifications_cloud",
+      computeRecordTombstoneIdentities("notifications_cloud", "notification_hint", row),
+      { tombstoneLevel: "soft_delete", reason: "notification_hint_ignored", now },
+    );
+    if (tombStmts.length) await db.batch(tombStmts);
+  }
   return { hint: publicHint(await hintById(db, account, hintId)) };
 }
 
