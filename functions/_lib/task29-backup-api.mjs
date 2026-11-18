@@ -117,18 +117,21 @@ async function applyRateLimit(context, scope, subject, limit, windowSeconds) {
   }
 }
 
+const EXACT_ROUTES = {
+  "GET /api/backup/v1/scopes": { name: "scopes" },
+  "GET /api/backup/v1/overview": { name: "scopes" },
+  "POST /api/backup/v1/export": { name: "export" },
+  "POST /api/backup/v1/precheck": { name: "precheck" },
+  "POST /api/backup/v1/restore/jobs": { name: "create_job" },
+};
+
+const KNOWN_EXACT_PATHS = new Set(Object.keys(EXACT_ROUTES).map((key) => key.split(" ")[1]));
+
 function matchRoute(method, pathname) {
-  if (method === "GET" && (pathname === "/api/backup/v1/scopes" || pathname === "/api/backup/v1/overview")) {
-    return { name: "scopes" };
-  }
-  if (method === "POST" && pathname === "/api/backup/v1/export") {
-    return { name: "export" };
-  }
-  if (method === "POST" && pathname === "/api/backup/v1/precheck") {
-    return { name: "precheck" };
-  }
-  if (method === "POST" && pathname === "/api/backup/v1/restore/jobs") {
-    return { name: "create_job" };
+  const exact = EXACT_ROUTES[`${method} ${pathname}`];
+  if (exact) return exact;
+  if (KNOWN_EXACT_PATHS.has(pathname)) {
+    return { name: "method_not_allowed" };
   }
   const jobMatch = /^\/api\/backup\/v1\/restore\/jobs\/([^/]+)(?:\/(commit|cancel))?$/.exec(pathname);
   if (jobMatch) {
@@ -140,14 +143,6 @@ function matchRoute(method, pathname) {
     return { name: "method_not_allowed" };
   }
   if (pathname.startsWith("/api/backup/v1/")) {
-    const knownPaths = new Set([
-      "/api/backup/v1/scopes",
-      "/api/backup/v1/overview",
-      "/api/backup/v1/export",
-      "/api/backup/v1/precheck",
-      "/api/backup/v1/restore/jobs",
-    ]);
-    if (knownPaths.has(pathname)) return { name: "method_not_allowed" };
     return { name: "not_found" };
   }
   return null;
