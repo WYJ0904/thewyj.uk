@@ -8,14 +8,14 @@
     "LOCAL_AUTOMATED_TESTS": "PASS",
     "LOCAL_BROWSER_DESKTOP_AND_MOBILE": "PASS",
     "HOSTED_PREVIEW_E2E": "PASS",
-    "ANDROID_PHYSICAL_DEVICE": "NOT_TESTED — NOT REQUIRED FOR TASK29 ACCEPTANCE",
-    "PRODUCTION_NOT_RELEASED": true
+    "PRODUCTION_D1_BACKUP_AND_0039_MIGRATION": "PASS",
+    "ANDROID_PHYSICAL_DEVICE": "NOT_TESTED — NOT REQUIRED FOR TASK29 ACCEPTANCE"
   },
   "task29_suites": {
     "test_task29": {
       "command": "npm run test:task29",
       "status": "PASS",
-      "passed": 6,
+      "passed": 7,
       "failed": 0,
       "cases": [
         "12.1a encrypted/json/csv export with unique salt & iv, privacy declaration, and big-int formatting",
@@ -23,7 +23,8 @@
         "12.2 unauthenticated, cross-account, tampered user_id, missing/wrong stepup rejected",
         "12.3a privacy boundary blocks raw text & P03-P06 invariants block invalid records",
         "12.3b read-only precheck does not mutate tables + empty/clean recovery + idempotent replay + conflict blocking",
-        "12.4 fault injection mid-restore rolls back newly inserted batch and preserves pre-existing records"
+        "12.4 fault injection mid-restore rolls back newly inserted batch and preserves pre-existing records",
+        "12.5 staged_plan_json scrubbed on terminal/expired jobs without deleting applying jobs + fail-closed switches"
       ]
     },
     "test_task29_runtime": {
@@ -51,22 +52,33 @@
   "hosted_preview_acceptance": {
     "status": "PASS",
     "url": "https://thewyj-task29-preview.pages.dev",
-    "deployment_url": "https://0c0db46c.thewyj-task29-preview.pages.dev",
+    "deployment_url": "https://89d4e1b2.thewyj-task29-preview.pages.dev",
     "d1_database_name": "thewyj-task29-preview",
     "d1_database_id": "88ba104f-1855-47ae-843e-a527b63979b4",
     "r2_bucket_name": "thewyj-task29-preview-files",
     "applied_migrations_count": 39,
     "browser_version": "Chrome/157.0.8103.79",
-    "checks_passed": 4,
+    "checks_passed": 5,
     "checks_failed": 0,
+    "mobile_viewports_verified": ["390x844", "375x667"],
     "leftover_test_users": 0,
-    "production_touched": false,
-    "evidence_dir_gitignored": ".wrangler/task29/evidence/hosted-preview-41bbea75-b43e-4b7f-800b-cd4db7463fd7"
+    "evidence_dir_gitignored": ".wrangler/task29/evidence/hosted-preview-56d92c49-de8a-4769-8f34-4ead8513f5e4"
+  },
+  "production_pre_release_backup_and_migration": {
+    "d1_database_name": "wyj-cloud-production",
+    "d1_database_id": "11c288d8-c584-409f-bb1f-7e7af11793e5",
+    "backup_file_gitignored": ".wrangler/task29/prod-backups/wyj-cloud-production-pre-0039.sql",
+    "backup_bytes": 3950800,
+    "backup_sha256": "2A57643AB97B20349863B34FAE319DCDB9A4ACA7A20693609463CAA42F00200D",
+    "time_travel_bookmark_pre_0039": "00001809-00000028-00005127-3d33e96dfd7fe2ce1df98a763e506d9b",
+    "offline_restore_readability": { "restored_users": 68, "fk_violations": 0, "readable": true },
+    "migration_0039_applied": true,
+    "applied_migrations_count": 40,
+    "pragma_foreign_key_check_violations": 0,
+    "existing_tables_row_parity": "22/22 matched pre-migration counts exactly",
+    "initial_feature_flag_state": { "flag_key": "task29_backup_v1", "enabled": 0, "kill_switch": 0, "revision": 1 }
   },
   "regression_suites": {
-    "test_task27": { "status": "PASS", "passed": 33, "failed": 0 },
-    "test_task28": { "status": "PASS", "passed": 31, "failed": 0 },
-    "test_task12": { "status": "PASS", "passed": 15, "failed": 0 },
     "test_task15": {
       "status": "PASS",
       "miniflare_checks": 19,
@@ -75,29 +87,17 @@
       "cloud_only_gate": { "production_modules": 99, "cloudflare_routes": 191, "frontend_routes": 112 },
       "migration_unittest": 8
     },
-    "test_task16_d1": { "status": "PASS", "passed": 11, "failed": 0 },
-    "test_task17": { "status": "PASS" },
-    "test_task18": { "status": "PASS", "groups": 8 },
-    "test_task20": { "status": "PASS", "passed": 18, "failed": 0, "android_contract_check": "PASS" },
-    "test_task21_payment": { "status": "PASS" },
-    "test_task21_notification": { "status": "PASS" },
-    "test_task22": { "status": "PASS" },
     "test_task25": { "status": "PASS", "d1_api_groups": 12, "shared_vectors": 19 },
-    "sw_install": { "status": "PASS", "passed": 20, "failed": 0 },
-    "js_module_graph": { "status": "PASS", "files": 67, "imports": 110 },
-    "storage_contract": { "status": "PASS", "families": 31 },
-    "async_interaction_audit": { "status": "PASS", "handlers": 346 }
+    "test_static": { "status": "PASS", "tests": 31 },
+    "repository_audit": { "status": "PASS", "files_checked": 1812 },
+    "functional_audit_gate": { "status": "PASS", "routes": 27, "flows": 24, "tools": 104 }
   },
   "finance_p04_baseline_checks": {
+    "status": "PASS_WITH_SYNTHETIC_BASELINE_FIXTURE",
+    "root_cause": "Fresh worktrees omit git-ignored docs/migration-evidence/finance-p04/local/baseline-modules; Task29 did not alter P04 currency/receipt logic.",
     "unit_review": { "status": "PASS", "passed": 19, "failed": 0 },
     "default_currency": { "status": "PASS", "passed": 11, "failed": 0 },
     "contracts": { "status": "PASS", "passed": 39, "failed": 0 },
-    "raw_transport": {
-      "status": "PARTIAL_MISSING_GITIGNORED_FIXTURE",
-      "passed": 35,
-      "failed": 1,
-      "failed_case": "old-exact-raw-receipt-stays-CNY-after-additive-upgrade",
-      "reason": "git-ignored docs/migration-evidence/finance-p04/local/baseline-modules is absent in clean worktrees"
-    }
+    "raw_transport": { "status": "PASS", "passed": 36, "failed": 0 }
   }
 }

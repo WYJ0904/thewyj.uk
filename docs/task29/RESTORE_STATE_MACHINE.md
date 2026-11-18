@@ -13,7 +13,10 @@
                                                                 completed                    rolled_back
 ```
 
-- **`prechecked`**：所有业务表（`task16_*`, `task21_*`）零写入；`staged_plan_json` 已按依赖拓扑序（`categories` -> `budgets` -> `transactions (parent first)` -> `raw_events` -> `transaction_events` -> `fx_preferences`/`fx_rates` -> `fx_references` -> `pending_hints`/`notification_candidates` -> `notification_events`/`evidence`/`reconciliations`）固化待新增项。
+- **`staged_plan_json` 隐私数据保留与自动清理 (`pruneExpiredRestoreJobs`)**：
+  1. 作业一旦进入终态（`completed`、`cancelled`、`rolled_back`、`failed`），服务端在同一次数据库更新中立即将 `staged_plan_json` 置空为 `'[]'`，避免敏感待恢复结构化账目在恢复完成后继续滞留。
+  2. 所有入口接口（`getBackupOverview`、`precheckBackupRestore`、`commitRestoreJob`、`getRestoreJob`、`cancelRestoreJob`）均调用 `pruneExpiredRestoreJobs(db)`，对所有已过期的 `prechecked` / `confirmed` 作业（`expires_at <= now`）及任何残余终态作业置空 `staged_plan_json = '[]'`。
+  3. **不误删正在执行作业**：清理语句严格限定 `WHERE state != 'applying'`，绝不影响正在写入或尚待故障排查的 `applying` 作业；同时也保留 `precheck_summary_json`、`result_summary_json`、`applied_log_json` 与作业主记录以保障幂等、审计与 `410 BACKUP_JOB_EXPIRED` 状态返回。
 - **冲突处理策略 (`conflict_policy`)**：
   - 默认 `skip_identical_reject_conflict`：完全一致记录幂等跳过，发现主键或自然键（`source_event_id`, `provider_reference`, `candidate.event_id`, `pending_hints.source_event_id`）对应字段不一致即阻断提交 (`can_restore = false`, `409 BACKUP_PRECHECK_BLOCKED`)，绝不静默覆盖既有账目。
   - 可选 `skip_all_existing`：仍绝不覆盖既有冲突记录，仅将冲突记录标记跳过后恢复其余干净新增记录。

@@ -12,6 +12,7 @@ import {
   encryptBackupPackage,
 } from "../../functions/_lib/task29-backup-crypto.mjs";
 import { formatMinorExact, sanitizeCsvText } from "../../functions/_lib/task29-backup-model.mjs";
+import { pruneExpiredRestoreJobs } from "../../functions/_lib/task29-backup-service.mjs";
 
 const root = path.resolve(import.meta.dirname, "../..");
 const out = path.join(root, ".wrangler/task29/evidence", `unit-d1-${crypto.randomUUID()}`);
@@ -79,7 +80,7 @@ const userB = "task29-user-b-0002";
 await seedUser(userA, "task29usera", tokenA);
 await seedUser(userB, "task29userb", tokenB);
 
-async function apiCall(route, { method, body, token = tokenA, headers = {} } = {}) {
+async function apiCall(route, { method, body, token = tokenA, headers = {}, envOverrides = {} } = {}) {
   const m = method || (body === undefined ? "GET" : "POST");
   const url = `https://task29.local${route}`;
   const reqHeaders = {
@@ -93,7 +94,7 @@ async function apiCall(route, { method, body, token = tokenA, headers = {} } = {
     headers: reqHeaders,
     body: body === undefined ? undefined : (typeof body === "string" ? body : JSON.stringify(body)),
   });
-  const context = { request, env, data: { requestId: crypto.randomUUID() }, waitUntil() {} };
+  const context = { request, env: { ...env, ...envOverrides }, data: { requestId: crypto.randomUUID() }, waitUntil() {} };
   const response = await onRequest(context);
   const json = await response.json().catch(() => null);
   return { response, status: response.status, body: json };
@@ -524,6 +525,72 @@ try {
     assert.equal(countAfterRollback, 1, "rollback removed all newly inserted batch items without touching pre-existing row");
     const keepRow = await db.prepare("SELECT id, amount_minor FROM task16_finance_transactions WHERE id = 'tx_b_keep_001' AND user_id = ?1").bind(userB).first();
     assert.equal(keepRow?.amount_minor, 500);
+    // Rollback scrubbed staged_plan_json immediately
+    const rbJob = await db.prepare("SELECT state, staged_plan_json FROM task29_restore_jobs WHERE id = ?1").bind(preB.body.job_id).first();
+    assert.equal(rbJob.state, "rolled_back");
+    assert.equal(rbJob.staged_plan_json, "[]");
+  });
+
+  // 12.5 Staged-plan privacy scrubbing & fail-closed feature flag / env kill switch checks
+  await test("12.5 staged_plan_json scrubbed on terminal/expired jobs without deleting applying jobs + fail-closed switches", async () => {
+    // Completed and cancelled jobs must already have staged_plan_json === '[]'
+    const terminalRows = (await db.prepare(
+      "SELECT state, staged_plan_json FROM task29_restore_jobs WHERE state IN ('completed', 'cancelled', 'rolled_back')",
+    ).all()).results;
+    assert.ok(terminalRows.length >= 3);
+    for (const r of terminalRows) {
+      assert.equal(r.staged_plan_json, "[]", `terminal state ${r.state} must scrub staged_plan_json`);
+    }
+
+    // Create an expired 'prechecked' job and an in-flight 'applying' job for userA
+    const pastIso = new Date(Date.now() - 3600_000).toISOString().replace(/\.\d{3}Z$/, "Z");
+    const futureIso = new Date(Date.now() + 3600_000).toISOString().replace(/\.\d{3}Z$/, "Z");
+    await db.batch([
+      db.prepare(`INSERT INTO task29_restore_jobs (
+        id, user_id, idempotency_key, backup_sha256, manifest_sha256, payload_sha256,
+        source_export_id, schema_version, container_version, state, conflict_policy,
+        scopes_json, precheck_summary_json, diff_preview_json, staged_plan_json,
+        applied_log_json, total_batches, completed_batches, created_at, updated_at, expires_at
+      ) VALUES ('brjob_expired_scrub_01', ?1, 'idemp_exp_scrub_01', ?2, ?2, ?2, '', 'aeris.backup.v1', 1, 'prechecked', 'skip_identical_reject_conflict',
+        '["finance_core"]', '{"can_restore":true}', '{}', '[{"section":"transactions","row":{"id":"tx_secret_exp"}}]', '[]', 1, 0, ?3, ?3, ?3)`).bind(userA, "a".repeat(64), pastIso),
+      db.prepare(`INSERT INTO task29_restore_jobs (
+        id, user_id, idempotency_key, backup_sha256, manifest_sha256, payload_sha256,
+        source_export_id, schema_version, container_version, state, conflict_policy,
+        scopes_json, precheck_summary_json, diff_preview_json, staged_plan_json,
+        applied_log_json, total_batches, completed_batches, created_at, updated_at, expires_at
+      ) VALUES ('brjob_applying_keep_01', ?1, 'idemp_app_keep_01', ?2, ?2, ?2, '', 'aeris.backup.v1', 1, 'applying', 'skip_identical_reject_conflict',
+        '["finance_core"]', '{"can_restore":true}', '{}', '[{"section":"transactions","row":{"id":"tx_active_applying"}}]', '[]', 1, 0, ?3, ?3, ?4)`).bind(userA, "b".repeat(64), pastIso, futureIso),
+    ]);
+
+    const pruneRes = await pruneExpiredRestoreJobs(db);
+    assert.ok(pruneRes.scrubbed >= 1);
+    const expAfter = await db.prepare("SELECT state, staged_plan_json FROM task29_restore_jobs WHERE id = 'brjob_expired_scrub_01'").first();
+    const appAfter = await db.prepare("SELECT state, staged_plan_json FROM task29_restore_jobs WHERE id = 'brjob_applying_keep_01'").first();
+    assert.equal(expAfter.state, "prechecked");
+    assert.equal(expAfter.staged_plan_json, "[]", "expired job staged_plan_json scrubbed cleanly");
+    assert.notEqual(appAfter.staged_plan_json, "[]", "active applying job must never be scrubbed mid-flight");
+
+    // Expired job still preserves 410 BACKUP_JOB_EXPIRED contract
+    const expCommit = await apiCall("/api/backup/v1/restore/jobs/brjob_expired_scrub_01/commit", {
+      token: tokenA,
+      body: { grant: await getStepupGrant(tokenA, "backup_restore:brjob_expired_scrub_01") },
+    });
+    assert.equal(expCommit.status, 410);
+    assert.equal(expCommit.body.code, "BACKUP_JOB_EXPIRED");
+
+    // Fail-closed switch verification (env kill switch + production flag gate)
+    assert.equal((await apiCall("/api/backup/v1/scopes", { token: tokenA, envOverrides: { TASK29_BACKUP_ENABLED: "false" } })).status, 503);
+    assert.equal((await apiCall("/api/backup/v1/scopes", { token: tokenA, envOverrides: { WYJ_ENVIRONMENT: "production", TASK29_BACKUP_ENABLED: "true" } })).status, 503);
+
+    await db.prepare(`INSERT INTO task25_feature_flags (flag_key, description, enabled, kill_switch, channels_json, rollout_basis_points, updated_at)
+      VALUES ('task29_backup_v1', 'Task29 switch test', 0, 0, '["stable","beta","experimental"]', 10000, ?1)`).bind(now).run();
+    assert.equal((await apiCall("/api/backup/v1/scopes", { token: tokenA, envOverrides: { WYJ_ENVIRONMENT: "production", TASK29_BACKUP_ENABLED: "true" } })).status, 503);
+
+    await db.prepare("UPDATE task25_feature_flags SET enabled = 1, kill_switch = 0, revision = revision + 1 WHERE flag_key = 'task29_backup_v1'").run();
+    assert.equal((await apiCall("/api/backup/v1/scopes", { token: tokenA, envOverrides: { WYJ_ENVIRONMENT: "production", TASK29_BACKUP_ENABLED: "true" } })).status, 200);
+
+    await db.prepare("UPDATE task25_feature_flags SET kill_switch = 1, revision = revision + 1 WHERE flag_key = 'task29_backup_v1'").run();
+    assert.equal((await apiCall("/api/backup/v1/scopes", { token: tokenA, envOverrides: { WYJ_ENVIRONMENT: "production", TASK29_BACKUP_ENABLED: "true" } })).status, 503);
   });
 
   await writeFile(path.join(out, "result.json"), JSON.stringify({ status: "PASS", tests: results }, null, 2) + "\n");

@@ -86,18 +86,34 @@ async function readBoundedJson(request, maxBytes) {
 }
 
 async function checkBackupEnabled(env, db) {
-  if (String(env?.TASK29_BACKUP_ENABLED || "").toLowerCase() === "false") {
+  const envRaw = String(env?.TASK29_BACKUP_ENABLED ?? "").trim().toLowerCase();
+  const isProd = String(env?.WYJ_ENVIRONMENT || "").trim().toLowerCase() === "production";
+  if (envRaw === "false" || (isProd && envRaw !== "true")) {
     throw new Task29Error("BACKUP_DISABLED", "数据备份与恢复服务已通过运行开关暂停", 503, true);
   }
   if (!db?.prepare) return;
   try {
+    const meta = await db.prepare("SELECT value FROM task29_metadata WHERE key = 'task29_backup_v1'").first();
+    if (meta && String(meta.value) !== "enabled") {
+      throw new Task29Error("BACKUP_DISABLED", "数据备份与恢复功能已通过运行元数据关闭", 503, true);
+    }
+  } catch (err) {
+    if (err instanceof Task29Error) throw err;
+  }
+  try {
     const row = await db.prepare("SELECT enabled, kill_switch FROM task25_feature_flags WHERE flag_key = 'task29_backup_v1'").first();
+    if (isProd && !row) {
+      throw new Task29Error("BACKUP_DISABLED", "数据备份与恢复功能尚未在生产环境启用", 503, true);
+    }
     if (row && (Number(row.kill_switch) === 1 || Number(row.enabled) === 0)) {
       throw new Task29Error("BACKUP_DISABLED", "数据备份与恢复功能已临时关闭，请稍后再试", 503, true);
     }
   } catch (err) {
     if (err instanceof Task29Error) throw err;
-    // Ignore if task25_feature_flags table is absent in minimal environments
+    if (isProd) {
+      throw new Task29Error("BACKUP_DISABLED", "数据备份与恢复功能开关不可用", 503, true);
+    }
+    // Ignore if task25_feature_flags table is absent in minimal non-production environments
   }
 }
 

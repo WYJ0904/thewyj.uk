@@ -230,8 +230,26 @@ async function writeAudit(db, { userId, jobId = "", exportId = "", action, outco
   ).run();
 }
 
+export async function pruneExpiredRestoreJobs(db, now = nowIso()) {
+  if (!db?.prepare) return { scrubbed: 0 };
+  try {
+    const res = await db.prepare(`UPDATE task29_restore_jobs
+      SET staged_plan_json = '[]', updated_at = ?1
+      WHERE state != 'applying'
+        AND staged_plan_json != '[]'
+        AND (
+          state IN ('completed', 'cancelled', 'rolled_back', 'failed')
+          OR (state IN ('prechecked', 'confirmed') AND expires_at <= ?1)
+        )`).bind(now).run();
+    return { scrubbed: Number(res?.meta?.changes || 0) };
+  } catch (_) {
+    return { scrubbed: 0 };
+  }
+}
+
 export async function getBackupOverview(context, account) {
   const db = requireDb(context.env?.WYJ_DB);
+  await pruneExpiredRestoreJobs(db);
   const snapshot = await readUserSnapshot(db, account.id, ["finance_core", "finance_review", "notifications_cloud"]);
   const scopeCounts = {
     finance_core: {
@@ -615,6 +633,7 @@ function validateForeignKeys(section, row, validIdSets) {
 
 export async function precheckBackupRestore(context, account, input = {}) {
   const db = requireDb(context.env?.WYJ_DB);
+  await pruneExpiredRestoreJobs(db);
   const conflictPolicy = normalizeConflictPolicy(input.conflict_policy);
   const createJob = input.create_job !== false;
   const requestedScopes = input.scopes ? normalizeScopes(input.scopes) : null;
@@ -1309,6 +1328,7 @@ async function rollbackAppliedRecords(db, appliedLog) {
 
 export async function commitRestoreJob(context, account, jobId, input = {}) {
   const db = requireDb(context.env?.WYJ_DB);
+  await pruneExpiredRestoreJobs(db);
   const job = await safeFirst(db, "SELECT * FROM task29_restore_jobs WHERE id = ?1 AND user_id = ?2", [jobId, account.id]);
   if (!job) {
     throw new Task29Error("BACKUP_JOB_NOT_FOUND", "恢复作业不存在或无权访问", 404);
@@ -1364,7 +1384,7 @@ export async function commitRestoreJob(context, account, jobId, input = {}) {
     const now = nowIso();
     if (job.state !== "completed") {
       await db.prepare(`UPDATE task29_restore_jobs
-        SET state = 'completed', result_summary_json = ?3, stepup_consumed_at = ?4, completed_at = ?4, updated_at = ?4
+        SET state = 'completed', staged_plan_json = '[]', result_summary_json = ?3, stepup_consumed_at = ?4, completed_at = ?4, updated_at = ?4
         WHERE id = ?1 AND user_id = ?2`).bind(job.id, account.id, JSON.stringify(originalResult), now).run();
     }
     await writeAudit(db, {
@@ -1535,7 +1555,7 @@ export async function commitRestoreJob(context, account, jobId, input = {}) {
 
     finalizeStatements.push(
       db.prepare(`UPDATE task29_restore_jobs
-        SET state = 'completed', result_summary_json = ?3, applied_log_json = ?4, completed_at = ?5, updated_at = ?5
+        SET state = 'completed', staged_plan_json = '[]', result_summary_json = ?3, applied_log_json = ?4, completed_at = ?5, updated_at = ?5
         WHERE id = ?1 AND user_id = ?2`).bind(job.id, account.id, JSON.stringify(resultSummary), JSON.stringify(appliedLog), doneNow),
       db.prepare(`INSERT INTO task29_restore_idempotency (
         id, user_id, idempotency_key, backup_sha256, payload_sha256, conflict_policy,
@@ -1594,7 +1614,7 @@ export async function commitRestoreJob(context, account, jobId, input = {}) {
     const errMessage = err?.message || "备份恢复写入失败，已安全回滚本次新建记录";
     const rolledNow = nowIso();
     await db.prepare(`UPDATE task29_restore_jobs
-      SET state = 'rolled_back', error_code = ?3, error_message = ?4, applied_log_json = ?5, updated_at = ?6
+      SET state = 'rolled_back', staged_plan_json = '[]', error_code = ?3, error_message = ?4, applied_log_json = ?5, updated_at = ?6
       WHERE id = ?1 AND user_id = ?2`).bind(
       job.id,
       account.id,
@@ -1627,6 +1647,7 @@ export async function commitRestoreJob(context, account, jobId, input = {}) {
 
 export async function getRestoreJob(context, account, jobId) {
   const db = requireDb(context.env?.WYJ_DB);
+  await pruneExpiredRestoreJobs(db);
   const job = await safeFirst(db, "SELECT * FROM task29_restore_jobs WHERE id = ?1 AND user_id = ?2", [jobId, account.id]);
   if (!job) {
     throw new Task29Error("BACKUP_JOB_NOT_FOUND", "恢复作业不存在或无权访问", 404);
@@ -1655,6 +1676,7 @@ export async function getRestoreJob(context, account, jobId) {
 
 export async function cancelRestoreJob(context, account, jobId) {
   const db = requireDb(context.env?.WYJ_DB);
+  await pruneExpiredRestoreJobs(db);
   const job = await safeFirst(db, "SELECT id, state, source_export_id FROM task29_restore_jobs WHERE id = ?1 AND user_id = ?2", [jobId, account.id]);
   if (!job) {
     throw new Task29Error("BACKUP_JOB_NOT_FOUND", "恢复作业不存在或无权访问", 404);
@@ -1663,7 +1685,7 @@ export async function cancelRestoreJob(context, account, jobId) {
     throw new Task29Error("BACKUP_JOB_CANNOT_CANCEL", `当前作业状态为 ${job.state}，无法取消`, 409);
   }
   const now = nowIso();
-  await db.prepare(`UPDATE task29_restore_jobs SET state = 'cancelled', updated_at = ?3 WHERE id = ?1 AND user_id = ?2`)
+  await db.prepare(`UPDATE task29_restore_jobs SET state = 'cancelled', staged_plan_json = '[]', updated_at = ?3 WHERE id = ?1 AND user_id = ?2`)
     .bind(jobId, account.id, now).run();
   await writeAudit(db, {
     userId: account.id,
