@@ -924,6 +924,7 @@ try {
     const syncSourceBlockedWhileOff = await apiCall("/api/finance/sync", {
       token: "temp_verify_tomb_c",
       body: {
+        schema_version: 1,
         platform: "android",
         device_id: "dev_old_android_offline",
         since_version: 0,
@@ -935,10 +936,10 @@ try {
             source_event_id: "ev_c_001",
             source_provider: "com.tencent.mm",
             provider_reference: "wx_c_001",
+            text: "微信支付消费 42.00 元",
             direction: "expense",
             amount_minor: 4200,
             currency: "CNY",
-            merchant: "OfflineBypassAttempt",
             occurred_at_ms: 1763350000000,
             captured_at_ms: 1763350001000,
           },
