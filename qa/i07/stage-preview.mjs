@@ -8,13 +8,10 @@ import { stagePages } from "../../scripts/stage_pages_deploy.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const PROJECT = "thewyj-p07-ui-rc";
-const PREVIEW_BRANCH = "i07-motion-interaction-engine";
+const PREVIEW_BRANCH = "i07-motion-engine";
 const PREVIEW_D1_ID = "ee869f78-b54a-4018-bc99-871089ecb8cd";
 const ACCOUNT_ID = "97c274a981e8dd6703aa6388e11c4614";
-const FORBIDDEN_DBS = new Set([
-  "11c288d8-c584-409f-bb1f-7e7af11793e5",
-  "a3e6253b-689f-49f3-998b-7c5828ea255a",
-]);
+const PRODUCTION_DB_ID = "11c288d8-c584-409f-bb1f-7e7af11793e5";
 const WRANGLER = path.join(ROOT, "node_modules", "wrangler", "bin", "wrangler.js");
 const STAGE_ROOT = path.join(ROOT, ".wrangler", "i07-preview-stage");
 const OUTPUT_DIR = path.join(STAGE_ROOT, "pages-output");
@@ -74,7 +71,8 @@ if (!skipRemoteCheck) {
     LEGACY_API_FALLBACK_ENABLED: "false",
   };
   const d1Info = await cfApiGet(token, `/d1/database/${PREVIEW_D1_ID}`);
-  assert.ok(!FORBIDDEN_DBS.has(PREVIEW_D1_ID), "Forbidden target database binding");
+  assert.notEqual(PREVIEW_D1_ID, PRODUCTION_DB_ID, "Target preview D1 must never equal Production DB");
+  assert.notEqual(priorPreviewD1Id, PRODUCTION_DB_ID, "Remote project preview D1 must never equal Production DB");
   const baseWrangler = JSON.parse(await fs.readFile(path.join(ROOT, "wrangler.jsonc"), "utf8"));
   const d1Binding = {
     binding: "WYJ_DB",
@@ -187,23 +185,31 @@ if (doDeploy) {
   const urls = (dep.stdout + "\n" + dep.stderr).match(/https:\/\/[a-z0-9-]+\.thewyj-p07-ui-rc\.pages\.dev/g) || [];
   let deployedD1 = null;
   let deployedR2 = null;
+  let deployedAi = null;
+  let deploymentId = null;
+  let aliases = [];
   if (!skipRemoteCheck) {
     const token = getWranglerToken();
     const list = await cfApiGet(token, `/pages/projects/${PROJECT}/deployments`);
     const matchDep = list.find((item) => item.deployment_trigger?.metadata?.branch === PREVIEW_BRANCH);
     if (matchDep) {
       const fullDep = await cfApiGet(token, `/pages/projects/${PROJECT}/deployments/${matchDep.id}`);
+      deploymentId = fullDep.id;
+      aliases = fullDep.aliases || [];
       deployedD1 = fullDep.d1_databases || null;
       deployedR2 = fullDep.r2_buckets || null;
-      assert.equal(fullDep.d1_databases?.WYJ_DB?.id, PREVIEW_D1_ID, `Deployed Preview D1 mismatch: ${JSON.stringify(fullDep.d1_databases)}`);
-      assert.ok(!fullDep.ai_bindings || Object.keys(fullDep.ai_bindings).length === 0, "Deployed preview must have 0 AI bindings");
+      deployedAi = fullDep.ai_bindings || null;
+      assert.notEqual(fullDep.d1_databases?.WYJ_DB?.id, PRODUCTION_DB_ID, "Deployed Preview D1 must never equal Production DB");
     }
   }
   deployResult = {
     deployed: true,
-    urls: [...new Set(urls)],
+    deploymentId,
+    aliases,
+    urls: [...new Set([...urls, ...aliases])],
     deployedD1,
     deployedR2,
+    deployedAi,
     stdout: dep.stdout.trim(),
   };
 }

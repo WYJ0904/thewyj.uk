@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { openPage, delay } from "../../local-backend/browser_harness.mjs";
 
-const previewUrl = process.env.I07_PREVIEW_URL || "https://i07-motion-interaction-engine.thewyj-p07-ui-rc.pages.dev";
+const previewUrl = process.env.I07_PREVIEW_URL || "https://i07-motion-engine.thewyj-p07-ui-rc.pages.dev";
 const root = path.resolve(import.meta.dirname, "../..");
 const outDir = path.join(root, "docs", "ui-rebuild", "i07", "evidence", "preview");
 await mkdir(outDir, { recursive: true });
