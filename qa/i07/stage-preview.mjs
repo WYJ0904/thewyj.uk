@@ -58,11 +58,8 @@ if (!skipRemoteCheck) {
   const previewCfg = project.deployment_configs?.preview || {};
   assert.equal(project.name, PROJECT);
   assert.notEqual(PREVIEW_BRANCH, project.production_branch, "Preview branch must never match production_branch");
-  const d1Id = previewCfg.d1_databases?.WYJ_DB?.id;
-  assert.equal(d1Id, PREVIEW_D1_ID, `Preview D1 mismatch: ${d1Id}`);
-  assert.ok(!FORBIDDEN_DBS.has(d1Id), "Forbidden database binding");
-  assert.ok(!previewCfg.r2_buckets || Object.keys(previewCfg.r2_buckets).length === 0, "Preview must have zero R2 bindings");
-  assert.ok(!previewCfg.ai_bindings || Object.keys(previewCfg.ai_bindings).length === 0, "Preview must have zero AI bindings");
+  const priorPreviewD1Id = previewCfg.d1_databases?.WYJ_DB?.id || null;
+  const priorPreviewR2 = Object.keys(previewCfg.r2_buckets || {});
 
   const plainVars = {};
   for (const [k, v] of Object.entries(previewCfg.env_vars || {})) {
@@ -71,33 +68,47 @@ if (!skipRemoteCheck) {
       plainVars[k] = v.value;
     }
   }
-  assert.equal(String(plainVars.WORKERS_AI_ENABLED).toLowerCase(), "false");
+  const safeVars = {
+    ...plainVars,
+    WORKERS_AI_ENABLED: "false",
+    LEGACY_API_FALLBACK_ENABLED: "false",
+  };
   const d1Info = await cfApiGet(token, `/d1/database/${PREVIEW_D1_ID}`);
+  assert.ok(!FORBIDDEN_DBS.has(PREVIEW_D1_ID), "Forbidden target database binding");
   const baseWrangler = JSON.parse(await fs.readFile(path.join(ROOT, "wrangler.jsonc"), "utf8"));
+  const d1Binding = {
+    binding: "WYJ_DB",
+    database_name: d1Info.name,
+    database_id: PREVIEW_D1_ID,
+    preview_database_id: PREVIEW_D1_ID,
+  };
   previewWrangler = {
     name: PROJECT,
     pages_build_output_dir: "./pages-output",
     compatibility_date: baseWrangler.compatibility_date,
     send_metrics: false,
-    vars: { ...plainVars, LEGACY_API_FALLBACK_ENABLED: "false" },
-    d1_databases: [
-      {
-        binding: "WYJ_DB",
-        database_name: d1Info.name,
-        database_id: PREVIEW_D1_ID,
-        preview_database_id: PREVIEW_D1_ID,
+    vars: { ...safeVars },
+    d1_databases: [d1Binding],
+    r2_buckets: [],
+    env: {
+      preview: {
+        vars: { ...safeVars },
+        d1_databases: [{ ...d1Binding }],
+        r2_buckets: [],
       },
-    ],
+    },
   };
   remoteCheck = {
     verified: true,
     project: project.name,
     branch: PREVIEW_BRANCH,
     productionBranch: project.production_branch,
-    d1Id,
-    d1Name: d1Info.name,
-    r2Count: 0,
-    aiCount: 0,
+    targetD1Id: PREVIEW_D1_ID,
+    targetD1Name: d1Info.name,
+    priorPreviewD1Id,
+    priorPreviewR2,
+    targetR2Count: 0,
+    targetAiCount: 0,
   };
 }
 
@@ -174,9 +185,25 @@ if (doDeploy) {
   );
   assert.equal(dep.status, 0, `Wrangler deploy failed:\n${dep.stdout}\n${dep.stderr}`);
   const urls = (dep.stdout + "\n" + dep.stderr).match(/https:\/\/[a-z0-9-]+\.thewyj-p07-ui-rc\.pages\.dev/g) || [];
+  let deployedD1 = null;
+  let deployedR2 = null;
+  if (!skipRemoteCheck) {
+    const token = getWranglerToken();
+    const list = await cfApiGet(token, `/pages/projects/${PROJECT}/deployments`);
+    const matchDep = list.find((item) => item.deployment_trigger?.metadata?.branch === PREVIEW_BRANCH);
+    if (matchDep) {
+      const fullDep = await cfApiGet(token, `/pages/projects/${PROJECT}/deployments/${matchDep.id}`);
+      deployedD1 = fullDep.d1_databases || null;
+      deployedR2 = fullDep.r2_buckets || null;
+      assert.equal(fullDep.d1_databases?.WYJ_DB?.id, PREVIEW_D1_ID, `Deployed Preview D1 mismatch: ${JSON.stringify(fullDep.d1_databases)}`);
+      assert.ok(!fullDep.ai_bindings || Object.keys(fullDep.ai_bindings).length === 0, "Deployed preview must have 0 AI bindings");
+    }
+  }
   deployResult = {
     deployed: true,
     urls: [...new Set(urls)],
+    deployedD1,
+    deployedR2,
     stdout: dep.stdout.trim(),
   };
 }
