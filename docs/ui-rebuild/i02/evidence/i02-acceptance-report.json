@@ -83,6 +83,20 @@
           "ksW": 20,
           "ksH": 20,
           "auditFont": "\"Cascadia Code\", \"JetBrains Mono\", SFMono-Regular, Consolas, monospace"
+        },
+        "achContrast": {
+          "light": {
+            "color": "rgb(71, 85, 105)",
+            "bg": "rgb(237, 244, 255)",
+            "lockedRatio": 6.85,
+            "unlockedRatio": null
+          },
+          "dark": {
+            "color": "rgb(197, 206, 219)",
+            "bg": "rgb(27, 41, 68)",
+            "lockedRatio": 9.14,
+            "unlockedRatio": null
+          }
         }
       }
     },
@@ -272,6 +286,12 @@
       "label": "admin-1440-light",
       "violationCount": 0,
       "passes": 46,
+      "violations": []
+    },
+    {
+      "label": "achievements-1440-dark",
+      "violationCount": 0,
+      "passes": 42,
       "violations": []
     },
     {

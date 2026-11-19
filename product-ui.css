@@ -2938,7 +2938,8 @@ textarea::placeholder {
 }
 
 .achievement-item.unlocked .achievement-tier {
-  color: var(--color-success) !important;
+  color: var(--color-success);
+  background: var(--color-success-soft);
 }
 
 .result-title.ok,

@@ -437,7 +437,42 @@ try {
     assert.ok(adminMetrics.ksW <= 24 && adminMetrics.ksH <= 24);
     assert.ok(/mono|consolas|cascadia|jetbrains/i.test(adminMetrics.auditFont), `Expected mono font on audit, got ${adminMetrics.auditFont}`);
     await runAxe("admin-1440-light");
-    return { cbMetrics, financeMetrics, adminMetrics };
+
+    // Language achievements tier contrast in Light & Dark (prevents low-contrast legacy override)
+    await page.navigate("/language/english");
+    await page.waitFor("document.querySelector('[data-view=\"achievementsView\"]')?.checkVisibility()", 15000);
+    await page.click('[data-view="achievementsView"]');
+    await page.waitFor("document.querySelectorAll('#achievementList .achievement-item').length === 25", 10000);
+    const achContrast = {};
+    for (const mode of ["light", "dark"]) {
+      await setThemeViaClick(mode);
+      achContrast[mode] = await page.evaluate(`(() => {
+        const lum = (rgb) => (rgb.match(/[\\d.]+/g) || []).slice(0, 3).map(Number).map((v) => {
+          v /= 255;
+          return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+        }).reduce((s, v, i) => s + v * [0.2126, 0.7152, 0.0722][i], 0);
+        const ratio = (a, b) => { const l1 = lum(a), l2 = lum(b); return Number(((Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05)).toFixed(2)); };
+        const lockedItem = document.querySelector('#achievementList .achievement-item:not(.unlocked)');
+        const tier = lockedItem.querySelector('.achievement-tier');
+        const ts = getComputedStyle(tier);
+        const bg = ts.backgroundColor !== 'rgba(0, 0, 0, 0)' ? ts.backgroundColor : getComputedStyle(lockedItem).backgroundColor;
+        const lockedRatio = ratio(ts.color, bg);
+        let unlockedRatio = null;
+        const unlockedEl = document.querySelector('#achievementList .achievement-item.unlocked .achievement-tier');
+        if (unlockedEl) {
+          const us = getComputedStyle(unlockedEl);
+          unlockedRatio = ratio(us.color, us.backgroundColor !== 'rgba(0, 0, 0, 0)' ? us.backgroundColor : getComputedStyle(unlockedEl.closest('.achievement-item')).backgroundColor);
+        }
+        return { color: ts.color, bg, lockedRatio, unlockedRatio };
+      })()`);
+      assert.ok(achContrast[mode].lockedRatio >= 4.5, `Locked .achievement-tier contrast < 4.5 in ${mode}: ${JSON.stringify(achContrast[mode])}`);
+      if (achContrast[mode].unlockedRatio !== null) {
+        assert.ok(achContrast[mode].unlockedRatio >= 4.5, `Unlocked .achievement-tier contrast < 4.5 in ${mode}: ${JSON.stringify(achContrast[mode])}`);
+      }
+    }
+    await runAxe("achievements-1440-dark");
+    await setThemeViaClick("light");
+    return { cbMetrics, financeMetrics, adminMetrics, achContrast };
   });
 
   // 5. Account theme switching + Modal focus trap, Tab/Shift+Tab, Escape, reopen, z-index

@@ -102,7 +102,7 @@ const TASK26_INTEGRITY = Object.freeze({
   "/index.html": "b84810a6ea59d6190efdd8af4f5eba92459f74f74b43d7eb2d05fb6f1ba0fc92",
   "/app.js?release=20261119-aeris-i02-preview": "616ae3200eac1122a84e28432227e98d13d5cff396998e185d8ffca715501226",
   "/learning-sync.js?release=20261119-aeris-i02-preview": "74ced24b8dab7c8ad16dc6b4b68ff81a89e968d18a607bbba6b066a8bee7727d",
-  "/product-ui.css?release=20261119-aeris-i02-preview": "063e8f7915281185ee250f787e8e10e63467908fdad9ab72a26dba0885dba479",
+  "/product-ui.css?release=20261119-aeris-i02-preview": "20e8a392c78db265403c87560ccd9845c366d35f22a0c1d09b92ceaadbb972be",
   "/js/language/mastery.js?release=20261119-aeris-i02-preview": "0f9acacc3b76bc8c96dd161b7309065f488ae09c807ee01866c0f2a13d028fee",
   "/js/language/quiz.js?release=20261119-aeris-i02-preview": "cd4546dc7e48876bac503c49e259267bde99b79ab0cf5565cb917c1ed031e3b0",
   "/js/language/wrong-book.js?release=20261119-aeris-i02-preview": "9db2c16e369dfa6ce482f64a2ebd19387995ee5932de75ffc1801298843017fb",
@@ -119,7 +119,7 @@ const TASK26_INTEGRITY = Object.freeze({
   "/js/account/password-policy.js?release=20261119-aeris-i02-preview": "48fd3d494120682e5b8baac8c73fb6ff68714cbc89d567318e9ea39549c80c56",
   "/js/account/password-fields.js?release=20261119-aeris-i02-preview": "466b9df5830cb17b094878f0dab4033330f2f18c2528e7b1a64d9fe886679d23"
 });
-const PUBLICATION_HASH = "e6f6125edb6d1928de12f6afcd95834326bb2b21ee93b209eb1953e9b2414565";
+const PUBLICATION_HASH = "c9e8c6ee751726b8cf510cc6f4134f171c1f382c8b9880014a4b5e3feb9fe478";
 const PUBLICATION_CACHE = `${CACHE}-task26-${PUBLICATION_HASH.slice(0, 16)}`;
 const PUBLICATION_MARKER = "/__aeris/task26-publication";
 

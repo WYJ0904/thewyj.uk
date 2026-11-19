@@ -20,12 +20,12 @@ I02 将重复覆写收敛回 `design-system.css` 共享规则，消除了多个�
 | 文件名 | I02 前 `!important` 数 | I02 后 `!important` 数 | 净减少 | 主要清理内容 |
 |---|---:|---:|---:|---|
 | `design-system.css` | 11 | 11 | 0 | 全部为规范必须保留的安全/无障碍护栏（见第 3 节） |
-| `styles.css` | 8 | 8 | 0 | 仅保留遗留 P07 OFF 兼容与隐藏规则，未盲目改写 |
-| `product-ui.css` | 9 | **2** | **-7** | 清理状态徽标、Task 27/29/30 徽章与列表状态覆写中不必要的 `!important` |
+| `styles.css` | 8 | **5** | **-3** | 移除 `.achievement-tier` (`#8bbdd3 !important`, `11px !important`) 与 `.achievement-item.unlocked .achievement-tier` (`#7fe8b0 !important`)，改以 `.achievement-item .achievement-tier` 自然层叠与语义 Token 兜底 |
+| `product-ui.css` | 9 | **1** | **-8** | 清理状态徽标、Task 27/29/30 徽章及 `.achievement-item.unlocked .achievement-tier` 非必要 `!important`，补充 `--color-success-soft` 语义背景 |
 | `public-experience.css` | 11 | 11 | 0 | 均为 `[hidden]`、拖拽瞬态、Reduced Motion 与 200% 大字重排护栏 |
 | `workspace-experience.css` | 3 | 3 | 0 | 均为卡片悬停与大字重排网格降级规则 |
 | `spatial-experience.css` | 95 | **25** | **-70** | 批量移除 `#membershipModal`/`#accountModal`(26)、`#quizView`/`.view`/`#masterySection`(18)、`.transfer-config`(8)、重复 `.finance-summary-grid`(7)、`.finance-trend-toggle-btn`(3) 等非必要 `!important` |
-| **合计** | **137** | **60** | **-77 (-56.2%)** | 严格遵循“禁止一次性删除全部 `!important`”，按可证明局部优先治理 |
+| **合计** | **137** | **56** | **-81 (-59.1%)** | 严格遵循“禁止一次性删除全部 `!important`”，按可证明局部优先治理 |
 
 ## 3. 剩余 60 处 `!important` 逐类保留说明
 
@@ -45,9 +45,12 @@ I02 将重复覆写收敛回 `design-system.css` 共享规则，消除了多个�
    - L1128, L1291, L1390 (`[hidden]` 状态保护)、L1387 (拖拽瞬态 `transition:none`)、L1431/1490/1513 (移动端隐藏与顶栏紧凑隐藏)、L1501–1502 (Reduced Motion & Android Reduced Motion)、L1553/1577 (`data-large-text="true"` 200% 大字重排自适应高度与换行)。
 4. **`workspace-experience.css`（3 处）**：
    - L1186（安全禁用态 `transform: none`）、L1405–1406（`data-large-text="true"` 网格单列降级 `grid-column: auto; grid-row: auto`）。
-5. **`product-ui.css`（2 处）与 `styles.css`（8 处）**：
-   - `product-ui.css` L123 / L2941：`.error` 与明确校验成功反馈文字色彩终态保护。
-   - `styles.css` L188/1041/1042/1064/1925/2678/3117/3250：遗留 P07 OFF 模式回退保护，按规范不触碰旧回退路径的布局逻辑。
+5. **`product-ui.css`（1 处）与 `styles.css`（5 处）**：
+   - `product-ui.css` L123：`.error` 明确校验/错误反馈文字色彩终态保护。
+   - `styles.css` L188/1064/1925/2678/3117：仅余遗留隐藏规则、按钮布局与聚焦/警告边框兼容保护；成就卡片 `.achievement-tier` 与 `.achievement-item.unlocked .achievement-tier` 的 3 处 `!important` 已全部清除。
+6. **CI Run `44448189085` 实测级联冲突闭环**：
+   - 首版 I02 仅移除 `product-ui.css` `.project-app .achievement-tier` 上的 `!important`，导致 `styles.css` 旧规则 `color: #8bbdd3 !important` 重新胜出并压过 `product-ui.css` 语义 Token（Light 下 `1.84:1`）。
+   - 修复方式：移除 `styles.css` 3 处成就 `!important` 与 `product-ui.css` L2941 `!important`，改由 `.achievement-item .achievement-tier` (`0,2,0`) 胜过 `.achievement-item span` (`0,1,1`)，并由加载顺序在后的 `product-ui.css`（`--color-text-secondary` / `--color-success` / `--color-success-soft`）自然接管。Light/Dark × P07 ON/OFF 均实测 `>= 5.20:1`。
 
 ## 4. 关键层叠与特异性修复案例
 

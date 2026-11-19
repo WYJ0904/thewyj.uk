@@ -21,8 +21,8 @@
    - 取消亮蓝色默认大面积强调：移除 `.primary` 蓝色弥散阴影；将 `.dashboard-learning-lane` 从 `var(--ds-brand)` 改为中性表面 + 边框；红/绿仅保留于危险/错误/支出与成功/开启/收入语义。
    - 工作区常规圆角向 `4–8px` 收敛，并引入三档 `--ds-density-radius`（`public: 12px`、`workspace: 8px`、`dense: 6px`），保留弹窗 `12px` 等合理语义差异。
 3. **CSS 层叠与 `!important` 治理**：
-   - 全站 `!important` 总量从 **137 处降至 60 处（-56.2%）**：主要削减 `spatial-experience.css`（95 → 25）与 `product-ui.css`（9 → 2）。
-   - 剩余 60 处逐条审计保留，仅用于 `[hidden]` 状态保护、Reduced Motion / Android Reduced Motion、`2-RAF` 主题切换防闪烁、`200%` 大字重排及 P07 OFF 遗留兼容。
+   - 全站 `!important` 总量从 **137 处降至 56 处（-59.1%）**：主要削减 `spatial-experience.css`（95 → 25）、`product-ui.css`（9 → 1）与 `styles.css`（8 → 5，清除 `.achievement-tier` 旧 `!important` 冲突）。
+   - 剩余 56 处逐条审计保留，仅用于 `[hidden]` 状态保护、Reduced Motion / Android Reduced Motion、`2-RAF` 主题切换防闪烁、`200%` 大字重排及 P07 OFF 遗留兼容。
    - 清理重复 `.finance-summary-grid` 冲突规则，修复 `spatial-experience.css` 中 11 处 `< 44px` 的子最小触控目标覆写。
 4. **共享组件、输入与排版规范统一**：
    - 统一 `a.primary` 与 `button.primary` / `.button-primary` 尺寸、对齐与色彩，消除 `/download` 等语义链接按钮样式漂移。
@@ -30,7 +30,7 @@
    - 建立 `.ds-switch` / `.switch` 共享视觉 Token；扩展 `tabular-nums` 与 `--ds-font-mono` 到金额、百分比、容量、版本与校验摘要。
    - 修复 `public-experience.css` 在 `721px–860px`（含 `768px` 平板断点）的导航栏换行一致性缺陷。
 5. **发布版本标识与 SW 完整性同步**：
-   - 同步更新全站 30 个前端/Service Worker 文件的 `ASSET_RELEASE` 为 `20261119-aeris-i02-preview`，并执行 `npm run task27:publication` 重算发布完整性清单（`e6f6125edb6d1928de12f6afcd95834326bb2b21ee93b209eb1953e9b2414565`，20 entries）。
+   - 同步更新全站 30 个前端/Service Worker 文件的 `ASSET_RELEASE` 为 `20261119-aeris-i02-preview`，并执行 `npm run task27:publication` 重算发布完整性清单（`c9e8c6ee751726b8cf510cc6f4134f171c1f382c8b9880014a4b5e3feb9fe478`，20 entries）。
 
 ## 3. 交付文档清单（`docs/ui-rebuild/i02/`）
 

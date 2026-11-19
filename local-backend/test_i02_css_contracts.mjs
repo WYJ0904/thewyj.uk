@@ -86,9 +86,20 @@ test("!important usage stays strictly bounded across CSS layers", () => {
     counts[file] = (clean.match(/!important/g) || []).length;
   }
   assert.ok(counts["spatial-experience.css"] <= 30, `spatial-experience.css !important regression: ${counts["spatial-experience.css"]}`);
-  assert.ok(counts["product-ui.css"] <= 4, `product-ui.css !important regression: ${counts["product-ui.css"]}`);
+  assert.ok(counts["product-ui.css"] <= 2, `product-ui.css !important regression: ${counts["product-ui.css"]}`);
+  assert.ok(counts["styles.css"] <= 6, `styles.css !important regression: ${counts["styles.css"]}`);
   assert.ok(counts["workspace-experience.css"] <= 5, `workspace-experience.css !important regression: ${counts["workspace-experience.css"]}`);
   assert.ok(counts["design-system.css"] <= 12, `design-system.css !important regression: ${counts["design-system.css"]}`);
+});
+
+test("achievement-tier uses semantic tokens cleanly without legacy !important overrides", () => {
+  const styles = stripComments(readCss("styles.css"));
+  const product = stripComments(readCss("product-ui.css"));
+  assert.doesNotMatch(styles, /\.achievement-tier\s*\{[^}]*!important/s);
+  assert.doesNotMatch(styles, /\.achievement-tier\s*\{[^}]*(?:#8bbdd3|#7fe8b0)/s);
+  assert.doesNotMatch(product, /\.achievement-tier\s*\{[^}]*!important/s);
+  assert.match(product, /\.project-app\s+\.achievement-tier\s*\{[^}]*color:\s*var\(--color-text-secondary\)/s);
+  assert.match(product, /\.achievement-item\.unlocked\s+\.achievement-tier\s*\{[^}]*color:\s*var\(--color-success\)/s);
 });
 
 test("index.html loads stylesheets in deterministic layered cascade order", () => {
