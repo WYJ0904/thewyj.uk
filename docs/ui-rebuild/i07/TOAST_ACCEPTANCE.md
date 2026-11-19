@@ -1,6 +1,6 @@
 # I07 Toast Manager & Queue Governance Acceptance
 
-## 1. Queue & Accessibility Contract (`js/core/motion-toast.js`, `design-system.css`)
+## 1. Queue & Accessibility Contract (`js/core/motion.js`, `design-system.css`)
 
 - **Max 2 simultaneous visible cards** (`maxVisible = 2`), bounded backlog queue (`maxQueue = 12`).
 - **Priority & Error Protection**: Active `error` toasts are never displaced by incoming `info`/`success` bursts; lower-severity duplicate bursts increment a compact `xN` counter badge instead of spamming duplicate alerts.

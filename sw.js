@@ -96,14 +96,7 @@ const TASK26_SHELL = [
 const FINANCE_SHELL = ["/js/finance/money.js?release=20261119-aeris-i07-preview"];
 const TASK27_SHELL = ["/js/account/security-center.js?release=20261119-aeris-i07-preview", "/js/account/policy-page.js?release=20261119-aeris-i07-preview", "/js/account/policy-version.js?release=20261119-aeris-i07-preview", "/js/account/password-policy.js?release=20261119-aeris-i07-preview", "/js/account/password-fields.js?release=20261119-aeris-i07-preview"];
 const REQUIRED_SHELL = [...CORE_SHELL, ...TASK26_SHELL, ...FINANCE_SHELL, ...TASK27_SHELL];
-const I07_MOTION_SHELL = [
-  "/js/core/motion-tokens.js?release=20261119-aeris-i07-preview",
-  "/js/core/motion-flip.js?release=20261119-aeris-i07-preview",
-  "/js/core/motion-toast.js?release=20261119-aeris-i07-preview",
-  "/js/core/motion-sheet.js?release=20261119-aeris-i07-preview",
-  "/js/core/motion-scroll.js?release=20261119-aeris-i07-preview",
-];
-const INSTALL_SHELL = [...REQUIRED_SHELL, ...I07_MOTION_SHELL];
+const INSTALL_SHELL = REQUIRED_SHELL;
 // Canonical UTF-8 hashes bind the current S0 shell plus Task27 additions.
 const TASK26_INTEGRITY = Object.freeze({
   "/": "288f9ed27ae7a0855b677b51c6fa4e09426e3f4907aee47415f9f5ff742f5fe4",

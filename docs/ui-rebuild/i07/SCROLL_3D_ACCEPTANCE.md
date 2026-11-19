@@ -1,6 +1,6 @@
 # I07 Scroll-Driven 3D & Bento Seam Lock Acceptance
 
-## 1. Architecture & Motion Mechanics (`js/core/motion-scroll.js`, `design-system.css`)
+## 1. Architecture & Motion Mechanics (`js/core/motion.js`, `design-system.css`)
 
 - **Observer-gated single-`rAF` scheduling**: `createScrollProgressController` binds an `IntersectionObserver` so only elements within/near the viewport calculate progress ratios during a single batched read-then-write `requestAnimationFrame` pass — zero per-frame layout thrashing when off-screen or idle.
 - **Math & Clamping**:

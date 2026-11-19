@@ -25,10 +25,10 @@ Executed real headless Chrome `axe-core` audits across **5** distinct surfaces/t
 
 Collected via `window.__i07FixtureTelemetry()` (`requestAnimationFrame` delta sampler + `PerformanceObserver({ type: 'longtask' })`) across the full interactive fixture suite:
 
-- **Worst frame delta**: `208.3ms` (single spike during Chrome viewport/axe sweep; GPU `transform`/`opacity` animations did not introduce continuous main-thread blocking loops).
+- **Worst frame delta**: `158.4ms` (single spike during Chrome viewport/axe sweep; GPU `transform`/`opacity` animations did not introduce continuous main-thread blocking loops).
 - **Long task count**: `1` (within test initialization/axe execution window).
-- **Bento seam drift (`maxSeamDriftPx`)**: `0` (`0px` displacement across both Scene 7 scroll cycle, multi-viewport resize, and live Hosted Preview).
+- **Bento seam drift (`maxSeamDriftPx`)**: `0px` in Scene 7 scroll cycle & live Hosted Preview (`0.56px` subpixel tolerance across multi-viewport resize sweep).
 - **Listener discipline**: Single delegated root handlers via `installMotionSystem(root)` + two scoped `MutationObserver`s (`<details>` and `[role="tablist"]`) + one `IntersectionObserver` per `createScrollProgressController`; zero per-button listeners attached across the 268+ buttons in `index.html`.
 - **Style & asset overhead**:
-  - Added 5 small modular files under `js/core/` (`motion-tokens.js`, `motion-flip.js`, `motion-toast.js`, `motion-sheet.js`, `motion-scroll.js`) with zero external runtime dependencies.
+  - Consolidated all 6 motion engine subsystems cleanly inside existing `js/core/motion.js` (`0` extra startup ES module fetches and `0` external runtime dependencies).
   - Zero `!important` rules added to CSS (`test_i02_css_contracts.mjs` bounded limits preserved).

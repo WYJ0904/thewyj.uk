@@ -2,7 +2,7 @@
 
 ## 1. Verification Scope
 
-Covers bidirectional FLIP transitions (`js/core/motion-flip.js`), pointer/touch + keyboard reordering (`createDragSortController`), layout density changes (2-col <-> 1-col), rapid mid-flight cancellation/reversal, and keyed table reconciliation (`js/core/keyed-list.js`).
+Covers bidirectional FLIP transitions (`js/core/motion.js` FLIP subsystem), pointer/touch + keyboard reordering (`createDragSortController`), layout density changes (2-col <-> 1-col), rapid mid-flight cancellation/reversal, and keyed table reconciliation (`js/core/keyed-list.js`).
 
 ## 2. Automated Unit Evidence (`local-backend/test_i07_motion_engine.mjs`)
 

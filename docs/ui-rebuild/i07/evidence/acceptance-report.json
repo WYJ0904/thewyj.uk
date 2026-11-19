@@ -1,6 +1,6 @@
 {
   "scope": "Isolated Miniflare D1/R2 + real headless Chrome CDP",
-  "gitSha": "f369910ceece2f245d616cf0b627611bb23d1976",
+  "gitSha": "beaf33283dd6a88c570af17a848b04f2f3a1f02e",
   "browserVersion": "Chrome/157.0.8103.79",
   "scenarios": [
     {
@@ -26,8 +26,8 @@
       "name": "flip-bidirectional-reversal-density-keyboard",
       "status": "PASS",
       "detail": {
-        "midDownTransform": "matrix(1, 0, 0, 1, -174.885, 0)",
-        "midUpTransform": "matrix(1, 0, 0, 1, -144.16, 49.1187)",
+        "midDownTransform": "matrix(1, 0, 0, 1, -198.779, 0)",
+        "midUpTransform": "matrix(1, 0, 0, 1, -144.425, 49.2091)",
         "flipIdentity": "4 / 4"
       }
     },
@@ -122,9 +122,9 @@
       "name": "dark-theme-and-performance-telemetry",
       "status": "PASS",
       "detail": {
-        "worstFrameMs": 208.3,
+        "worstFrameMs": 158.4,
         "longTaskCount": 1,
-        "maxSeamDriftPx": 0
+        "maxSeamDriftPx": 0.5556640625
       }
     },
     {
@@ -193,9 +193,9 @@
     }
   ],
   "performance": {
-    "worstFrameMs": 208.3,
+    "worstFrameMs": 158.4,
     "longTaskCount": 1,
-    "maxSeamDriftPx": 0
+    "maxSeamDriftPx": 0.5556640625
   },
   "screenshots": [
     "fixture-desktop-1440-light.png",
