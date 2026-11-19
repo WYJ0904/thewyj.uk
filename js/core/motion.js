@@ -362,6 +362,7 @@ export function createDragSortController(container, {
   getKey = defaultKey,
   onOrderChange = null,
   onDragStateChange = null,
+  axis = "auto",
   threshold = 6,
   view = null,
 } = {}) {
@@ -372,6 +373,7 @@ export function createDragSortController(container, {
   let rafId = 0;
 
   const getItems = () => [...container.querySelectorAll(itemSelector)];
+  const isEditable = (target) => Boolean(target?.closest?.('input, textarea, select, [contenteditable="true"], [contenteditable=""]'));
 
   function clearDragVisuals(item) {
     if (!item) return;
@@ -546,6 +548,71 @@ export function createDragSortController(container, {
     onDragStateChange?.({ dragging: false, cancelled: false, committed: moved, key: current.key });
   }
 
+  function resolveKeyboardDelta(key, items) {
+    const normalizedAxis = String(axis || container.dataset?.sortAxis || "auto").toLowerCase();
+    const hasHorizontalLayout = () => {
+      if (normalizedAxis === "x" || normalizedAxis === "both") return true;
+      if (normalizedAxis === "y" || items.length < 2) return false;
+      const firstRect = items[0]?.getBoundingClientRect?.();
+      if (!firstRect || (!firstRect.width && !firstRect.height)) return false;
+      const rowTol = Math.max(8, (firstRect.height || 16) * 0.5);
+      return items.slice(1).some((sibling) => {
+        const rect = sibling.getBoundingClientRect?.();
+        return rect && Math.abs(rect.top - firstRect.top) < rowTol && Math.abs(rect.left - firstRect.left) > 4;
+      });
+    };
+
+    if (key === "ArrowUp") return normalizedAxis === "x" ? 0 : -1;
+    if (key === "ArrowDown") return normalizedAxis === "x" ? 0 : 1;
+    if (key === "ArrowLeft") return hasHorizontalLayout() ? -1 : 0;
+    if (key === "ArrowRight") return hasHorizontalLayout() ? 1 : 0;
+    return 0;
+  }
+
+  function onContainerKeyDown(event) {
+    if (drag || event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+    if (isEditable(event.target)) return;
+    const handle = handleSelector
+      ? event.target?.closest?.(handleSelector)
+      : event.target?.closest?.(itemSelector);
+    if (!handle || !container.contains(handle)) return;
+    const item = handle.closest?.(itemSelector);
+    if (!item || !container.contains(item) || item.parentNode !== container) return;
+    if (!handleSelector && event.target !== item && event.target?.closest?.("button, a")) return;
+
+    const items = getItems();
+    const delta = resolveKeyboardDelta(event.key, items);
+    if (!delta) return;
+
+    const currentIndex = items.indexOf(item);
+    const nextIndex = currentIndex + delta;
+    if (currentIndex < 0 || nextIndex < 0 || nextIndex >= items.length) {
+      event.preventDefault();
+      return;
+    }
+
+    event.preventDefault();
+    const focusTarget = handle.matches?.("button, [tabindex], a") || event.target === handle ? event.target : item;
+    flipLayout(container, () => {
+      const targetSibling = items[nextIndex];
+      if (!targetSibling || targetSibling === item) return;
+      container.insertBefore(item, delta < 0 ? targetSibling : targetSibling.nextElementSibling);
+    }, {
+      selector: itemSelector,
+      getKey,
+      duration: 240,
+      scale: false,
+      animateEnter: false,
+      view: hostView,
+    });
+    if (doc?.activeElement !== focusTarget) {
+      focusTarget?.focus?.({ preventScroll: true });
+    }
+    const orderedKeys = getItems().map((node, index) => getKey(node, index));
+    const movedKey = getKey(item, nextIndex);
+    onOrderChange?.(orderedKeys, { trigger: "keyboard", key: event.key, movedKey, index: nextIndex });
+  }
+
   function onKeyDown(event) {
     if (event.key === "Escape" && drag) {
       event.preventDefault();
@@ -554,6 +621,7 @@ export function createDragSortController(container, {
   }
 
   container.addEventListener("pointerdown", onPointerDown);
+  container.addEventListener("keydown", onContainerKeyDown);
   doc?.addEventListener?.("pointermove", onPointerMove);
   doc?.addEventListener?.("pointerup", onPointerEnd);
   doc?.addEventListener?.("pointercancel", onPointerEnd);
@@ -564,6 +632,7 @@ export function createDragSortController(container, {
     dispose() {
       cancelDrag(false);
       container.removeEventListener("pointerdown", onPointerDown);
+      container.removeEventListener("keydown", onContainerKeyDown);
       doc?.removeEventListener?.("pointermove", onPointerMove);
       doc?.removeEventListener?.("pointerup", onPointerEnd);
       doc?.removeEventListener?.("pointercancel", onPointerEnd);
@@ -767,21 +836,61 @@ export function createToastManager({
 
   function flushQueue() {
     while (!disposed && visible.length < maxVisible && queue.length > 0) {
-      const next = queue.shift();
+      const errIdx = queue.findIndex((item) => item.tone === "error");
+      const next = queue.splice(errIdx >= 0 ? errIdx : 0, 1)[0];
       mountEntry(next);
     }
   }
 
-  function enqueueItem(entry) {
-    if (queue.length >= maxQueue) {
-      // Never drop queued errors if low-priority info/success can be evicted.
-      const dropIndex = queue.findIndex((item) => item.tone !== "error");
-      if (dropIndex >= 0) queue.splice(dropIndex, 1);
-      else if (entry.tone !== "error") return null;
-      else queue.shift();
-    }
-    queue.push(entry);
+  function insertQueued(entry, front = false) {
+    if (front) queue.unshift(entry);
+    else queue.push(entry);
     return entry.id;
+  }
+
+  function enqueueItem(entry, { front = false } = {}) {
+    if (maxQueue <= 0) return null;
+    if (queue.length >= maxQueue) {
+      // Never drop queued errors if low-priority non-errors can be evicted.
+      const dropIndex = queue.findIndex((item) => item.tone !== "error");
+      if (dropIndex >= 0) {
+        queue.splice(dropIndex, 1);
+        return insertQueued(entry, front);
+      }
+      if (entry.tone !== "error") return null;
+
+      // Queue is saturated with error toasts: coalesce overflow errors cleanly so none are silently discarded.
+      const overflowKey = "__error_overflow__";
+      const existingOverflow = queue.find((item) => item.dedupeKey === overflowKey);
+      if (existingOverflow) {
+        existingOverflow.count += 1;
+        existingOverflow.sticky = true;
+        existingOverflow.remainingMs = Infinity;
+        existingOverflow.message = `另有 ${existingOverflow.count} 条错误待处理（最新：${entry.message}）`;
+        return existingOverflow.id;
+      }
+      const displaced = queue.pop();
+      const summaryCount = 1 + (displaced?.count || 0);
+      const summaryEntry = {
+        id: displaced?.id || entry.id,
+        tone: "error",
+        message: `另有 ${summaryCount} 条错误待处理（最新：${entry.message}）`,
+        dedupeKey: overflowKey,
+        sticky: true,
+        remainingMs: Infinity,
+        count: summaryCount,
+        actionLabel: entry.actionLabel || displaced?.actionLabel || "",
+        onAction: entry.onAction || displaced?.onAction || null,
+        leaving: false,
+        node: null,
+        countNode: null,
+        enterAnim: null,
+        exitAnim: null,
+      };
+      queue.push(summaryEntry);
+      return summaryEntry.id;
+    }
+    return insertQueued(entry, front);
   }
 
   function show(input, maybeOptions = {}) {
@@ -831,6 +940,23 @@ export function createToastManager({
     if (visible.length < maxVisible) {
       mountEntry(entry);
       return entry.id;
+    }
+
+    // Critical errors preempt non-error visible toasts so urgent failures never starve behind info/success.
+    if (entry.tone === "error") {
+      const victimIndex = visible.findIndex((item) => !item.leaving && item.tone !== "error");
+      if (victimIndex >= 0) {
+        const [victim] = visible.splice(victimIndex, 1);
+        pauseTimer(victim);
+        try { victim.enterAnim?.cancel(); } catch (_) {}
+        try { victim.exitAnim?.cancel(); } catch (_) {}
+        victim.node?.remove?.();
+        victim.node = null;
+        victim.countNode = null;
+        enqueueItem(victim, { front: true });
+        mountEntry(entry);
+        return entry.id;
+      }
     }
 
     // Never allow a quick non-error toast to overwrite or evict an active error toast.
@@ -883,9 +1009,22 @@ export function createToastManager({
     }
   }
 
+  function onUnload(event) {
+    if (event?.type === "pagehide" && event?.persisted) {
+      for (const id of [...timers.keys()]) clearTimer(id);
+      return;
+    }
+    dispose();
+  }
+
+  view?.addEventListener?.("beforeunload", onUnload);
+  view?.addEventListener?.("pagehide", onUnload);
+
   function dispose() {
     if (disposed) return;
     disposed = true;
+    view?.removeEventListener?.("beforeunload", onUnload);
+    view?.removeEventListener?.("pagehide", onUnload);
     for (const id of [...timers.keys()]) clearTimer(id);
     for (const entry of [...visible]) {
       try { entry.enterAnim?.cancel(); } catch (_) {}
@@ -899,6 +1038,9 @@ export function createToastManager({
     listNode = null;
     politeLive = null;
     assertiveLive = null;
+    if (doc && sharedManagers.get(doc) === api) {
+      sharedManagers.delete(doc);
+    }
   }
 
   function snapshot() {
@@ -906,10 +1048,14 @@ export function createToastManager({
       visible: visible.map((item) => ({ id: item.id, tone: item.tone, message: item.message, count: item.count })),
       queued: queue.map((item) => ({ id: item.id, tone: item.tone, message: item.message, count: item.count })),
       maxVisible,
+      disposed,
     };
   }
 
-  return Object.freeze({
+  const api = Object.freeze({
+    get disposed() {
+      return disposed;
+    },
     show,
     info: (message, opts) => show({ ...opts, message, tone: "info" }),
     success: (message, opts) => show({ ...opts, message, tone: "success" }),
@@ -920,12 +1066,13 @@ export function createToastManager({
     dispose,
     snapshot,
   });
+  return api;
 }
 
 export function getSharedToastManager(doc = globalThis.document) {
   if (!doc) return createToastManager({ doc: null });
   let manager = sharedManagers.get(doc);
-  if (!manager) {
+  if (!manager || manager.disposed) {
     manager = createToastManager({ doc });
     sharedManagers.set(doc, manager);
   }
@@ -1272,6 +1419,102 @@ export function computeScrollProgress(rect, viewportHeight, { startEdge = 0.95, 
 }
 
 /**
+ * Compute continuous multi-stage 3D scroll choreography:
+ * Stage 1 (enter): tilted approach flattens to crisp level focal pose.
+ * Stage 2 (level): brief sweet-spot plateau so content stays 100% readable & interactive.
+ * Stage 3 (exit): continued scroll pitches into gentle receding depth until settled.
+ * Fully reversible on upward scroll and configurable via dataset/options.
+ */
+export function computeMultiStageScroll3d(rect, viewportHeight, {
+  startEdge = 0.96,
+  midEdge = 0.36,
+  exitStartEdge = Math.max(-0.2, midEdge - 0.14),
+  exitEndEdge = -0.52,
+  maxRx = 12,
+  midRx = 0,
+  exitRx = -10,
+  entryRy = 0,
+  midRy = 0,
+  exitRy = 0,
+  minScale = 0.94,
+  midScale = 1,
+  exitScale = 0.95,
+  maxTy = 24,
+  midTy = 0,
+  exitTy = -18,
+  entryTz = 0,
+  midTz = 0,
+  exitTz = -24,
+  exitEnabled = true,
+} = {}) {
+  if (!rect || !viewportHeight) {
+    return {
+      stage: "level",
+      enterProgress: 1,
+      exitProgress: 0,
+      overallProgress: 1,
+      rx: midRx,
+      ry: midRy,
+      scale: midScale,
+      ty: midTy,
+      tz: midTz,
+    };
+  }
+
+  const startY = viewportHeight * startEdge;
+  const midY = viewportHeight * midEdge;
+  const exitStartY = viewportHeight * exitStartEdge;
+  const exitEndY = Math.min(viewportHeight * exitEndEdge, -Math.max(180, (rect.height || 280) * 0.48));
+  const enterSpan = Math.max(1, startY - midY);
+  const enterProgress = clamp01((startY - rect.top) / enterSpan);
+  const smooth = (t) => t * t * (3 - 2 * t);
+
+  if (rect.top > midY) {
+    const e = smooth(enterProgress);
+    return {
+      stage: enterProgress <= 0 ? "before" : "enter",
+      enterProgress,
+      exitProgress: 0,
+      overallProgress: exitEnabled ? enterProgress * 0.5 : enterProgress,
+      rx: lerp(maxRx, midRx, e),
+      ry: lerp(entryRy, midRy, e),
+      scale: lerp(minScale, midScale, e),
+      ty: lerp(maxTy, midTy, e),
+      tz: lerp(entryTz, midTz, e),
+    };
+  }
+
+  if (!exitEnabled || rect.top >= exitStartY) {
+    return {
+      stage: "level",
+      enterProgress: 1,
+      exitProgress: 0,
+      overallProgress: exitEnabled ? 0.5 : 1,
+      rx: midRx,
+      ry: midRy,
+      scale: midScale,
+      ty: midTy,
+      tz: midTz,
+    };
+  }
+
+  const exitSpan = Math.max(1, exitStartY - exitEndY);
+  const exitProgress = clamp01((exitStartY - rect.top) / exitSpan);
+  const e = smooth(exitProgress);
+  return {
+    stage: exitProgress >= 1 ? "settled" : "exit",
+    enterProgress: 1,
+    exitProgress,
+    overallProgress: 0.5 + exitProgress * 0.5,
+    rx: lerp(midRx, exitRx, e),
+    ry: lerp(midRy, exitRy, e),
+    scale: lerp(midScale, exitScale, e),
+    ty: lerp(midTy, exitTy, e),
+    tz: lerp(midTz, exitTz, e),
+  };
+}
+
+/**
  * Compute centered [-1, 1] travel factor for subtle internal Bento parallax.
  */
 export function computeCenteredParallax(rect, viewportHeight) {
@@ -1314,8 +1557,59 @@ export function createScrollProgressController({
     }
     el.style.setProperty("--ds-scroll-progress", "1");
     el.style.setProperty("--ds-scroll-rx", "0deg");
+    el.style.setProperty("--ds-scroll-ry", "0deg");
     el.style.setProperty("--ds-scroll-scale", "1");
     el.style.setProperty("--ds-scroll-ty", "0px");
+    el.style.setProperty("--ds-scroll-tz", "0px");
+    if (el.dataset) el.dataset.scrollStage = "reduced";
+  }
+
+  function applyScroll3dSample(el, rect, vh) {
+    if (!el?.style?.setProperty) return null;
+    const startEdge = Number(el.dataset?.scrollStart ?? 0.96);
+    const midEdge = Number(el.dataset?.scrollEnd ?? 0.34);
+    const exitStartEdge = el.dataset?.scrollExitStart != null
+      ? Number(el.dataset.scrollExitStart)
+      : Math.max(-0.18, midEdge - 0.14);
+    const exitEndEdge = Number(el.dataset?.scrollExitEnd ?? -0.52);
+    const maxRx = Number(el.dataset?.scrollMaxRx ?? 12);
+    const exitRx = Number(el.dataset?.scrollExitRx ?? -10);
+    const entryRy = Number(el.dataset?.scrollEntryRy ?? 0);
+    const exitRy = Number(el.dataset?.scrollExitRy ?? 0);
+    const minScale = Number(el.dataset?.scrollMinScale ?? 0.94);
+    const exitScale = Number(el.dataset?.scrollExitScale ?? 0.95);
+    const maxTy = Number(el.dataset?.scrollMaxTy ?? 24);
+    const exitTy = Number(el.dataset?.scrollExitTy ?? -18);
+    const entryTz = Number(el.dataset?.scrollEntryTz ?? 0);
+    const exitTz = Number(el.dataset?.scrollExitTz ?? -24);
+    const exitEnabled = el.dataset?.scrollExit !== "false";
+
+    const sample = computeMultiStageScroll3d(rect, vh, {
+      startEdge,
+      midEdge,
+      exitStartEdge,
+      exitEndEdge,
+      maxRx,
+      exitRx,
+      entryRy,
+      exitRy,
+      minScale,
+      exitScale,
+      maxTy,
+      exitTy,
+      entryTz,
+      exitTz,
+      exitEnabled,
+    });
+
+    el.style.setProperty("--ds-scroll-progress", sample.overallProgress.toFixed(4));
+    el.style.setProperty("--ds-scroll-rx", `${sample.rx.toFixed(2)}deg`);
+    el.style.setProperty("--ds-scroll-ry", `${sample.ry.toFixed(2)}deg`);
+    el.style.setProperty("--ds-scroll-scale", sample.scale.toFixed(4));
+    el.style.setProperty("--ds-scroll-ty", `${sample.ty.toFixed(2)}px`);
+    el.style.setProperty("--ds-scroll-tz", `${sample.tz.toFixed(2)}px`);
+    if (el.dataset) el.dataset.scrollStage = sample.stage;
+    return { el, progress: sample.overallProgress, ...sample };
   }
 
   function updateNow() {
@@ -1347,22 +1641,8 @@ export function createScrollProgressController({
     // Batch-write GPU CSS custom properties.
     const sampled3d = [];
     for (const { el, rect } of active3d) {
-      if (!el?.style?.setProperty) continue;
-      const startEdge = Number(el.dataset?.scrollStart ?? 0.96);
-      const endEdge = Number(el.dataset?.scrollEnd ?? 0.30);
-      const maxRx = Number(el.dataset?.scrollMaxRx ?? 12);
-      const minScale = Number(el.dataset?.scrollMinScale ?? 0.94);
-      const maxTy = Number(el.dataset?.scrollMaxTy ?? 24);
-      const progress = computeScrollProgress(rect, vh, { startEdge, endEdge });
-      const rx = lerp(maxRx, 0, progress);
-      const scale = lerp(minScale, 1, progress);
-      const ty = lerp(maxTy, 0, progress);
-
-      el.style.setProperty("--ds-scroll-progress", progress.toFixed(4));
-      el.style.setProperty("--ds-scroll-rx", `${rx.toFixed(2)}deg`);
-      el.style.setProperty("--ds-scroll-scale", scale.toFixed(4));
-      el.style.setProperty("--ds-scroll-ty", `${ty.toFixed(2)}px`);
-      sampled3d.push({ el, progress, rx, scale, ty });
+      const entry = applyScroll3dSample(el, rect, vh);
+      if (entry) sampled3d.push(entry);
     }
 
     const sampledBento = [];
@@ -1391,12 +1671,21 @@ export function createScrollProgressController({
 
   const intersectionObserver = typeof view.IntersectionObserver === "function"
     ? new view.IntersectionObserver((entries) => {
+      const reduced = prefersReducedMotion(view);
+      const vh = view.innerHeight || doc?.documentElement?.clientHeight || 900;
       for (const entry of entries) {
-        if (entry.isIntersecting) visibleElements.add(entry.target);
-        else visibleElements.delete(entry.target);
+        if (entry.isIntersecting) {
+          visibleElements.add(entry.target);
+        } else {
+          visibleElements.delete(entry.target);
+          // Compute one final boundary sample when leaving margin so fast scrolls never freeze mid-stage.
+          if (!reduced && (entry.target.matches?.("[data-scroll-3d], .scroll-preview-wrap"))) {
+            applyScroll3dSample(entry.target, entry.boundingClientRect || entry.target.getBoundingClientRect(), vh);
+          }
+        }
       }
       schedule();
-    }, { rootMargin: "140px 0px" })
+    }, { rootMargin: "360px 0px" })
     : null;
 
   function refresh() {
@@ -1505,6 +1794,7 @@ export function createTabSkeletonSwitcher({
   let generation = 0;
   let timerId = 0;
   let activePanel = null;
+  let activeAbort = null;
   let pendingResolve = null;
 
   function clearPending() {
@@ -1512,6 +1802,10 @@ export function createTabSkeletonSwitcher({
       view.clearTimeout(timerId);
     }
     timerId = 0;
+    if (activeAbort) {
+      try { activeAbort.abort(); } catch (_) {}
+      activeAbort = null;
+    }
     if (pendingResolve) {
       const done = pendingResolve;
       pendingResolve = null;
@@ -1523,40 +1817,69 @@ export function createTabSkeletonSwitcher({
     }
   }
 
+  function animateEntrance(panel) {
+    const doc = panel?.ownerDocument || view?.document;
+    const focused = doc?.activeElement;
+    const preserveInputFocus = Boolean(
+      focused && panel?.contains?.(focused) && focused.matches?.("input, textarea, select, [contenteditable]"),
+    );
+    if (!preserveInputFocus && !prefersReducedMotion(view) && typeof panel?.animate === "function") {
+      panel.animate(
+        [{ opacity: 0.72, transform: "translate3d(0, 4px, 0)" }, { opacity: 1, transform: "translate3d(0, 0, 0)" }],
+        { duration: 140, easing: MOTION.easing, fill: "none" },
+      )?.finished?.catch?.(() => {});
+    }
+  }
+
+  async function finalizeRender(panel, renderContent, token, abortCtrl) {
+    try {
+      await renderContent(panel, { signal: abortCtrl?.signal, generation: token });
+    } catch (error) {
+      if (token !== generation || abortCtrl?.signal?.aborted) {
+        return false;
+      }
+      panel.removeAttribute?.("data-skeleton-loading");
+      panel.removeAttribute?.("aria-busy");
+      throw error;
+    }
+    if (token !== generation || abortCtrl?.signal?.aborted) {
+      return false;
+    }
+    panel.removeAttribute?.("data-skeleton-loading");
+    panel.removeAttribute?.("aria-busy");
+    animateEntrance(panel);
+    return true;
+  }
+
   function switchTab(panel, renderContent, { immediate = false } = {}) {
     const token = ++generation;
     clearPending();
     activePanel = panel || null;
     if (!panel || typeof renderContent !== "function") return Promise.resolve(false);
 
+    const abortCtrl = typeof AbortController === "function"
+      ? new AbortController()
+      : { signal: { aborted: false }, abort() { this.signal.aborted = true; } };
+    activeAbort = abortCtrl;
+
     const ms = immediate || prefersReducedMotion(view) ? 0 : Math.max(120, Math.min(150, Number(duration) || MOTION.skeleton));
     if (!ms || !view?.setTimeout) {
-      renderContent(panel);
-      return Promise.resolve(true);
+      return finalizeRender(panel, renderContent, token, abortCtrl);
     }
 
     panel.setAttribute?.("data-skeleton-loading", "true");
     panel.setAttribute?.("aria-busy", "true");
 
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       pendingResolve = resolve;
       timerId = view.setTimeout(() => {
         timerId = 0;
         pendingResolve = null;
-        if (token !== generation) {
+        if (token !== generation || abortCtrl.signal.aborted) {
           resolve(false);
           return;
         }
-        panel.removeAttribute?.("data-skeleton-loading");
-        panel.removeAttribute?.("aria-busy");
-        renderContent(panel);
-        if (!prefersReducedMotion(view) && typeof panel.animate === "function") {
-          panel.animate(
-            [{ opacity: 0.72, transform: "translate3d(0, 4px, 0)" }, { opacity: 1, transform: "translate3d(0, 0, 0)" }],
-            { duration: 140, easing: MOTION.easing, fill: "none" },
-          )?.finished?.catch?.(() => {});
-        }
-        resolve(true);
+        finalizeRender(panel, renderContent, token, abortCtrl).then(resolve, reject);
       }, ms);
     });
   }
@@ -1576,6 +1899,7 @@ export function createTabSkeletonSwitcher({
 export function attachFileDropFeedback(zone, {
   validate = null,
   onFiles = null,
+  onDropEvent = null,
   doc = zone?.ownerDocument || globalThis.document,
 } = {}) {
   if (!zone?.addEventListener) return () => {};
@@ -1601,6 +1925,19 @@ export function attachFileDropFeedback(zone, {
     event.preventDefault();
     depth = 0;
     const files = [...(event.dataTransfer?.files || [])];
+    if (typeof onDropEvent === "function") {
+      if (files.length && typeof validate === "function") {
+        const check = validate(files);
+        if (check && check.ok === false) {
+          setState("error");
+          showToast({ tone: "error", message: check.message || "文件校验未通过，请重新选择。" }, {}, doc);
+          return;
+        }
+      }
+      setState("idle");
+      onDropEvent(event, files);
+      return;
+    }
     if (!files.length) {
       setState("idle");
       return;
@@ -1655,6 +1992,8 @@ export function installMotionGlobal(target = typeof window === "undefined" ? glo
     isMobileSheetViewport,
     syncModalScrollLock,
     attachSheetAdapter,
+    computeScrollProgress,
+    computeMultiStageScroll3d,
     createScrollProgressController,
   });
   try {
@@ -1898,10 +2237,10 @@ export function installMotionSystem(doc = globalThis.document) {
   }
 
   function scheduleIndicator(group) {
-    if (!group || indicatorFrames.has(group)) return;
+    if (!group || !group.isConnected || indicatorFrames.has(group)) return;
     indicatorFrames.set(group, view.requestAnimationFrame(() => {
       indicatorFrames.delete(group);
-      if (group.getBoundingClientRect().width > 0) updateIndicator(group);
+      if (group.isConnected && group.getBoundingClientRect().width > 0) updateIndicator(group);
     }));
   }
 
@@ -1912,8 +2251,31 @@ export function installMotionSystem(doc = globalThis.document) {
     }
   });
 
+  function pruneDisconnectedTablists() {
+    let pruned = 0;
+    for (const group of [...observedTablists]) {
+      if (group?.isConnected) continue;
+      observedTablists.delete(group);
+      indicators.get(group)?.remove?.();
+      indicators.delete(group);
+      const pendingFrame = indicatorFrames.get(group);
+      if (pendingFrame) {
+        view.cancelAnimationFrame(pendingFrame);
+        indicatorFrames.delete(group);
+      }
+      pruned += 1;
+    }
+    if (pruned > 0) {
+      tabObserver.disconnect();
+      for (const group of observedTablists) {
+        tabObserver.observe(group, { subtree: true, attributes: true, attributeFilter: ["aria-selected", "class"] });
+      }
+    }
+    return pruned;
+  }
+
   function registerTabGroup(group) {
-    if (!group || observedTablists.has(group)) return;
+    if (!group || !group.isConnected || observedTablists.has(group)) return;
     observedTablists.add(group);
     tabObserver.observe(group, { subtree: true, attributes: true, attributeFilter: ["aria-selected", "class"] });
     if (group.getBoundingClientRect().width > 0) updateIndicator(group);
@@ -1923,20 +2285,24 @@ export function installMotionSystem(doc = globalThis.document) {
   for (const group of initialTabGroups) registerTabGroup(group);
 
   listen("click", () => {
-    // Covers a tablist revealed by navigation; no observer on progress events.
+    // Covers a tablist revealed by navigation; prune stale groups first.
+    pruneDisconnectedTablists();
     for (const group of observedTablists) scheduleIndicator(group);
   }, { capture: false });
 
-  // Also discover dynamically mounted [role='tablist'] nodes in real DOM documents.
+  // Also discover dynamically mounted [role='tablist'] nodes in real DOM documents, and prune detached ones.
   if (doc.documentElement?.nodeType === 1) {
     const dynamicTabObserver = new view.MutationObserver((records) => {
+      let hadRemoval = false;
       for (const record of records) {
+        if (record.removedNodes?.length) hadRemoval = true;
         for (const node of record.addedNodes || []) {
           if (node.nodeType !== 1) continue;
           if (node.getAttribute?.("role") === "tablist") registerTabGroup(node);
           node.querySelectorAll?.("[role='tablist']")?.forEach(registerTabGroup);
         }
       }
+      if (hadRemoval) pruneDisconnectedTablists();
     });
     dynamicTabObserver.observe(doc.documentElement, { childList: true, subtree: true });
     disposers.push(() => dynamicTabObserver.disconnect());
@@ -1949,6 +2315,7 @@ export function installMotionSystem(doc = globalThis.document) {
   });
 
   const resize = () => {
+    pruneDisconnectedTablists();
     for (const group of indicators.keys()) {
       if (group.isConnected && group.getBoundingClientRect().width > 0) updateIndicator(group);
     }

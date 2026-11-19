@@ -301,12 +301,55 @@ try {
     await delay(300);
     assert.equal(await page.evaluate("document.getElementById('btnAsyncFail').getAttribute('data-feedback-state')"), "error");
 
+    // A1: Switch geometry containment & keyboard Space toggle across unchecked/checked
+    const assertSwitchContainment = async (label) => {
+      const checks = await page.evaluate(`(() => {
+        const list = [...document.querySelectorAll('.switch')];
+        return list.map((sw, idx) => {
+          const input = sw.querySelector('input[type="checkbox"]');
+          const slider = sw.querySelector('.slider');
+          const rSw = sw.getBoundingClientRect();
+          const rSl = slider ? slider.getBoundingClientRect() : rSw;
+          const rIn = input ? input.getBoundingClientRect() : rSw;
+          const parentRect = sw.parentElement?.getBoundingClientRect();
+          return {
+            idx,
+            id: input?.id || '',
+            checked: Boolean(input?.checked),
+            sw: { l: rSw.left, t: rSw.top, r: rSw.right, b: rSw.bottom, w: rSw.width, h: rSw.height },
+            sl: { l: rSl.left, t: rSl.top, r: rSl.right, b: rSl.bottom, w: rSl.width, h: rSl.height },
+            inBox: { l: rIn.left, t: rIn.top, r: rIn.right, b: rIn.bottom },
+            insideX: rSl.left >= rSw.left - 0.5 && rSl.right <= rSw.right + 0.5,
+            insideY: rSl.top >= rSw.top - 0.5 && rSl.bottom <= rSw.bottom + 0.5,
+            notClipped: !parentRect || (rSw.right <= parentRect.right + 2 && rSw.left >= parentRect.left - 2),
+          };
+        });
+      })()`);
+      assert.ok(checks.length >= 2, `Expected >=2 .switch controls for ${label}`);
+      for (const c of checks) {
+        assert.equal(c.insideX, true, `Switch thumb overflowed X on ${label} (${c.id}): ${JSON.stringify(c)}`);
+        assert.equal(c.insideY, true, `Switch thumb overflowed Y on ${label} (${c.id}): ${JSON.stringify(c)}`);
+      }
+      return checks;
+    };
+
+    await assertSwitchContainment("fixture-initial-1440");
+    await page.evaluate("document.getElementById('fixtureSwitchSuccess').focus()");
+    const beforeSpaceChecked = await page.evaluate("document.getElementById('fixtureSwitchSuccess').checked");
+    await dispatchKey(" ", "Space");
+    await delay(260);
+    const afterSpaceChecked = await page.evaluate("document.getElementById('fixtureSwitchSuccess').checked");
+    assert.notEqual(afterSpaceChecked, beforeSpaceChecked, "Space key must toggle switch checkbox natively");
+    await assertSwitchContainment("fixture-space-toggled-1440");
+    await shot("switch-fixed-desktop-light.png", false);
+
     // Simulated switch failure rolls back checkbox
     await page.click("#fixtureSwitchFail");
     await delay(340);
     const failSwitchState = await page.evaluate("({ checked: document.getElementById('fixtureSwitchFail').checked, text: document.getElementById('fixtureSwitchFailText').textContent })");
     assert.equal(failSwitchState.checked, false, "failed switch must roll back to unchecked");
     assert.match(failSwitchState.text, /回滚/);
+    await assertSwitchContainment("fixture-after-rollback");
 
     // Form invalid -> fix -> submit
     await page.click("#fixtureFormSubmitBtn");
@@ -466,39 +509,60 @@ try {
     return snap;
   });
 
-  // 7. Scroll 3D Reversible Wheel + Bento Seam Lock
+  // 7. Scroll 3D Multi-Stage Reversible Wheel + Bento Seam Lock
   await recordScenario("scroll-3d-reversible-and-bento-seam-lock", async () => {
+    const readScrollCard = () => page.evaluate(`(() => {
+      const el = document.getElementById('fixtureScroll3dCard');
+      return {
+        stage: el.dataset.scrollStage || '',
+        rx: parseFloat(el.style.getPropertyValue('--ds-scroll-rx') || '0'),
+        scale: parseFloat(el.style.getPropertyValue('--ds-scroll-scale') || '1'),
+        tz: parseFloat(el.style.getPropertyValue('--ds-scroll-tz') || '0'),
+        transform: getComputedStyle(el).transform,
+      };
+    })()`);
+
     await page.evaluate("window.scrollTo({ top: 0, behavior: 'instant' })");
     await settle();
     const stageTop = await page.evaluate("document.getElementById('secScrollBento').getBoundingClientRect().top + window.scrollY - 680");
     await page.evaluate(`window.scrollTo({ top: ${Math.max(0, Math.round(stageTop))}, behavior: 'instant' })`);
     await settle();
     await shot("scroll-seq-1-entry.png");
-    const entryTransform = await page.evaluate("getComputedStyle(document.getElementById('fixtureScroll3dCard')).transform");
+    const entryState = await readScrollCard();
 
-    // Real mouse wheel downward in steps
+    // Real mouse wheel downward into flat level focal pose
     for (let i = 0; i < 4; i += 1) {
-      await page.send("Input.dispatchMouseEvent", { type: "mouseWheel", x: 700, y: 450, deltaX: 0, deltaY: 220 });
+      await page.send("Input.dispatchMouseEvent", { type: "mouseWheel", x: 700, y: 450, deltaX: 0, deltaY: 160 });
       await delay(90);
     }
     await settle();
     await shot("scroll-seq-2-flattened.png");
-    const flatTransform = await page.evaluate("getComputedStyle(document.getElementById('fixtureScroll3dCard')).transform");
+    const flatState = await readScrollCard();
 
-    // Reverse wheel back upward
+    // A2: Continue scrolling past level zone -> must continue into exit pitch (negative rx & tz), NOT stop dead at 0deg!
     for (let i = 0; i < 4; i += 1) {
-      await page.send("Input.dispatchMouseEvent", { type: "mouseWheel", x: 700, y: 450, deltaX: 0, deltaY: -220 });
+      await page.send("Input.dispatchMouseEvent", { type: "mouseWheel", x: 700, y: 450, deltaX: 0, deltaY: 160 });
       await delay(90);
     }
     await settle();
-    await shot("scroll-seq-3-reversed.png");
-    const reversedTransform = await page.evaluate("getComputedStyle(document.getElementById('fixtureScroll3dCard')).transform");
+    await shot("scroll-seq-3-exit-stage.png");
+    const exitState = await readScrollCard();
+
+    // Reverse wheel back upward smoothly back toward entry
+    for (let i = 0; i < 8; i += 1) {
+      await page.send("Input.dispatchMouseEvent", { type: "mouseWheel", x: 700, y: 450, deltaX: 0, deltaY: -160 });
+      await delay(90);
+    }
+    await settle();
+    await shot("scroll-seq-4-reversed.png");
+    const reversedState = await readScrollCard();
 
     const telemetry = await page.evaluate("window.__i07FixtureTelemetry()");
     assert.equal(telemetry.maxSeamDrift, 0, `Bento outer seams must remain locked (drift=${telemetry.maxSeamDrift})`);
-    assert.notEqual(entryTransform, flatTransform, "Scroll down must visibly change 3D transform");
-    assert.notEqual(flatTransform, reversedTransform, "Scroll up must reversibly change 3D transform");
-    return { entryTransform, flatTransform, reversedTransform, maxSeamDrift: telemetry.maxSeamDrift };
+    assert.ok(entryState.rx > flatState.rx, `Entry must pitch downward toward level (${JSON.stringify({ entryState, flatState })})`);
+    assert.ok(exitState.rx < 0, `Continued scroll past level must enter negative pitch exit phase instead of stopping at 0deg (${JSON.stringify(exitState)})`);
+    assert.ok(reversedState.rx > exitState.rx, `Scrolling back up must reversibly recover posture (${JSON.stringify({ exitState, reversedState })})`);
+    return { entryState, flatState, exitState, reversedState, maxSeamDrift: telemetry.maxSeamDrift };
   });
 
   // 8. Desktop Modal (Spring, Focus Trap, Escape) & Mobile Gesture Drawer (375px Touch Drag, Snap-Back, Dismiss)
@@ -667,13 +731,24 @@ try {
     return { realAppMotionReady: true, feedbackMobileMode, deleteMode, p07Off };
   });
 
-  // 11. Viewport overflow matrix (1440, 1024, 390, 375)
+  // 11. Viewport overflow + switch containment matrix (1440, 768, 390, 375)
   await openFixture();
-  for (const width of [1440, 1024, 390, 375]) {
+  for (const width of [1440, 768, 390, 375]) {
     await setViewport(width, width <= 500 ? 844 : 900, width <= 500);
-    const overflowX = await page.evaluate("Math.max(0, document.documentElement.scrollWidth - innerWidth)");
-    assert.ok(overflowX <= 1, `Horizontal overflow on fixture at ${width}px: ${overflowX}`);
-    report.viewportMatrix.push({ width, overflowX });
+    const metrics = await page.evaluate(`(() => {
+      const overflowX = Math.max(0, document.documentElement.scrollWidth - innerWidth);
+      const badSwitches = [...document.querySelectorAll('.switch')].filter((sw) => {
+        const sl = sw.querySelector('.slider');
+        if (!sl) return false;
+        const rSw = sw.getBoundingClientRect();
+        const rSl = sl.getBoundingClientRect();
+        return rSl.left < rSw.left - 0.5 || rSl.right > rSw.right + 0.5 || rSl.top < rSw.top - 0.5 || rSl.bottom > rSw.bottom + 0.5;
+      }).length;
+      return { overflowX, badSwitches };
+    })()`);
+    assert.ok(metrics.overflowX <= 1, `Horizontal overflow on fixture at ${width}px: ${metrics.overflowX}`);
+    assert.equal(metrics.badSwitches, 0, `Switch thumb overflowed container at ${width}px`);
+    report.viewportMatrix.push({ width, ...metrics });
   }
 
   assert.deepEqual(page.runtimeErrors, [], `Runtime console errors: ${JSON.stringify(page.runtimeErrors)}`);

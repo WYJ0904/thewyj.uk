@@ -5,16 +5,21 @@ import {
   createMotionScope,
   setControlFeedbackState,
   createTabSkeletonSwitcher,
+  attachFileDropFeedback,
   createToastManager,
+  getSharedToastManager,
   captureFlipSnapshot,
   playFlipSnapshot,
   flipLayout,
+  createDragSortController,
   isMobileSheetViewport,
   syncModalScrollLock,
   getScrollLockCount,
   computeScrollProgress,
+  computeMultiStageScroll3d,
   computeCenteredParallax,
   createScrollProgressController,
+  installMotionSystem,
 } from "../js/core/motion.js";
 import { reconcileKeyedRows } from "../js/core/keyed-list.js";
 
@@ -54,6 +59,9 @@ function makeMockEnv({ reduced = false, width = 1280, height = 800 } = {}) {
     },
     removeEventListener(type, fn) {
       listeners.get(type)?.delete(fn);
+    },
+    dispatchEvent(type, ev = {}) {
+      for (const fn of [...(listeners.get(type) || [])]) fn(ev);
     },
   };
 
@@ -97,6 +105,9 @@ function makeMockEnv({ reduced = false, width = 1280, height = 800 } = {}) {
         elListeners.get(t).add(fn);
       },
       removeEventListener(t, fn) { elListeners.get(t)?.delete(fn); },
+      dispatchEvent(t, ev = {}) {
+        for (const fn of [...(elListeners.get(t) || [])]) fn(ev);
+      },
       append(...nodes) {
         for (const n of nodes) {
           n.parentNode = el;
@@ -390,4 +401,245 @@ test("reconcileKeyedRows with flip preserves exact DOM node identity when rows r
   });
   assert.equal(container.children[0], nodes.get("2"), "reordered row must keep exact DOM node identity");
   assert.equal(container.children[1], nodes.get("1"), "reordered row must keep exact DOM node identity");
+});
+
+test("A2: computeMultiStageScroll3d progresses enter -> level -> exit -> settled and reverses smoothly", () => {
+  const vh = 1000;
+  const enter = computeMultiStageScroll3d({ top: 960, height: 320 }, vh);
+  const level = computeMultiStageScroll3d({ top: 300, height: 320 }, vh);
+  const midExit = computeMultiStageScroll3d({ top: 0, height: 320 }, vh);
+  const settled = computeMultiStageScroll3d({ top: -600, height: 320 }, vh);
+
+  assert.equal(enter.stage, "before");
+  assert.equal(enter.rx, 12);
+  assert.equal(level.stage, "level");
+  assert.equal(level.rx, 0);
+  assert.equal(level.scale, 1);
+  assert.equal(midExit.stage, "exit");
+  assert.ok(midExit.rx < 0, `continued scroll must continue pitching beyond flat (rx=${midExit.rx})`);
+  assert.ok(midExit.tz < 0, `continued scroll must recede in depth (tz=${midExit.tz})`);
+  assert.equal(settled.stage, "settled");
+  assert.equal(settled.overallProgress, 1);
+
+  // Reverse scroll back into level then entry produces identical reversible values.
+  const backToLevel = computeMultiStageScroll3d({ top: 300, height: 320 }, vh);
+  assert.equal(backToLevel.rx, 0);
+  assert.equal(computeMultiStageScroll3d({ top: 660, height: 320 }, vh).stage, "enter");
+});
+
+test("A4: createDragSortController handles shared arrow sorting, preserves focus, and ignores inputs", () => {
+  const env = makeMockEnv();
+  const container = env.makeElement("div");
+  const events = [];
+  const makeCard = (key) => {
+    const card = env.makeElement("div");
+    card.dataset.flipKey = key;
+    const handle = env.makeElement("button");
+    handle.dataset.dragHandle = "true";
+    handle.matches = (sel) => sel.includes("button");
+    handle.closest = (sel) => (sel === "[data-drag-handle]" ? handle : sel === "[data-flip-key]" ? card : null);
+    const input = env.makeElement("input");
+    input.closest = (sel) => (sel.includes("input") ? input : sel === "[data-drag-handle]" ? null : sel === "[data-flip-key]" ? card : null);
+    card.append(handle, input);
+    card.closest = (sel) => (sel === "[data-flip-key]" ? card : null);
+    card.getBoundingClientRect = () => ({ left: 0, top: container.children.indexOf(card) * 80, width: 200, height: 60 });
+    return { card, handle, input };
+  };
+  const a = makeCard("a");
+  const b = makeCard("b");
+  container.append(a.card, b.card);
+  container.contains = (node) => container.children.includes(node) || container.children.some((c) => c.children.includes(node));
+  container.querySelectorAll = () => [...container.children];
+  container.insertBefore = (node, ref) => {
+    container.children = container.children.filter((n) => n !== node);
+    const idx = ref ? container.children.indexOf(ref) : -1;
+    if (idx >= 0) container.children.splice(idx, 0, node);
+    else container.children.push(node);
+    container.children.forEach((n, i) => { n.nextElementSibling = container.children[i + 1] || null; });
+  };
+  a.card.nextElementSibling = b.card;
+  b.card.nextElementSibling = null;
+
+  const ctrl = createDragSortController(container, {
+    view: env.view,
+    onOrderChange: (order, meta) => events.push({ order, meta }),
+  });
+
+  // Editable input inside card must NOT trigger card sorting.
+  let inputPrevented = false;
+  container.dispatchEvent("keydown", {
+    key: "ArrowDown",
+    target: a.input,
+    preventDefault() { inputPrevented = true; },
+  });
+  assert.equal(inputPrevented, false);
+  assert.deepEqual(container.children.map((c) => c.dataset.flipKey), ["a", "b"]);
+
+  // ArrowDown on handle swaps a -> b and calls onOrderChange with keyboard meta.
+  let prevented = false;
+  container.dispatchEvent("keydown", {
+    key: "ArrowDown",
+    target: a.handle,
+    preventDefault() { prevented = true; },
+  });
+  assert.equal(prevented, true);
+  assert.deepEqual(container.children.map((c) => c.dataset.flipKey), ["b", "a"]);
+  assert.equal(events.length, 1);
+  assert.equal(events[0].meta.trigger, "keyboard");
+  assert.equal(events[0].meta.key, "ArrowDown");
+
+  // Horizontal axis sorting with ArrowLeft restores a -> b order.
+  const hCtrl = createDragSortController(container, { axis: "x", view: env.view, onOrderChange: (order, meta) => events.push({ order, meta }) });
+  ctrl.dispose();
+  container.dispatchEvent("keydown", {
+    key: "ArrowLeft",
+    target: a.handle,
+    preventDefault() {},
+  });
+  assert.deepEqual(container.children.map((c) => c.dataset.flipKey), ["a", "b"]);
+  assert.equal(events[1].meta.key, "ArrowLeft");
+  hCtrl.dispose();
+});
+
+test("A5: createTabSkeletonSwitcher aborts and discards stale async renders", async () => {
+  const env = makeMockEnv();
+  const panel = env.makeElement("div");
+  const switcher = createTabSkeletonSwitcher({ duration: 130, view: env.view });
+  const signals = [];
+  let releaseSlow;
+  const slowDone = new Promise((res) => { releaseSlow = res; });
+
+  const p1 = switcher.switchTab(panel, async (target, { signal }) => {
+    signals.push(signal);
+    await slowDone;
+    if (signal.aborted) return;
+    target.textContent = "STALE_A";
+  });
+  env.advance(130); // timer fires, slow async render is in-flight!
+
+  const p2 = switcher.switchTab(panel, async (target, { signal }) => {
+    signals.push(signal);
+    target.textContent = "FRESH_B";
+  });
+  env.advance(130);
+  const res2 = await p2;
+  assert.equal(signals[0].aborted, true, "superseded async tab render must receive AbortSignal abort");
+  assert.equal(panel.textContent, "FRESH_B");
+  assert.equal(res2, true);
+
+  releaseSlow();
+  const res1 = await p1;
+  assert.equal(res1, false, "superseded promise must resolve false");
+  assert.equal(panel.textContent, "FRESH_B", "late async resolution must not overwrite newer tab");
+  assert.equal(panel.getAttribute("aria-busy"), null);
+});
+
+test("A6: Toast error preempts non-errors, coalesces queue overflow, recreates after dispose, and cleans unload timers", () => {
+  const env = makeMockEnv();
+  const mgr = createToastManager({ doc: env.doc, view: env.view, maxVisible: 2, maxQueue: 2 });
+  mgr.info("信息 1");
+  mgr.success("成功 2");
+  const errId = mgr.error("关键错误 A");
+  let snap = mgr.snapshot();
+  assert.equal(snap.visible.length, 2);
+  assert.ok(snap.visible.some((item) => item.id === errId), "error must preempt visible non-error immediately");
+  assert.ok(snap.queued.some((item) => item.message === "信息 1"), "preempted non-error moves to queue");
+
+  // Fill queue completely with errors and ensure overflow coalesces without silent loss.
+  mgr.error("关键错误 B");
+  mgr.error("关键错误 C");
+  mgr.error("关键错误 D");
+  mgr.error("关键错误 E");
+  snap = mgr.snapshot();
+  assert.equal(snap.queued.length, 2, "queue remains strictly bounded by maxQueue");
+  assert.ok(snap.queued.some((item) => item.count >= 2 && /待处理/.test(item.message)), "overflow errors coalesce into counted summary instead of silent drop");
+
+  // Unload clears active timers cleanly.
+  assert.ok(env.timers.size > 0);
+  env.view.dispatchEvent?.("beforeunload", {});
+  assert.equal(mgr.disposed, true);
+  assert.equal(env.timers.size, 0);
+
+  // getSharedToastManager replaces disposed manager rather than returning dead instance.
+  const s1 = getSharedToastManager(env.doc);
+  s1.dispose();
+  assert.equal(s1.disposed, true);
+  const s2 = getSharedToastManager(env.doc);
+  assert.notEqual(s2, s1);
+  assert.equal(s2.disposed, false);
+  const newId = s2.info("恢复可用");
+  assert.ok(newId);
+  s2.dispose();
+});
+
+test("A8: attachFileDropFeedback delegates to onDropEvent while managing drag feedback state", () => {
+  const env = makeMockEnv();
+  const zone = env.makeElement("div");
+  let receivedEvent = null;
+  const detach = attachFileDropFeedback(zone, {
+    doc: env.doc,
+    onDropEvent(event) { receivedEvent = event; },
+  });
+  zone.dispatchEvent("dragenter", { preventDefault() {} });
+  assert.equal(zone.getAttribute("data-drop-state"), "active");
+  const fakeEvent = { preventDefault() {}, dataTransfer: { files: [{ name: "demo.txt", size: 4 }] } };
+  zone.dispatchEvent("drop", fakeEvent);
+  assert.equal(zone.getAttribute("data-drop-state"), null);
+  assert.equal(receivedEvent, fakeEvent);
+  detach();
+});
+
+test("A5: installMotionSystem prunes detached tablists from MutationObserver & indicators", () => {
+  const env = makeMockEnv();
+  const observedTargets = [];
+  let dynamicCallback = null;
+  let disconnectCount = 0;
+  class MockMutationObserver {
+    constructor(cb) {
+      this._cb = cb;
+      this.targets = [];
+    }
+    observe(target) {
+      this.targets.push(target);
+      observedTargets.push(target);
+      if (target === env.doc.documentElement) dynamicCallback = this._cb;
+    }
+    disconnect() {
+      this.targets.length = 0;
+      disconnectCount += 1;
+    }
+  }
+  env.view.MutationObserver = MockMutationObserver;
+  const docListeners = new Map();
+  env.doc.addEventListener = (t, fn) => {
+    if (!docListeners.has(t)) docListeners.set(t, new Set());
+    docListeners.get(t).add(fn);
+  };
+  env.doc.removeEventListener = (t, fn) => docListeners.get(t)?.delete(fn);
+  const tabA = env.makeElement("div");
+  tabA.setAttribute("role", "tablist");
+  tabA.getAttribute = (k) => (k === "role" ? "tablist" : null);
+  tabA.isConnected = true;
+  tabA.querySelector = () => null;
+  tabA.getBoundingClientRect = () => ({ left: 0, top: 0, width: 0, height: 0 });
+  const tabB = env.makeElement("div");
+  tabB.setAttribute("role", "tablist");
+  tabB.getAttribute = (k) => (k === "role" ? "tablist" : null);
+  tabB.isConnected = true;
+  tabB.querySelector = () => null;
+  tabB.getBoundingClientRect = () => ({ left: 0, top: 0, width: 0, height: 0 });
+  env.doc.querySelectorAll = (sel) => (sel.includes("tablist") ? [tabA, tabB] : []);
+
+  const dispose = installMotionSystem(env.doc);
+  assert.equal(typeof dynamicCallback, "function");
+  assert.ok(observedTargets.includes(tabA) && observedTargets.includes(tabB));
+
+  // Detach tabA and trigger dynamic removal record -> tabObserver disconnects & re-observes ONLY tabB!
+  tabA.isConnected = false;
+  observedTargets.length = 0;
+  dynamicCallback([{ addedNodes: [], removedNodes: [tabA] }]);
+  assert.ok(disconnectCount >= 1, "tabObserver must reset when disconnected tablists are pruned");
+  assert.equal(observedTargets.includes(tabA), false, "detached tablist must not be re-observed");
+  assert.equal(observedTargets.includes(tabB), true, "connected sibling tablist stays observed");
+  dispose();
 });

@@ -1231,7 +1231,7 @@ textarea::placeholder {
 
 .section-kicker {
   margin: 0 0 4px;
-  color: var(--color-primary);
+  color: var(--ds-brand-hover);
   font-size: var(--font-sm);
   font-weight: 700;
 }

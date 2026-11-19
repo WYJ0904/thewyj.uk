@@ -85,8 +85,10 @@
   --ds-bg-scale: 1;
   --ds-backdrop-alpha: 1;
   --ds-scroll-rx: 0deg;
+  --ds-scroll-ry: 0deg;
   --ds-scroll-scale: 1;
   --ds-scroll-ty: 0px;
+  --ds-scroll-tz: 0px;
   --ds-parallax-y: 0px;
 
   /* Layout and touch */
@@ -856,9 +858,11 @@ input[type="radio"]:disabled {
 /* Shared switch token contract for upcoming dense admin/settings modules (I05/I09). */
 .ds-switch,
 .switch {
+  box-sizing: border-box;
   position: relative;
   display: inline-flex;
   align-items: center;
+  flex: 0 0 auto;
   width: 44px;
   height: 24px;
   min-width: 44px;
@@ -867,9 +871,44 @@ input[type="radio"]:disabled {
   border: 1px solid var(--ds-border-strong);
   border-radius: var(--ds-radius-pill);
   background: var(--ds-surface-muted);
+  cursor: pointer;
+  user-select: none;
+  vertical-align: middle;
   transition:
     background-color var(--ds-duration-fast) var(--ds-ease-standard),
     border-color var(--ds-duration-fast) var(--ds-ease-standard);
+}
+.switch > input[type="checkbox"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  opacity: 0;
+  cursor: inherit;
+  z-index: 1;
+}
+.switch > input[type="checkbox"]:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+.switch:has(> input:focus-visible) {
+  outline: 2px solid var(--ds-focus);
+  outline-offset: 3px;
+  box-shadow: var(--ds-focus-ring);
+}
+.switch:has(> input:disabled),
+.ds-switch[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.switch:has(> input[aria-busy="true"]),
+.ds-switch[aria-busy="true"] {
+  cursor: progress;
+  opacity: 0.78;
 }
 .ds-switch[aria-checked="true"],
 .ds-switch[data-checked="true"],
@@ -884,12 +923,22 @@ input[type="radio"]:disabled {
 }
 .ds-switch .ds-switch-thumb,
 .switch .slider {
+  box-sizing: border-box;
+  flex: 0 0 18px;
   width: 18px;
   height: 18px;
+  pointer-events: none;
   border-radius: var(--ds-radius-pill);
-  background: var(--ds-surface);
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.18);
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.22);
   transition: transform var(--ds-duration-fast) var(--ds-ease-standard);
+}
+:root[data-theme="dark"] .ds-switch[aria-checked="true"] .ds-switch-thumb,
+:root[data-theme="dark"] .ds-switch[data-checked="true"] .ds-switch-thumb,
+:root[data-theme="dark"] .switch:has(input:checked) .slider {
+  background: #0b0e14;
+  border-color: rgba(11, 14, 20, 0.24);
 }
 .ds-switch[aria-checked="true"] .ds-switch-thumb,
 .ds-switch[data-checked="true"] .ds-switch-thumb,
@@ -1815,8 +1864,8 @@ html[data-p07-ui="enabled"] .achievement-toast {
 
 /* I07 Scroll-Driven 3D Preview & Seamless Locked-Frame Bento Wall */
 .scroll-preview-wrap {
-  transform-origin: center top;
-  transform: perspective(1200px) translate3d(0, var(--ds-scroll-ty, 0px), 0) rotateX(var(--ds-scroll-rx, 0deg)) scale(var(--ds-scroll-scale, 1));
+  transform-origin: center center;
+  transform: perspective(1200px) translate3d(0, var(--ds-scroll-ty, 0px), var(--ds-scroll-tz, 0px)) rotateX(var(--ds-scroll-rx, 0deg)) rotateY(var(--ds-scroll-ry, 0deg)) scale(var(--ds-scroll-scale, 1));
   will-change: transform;
 }
 
@@ -1867,5 +1916,21 @@ html[data-p07-ui="enabled"] .achievement-toast {
     box-shadow: none;
   }
   [role="tab"][aria-selected="true"] { border-bottom: 2px solid Highlight; }
+  .switch .slider,
+  .ds-switch .ds-switch-thumb {
+    forced-color-adjust: none;
+    background: ButtonText;
+    border-color: ButtonText;
+  }
+  .switch:has(> input:checked),
+  .ds-switch[aria-checked="true"] {
+    background: Highlight;
+    border-color: Highlight;
+  }
+  .switch:has(> input:checked) .slider,
+  .ds-switch[aria-checked="true"] .ds-switch-thumb {
+    background: HighlightText;
+    border-color: HighlightText;
+  }
 }
 
