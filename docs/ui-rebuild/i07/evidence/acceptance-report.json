@@ -1,6 +1,6 @@
 {
   "scope": "Isolated Miniflare D1/R2 + real headless Chrome CDP",
-  "gitSha": "1e1d2d21c143be36268e7d1192f6399cd4e2f782",
+  "gitSha": "115f43d52963eef291e71816c980eb3e880bd5ff",
   "browserVersion": "Chrome/157.0.8103.79",
   "scenarios": [
     {
@@ -26,8 +26,8 @@
       "name": "flip-bidirectional-reversal-density-keyboard",
       "status": "PASS",
       "detail": {
-        "midDownTransform": "matrix(1, 0, 0, 1, -164.278, 0)",
-        "midUpTransform": "matrix(1, 0, 0, 1, -186.723, 63.6209)",
+        "midDownTransform": "matrix(1, 0, 0, 1, -175.3, 0)",
+        "midUpTransform": "matrix(1, 0, 0, 1, -186.396, 63.5094)",
         "flipIdentity": "4 / 4"
       }
     },
@@ -103,9 +103,9 @@
       "name": "scroll-3d-reversible-and-bento-seam-lock",
       "status": "PASS",
       "detail": {
-        "entryTransform": "matrix3d(0.9428, 0, 0, 0, 0, 0.924037, 0.187158, -0.000155965, 0, -0.198513, 0.980098, -0.000816749, 0, 22.89, 0, 1)",
+        "entryTransform": "matrix3d(0.9428, 0, 0, 0, 0, 0.924069, 0.186997, -0.00015583, 0, -0.198342, 0.980133, -0.000816777, 0, 22.89, 0, 1)",
         "flatTransform": "matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, -0.000833333, 0, 0, 0, 1)",
-        "reversedTransform": "matrix3d(0.9428, 0, 0, 0, 0, 0.924037, 0.187158, -0.000155965, 0, -0.198513, 0.980098, -0.000816749, 0, 22.89, 0, 1)",
+        "reversedTransform": "matrix3d(0.9428, 0, 0, 0, 0, 0.924069, 0.186997, -0.00015583, 0, -0.198342, 0.980133, -0.000816777, 0, 22.89, 0, 1)",
         "maxSeamDrift": 0
       }
     },
@@ -122,9 +122,9 @@
       "name": "dark-theme-and-performance-telemetry",
       "status": "PASS",
       "detail": {
-        "worstFrameMs": 154.1,
-        "longTaskCount": 1,
-        "maxSeamDriftPx": 0
+        "worstFrameMs": 179.1,
+        "longTaskCount": 2,
+        "maxSeamDriftPx": 0.44873046875
       }
     },
     {
@@ -193,9 +193,9 @@
     }
   ],
   "performance": {
-    "worstFrameMs": 154.1,
-    "longTaskCount": 1,
-    "maxSeamDriftPx": 0
+    "worstFrameMs": 179.1,
+    "longTaskCount": 2,
+    "maxSeamDriftPx": 0.44873046875
   },
   "screenshots": [
     "fixture-desktop-1440-light.png",

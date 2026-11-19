@@ -1,0 +1,62 @@
+{
+  "status": "PASS",
+  "previewUrl": "https://i07-motion-engine.thewyj-p07-ui-rc.pages.dev",
+  "homeState": {
+    "p07Ui": "disabled",
+    "motionReady": "true",
+    "release": "https://i07-motion-engine.thewyj-p07-ui-rc.pages.dev/styles.css?release=20261119-aeris-i07-preview",
+    "bannerVerified": "true",
+    "fixtureHref": "/__preview/i07-fixture.html"
+  },
+  "flipMidDown": "matrix(1, 0, 0, 1, -186.792, 0)",
+  "flipMidUp": "matrix(1, 0, 0, 1, -144.464, 49.2222)",
+  "toastSnap": {
+    "visible": [
+      {
+        "id": "toast-1",
+        "tone": "error",
+        "message": "队列 #1 (Error)：保留优先提示",
+        "count": 1
+      },
+      {
+        "id": "toast-2",
+        "tone": "info",
+        "message": "队列 #2 (Info)：首屏第 2 条",
+        "count": 1
+      }
+    ],
+    "queued": [
+      {
+        "id": "toast-3",
+        "tone": "success",
+        "message": "队列 #3 (Success)：排队等待",
+        "count": 1
+      },
+      {
+        "id": "toast-4",
+        "tone": "warning",
+        "message": "队列 #4 (Warning)：排队等待",
+        "count": 1
+      },
+      {
+        "id": "toast-5",
+        "tone": "info",
+        "message": "队列 #5 (Info)：排队等待",
+        "count": 1
+      }
+    ],
+    "maxVisible": 2
+  },
+  "scrollBefore": "matrix3d(0.9428, 0, 0, 0, 0, 0.924037, 0.187158, -0.000155965, 0, -0.198513, 0.980098, -0.000816749, 0, 22.89, 0, 1)",
+  "scrollAfter": "matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, -0.000833333, 0, 0, 0, 1)",
+  "maxSeamDrift": 0,
+  "failedRequests": [],
+  "runtimeErrors": [],
+  "screenshots": [
+    "preview-home-desktop.png",
+    "preview-fixture-desktop-light.png",
+    "preview-fixture-toast-burst.png",
+    "preview-fixture-scroll-bento.png",
+    "preview-fixture-mobile-drawer-dark.png"
+  ]
+}
