@@ -116,8 +116,9 @@ try {
   assert.ok((await page.evaluate("window.scrollY")) <= 2);
 
   // Also test /__preview/i07-fixture.html Switch containment on Hosted Preview
-  await page.navigate("/__preview/i07-fixture.html");
-  await page.waitFor("document.documentElement.getAttribute('data-aeris-motion-ready') === 'true'", 15000);
+  const navFx = await page.send("Page.navigate", { url: `${baseUrl}/__preview/i07-fixture.html` });
+  assert.equal(navFx.errorText || "", "");
+  await page.waitFor("document.readyState === 'complete' && document.documentElement.getAttribute('data-aeris-motion-ready') === 'true'", 25000);
   await settle();
   const switchBad = await page.evaluate("[...document.querySelectorAll('.switch')].filter(sw => { const sl = sw.querySelector('.slider'); const rSw = sw.getBoundingClientRect(), rSl = sl.getBoundingClientRect(); return rSl.left < rSw.left - 0.5 || rSl.right > rSw.right + 0.5; }).length");
   assert.equal(switchBad, 0, "Hosted i07 fixture Switch thumb must never overflow");

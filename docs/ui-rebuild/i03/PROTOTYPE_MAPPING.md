@@ -1,7 +1,7 @@
 # 原型、V1.1 基线、I07 接口与真实源码对应关系
 
 > [!NOTE]
-> 本地工作区及上级目录存在权威文档 `C:\Users\78252\Desktop\编程\Aeris_I_series_UI_refactor_execution_baseline_v1.1_2026-11-17.txt`；参考文件名 `Aeris_I_series_UI_interactive_prototype_2026-11-17.html` 在本地磁盘与仓库中均不存在（与 I02 / I07 交接文档记录一致），因此本映射严格依据 V1.1 正式执行基线与真实 Aeris 源码契约建立。
+> 本地参考目录存在权威文档 `Aeris_I_series_UI_refactor_execution_baseline_v1.1_2026-11-17.txt`；参考文件名 `Aeris_I_series_UI_interactive_prototype_2026-11-17.html` 在本地磁盘与仓库中均不存在（与 I02 / I07 交接文档记录一致），因此本映射严格依据 V1.1 正式执行基线与真实 Aeris 源码契约建立。
 
 | V1.1 目标元素 | 真实 Aeris 源码 / 选择器 | 消费的 I07 共享能力 | 保留的既有业务/状态契约 |
 |---|---|---|---|
