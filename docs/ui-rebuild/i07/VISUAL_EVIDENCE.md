@@ -32,7 +32,7 @@ All evidence artifacts were captured in real headless Chrome (`Chrome/157.0.8103
 Verified live via `node qa/i07/verify-preview.mjs` in real headless Chrome against isolated Hosted Preview (`0` failed requests, `0` console errors, `maxSeamDrift === 0`):
 
 - **Branch Alias URL**: `https://i07-motion-engine.thewyj-p07-ui-rc.pages.dev`
-- **Immutable Deployment URL**: `https://ce253791.thewyj-p07-ui-rc.pages.dev` (`ce253791-be18-4beb-9767-2c089fdd9ebb`, code commit `e1e5057d13668c8a9434da2cd9e7cc0acf80ddf8`, `20261119-aeris-i07-preview`)
+- **Immutable Deployment URL**: `https://e83829aa.thewyj-p07-ui-rc.pages.dev` (`e83829aa-a8c1-47e6-b6d5-b66c3b16d743`, code commit `c8781f7a9ac4644dbe6eb108a11aa38980730fad`, `20261119-aeris-i07-preview`)
 - **Fixture Route**: `/__preview/i07-fixture.html` (excluded from Production staging builds)
 - **Verification Report**: `docs/ui-rebuild/i07/evidence/preview/preview-report.json`
 

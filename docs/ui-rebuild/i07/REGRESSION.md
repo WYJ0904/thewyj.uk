@@ -25,13 +25,24 @@
 | `npm run cf:check` | Wrangler Pages Functions compilation | **PASS** | `Compiled Worker successfully` |
 | Double `node scripts/stage_pages_deploy.mjs` & `test_stage_pages_deploy.mjs` | Staging allowlist safety + bit-for-bit deterministic build | **PASS** | `28/28` tests + identical SHA-256 `d972b0251176c56fffcfa3bdd76a34d8bcfa0fd158e9ea8a7b0bd888459f9dfc` |
 | `node qa/i07/browser-acceptance.mjs` | I07 10-scenario Fixture + Live App Chrome acceptance + `axe-core` | **PASS** | `10/10` scenarios, `5/5` axe scans (`0` violations), `20` screenshots, `0px` Scene 7 seam drift (`0.56px` multi-viewport subpixel max), `0` runtime/5xx errors |
-| `node qa/i07/verify-preview.mjs` | Live Hosted Preview real Chrome verification (`/` & `/__preview/i07-fixture.html`) | **PASS** | `0` failed requests, `0` runtime errors, bidirectional FLIP (`matrix(1,0,0,1,-186.76,0)` / `matrix(1,0,0,1,-186.903,63.6821)`), `maxSeamDrift: 0`, `5` preview screenshots |
-| `local-backend/test_app_browser.mjs` | Core CI Python-backend full app Chrome harness (`WYJ_TEST_ADMIN_SECRET` + port `8892`/`9223`) | **CI_MANAGED** | Executed on PR push in GitHub Actions `Core CI` |
+| `node qa/i07/verify-preview.mjs` | Live Hosted Preview real Chrome verification (`/` & `/__preview/i07-fixture.html`) | **PASS** | `0` failed requests, `0` runtime errors, bidirectional FLIP (`matrix(1,0,0,1,-175.386,0)` / `matrix(1,0,0,1,-144.07,49.0879)`), `maxSeamDrift: 0`, `5` preview screenshots |
+| `local-backend/test_app_browser.mjs` & `p5-pwa-browser.mjs` | Core CI Python-backend & Cloudflare-only browser flows | **PASS (CI)** | Passed inside Core CI Run `44488477835` (`Browser flow (application)` & `Cloud-only browser`) |
 
 ## 2. Hosted Preview & Core CI Status
 
-- **Hosted Preview (`thewyj-p07-ui-rc`)**: **PASS** (`https://i07-motion-engine.thewyj-p07-ui-rc.pages.dev` / immutable `https://ce253791.thewyj-p07-ui-rc.pages.dev`, `deploymentId: ce253791-be18-4beb-9767-2c089fdd9ebb`, source commit `e1e5057d13668c8a9434da2cd9e7cc0acf80ddf8`; note `thewyj-p07-ui-rc` project preview D1 inherited non-Production `a3e6253b-689f-49f3-998b-7c5828ea255a` from I02 without modifying Cloudflare project bindings, and Hosted Preview verification stayed strictly read-only GET).
-- **Draft PR & Core CI**: Stacked Draft PR against `hydrogen/i02-css-component-foundation` triggered on push; job statuses audited explicitly below after completion (skipped optional jobs recorded as `SKIPPED`, never `PASS`).
+- **Hosted Preview (`thewyj-p07-ui-rc`)**: **PASS** (`https://i07-motion-engine.thewyj-p07-ui-rc.pages.dev` / immutable `https://e83829aa.thewyj-p07-ui-rc.pages.dev`, `deploymentId: e83829aa-a8c1-47e6-b6d5-b66c3b16d743`, code commit `c8781f7a9ac4644dbe6eb108a11aa38980730fad`; note `thewyj-p07-ui-rc` project preview D1 inherited non-Production `a3e6253b-689f-49f3-998b-7c5828ea255a` from I02 without modifying Cloudflare project bindings, and Hosted Preview verification stayed strictly read-only GET).
+- **Stacked Draft PR**: `#164` (`https://github.com/WYJ0904/thewyj.uk/pull/164`, `--base hydrogen/i02-css-component-foundation`).
+- **Core CI Run [`44488477835`](https://github.com/WYJ0904/thewyj.uk/actions/runs/44488477835)** on code HEAD `c8781f7a9ac4644dbe6eb108a11aa38980730fad`: **All 8 executed jobs `PASS`; 2 optional Task25 jobs `SKIPPED`** (explicitly reported as `SKIPPED`, never counted as `PASS`):
+  - `Pages build and publish allowlist`: **PASS**
+  - `Sensitive files and static naming`: **PASS**
+  - `Python syntax and unittest (ubuntu-latest)`: **PASS**
+  - `Python syntax and unittest (windows-latest)`: **PASS**
+  - `JavaScript and static site checks`: **PASS**
+  - `Android unit, lint and APK`: **PASS**
+  - `Browser flow (application)`: **PASS** (`test_app_browser.mjs`)
+  - `Cloud-only browser, canonical session and toolbox`: **PASS** (18m0s full matrix including `p5-pwa-browser.mjs`, toolbox D1/R2, Task 11–27 flows)
+  - `Task 25 cloud credential discovery`: **SKIPPED**
+  - `Task 25 Android runtime contract`: **SKIPPED**
 
 ## 3. Non-Web Targets
 

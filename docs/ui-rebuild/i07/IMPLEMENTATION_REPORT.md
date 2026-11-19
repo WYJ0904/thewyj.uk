@@ -7,8 +7,9 @@
 - **Development Branch**: `hydrogen/i07-motion-interaction-engine`
 - **Worktree**: `motion_interaction_engine` (`aeris_i07_motion_interaction_engine` isolated checkout)
 - **Release Identifier (`ASSET_RELEASE`)**: `20261119-aeris-i07-preview`
-- **Hosted Preview (`thewyj-p07-ui-rc`)**: Alias `https://i07-motion-engine.thewyj-p07-ui-rc.pages.dev` · Immutable `https://ce253791.thewyj-p07-ui-rc.pages.dev` (code commit `e1e5057d13668c8a9434da2cd9e7cc0acf80ddf8`, non-Production D1 `a3e6253b-689f-49f3-998b-7c5828ea255a`)
+- **Hosted Preview (`thewyj-p07-ui-rc`)**: Alias `https://i07-motion-engine.thewyj-p07-ui-rc.pages.dev` · Immutable `https://e83829aa.thewyj-p07-ui-rc.pages.dev` (code commit `c8781f7a9ac4644dbe6eb108a11aa38980730fad`, non-Production D1 `a3e6253b-689f-49f3-998b-7c5828ea255a`)
 - **Stacked Draft PR**: `#164` (`https://github.com/WYJ0904/thewyj.uk/pull/164`) opened against `--base hydrogen/i02-css-component-foundation` (`hydrogen/i07-motion-interaction-engine`, do not merge PR #162/#163/#164)
+- **Core CI Run**: [`44488477835`](https://github.com/WYJ0904/thewyj.uk/actions/runs/44488477835) (`8/8` executed jobs `PASS`; `2` Task25 optional jobs `SKIPPED`)
 
 ## 2. Architecture & Code Changes Implemented
 

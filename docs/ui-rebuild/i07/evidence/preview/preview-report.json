@@ -8,8 +8,8 @@
     "bannerVerified": "true",
     "fixtureHref": "/__preview/i07-fixture.html"
   },
-  "flipMidDown": "matrix(1, 0, 0, 1, -186.934, 0)",
-  "flipMidUp": "matrix(1, 0, 0, 1, -175.3, 59.7286)",
+  "flipMidDown": "matrix(1, 0, 0, 1, -175.386, 0)",
+  "flipMidUp": "matrix(1, 0, 0, 1, -144.07, 49.0879)",
   "toastSnap": {
     "visible": [
       {
