@@ -23,8 +23,8 @@
 | `npm run test:task30` & `npm run test:task30:browser` | Privacy & erasure D1/R2 + Chrome responsive checks (`1440/768/390/375`) | **PASS** | Unit `10` checks + Browser `4/4` |
 | `npm run test:aeris-state` | State consistency & finance/notification ledgers | **PASS** | `13/13` + candidates + notification ledger `PASS` |
 | `npm run cf:check` | Wrangler Pages Functions compilation | **PASS** | `Compiled Worker successfully` |
-| Double `node scripts/stage_pages_deploy.mjs` & `test_stage_pages_deploy.mjs` | Staging allowlist safety + bit-for-bit deterministic build | **PASS** | `28/28` tests + identical SHA-256 `52037351c4da83ee0ac7aa2ef337e15319cbded657c2648c579e0788800305cf` |
-| `node qa/i07/browser-acceptance.mjs` | I07 10-scenario Fixture + Live App Chrome acceptance + `axe-core` | **PASS** | `10/10` scenarios, `5/5` axe scans (`0` violations), `20` screenshots, `maxSeamDriftPx: 0.45px` (Scenario 7 & live Preview `0px`), `0` runtime/5xx errors |
+| Double `node scripts/stage_pages_deploy.mjs` & `test_stage_pages_deploy.mjs` | Staging allowlist safety + bit-for-bit deterministic build | **PASS** | `28/28` tests + identical SHA-256 `3262d565b1dfa73440583ac019c6318b89968148b8ae6b0f536125964ba30d87` |
+| `node qa/i07/browser-acceptance.mjs` | I07 10-scenario Fixture + Live App Chrome acceptance + `axe-core` | **PASS** | `10/10` scenarios, `5/5` axe scans (`0` violations), `20` screenshots, `maxSeamDriftPx: 0`, `0` runtime/5xx errors |
 | `node qa/i07/verify-preview.mjs` | Live Hosted Preview real Chrome verification (`/` & `/__preview/i07-fixture.html`) | **PASS** | `0` failed requests, `0` runtime errors, bidirectional FLIP (`matrix(1,0,0,1,-186.76,0)` / `matrix(1,0,0,1,-186.903,63.6821)`), `maxSeamDrift: 0`, `5` preview screenshots |
 | `local-backend/test_app_browser.mjs` | Core CI Python-backend full app Chrome harness (`WYJ_TEST_ADMIN_SECRET` + port `8892`/`9223`) | **CI_MANAGED** | Executed on PR push in GitHub Actions `Core CI` |
 

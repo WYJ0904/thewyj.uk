@@ -965,7 +965,7 @@ textarea[aria-invalid="true"] {
   color: var(--ds-text);
   background: var(--ds-surface-raised);
   box-shadow: var(--ds-shadow-dialog);
-  animation: dsModalPanelIn var(--ds-duration-container) var(--ds-ease-spring) both;
+  animation: dsModalPanelIn var(--ds-duration-page) var(--ds-ease-spring) both;
 }
 
 .modal-layer.is-closing .modal-panel {
