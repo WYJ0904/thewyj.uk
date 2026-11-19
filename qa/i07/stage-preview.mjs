@@ -141,6 +141,8 @@ await fs.copyFile(path.join(ROOT, "qa/i07/fixture.html"), path.join(previewDir, 
 await fs.copyFile(path.join(ROOT, "qa/i07/fixture.css"), path.join(previewDir, "i07-fixture.css"));
 await fs.copyFile(path.join(ROOT, "qa/i07/fixture.js"), path.join(previewDir, "i07-fixture.js"));
 
+await fs.cp(path.join(ROOT, "functions"), path.join(STAGE_ROOT, "functions"), { recursive: true });
+
 if (previewWrangler) {
   await fs.writeFile(path.join(STAGE_ROOT, "wrangler.jsonc"), `${JSON.stringify(previewWrangler, null, 2)}\n`);
 }
