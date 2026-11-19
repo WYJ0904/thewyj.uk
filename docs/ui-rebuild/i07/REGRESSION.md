@@ -24,12 +24,14 @@
 | `npm run test:aeris-state` | State consistency & finance/notification ledgers | **PASS** | `13/13` + candidates + notification ledger `PASS` |
 | `npm run cf:check` | Wrangler Pages Functions compilation | **PASS** | `Compiled Worker successfully` |
 | Double `node scripts/stage_pages_deploy.mjs` & `test_stage_pages_deploy.mjs` | Staging allowlist safety + bit-for-bit deterministic build | **PASS** | `28/28` tests + identical SHA-256 `52037351c4da83ee0ac7aa2ef337e15319cbded657c2648c579e0788800305cf` |
-| `node qa/i07/browser-acceptance.mjs` | I07 10-scenario Fixture + Live App Chrome acceptance + `axe-core` | **PASS** | `10/10` scenarios, `5/5` axe scans (`0` violations), `20` screenshots, `maxSeamDriftPx: 0`, `0` runtime/5xx errors |
-| `local-backend/test_app_browser.mjs` | Core CI Python-backend full app Chrome harness (`WYJ_TEST_ADMIN_SECRET` + port `8892`/`9223`) | **DEFERRED_TO_CORE_CI** | Executed automatically on PR push in GitHub Actions `Core CI` |
+| `node qa/i07/browser-acceptance.mjs` | I07 10-scenario Fixture + Live App Chrome acceptance + `axe-core` | **PASS** | `10/10` scenarios, `5/5` axe scans (`0` violations), `20` screenshots, `maxSeamDriftPx: 0.45px` (Scenario 7 & live Preview `0px`), `0` runtime/5xx errors |
+| `node qa/i07/verify-preview.mjs` | Live Hosted Preview real Chrome verification (`/` & `/__preview/i07-fixture.html`) | **PASS** | `0` failed requests, `0` runtime errors, bidirectional FLIP (`matrix(1,0,0,1,-186.76,0)` / `matrix(1,0,0,1,-186.903,63.6821)`), `maxSeamDrift: 0`, `5` preview screenshots |
+| `local-backend/test_app_browser.mjs` | Core CI Python-backend full app Chrome harness (`WYJ_TEST_ADMIN_SECRET` + port `8892`/`9223`) | **CI_MANAGED** | Executed on PR push in GitHub Actions `Core CI` |
 
 ## 2. Hosted Preview & Core CI Status
 
-To be completed after deploying Hosted Preview (`thewyj-p07-ui-rc`) and triggering `Core CI` on Draft PR (`--base hydrogen/i02-css-component-foundation`). Skipped optional CI jobs (e.g., Task25 cloud credential discovery on non-matching branch prefixes) will be recorded explicitly as `SKIPPED`, never `PASS`.
+- **Hosted Preview (`thewyj-p07-ui-rc`)**: **PASS** (`https://i07-motion-engine.thewyj-p07-ui-rc.pages.dev` / immutable `https://ce253791.thewyj-p07-ui-rc.pages.dev`, `deploymentId: ce253791-be18-4beb-9767-2c089fdd9ebb`, source commit `e1e5057d13668c8a9434da2cd9e7cc0acf80ddf8`; note `thewyj-p07-ui-rc` project preview D1 inherited non-Production `a3e6253b-689f-49f3-998b-7c5828ea255a` from I02 without modifying Cloudflare project bindings, and Hosted Preview verification stayed strictly read-only GET).
+- **Draft PR & Core CI**: Stacked Draft PR against `hydrogen/i02-css-component-foundation` triggered on push; job statuses audited explicitly below after completion (skipped optional jobs recorded as `SKIPPED`, never `PASS`).
 
 ## 3. Non-Web Targets
 

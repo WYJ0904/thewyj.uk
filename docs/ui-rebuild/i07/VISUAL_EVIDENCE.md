@@ -29,4 +29,17 @@ All evidence artifacts were captured in real headless Chrome (`Chrome/157.0.8103
 
 ## 2. Hosted Preview Evidence (`thewyj-p07-ui-rc`)
 
-Hosted Preview deployment (`stage-preview.mjs --deploy`) and live browser verification (`verify-preview.mjs`) will populate this section immediately following branch push and preview deployment.
+Verified live via `node qa/i07/verify-preview.mjs` in real headless Chrome against isolated Hosted Preview (`0` failed requests, `0` console errors, `maxSeamDrift === 0`):
+
+- **Branch Alias URL**: `https://i07-motion-engine.thewyj-p07-ui-rc.pages.dev`
+- **Immutable Deployment URL**: `https://ce253791.thewyj-p07-ui-rc.pages.dev` (`ce253791-be18-4beb-9767-2c089fdd9ebb`, code commit `e1e5057d13668c8a9434da2cd9e7cc0acf80ddf8`, `20261119-aeris-i07-preview`)
+- **Fixture Route**: `/__preview/i07-fixture.html` (excluded from Production staging builds)
+- **Verification Report**: `docs/ui-rebuild/i07/evidence/preview/preview-report.json`
+
+| Preview Capture | Artifact Path | What It Proves Live |
+| :--- | :--- | :--- |
+| Live Public Home (`/`) | `docs/ui-rebuild/i07/evidence/preview/preview-home-desktop.png` | Isolated Preview banner, `motionReady === "true"`, `?release=20261119-aeris-i07-preview` served from Cloudflare CDN |
+| Live Fixture Desktop Light (`1440px`) | `docs/ui-rebuild/i07/evidence/preview/preview-fixture-desktop-light.png` | Aligned controls, interactive switches & dropzone on Cloudflare Pages |
+| Live Fixture 5-Burst Toast (`1440px`) | `docs/ui-rebuild/i07/evidence/preview/preview-fixture-toast-burst.png` | Strict `2`-visible / `3`-queued stack live on Hosted Preview |
+| Live Fixture Scroll 3D & Bento (`1440px`) | `docs/ui-rebuild/i07/evidence/preview/preview-fixture-scroll-bento.png` | Scroll-driven 3D & Bento seam lock (`maxSeamDrift === 0`) live |
+| Live Fixture Mobile Dark Drawer (`375px`) | `docs/ui-rebuild/i07/evidence/preview/preview-fixture-mobile-drawer-dark.png` | Dark bottom drawer (`data-sheet-mode="drawer"`) + touch swipe-dismiss live |

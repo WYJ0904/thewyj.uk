@@ -25,9 +25,9 @@ Executed real headless Chrome `axe-core` audits across **5** distinct surfaces/t
 
 Collected via `window.__i07FixtureTelemetry()` (`requestAnimationFrame` delta sampler + `PerformanceObserver({ type: 'longtask' })`) across the full interactive fixture suite:
 
-- **Worst frame delta**: `154.1ms` (including synthetic Chrome viewport switches & axe injection during test execution; GPU `transform`/`opacity` animations did not introduce continuous main-thread blocking loops).
-- **Long task count**: `1` (within test initialization window).
-- **Bento seam drift (`maxSeamDriftPx`)**: `0` (`0px` outer grid/tile displacement across scroll 3D + parallax + responsive resizing).
+- **Worst frame delta**: `179.1ms` (including synthetic Chrome viewport switches & axe injection during test execution; GPU `transform`/`opacity` animations did not introduce continuous main-thread blocking loops).
+- **Long task count**: `2` (within test initialization/axe execution windows).
+- **Bento seam drift (`maxSeamDriftPx`)**: `0px` during Scene 7 scroll cycle & live Hosted Preview (`<= 0.45px` subpixel tolerance across multi-viewport test sequence).
 - **Listener discipline**: Single delegated root handlers via `installMotionSystem(root)` + two scoped `MutationObserver`s (`<details>` and `[role="tablist"]`) + one `IntersectionObserver` per `createScrollProgressController`; zero per-button listeners attached across the 268+ buttons in `index.html`.
 - **Style & asset overhead**:
   - Added 5 small modular files under `js/core/` (`motion-tokens.js`, `motion-flip.js`, `motion-toast.js`, `motion-sheet.js`, `motion-scroll.js`) with zero external runtime dependencies.

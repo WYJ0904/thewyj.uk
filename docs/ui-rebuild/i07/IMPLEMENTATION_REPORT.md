@@ -5,9 +5,10 @@
 - **Task**: `Aeris V6.3 — I07｜共享动效引擎与全站交互系统`
 - **Base Branch / SHA**: `hydrogen/i02-css-component-foundation` @ `1e1d2d21c143be36268e7d1192f6399cd4e2f782`
 - **Development Branch**: `hydrogen/i07-motion-interaction-engine`
-- **Worktree**: `C:\Users\78252\.gemini\antigravity\worktrees\thewyj.uk\motion_interaction_engine`
+- **Worktree**: `motion_interaction_engine` (`aeris_i07_motion_interaction_engine` isolated checkout)
 - **Release Identifier (`ASSET_RELEASE`)**: `20261119-aeris-i07-preview`
-- **Draft PR / Hosted Preview / Core CI**: Pending push & deployment steps (updated below once created)
+- **Hosted Preview (`thewyj-p07-ui-rc`)**: Alias `https://i07-motion-engine.thewyj-p07-ui-rc.pages.dev` · Immutable `https://ce253791.thewyj-p07-ui-rc.pages.dev` (code commit `e1e5057d13668c8a9434da2cd9e7cc0acf80ddf8`, non-Production D1 `a3e6253b-689f-49f3-998b-7c5828ea255a`)
+- **Stacked Draft PR**: Opened against `--base hydrogen/i02-css-component-foundation` (`hydrogen/i07-motion-interaction-engine`, do not merge PR #162/#163/I07)
 
 ## 2. Architecture & Code Changes Implemented
 

@@ -4,7 +4,7 @@
 
 Per repository rules and actual local filesystem verification:
 
-- Read in full: `C:\Users\78252\Desktop\编程\Aeris_I_series_UI_refactor_execution_baseline_v1.1_2026-11-17.txt` (V1.1 execution order `I01 -> I02 -> I07 -> I03...`, visual tokens, platform sheet differentiation rules, and known prototype pitfalls).
+- Read in full: `Aeris_I_series_UI_refactor_execution_baseline_v1.1_2026-11-17.txt` (from Owner's workspace directory; V1.1 execution order `I01 -> I02 -> I07 -> I03...`, visual tokens, platform sheet differentiation rules, and known prototype pitfalls).
 - Verified absent locally: `Aeris_I_series_UI_interactive_prototype_2026-11-17.html` (same status documented earlier in `docs/ui-rebuild/i02/PROTOTYPE_MAPPING.md`). Zero unverified prototype code lines were fabricated.
 - Known architectural targets from Owner specification & `I02` handoff implemented faithfully in I07:
 

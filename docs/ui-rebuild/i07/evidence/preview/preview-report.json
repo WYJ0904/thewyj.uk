@@ -8,8 +8,8 @@
     "bannerVerified": "true",
     "fixtureHref": "/__preview/i07-fixture.html"
   },
-  "flipMidDown": "matrix(1, 0, 0, 1, -186.792, 0)",
-  "flipMidUp": "matrix(1, 0, 0, 1, -144.464, 49.2222)",
+  "flipMidDown": "matrix(1, 0, 0, 1, -186.76, 0)",
+  "flipMidUp": "matrix(1, 0, 0, 1, -186.903, 63.6821)",
   "toastSnap": {
     "visible": [
       {
@@ -47,7 +47,7 @@
     ],
     "maxVisible": 2
   },
-  "scrollBefore": "matrix3d(0.9428, 0, 0, 0, 0, 0.924037, 0.187158, -0.000155965, 0, -0.198513, 0.980098, -0.000816749, 0, 22.89, 0, 1)",
+  "scrollBefore": "matrix3d(0.9428, 0, 0, 0, 0, 0.924069, 0.186997, -0.00015583, 0, -0.198342, 0.980133, -0.000816777, 0, 22.89, 0, 1)",
   "scrollAfter": "matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, -0.000833333, 0, 0, 0, 1)",
   "maxSeamDrift": 0,
   "failedRequests": [],
