@@ -119,7 +119,7 @@ await fs.cp(staged.output, OUTPUT_DIR, { recursive: true });
 
 // Apply isolated preview banner + I07 Fixture under /__preview/* (never present in Production builds)
 const origHtml = await fs.readFile(path.join(OUTPUT_DIR, "index.html"), "utf8");
-const banner = `<aside class="owner-preview-banner" id="ownerPreviewBanner" role="status" data-preview-source="${commit}">` +
+const banner = `<aside class="owner-preview-banner" id="ownerPreviewBanner" aria-label="隔离 Preview 环境" data-preview-source="${commit}">` +
   `<strong>隔离 Preview · Aeris I07 共享动效引擎</strong><span>独立预览分支 <code>${PREVIEW_BRANCH}</code>，不连接正式账目与生产数据。</span>` +
   `<details><summary>版本与 I07 验收入口</summary><small>源码 <code>${commit}</code> · <a href="/__preview/i07-fixture.html">打开 I07 动效验收 Fixture</a> · <a href="/__preview/build.json">构建证据</a></small></details></aside>`;
 let nextHtml = origHtml.replace("</head>", '    <link rel="stylesheet" href="/__preview/preview-ui.css" />\n  </head>');
