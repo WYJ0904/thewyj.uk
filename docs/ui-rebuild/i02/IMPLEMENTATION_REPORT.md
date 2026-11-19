@@ -6,8 +6,9 @@
 - **仓库与分支**：`WYJ0904/thewyj.uk`
   - I01 基准分支：`hydrogen/i01-design-foundation-shell`（PR #162，Draft / Open，远端 HEAD `3f5cffc3c86d2b92006cc78dab828a80f2068a65`，未修改 I01 工作区与 PR 状态）
   - `main` 基线：`7c111ae4452d8eef493bca6fab71c613e380761c`
-  - I02 开发分支：`hydrogen/i02-css-component-foundation`（基于 I01 建 stacked Draft PR）
+  - I02 开发分支：`hydrogen/i02-css-component-foundation`（基于 I01 建 stacked Draft PR #163）
   - 独立 Worktree：`aeris_i02_css_component_foundation`（工作目录 `css_component_foundation`）
+  - 隔离 Hosted Preview：`https://i02-css-component-foundation.thewyj-p07-ui-rc.pages.dev`（部署 ID `a7cfa4d7`）
 
 ## 2. 本轮核心实施成果
 

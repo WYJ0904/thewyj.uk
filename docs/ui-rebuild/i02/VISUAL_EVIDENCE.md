@@ -20,6 +20,19 @@
 | `evidence/mobile-modal-light.png` | 375×812 · Light (`#deleteAccountModal`) | 弹窗 z-index 严密覆盖顶栏、警告说明与危险按钮清晰分层 |
 | `evidence/desktop-p07-off-light.png` | 1440×900 · Light (`P07 OFF`) | `p07_accessibility=0` 时侧栏隐藏，顶栏遗留导航完整回退，零错乱 |
 
-## 2. 隔离 Hosted Preview 视觉验证（待部署后追加）
+## 2. 隔离 Hosted Preview 视觉验证（已实测 PASS）
 
-> 本节将在提交推送并与 `thewyj-p07-ui-rc` (`--branch i02-css-component-foundation`) 完成隔离 Preview 部署和线上 headless Chrome 实测后补充真实 URL 与 `evidence/preview/` 截图记录。
+- **目标项目**：`thewyj-p07-ui-rc`（隔离 Preview 环境，与 `i01-design-foundation` 与 Production `thewyj-uk` 完全隔离）
+- **Alias URL**：`https://i02-css-component-foundation.thewyj-p07-ui-rc.pages.dev`
+- **Immutable Deployment URL**：`https://a7cfa4d7.thewyj-p07-ui-rc.pages.dev`
+- **验证脚本与报告**：`qa/i02/verify-preview.mjs` → `docs/ui-rebuild/i02/evidence/preview/preview-report.json`
+- **线上实测结论**：`p07Ui: "enabled"`，`policy: "enabled"`，`release=20261119-aeris-i02-preview`，`failedRequests: []`，`runtimeErrors: []`，`/download` `#downloadMainBtn` 背景 `rgb(17, 17, 19)`，`/` 与 `/changelog` 在 Light/Dark 零横向溢出。
+
+| 线上 Preview 截图 | 视口 / 路由 / 主题 | 验证重点 |
+|---|---|---|
+| `evidence/preview/preview-desktop-1440-light.png` | 1440×900 · `/` · Light | 隔离 Preview Banner、`#111113` 主 CTA、零 4xx/5xx |
+| `evidence/preview/preview-desktop-1440-dark.png` | 1440×900 · `/` · Dark | `#F8FAFC` 主 CTA、深色卡片与边界对比度 |
+| `evidence/preview/preview-mobile-390-light.png` | 390×844 · `/` · Light | 移动两行顶栏、零溢出 |
+| `evidence/preview/preview-mobile-390-dark.png` | 390×844 · `/` · Dark | 移动深色一致性 |
+| `evidence/preview/preview-login.png` | 1440×900 · `/login` · Light | 登录面板与主按钮样式一致性 |
+| `evidence/preview/preview-download.png` | 1440×900 · `/download` · Light | `a.primary` (`#downloadMainBtn`) `rgb(17, 17, 19)` 线上对齐 |
