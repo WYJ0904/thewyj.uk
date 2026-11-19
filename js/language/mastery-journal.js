@@ -1,4 +1,4 @@
-import {emptyLearningStore,parseLearningStore,parseIssuedQuestion,enqueueAnswer} from './mastery-state.js?release=20261119-aeris-i07-preview';
+import {emptyLearningStore,parseLearningStore,parseIssuedQuestion,enqueueAnswer} from './mastery-state.js?release=20261119-aeris-i03-preview';
 
 export const MASTERY_JOURNAL_DB='aeris-mastery-outbox-v1';
 export function createMasteryJournal(indexedDB=globalThis.indexedDB){

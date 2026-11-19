@@ -34,7 +34,7 @@ export function createAndroidDownloadController({
     return text;
   }
 
-  function render(app) {
+  function render(app, stateKind = null) {
     release = app || null;
     const version = String(app?.latest_version_name || "1.0.0");
     const code = Number(app?.latest_version_code || 1);
@@ -43,6 +43,8 @@ export function createAndroidDownloadController({
     const fileName = String(app?.apk_file_name || "thewyj-android.apk");
     const size = formatBytes(app?.apk_size_bytes);
     const date = formatDate(app?.release_date);
+    const ready = Boolean(sha && app?.apk_size_bytes > 0);
+    const effectiveState = stateKind || (ready ? "available" : "pending");
 
     if (element("downloadVersion")) element("downloadVersion").textContent = `v${version} (${code})`;
     if (element("downloadReleaseDate")) element("downloadReleaseDate").textContent = date;
@@ -51,21 +53,39 @@ export function createAndroidDownloadController({
     if (element("downloadSha")) element("downloadSha").textContent = sha || "待校验值";
     if (element("downloadMainBtn")) element("downloadMainBtn").setAttribute("href", url);
     if (element("downloadSecondaryBtn")) element("downloadSecondaryBtn").setAttribute("href", url);
+    const badge = element("downloadStatusBadge");
+    if (badge) {
+      badge.dataset.tone = effectiveState === "available" ? "success" : effectiveState === "error" ? "error" : "warning";
+      badge.textContent = effectiveState === "available"
+        ? "正式版可下载"
+        : effectiveState === "error"
+          ? "元数据读取失败（保留下载入口）"
+          : "发布配置待完善";
+    }
+    const copyBtn = element("downloadCopyShaBtn");
+    if (copyBtn) copyBtn.disabled = !sha;
     if (element("downloadNotice")) {
-      element("downloadNotice").textContent = sha
-        ? "下载后可用 SHA-256 校验安装包完整性。"
-        : "安装包校验值将在正式发布后显示。";
+      element("downloadNotice").textContent = effectiveState === "error"
+        ? "暂时无法读取最新版本号与校验值，仍可直接下载当前备用包。"
+        : sha
+          ? "下载后可用下方 SHA-256 核对安装包完整性。"
+          : "安装包校验值将在正式发布后显示。";
     }
   }
 
   async function reload() {
+    const badge = element("downloadStatusBadge");
+    if (badge) {
+      badge.dataset.tone = "info";
+      badge.textContent = "正在核对版本信息…";
+    }
     try {
       const payload = await apiGet("/api/app/config");
       render(payload?.app || {});
     } catch (error) {
       // Graceful fallback: keep the static page and the stable download link so
       // users can still install the app when the metadata call fails.
-      render(release || {});
+      render(release || {}, "error");
       onMessage("无法获取最新版本信息，仍可直接下载正式安装包。");
     }
   }

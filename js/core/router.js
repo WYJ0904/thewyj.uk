@@ -9,6 +9,12 @@ export function createRouter({ onRouteChange = () => {} } = {}) {
   function pushRoute(path, replace = false, state = {}) {
     const target = String(path || "/");
     if (location.pathname === target) return;
+    if (!replace && typeof globalThis.history?.replaceState === "function" && typeof globalThis.window?.scrollY === "number") {
+      try {
+        const prevState = (globalThis.history.state && typeof globalThis.history.state === "object") ? globalThis.history.state : {};
+        globalThis.history.replaceState({ ...prevState, scrollX: globalThis.window.scrollX || 0, scrollY: globalThis.window.scrollY || 0 }, "", globalThis.location.href);
+      } catch (_) {}
+    }
     history[replace ? "replaceState" : "pushState"](state, "", target);
     onRouteChange(target);
   }

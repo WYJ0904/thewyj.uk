@@ -657,7 +657,7 @@ article[data-aeris-pressed="true"],
   scale: 1;
 }
 
-.ds-motion-tabs { position: relative; isolation: isolate; }
+.ds-motion-tabs { position: relative; isolation: isolate; overflow: hidden; }
 .ds-tab-indicator {
   position: absolute; pointer-events: none; bottom: 0; left: 0; height: 2px;
   background: var(--ds-action-primary); border-radius: var(--ds-radius-pill);

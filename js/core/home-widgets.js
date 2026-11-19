@@ -1,13 +1,24 @@
-import { getSafeStorage, safeStorageSet } from "./storage.js?release=20261119-aeris-i07-preview";
-import { HOME_WIDGET_VERSION, WIDGET_IDS, WIDGET_MODES, defaultHomeWidgets, sanitizeHomeWidgets, homeWidgetStorageKey, legacyHomeWidgetStorageKey, isHomeWidgetDesktop, rotatedWidgetBox, layoutHomeWidgets, layoutMobileWidgets, widgetGeometry, widgetProfile, clampWidgetValue } from "./home-widget-layout.js?release=20261119-aeris-i07-preview";
+import { getSafeStorage, safeStorageSet } from "./storage.js?release=20261119-aeris-i03-preview";
+import { HOME_WIDGET_VERSION, WIDGET_IDS, WIDGET_MODES, defaultHomeWidgets, sanitizeHomeWidgets, homeWidgetStorageKey, legacyHomeWidgetStorageKey, isHomeWidgetDesktop, rotatedWidgetBox, layoutHomeWidgets, layoutMobileWidgets, widgetGeometry, widgetProfile, clampWidgetValue } from "./home-widget-layout.js?release=20261119-aeris-i03-preview";
 export { HOME_WIDGET_VERSION, WIDGET_IDS, WIDGET_MODES, defaultHomeWidgets, sanitizeHomeWidgets, homeWidgetStorageKey, legacyHomeWidgetStorageKey, isHomeWidgetDesktop, rotatedWidgetBox, layoutHomeWidgets, layoutMobileWidgets, widgetGeometry, widgetProfile };
 const clamp=clampWidgetValue;
 export const homeWidgetDragMoved = (x,y) => Math.hypot(x,y) >= 6;
 
 /** Owns only UI preferences and gestures. Dashboard passes existing owner projections. */
-export function createHomeWidgets({ root, accountId, navigate, storage = getSafeStorage(), view = window }) {
-  const stage = root.querySelector(".public-hero-scene"), dialog = root.querySelector("#homeWidgetEditor"), form = dialog.querySelector("form");
-  const cards = Object.fromEntries(WIDGET_IDS.map(id => [id, stage.querySelector(`[data-home-widget=${id}]`)]));
+export function createHomeWidgets({ root, accountId, navigate, storage = getSafeStorage(), view = globalThis.window } = {}) {
+  const stage = root?.querySelector(".public-hero-scene");
+  const dialog = root?.querySelector("#homeWidgetEditor");
+  const form = dialog?.querySelector("form");
+  const cards = stage ? Object.fromEntries(WIDGET_IDS.map((id) => [id, stage.querySelector(`[data-home-widget=${id}]`)])) : {};
+  if (!root || !stage || !dialog || !form || WIDGET_IDS.some((id) => !cards[id])) {
+    return Object.freeze({
+      render() {},
+      setAccount() {},
+      snapshot: () => defaultHomeWidgets(),
+      hide() {},
+      dispose() {},
+    });
+  }
   const slots=Object.fromEntries(WIDGET_IDS.map(id=>{const card=cards[id],slot=root.ownerDocument.createElement('div');slot.className='home-widget-slot';card.before(slot);slot.append(card);return [id,slot];}));
   const labels = { learning:"学习记录",finance:"本月账本",tools:"最近工具" };
   const v3DesktopPreset = {

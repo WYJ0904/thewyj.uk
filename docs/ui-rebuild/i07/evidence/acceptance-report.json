@@ -1,6 +1,6 @@
 {
   "scope": "Isolated Miniflare D1/R2 + real headless Chrome CDP",
-  "gitSha": "29f81756ffd38e26777d05f8d0a9841179a573ea",
+  "gitSha": "df4ef2ed1992b12485952d8c15c5c5cee8ff6390",
   "browserVersion": "Chrome/157.0.8103.79",
   "scenarios": [
     {
@@ -26,8 +26,8 @@
       "name": "flip-bidirectional-reversal-density-keyboard",
       "status": "PASS",
       "detail": {
-        "midDownTransform": "matrix(1, 0, 0, 1, -186.555, 0)",
-        "midUpTransform": "matrix(1, 0, 0, 1, -186.575, 63.5705)",
+        "midDownTransform": "matrix(1, 0, 0, 1, -201.58, 0)",
+        "midUpTransform": "matrix(1, 0, 0, 1, -192.528, 65.5987)",
         "flipIdentity": "4 / 4"
       }
     },
@@ -148,9 +148,9 @@
       "name": "dark-theme-and-performance-telemetry",
       "status": "PASS",
       "detail": {
-        "worstFrameMs": 158.4,
+        "worstFrameMs": 146.9,
         "longTaskCount": 1,
-        "maxSeamDriftPx": 0.4169921875
+        "maxSeamDriftPx": 0.4208984375
       }
     },
     {
@@ -190,7 +190,7 @@
     {
       "label": "real-app-public-home",
       "violationCount": 0,
-      "passes": 39,
+      "passes": 45,
       "violations": []
     },
     {
@@ -223,9 +223,9 @@
     }
   ],
   "performance": {
-    "worstFrameMs": 158.4,
+    "worstFrameMs": 146.9,
     "longTaskCount": 1,
-    "maxSeamDriftPx": 0.4169921875
+    "maxSeamDriftPx": 0.4208984375
   },
   "screenshots": [
     "fixture-desktop-1440-light.png",
