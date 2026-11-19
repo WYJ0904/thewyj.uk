@@ -1,0 +1,33 @@
+{
+  "status": "PASS",
+  "previewUrl": "https://i02-css-component-foundation.thewyj-p07-ui-rc.pages.dev",
+  "homeState": {
+    "p07Ui": "enabled",
+    "policy": "enabled",
+    "release": "https://i02-css-component-foundation.thewyj-p07-ui-rc.pages.dev/styles.css?release=20261119-aeris-i02-preview"
+  },
+  "lightBtn": {
+    "bg": "rgb(17, 17, 19)",
+    "color": "rgb(255, 255, 255)",
+    "overflowX": 0
+  },
+  "darkBtn": {
+    "bg": "rgb(248, 250, 252)",
+    "color": "rgb(17, 17, 19)",
+    "overflowX": 0
+  },
+  "mobLightOverflow": 0,
+  "mobDarkOverflow": 0,
+  "downloadPrimaryBg": "rgb(17, 17, 19)",
+  "changelogOverflow": 0,
+  "failedRequests": [],
+  "runtimeErrors": [],
+  "screenshots": [
+    "preview-desktop-1440-light.png",
+    "preview-desktop-1440-dark.png",
+    "preview-mobile-390-light.png",
+    "preview-mobile-390-dark.png",
+    "preview-login.png",
+    "preview-download.png"
+  ]
+}

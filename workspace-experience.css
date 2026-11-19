@@ -85,9 +85,10 @@ body[data-experience="workspace"] .account-badge {
 .dashboard-learning-lane {
   min-width: 0;
   padding: var(--ds-space-5);
-  border-radius: var(--ds-radius-md);
-  color: var(--ds-on-brand);
-  background: var(--ds-brand);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-density-radius, var(--ds-radius-md));
+  color: var(--ds-text);
+  background: var(--ds-surface-subtle);
 }
 
 .dashboard-lane-heading {
@@ -98,12 +99,12 @@ body[data-experience="workspace"] .account-badge {
   margin-bottom: var(--ds-space-4);
 }
 
-.dashboard-lane-heading strong,
-.dashboard-lane-heading span {
-  color: var(--ds-on-brand);
+.dashboard-lane-heading strong {
+  color: var(--ds-text);
 }
 
 .dashboard-lane-heading span {
+  color: var(--ds-text-secondary);
   font-size: var(--ds-text-sm);
 }
 
@@ -119,8 +120,8 @@ body[data-experience="workspace"] .account-badge {
 
 .dashboard-learning-actions .module-card {
   min-height: 158px;
-  border-color: color-mix(in srgb, var(--ds-on-brand) 28%, transparent);
-  background: color-mix(in srgb, var(--ds-surface) 96%, var(--ds-brand));
+  border-color: var(--ds-border);
+  background: var(--ds-surface);
 }
 
 .dashboard-quick-lane .module-card {
@@ -155,7 +156,7 @@ body[data-experience="workspace"] .account-badge {
 
 .module-icon,
 .project-mark {
-  border-color: #c8d6ed;
+  border-color: var(--ds-brand-border, #c8d6ed);
   color: var(--ds-brand-hover);
   background: var(--ds-brand-soft);
 }

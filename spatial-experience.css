@@ -1408,17 +1408,17 @@ html[data-p07-ui="enabled"] #loginError:not(:empty) {
   }
 }
 
-/* Unified Aeris brand primary buttons across public Home & Workspace (light #2563eb / dark #6ea2ff) */
+/* Unified Aeris primary action buttons across public Home & Workspace (light #111113 / dark #F8FAFC) */
 html[data-p07-ui="enabled"] :is(#publicHome .public-actions .primary, #accountBar #navRegisterBtn) {
-  border-color: var(--ds-brand);
-  background: var(--ds-brand);
-  color: var(--ds-on-brand);
+  border-color: var(--ds-action-primary);
+  background: var(--ds-action-primary);
+  color: var(--ds-on-action-primary);
 }
 
 html[data-p07-ui="enabled"] :is(#publicHome .public-actions .primary, #accountBar #navRegisterBtn):hover:not(:disabled) {
-  border-color: var(--ds-brand-hover);
-  background: var(--ds-brand-hover);
-  color: var(--ds-on-brand);
+  border-color: var(--ds-action-primary-hover);
+  background: var(--ds-action-primary-hover);
+  color: var(--ds-on-action-primary);
 }
 
 /* While layout editing is active, yield top-right slot cleanly to the 44px drag handle */
@@ -1598,7 +1598,7 @@ html[data-p07-ui="enabled"] #languagePanel [data-language-choice] {
   min-height: 96px;
   padding: 22px 28px;
   border: 1.5px solid var(--ds-border);
-  border-radius: 16px;
+  border-radius: var(--ds-density-radius, var(--ds-radius-md));
   background: var(--ds-surface);
   color: var(--ds-text);
   font-size: 1.25rem;
@@ -1612,10 +1612,10 @@ html[data-p07-ui="enabled"] #languagePanel [data-language-choice] {
 }
 
 html[data-p07-ui="enabled"] #languagePanel [data-language-choice]:hover {
-  border-color: var(--ds-brand);
+  border-color: var(--ds-border-strong);
   background: var(--ds-surface-subtle);
   transform: translateY(-2px);
-  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.08);
+  box-shadow: var(--ds-shadow-raised);
 }
 
 /* Workspace Navigation Tabs */
@@ -1625,17 +1625,17 @@ html[data-p07-ui="enabled"] #workspace .tabs {
   gap: 6px;
   padding: 6px;
   border: 1px solid var(--ds-border);
-  border-radius: 14px;
+  border-radius: var(--ds-density-radius, var(--ds-radius-md));
   background: var(--ds-surface);
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
   margin-bottom: 24px;
 }
 
 html[data-p07-ui="enabled"] #workspace .tabs button {
-  min-height: 40px;
+  min-height: var(--ds-touch-min);
   padding: 0 18px;
   border: none;
-  border-radius: 10px;
+  border-radius: var(--ds-radius-sm);
   background: transparent;
   color: var(--ds-text-secondary);
   font-size: 0.9375rem;
@@ -1650,9 +1650,9 @@ html[data-p07-ui="enabled"] #workspace .tabs button:hover:not(:disabled) {
 }
 
 html[data-p07-ui="enabled"] #workspace .tabs button.active {
-  background: var(--ds-brand);
-  color: var(--ds-on-brand);
-  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+  background: var(--ds-action-primary);
+  color: var(--ds-on-action-primary);
+  box-shadow: none;
 }
 
 html[data-p07-ui="enabled"] #workspace .tabs button:disabled {
@@ -1661,68 +1661,65 @@ html[data-p07-ui="enabled"] #workspace .tabs button:disabled {
 }
 
 /* P07-D-001 & P07-D-002: Enforce strict view isolation in V3 Workspace */
-html[data-p07-ui="enabled"] .view:not(.active) {
-  display: none !important;
-}
-
+html[data-p07-ui="enabled"] .view:not(.active),
 html[data-p07-ui="enabled"] #quizView:not(.active) {
-  display: none !important;
+  display: none;
 }
 
 /* Immersive Quiz View Centered Single-Column Default */
 html[data-p07-ui="enabled"] #quizView.active {
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  width: 100% !important;
-  box-sizing: border-box !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 html[data-p07-ui="enabled"] #quizView .quiz-card {
-  width: 100% !important;
-  max-width: 860px !important;
-  margin: 0 auto !important;
+  width: 100%;
+  max-width: 860px;
+  margin: 0 auto;
 }
 
 html[data-p07-ui="enabled"] #quizView .result-panel {
-  width: 100% !important;
-  max-width: 860px !important;
-  margin: 20px auto 0 !important;
+  width: 100%;
+  max-width: 860px;
+  margin: 20px auto 0;
 }
 
 /* Two-column layout when feedback is active on wide desktop (>= 1100px) */
 @media (min-width: 1100px) {
   html[data-p07-ui="enabled"] #quizView.active.has-feedback {
-    display: grid !important;
-    grid-template-columns: minmax(0, 1.3fr) minmax(340px, 0.9fr) !important;
-    gap: 24px !important;
-    align-items: start !important;
-    max-width: 1200px !important;
-    margin: 0 auto !important;
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(340px, 0.9fr);
+    gap: 24px;
+    align-items: start;
+    max-width: 1200px;
+    margin: 0 auto;
   }
   html[data-p07-ui="enabled"] #quizView.active.has-feedback .quiz-card {
-    max-width: 100% !important;
-    margin: 0 !important;
+    max-width: 100%;
+    margin: 0;
   }
   html[data-p07-ui="enabled"] #quizView.active.has-feedback .result-panel {
-    max-width: 100% !important;
-    margin: 0 !important;
+    max-width: 100%;
+    margin: 0;
   }
 }
 
 /* Mastery section is only shown in wrongView to prevent stacking over setupView */
 html[data-p07-ui="enabled"] #masterySection {
-  display: none !important;
+  display: none;
 }
 
 html[data-p07-ui="enabled"] #workspace[data-active-view="wrongView"] #masterySection:not(.hidden) {
-  display: block !important;
+  display: block;
 }
 
 html[data-p07-ui="enabled"] #quizView .quiz-card {
   padding: clamp(24px, 4vw, 36px);
   border: 1px solid var(--ds-border);
-  border-radius: var(--ds-radius-card);
+  border-radius: var(--ds-density-radius, var(--ds-radius-md));
   background: var(--ds-surface);
   box-shadow: var(--ds-shadow-card);
   display: flex;
@@ -1750,7 +1747,7 @@ html[data-p07-ui="enabled"] #quizView .quiz-meta span {
 }
 
 html[data-p07-ui="enabled"] #quizView #progressLabel {
-  border-color: rgba(37, 99, 235, 0.25);
+  border-color: var(--ds-brand-border);
   background: var(--ds-brand-soft);
   color: var(--ds-brand);
   font-weight: 700;
@@ -1758,7 +1755,7 @@ html[data-p07-ui="enabled"] #quizView #progressLabel {
 
 html[data-p07-ui="enabled"] #quizView .word-display {
   padding: 36px 24px;
-  border-radius: 18px;
+  border-radius: var(--ds-density-radius, var(--ds-radius-md));
   background: var(--ds-surface-subtle);
   border: 1px solid var(--ds-border-subtle);
   text-align: center;
@@ -1794,7 +1791,7 @@ html[data-p07-ui="enabled"] #quizView #answerInput {
   min-height: 50px;
   padding: 0 18px;
   border: 1.5px solid var(--ds-border-strong);
-  border-radius: 12px;
+  border-radius: var(--ds-radius-md);
   background: var(--ds-surface);
   color: var(--ds-text);
   font-size: 1.0625rem;
@@ -1802,24 +1799,24 @@ html[data-p07-ui="enabled"] #quizView #answerInput {
 }
 
 html[data-p07-ui="enabled"] #quizView #answerInput:focus {
-  border-color: var(--ds-brand);
+  border-color: var(--ds-focus);
   outline: none;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  box-shadow: var(--ds-focus-ring);
 }
 
 html[data-p07-ui="enabled"] #quizView #submitBtn {
   min-height: 48px;
-  border-radius: 12px;
-  background: var(--ds-brand);
-  border-color: var(--ds-brand);
-  color: var(--ds-on-brand);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-action-primary);
+  border-color: var(--ds-action-primary);
+  color: var(--ds-on-action-primary);
   font-size: 1rem;
   font-weight: 700;
 }
 
 html[data-p07-ui="enabled"] #quizView #submitBtn:hover:not(:disabled) {
-  background: var(--ds-brand-hover);
-  border-color: var(--ds-brand-hover);
+  background: var(--ds-action-primary-hover);
+  border-color: var(--ds-action-primary-hover);
 }
 
 html[data-p07-ui="enabled"] #quizView .action-row.compact {
@@ -1829,10 +1826,10 @@ html[data-p07-ui="enabled"] #quizView .action-row.compact {
 }
 
 html[data-p07-ui="enabled"] #quizView .action-row.compact button {
-  min-height: 42px;
+  min-height: var(--ds-touch-min);
   padding: 0 16px;
   border: 1px solid var(--ds-border);
-  border-radius: 10px;
+  border-radius: var(--ds-radius-md);
   background: var(--ds-surface);
   color: var(--ds-text-secondary);
   font-size: 0.875rem;
@@ -1932,17 +1929,17 @@ html[data-p07-ui="enabled"] .mastery-actions {
 html[data-p07-ui="enabled"] #masteryStartBtn {
   min-height: 44px;
   padding: 0 22px;
-  border-radius: 12px;
-  background: var(--ds-brand);
-  border-color: var(--ds-brand);
-  color: var(--ds-on-brand);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-action-primary);
+  border-color: var(--ds-action-primary);
+  color: var(--ds-on-action-primary);
   font-weight: 700;
   font-size: 0.9375rem;
 }
 
 html[data-p07-ui="enabled"] #masteryStartBtn:hover:not(:disabled) {
-  background: var(--ds-brand-hover);
-  border-color: var(--ds-brand-hover);
+  background: var(--ds-action-primary-hover);
+  border-color: var(--ds-action-primary-hover);
 }
 
 html[data-p07-ui="enabled"] .mastery-actions button.secondary,
@@ -2021,10 +2018,10 @@ html[data-p07-ui="enabled"] #wrongView .scope-tabs {
 }
 
 html[data-p07-ui="enabled"] #wrongView .scope-tabs button {
-  min-height: 36px;
+  min-height: var(--ds-touch-min);
   padding: 0 16px;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--ds-radius-sm);
   background: transparent;
   color: var(--ds-text-secondary);
   font-weight: 600;
@@ -2059,17 +2056,17 @@ html[data-p07-ui="enabled"] #wrongSearchInput:focus {
 html[data-p07-ui="enabled"] #reviewBtn {
   min-height: 44px;
   padding: 0 24px;
-  border-radius: 12px;
-  background: var(--ds-brand);
-  border-color: var(--ds-brand);
-  color: var(--ds-on-brand);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-action-primary);
+  border-color: var(--ds-action-primary);
+  color: var(--ds-on-action-primary);
   font-weight: 700;
   font-size: 0.9375rem;
 }
 
 html[data-p07-ui="enabled"] #reviewBtn:hover {
-  background: var(--ds-brand-hover);
-  border-color: var(--ds-brand-hover);
+  background: var(--ds-action-primary-hover);
+  border-color: var(--ds-action-primary-hover);
 }
 
 html[data-p07-ui="enabled"] .wrong-item {
@@ -2204,9 +2201,9 @@ html[data-p07-ui="enabled"] #toolSearchInput {
 }
 
 html[data-p07-ui="enabled"] #toolSearchInput:focus {
-  border-color: var(--ds-brand);
+  border-color: var(--ds-focus);
   outline: none;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  box-shadow: var(--ds-focus-ring);
 }
 
 html[data-p07-ui="enabled"] .tool-category-pills {
@@ -2217,7 +2214,7 @@ html[data-p07-ui="enabled"] .tool-category-pills {
 }
 
 html[data-p07-ui="enabled"] .tool-category-pills button {
-  min-height: 38px;
+  min-height: var(--ds-touch-min);
   padding: 0 16px;
   border: 1px solid var(--ds-border);
   border-radius: var(--ds-radius-pill);
@@ -2236,10 +2233,10 @@ html[data-p07-ui="enabled"] .tool-category-pills button:hover {
 }
 
 html[data-p07-ui="enabled"] .tool-category-pills button.active {
-  background: var(--ds-brand);
-  border-color: var(--ds-brand);
-  color: var(--ds-on-brand);
-  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+  background: var(--ds-action-primary);
+  border-color: var(--ds-action-primary);
+  color: var(--ds-on-action-primary);
+  box-shadow: none;
 }
 
 html[data-p07-ui="enabled"] .tools-grid {
@@ -2251,7 +2248,7 @@ html[data-p07-ui="enabled"] .tools-grid {
 html[data-p07-ui="enabled"] .tool-card {
   padding: 22px;
   border: 1px solid var(--ds-border);
-  border-radius: 16px;
+  border-radius: var(--ds-density-radius, var(--ds-radius-md));
   background: var(--ds-surface);
   box-shadow: var(--ds-shadow-card);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
@@ -2323,10 +2320,10 @@ html[data-p07-ui="enabled"] #toolWorkbenchDescription {
 }
 
 html[data-p07-ui="enabled"] #closeWorkbenchBtn {
-  min-height: 40px;
+  min-height: var(--ds-touch-min);
   padding: 0 16px;
   border: 1px solid var(--ds-border);
-  border-radius: 10px;
+  border-radius: var(--ds-radius-md);
   background: var(--ds-surface);
   color: var(--ds-text);
   font-weight: 600;
@@ -2345,9 +2342,9 @@ html[data-p07-ui="enabled"] .tool-privacy-pill {
   gap: 6px;
   padding: 4px 12px;
   border-radius: var(--ds-radius-pill);
-  background: rgba(22, 163, 74, 0.08);
-  border: 1px solid rgba(22, 163, 74, 0.22);
-  color: #16a34a;
+  background: var(--ds-success-soft);
+  border: 1px solid var(--ds-success-border);
+  color: var(--ds-success);
   font-size: 0.75rem;
   font-weight: 700;
 }
@@ -2385,7 +2382,7 @@ html[data-p07-ui="enabled"] .finance-summary-grid {
 html[data-p07-ui="enabled"] .finance-summary-grid article {
   padding: 16px 18px;
   border: 1px solid var(--ds-border);
-  border-radius: var(--ds-radius-lg);
+  border-radius: var(--ds-density-radius, var(--ds-radius-md));
   background: var(--ds-surface);
   box-shadow: none;
   transition: border-color var(--ds-duration-fast) var(--ds-ease-standard);
@@ -2432,16 +2429,16 @@ html[data-p07-ui="enabled"] #financeAddTransactionBtn {
   min-height: var(--ds-touch-min);
   padding: 0 18px;
   border-radius: var(--ds-radius-md);
-  background: var(--ds-brand);
-  border-color: var(--ds-brand);
-  color: var(--ds-on-brand);
+  background: var(--ds-action-primary);
+  border-color: var(--ds-action-primary);
+  color: var(--ds-on-action-primary);
   font-weight: 600;
   font-size: 0.9375rem;
 }
 
 html[data-p07-ui="enabled"] #financeAddTransactionBtn:hover {
-  background: var(--ds-brand-hover);
-  border-color: var(--ds-brand-hover);
+  background: var(--ds-action-primary-hover);
+  border-color: var(--ds-action-primary-hover);
 }
 
 /* Finance Content Grid: Main Ledger (Left) + Side Panels (Right) */
@@ -2461,7 +2458,7 @@ html[data-p07-ui="enabled"] .finance-content-grid {
 html[data-p07-ui="enabled"] .finance-ledger-panel {
   padding: 24px;
   border: 1px solid var(--ds-border);
-  border-radius: var(--ds-radius-card);
+  border-radius: var(--ds-density-radius, var(--ds-radius-md));
   background: var(--ds-surface);
   box-shadow: var(--ds-shadow-card);
 }
@@ -2469,7 +2466,7 @@ html[data-p07-ui="enabled"] .finance-ledger-panel {
 html[data-p07-ui="enabled"] .finance-side-panel {
   padding: 22px;
   border: 1px solid var(--ds-border);
-  border-radius: 16px;
+  border-radius: var(--ds-density-radius, var(--ds-radius-md));
   background: var(--ds-surface);
   box-shadow: var(--ds-shadow-card);
   margin-bottom: 20px;
@@ -2570,12 +2567,12 @@ html[data-p07-ui="enabled"] .candidate-pill-badge.notice {
 }
 
 html[data-p07-ui="enabled"] .finance-candidate-card button.confirm-candidate {
-  min-height: 40px;
+  min-height: var(--ds-touch-min);
   padding: 0 18px;
-  border-radius: 10px;
-  background: var(--ds-brand);
-  border-color: var(--ds-brand);
-  color: var(--ds-on-brand);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-action-primary);
+  border-color: var(--ds-action-primary);
+  color: var(--ds-on-action-primary);
   font-weight: 700;
   font-size: 0.875rem;
 }
@@ -2679,11 +2676,11 @@ html[data-p07-ui="enabled"] .trend-month-name {
 }
 
 html[data-p07-ui="enabled"] .trend-month-inc {
-  color: #10b981;
+  color: var(--ds-success);
 }
 
 html[data-p07-ui="enabled"] .trend-month-exp {
-  color: #ef4444;
+  color: var(--ds-error);
 }
 
 html[data-p07-ui="enabled"] .trend-month-net {
@@ -2694,11 +2691,11 @@ html[data-p07-ui="enabled"] .trend-month-net {
 }
 
 html[data-p07-ui="enabled"] .trend-month-net.is-income {
-  color: #10b981;
+  color: var(--ds-success);
 }
 
 html[data-p07-ui="enabled"] .trend-month-net.is-expense {
-  color: #ef4444;
+  color: var(--ds-error);
 }
 
 html[data-p07-ui="enabled"] .finance-chart-empty {
@@ -2737,48 +2734,51 @@ html[data-p07-ui="enabled"] .finance-chart-empty-hint {
 /* ==========================================================================
  * Aeris V6.2 P07-E Membership & Account V3 Workspaces
  * ========================================================================== */
-html[data-p07-ui="enabled"] #membershipModal,
-html[data-p07-ui="enabled"] #accountModal {
-  position: static !important;
-  inset: auto !important;
-  width: 100% !important;
-  max-width: 1200px !important;
-  margin: 0 auto !important;
-  padding: clamp(20px, 3.5vw, 36px) !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  border: 0 !important;
-  z-index: auto !important;
-  overflow: visible !important;
-  display: block !important;
-  box-sizing: border-box !important;
+html[data-p07-ui="enabled"] #membershipModal.modal-layer,
+html[data-p07-ui="enabled"] #accountModal.modal-layer {
+  position: static;
+  inset: auto;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: clamp(20px, 3.5vw, 36px);
+  background: transparent;
+  box-shadow: none;
+  border: 0;
+  z-index: auto;
+  overflow: visible;
+  display: block;
+  box-sizing: border-box;
+  backdrop-filter: none;
+  animation: none;
 }
 
-html[data-p07-ui="enabled"] #membershipModal.hidden,
-html[data-p07-ui="enabled"] #accountModal.hidden {
-  display: none !important;
+html[data-p07-ui="enabled"] #membershipModal.modal-layer.hidden,
+html[data-p07-ui="enabled"] #accountModal.modal-layer.hidden {
+  display: none;
 }
 
 html[data-p07-ui="enabled"] #membershipModal .modal-panel,
 html[data-p07-ui="enabled"] #accountModal .modal-panel,
 html[data-p07-ui="enabled"] #membershipModal .v3-workspace-content,
 html[data-p07-ui="enabled"] #accountModal .v3-workspace-content {
-  width: 100% !important;
-  max-width: 100% !important;
-  max-height: none !important;
-  overflow: visible !important;
-  overflow-y: visible !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  border: 0 !important;
-  border-radius: 0 !important;
+  width: 100%;
+  max-width: 100%;
+  max-height: none;
+  overflow: visible;
+  overflow-y: visible;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+  border: 0;
+  border-radius: 0;
+  animation: none;
 }
 
 html[data-p07-ui="enabled"] #membershipModal .modal-close,
 html[data-p07-ui="enabled"] #accountModal .modal-close {
-  display: none !important;
+  display: none;
 }
 
 html[data-p07-ui="enabled"] #membershipModal .section-kicker,
@@ -2847,8 +2847,8 @@ html[data-p07-ui="enabled"] .v3-step-num {
 }
 
 html[data-p07-ui="enabled"] .v3-step-item.active .v3-step-num {
-  background: var(--ds-brand);
-  color: var(--ds-on-brand);
+  background: var(--ds-action-primary);
+  color: var(--ds-on-action-primary);
 }
 
 /* Membership Goal Options (06-会员选择用途自适应网格) */
@@ -2876,7 +2876,7 @@ html[data-p07-ui="enabled"] #membershipModal .membership-goal-option {
   min-height: 84px;
   padding: 14px 16px;
   border: 1.5px solid var(--ds-border);
-  border-radius: 14px;
+  border-radius: var(--ds-density-radius, var(--ds-radius-md));
   background: var(--ds-surface);
   box-shadow: var(--ds-shadow-card);
   text-align: left;
@@ -2885,15 +2885,15 @@ html[data-p07-ui="enabled"] #membershipModal .membership-goal-option {
 }
 
 html[data-p07-ui="enabled"] #membershipModal .membership-goal-option:hover {
-  border-color: var(--ds-brand-border);
+  border-color: var(--ds-border-strong);
   transform: translateY(-1px);
 }
 
 html[data-p07-ui="enabled"] #membershipModal .membership-goal-option[aria-pressed="true"],
 html[data-p07-ui="enabled"] #membershipModal .membership-goal-option.active {
-  border-color: var(--ds-brand);
-  background: var(--ds-brand-soft);
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+  border-color: var(--ds-action-primary);
+  background: var(--ds-surface-subtle);
+  box-shadow: 0 0 0 1px var(--ds-action-primary);
 }
 
 /* Membership Plans Grid */
@@ -2910,7 +2910,7 @@ html[data-p07-ui="enabled"] #membershipModal .plan-option {
   justify-content: space-between;
   padding: 24px 20px;
   border: 2px solid var(--ds-border);
-  border-radius: 18px;
+  border-radius: var(--ds-density-radius, var(--ds-radius-md));
   background: var(--ds-surface);
   box-shadow: var(--ds-shadow-card);
   text-align: left;
@@ -2921,14 +2921,14 @@ html[data-p07-ui="enabled"] #membershipModal .plan-option {
 
 html[data-p07-ui="enabled"] #membershipModal .plan-option:hover {
   transform: translateY(-2px);
-  border-color: var(--ds-brand-border);
+  border-color: var(--ds-border-strong);
   box-shadow: var(--ds-shadow-raised);
 }
 
 html[data-p07-ui="enabled"] #membershipModal .plan-option.selected {
-  border-color: var(--ds-brand);
-  background: var(--ds-brand-soft);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+  border-color: var(--ds-action-primary);
+  background: var(--ds-surface-subtle);
+  box-shadow: 0 0 0 1px var(--ds-action-primary);
 }
 
 html[data-p07-ui="enabled"] #membershipModal .plan-option strong {
@@ -2940,7 +2940,7 @@ html[data-p07-ui="enabled"] #membershipModal .plan-option strong {
 html[data-p07-ui="enabled"] #membershipModal .plan-option span {
   font-size: 1.4375rem;
   font-weight: 850;
-  color: var(--ds-brand);
+  color: var(--ds-text);
   margin: 10px 0 6px;
   letter-spacing: -0.02em;
 }
@@ -2955,7 +2955,7 @@ html[data-p07-ui="enabled"] #membershipModal .plan-option small {
 html[data-p07-ui="enabled"] #membershipModal .payment-details {
   background: var(--ds-surface);
   border: 1px solid var(--ds-border);
-  border-radius: 18px;
+  border-radius: var(--ds-density-radius, var(--ds-radius-md));
   padding: 24px;
   box-shadow: var(--ds-shadow-card);
   margin: 20px 0;
@@ -3206,9 +3206,9 @@ html[data-p07-ui="enabled"] .finance-trend-heading-actions {
 }
 
 html[data-p07-ui="enabled"] .finance-trend-toggle-btn {
-  padding: 6px 14px !important;
-  font-size: 0.8125rem !important;
-  border-radius: 8px !important;
+  padding: 6px 14px;
+  font-size: 0.8125rem;
+  border-radius: var(--ds-radius-md);
   cursor: pointer;
   white-space: nowrap;
 }
@@ -3229,7 +3229,7 @@ html[data-p07-ui="enabled"] #accountModal .account-details {
   gap: 14px 24px;
   padding: 24px;
   border: 1px solid var(--ds-border);
-  border-radius: 18px;
+  border-radius: var(--ds-density-radius, var(--ds-radius-md));
   background: var(--ds-surface);
   box-shadow: var(--ds-shadow-card);
   margin-bottom: 24px;
@@ -3244,7 +3244,7 @@ html[data-p07-ui="enabled"] #accountModal .account-details {
 html[data-p07-ui="enabled"] #accountModal #changeSecretForm {
   padding: 24px;
   border: 1px solid var(--ds-border);
-  border-radius: 18px;
+  border-radius: var(--ds-density-radius, var(--ds-radius-md));
   background: var(--ds-surface);
   box-shadow: var(--ds-shadow-card);
   margin-bottom: 24px;
@@ -3252,9 +3252,9 @@ html[data-p07-ui="enabled"] #accountModal #changeSecretForm {
 
 html[data-p07-ui="enabled"] #accountModal .danger-zone {
   padding: 24px;
-  border: 1.5px solid rgba(239, 68, 68, 0.35);
-  border-radius: 18px;
-  background: rgba(239, 68, 68, 0.04);
+  border: 1.5px solid var(--ds-error-border);
+  border-radius: var(--ds-density-radius, var(--ds-radius-md));
+  background: var(--ds-error-soft);
 }
 
 /* P1-005: Capability panel full-surface clickability */
@@ -3263,20 +3263,15 @@ html[data-p07-ui="enabled"] .capability-panel {
   transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
 }
 html[data-p07-ui="enabled"] .capability-panel:hover {
-  border-color: var(--ds-brand-border);
+  border-color: var(--ds-border-strong);
 }
 
-/* P1-009 & P1-010: Finance summary responsive and monthly trend grid */
-html[data-p07-ui="enabled"] .finance-summary-grid {
-  display: grid !important;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) !important;
-  gap: 16px !important;
-}
+/* P1-009 & P1-010: Finance summary responsive ellipsis (grid columns governed by L2366 + 200% zoom reflow) */
 html[data-p07-ui="enabled"] .finance-summary-grid article strong {
-  white-space: nowrap !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  font-size: clamp(1.1rem, 2.2vw, 1.5rem) !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: clamp(1.1rem, 2.2vw, 1.5rem);
 }
 
 html[data-p07-ui="enabled"] .finance-trend-month-grid {
@@ -3386,11 +3381,11 @@ html[data-p07-ui="enabled"] #transferQuotaBar::-moz-progress-bar {
 }
 
 html[data-p07-ui="enabled"] #transferDropZone {
-  border: 2px dashed rgba(37, 99, 235, 0.3);
-  border-radius: 20px;
+  border: 2px dashed var(--ds-border-strong);
+  border-radius: var(--ds-density-radius, var(--ds-radius-md));
   padding: 48px 24px;
   text-align: center;
-  background: rgba(37, 99, 235, 0.03);
+  background: var(--ds-surface-subtle);
   transition: border-color 0.2s ease, background 0.2s ease;
   display: flex;
   flex-direction: column;
@@ -3402,7 +3397,7 @@ html[data-p07-ui="enabled"] #transferDropZone {
 html[data-p07-ui="enabled"] #transferDropZone:hover,
 html[data-p07-ui="enabled"] #transferDropZone.dragover {
   border-color: var(--ds-brand);
-  background: rgba(37, 99, 235, 0.07);
+  background: var(--ds-brand-soft);
 }
 
 html[data-p07-ui="enabled"] #transferDropZone::before {
@@ -3449,19 +3444,19 @@ html[data-p07-ui="enabled"] .transfer-drop-actions button {
 html[data-p07-ui="enabled"] .transfer-config {
   background: var(--ds-surface);
   border: 1px solid var(--ds-border);
-  border-radius: 20px;
+  border-radius: var(--ds-density-radius, var(--ds-radius-md));
   padding: 24px;
   box-shadow: var(--ds-shadow-card);
-  display: flex !important;
-  flex-direction: column !important;
+  display: flex;
+  flex-direction: column;
   gap: 0;
   width: 100%;
   box-sizing: border-box;
 }
 
 html[data-p07-ui="enabled"] .transfer-config > * {
-  width: 100% !important;
-  box-sizing: border-box !important;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 html[data-p07-ui="enabled"] .transfer-config::before {
@@ -3475,8 +3470,8 @@ html[data-p07-ui="enabled"] .transfer-config::before {
 }
 
 html[data-p07-ui="enabled"] .transfer-config label:not(.transfer-check) {
-  display: flex !important;
-  flex: none !important;
+  display: flex;
+  flex: none;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
@@ -3499,7 +3494,7 @@ html[data-p07-ui="enabled"] .transfer-config input[type="number"] {
   max-width: 180px;
   padding: 8px 12px;
   border: 1px solid var(--ds-border);
-  border-radius: 8px;
+  border-radius: var(--ds-radius-md);
   background: var(--ds-surface);
   color: var(--ds-text);
   font-size: 0.875rem;
@@ -3507,8 +3502,8 @@ html[data-p07-ui="enabled"] .transfer-config input[type="number"] {
 }
 
 html[data-p07-ui="enabled"] .transfer-config .transfer-check {
-  display: flex !important;
-  flex: none !important;
+  display: flex;
+  flex: none;
   align-items: center;
   gap: 10px;
   padding: 14px 0 4px;
@@ -3560,9 +3555,9 @@ html[data-p07-ui="enabled"] .transfer-summary-line strong {
 }
 
 html[data-p07-ui="enabled"] .transfer-summary-line button {
-  min-height: 40px;
+  min-height: var(--ds-touch-min);
   padding: 8px 20px;
-  border-radius: 8px;
+  border-radius: var(--ds-radius-md);
   font-weight: 600;
 }
 
@@ -3571,7 +3566,7 @@ html[data-p07-ui="enabled"] .transfer-my-shares,
 html[data-p07-ui="enabled"] .transfer-share-card {
   background: var(--ds-surface);
   border: 1px solid var(--ds-border);
-  border-radius: 20px;
+  border-radius: var(--ds-density-radius, var(--ds-radius-md));
   padding: 24px;
   box-shadow: var(--ds-shadow-card);
   margin-bottom: 24px;
@@ -3662,10 +3657,10 @@ html[data-p07-ui="enabled"] .transfer-share-link-row {
 
 html[data-p07-ui="enabled"] .transfer-share-link-row input {
   flex: 1;
-  min-height: 42px;
+  min-height: var(--ds-touch-min);
   padding: 8px 14px;
   border: 1px solid var(--ds-border);
-  border-radius: 8px;
+  border-radius: var(--ds-radius-md);
   background: var(--ds-surface-subtle);
   color: var(--ds-text);
   font-size: 0.875rem;
@@ -3718,7 +3713,7 @@ html[data-p07-ui="enabled"] .workflow-layout {
 html[data-p07-ui="enabled"] .workflow-sidebar {
   background: var(--ds-surface);
   border: 1px solid var(--ds-border);
-  border-radius: 20px;
+  border-radius: var(--ds-density-radius, var(--ds-radius-sm));
   padding: 24px;
   box-shadow: var(--ds-shadow-card);
   display: flex;
@@ -3779,15 +3774,15 @@ html[data-p07-ui="enabled"] #workflowTemplateList button {
 
 html[data-p07-ui="enabled"] .workflow-list button:hover,
 html[data-p07-ui="enabled"] #workflowTemplateList button:hover {
-  border-color: var(--ds-brand-border);
-  background: var(--ds-brand-soft);
+  border-color: var(--ds-border-strong);
+  background: var(--ds-surface-subtle);
 }
 
 html[data-p07-ui="enabled"] .workflow-list button.active {
-  border-color: var(--ds-brand);
-  background: var(--ds-brand-soft);
-  color: var(--ds-brand);
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+  border-color: var(--ds-action-primary);
+  background: var(--ds-surface-subtle);
+  color: var(--ds-text);
+  box-shadow: 0 0 0 1px var(--ds-action-primary);
 }
 
 html[data-p07-ui="enabled"] .workflow-list button strong,
@@ -3813,7 +3808,7 @@ html[data-p07-ui="enabled"] #importWorkflowBtn {
 html[data-p07-ui="enabled"] .workflow-editor {
   background: var(--ds-surface);
   border: 1px solid var(--ds-border);
-  border-radius: 20px;
+  border-radius: var(--ds-density-radius, var(--ds-radius-sm));
   padding: 28px;
   box-shadow: var(--ds-shadow-card);
 }
@@ -3856,10 +3851,10 @@ html[data-p07-ui="enabled"] .workflow-title-row label span {
 
 html[data-p07-ui="enabled"] #workflowNameInput {
   flex: 1;
-  min-height: 40px;
+  min-height: var(--ds-touch-min);
   padding: 8px 14px;
   border: 1px solid var(--ds-border);
-  border-radius: 8px;
+  border-radius: var(--ds-radius-sm);
   font-size: 1rem;
   font-weight: 600;
   color: var(--ds-text);
@@ -3921,9 +3916,9 @@ html[data-p07-ui="enabled"] .workflow-step-heading {
 html[data-p07-ui="enabled"] .workflow-step-number {
   width: 32px;
   height: 32px;
-  border-radius: 8px;
-  background: var(--ds-brand);
-  color: #ffffff;
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-action-primary);
+  color: var(--ds-on-action-primary);
   font-weight: 750;
   font-size: 0.8125rem;
   display: grid;
@@ -3959,7 +3954,7 @@ html[data-p07-ui="enabled"] .workflow-step-actions button {
 html[data-p07-ui="enabled"] .workflow-runner {
   background: var(--ds-surface-subtle);
   border: 1px solid var(--ds-border);
-  border-radius: 16px;
+  border-radius: var(--ds-density-radius, var(--ds-radius-sm));
   padding: 24px;
   margin-top: 28px;
 }
@@ -4028,7 +4023,7 @@ html[data-p07-ui="enabled"] .admin-tabs {
   padding: 6px;
   background: var(--ds-surface-subtle);
   border: 1px solid var(--ds-border);
-  border-radius: 14px;
+  border-radius: var(--ds-radius-md);
   margin-bottom: 24px;
   overflow-x: auto;
   scrollbar-width: none;
@@ -4051,7 +4046,7 @@ html[data-p07-ui="enabled"] .admin-tabs::-webkit-scrollbar {
 html[data-p07-ui="enabled"] .admin-tabs button {
   min-width: auto;
   padding: 8px 16px;
-  border-radius: 10px;
+  border-radius: var(--ds-radius-sm);
   border: none;
   background: transparent;
   color: var(--ds-text-secondary);
@@ -4064,12 +4059,12 @@ html[data-p07-ui="enabled"] .admin-tabs button {
 
 html[data-p07-ui="enabled"] .admin-tabs button:hover {
   color: var(--ds-text);
-  background: rgba(0, 0, 0, 0.04);
+  background: var(--ds-hover);
 }
 
 html[data-p07-ui="enabled"] .admin-tabs button.active {
   background: var(--ds-surface);
-  color: var(--ds-brand);
+  color: var(--ds-text);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   font-weight: 700;
 }
@@ -4077,7 +4072,7 @@ html[data-p07-ui="enabled"] .admin-tabs button.active {
 html[data-p07-ui="enabled"] #adminFeatureFlagsView form {
   background: var(--ds-surface);
   border: 1px solid var(--ds-border);
-  border-radius: 18px;
+  border-radius: var(--ds-density-radius, var(--ds-radius-sm));
   padding: 24px;
   box-shadow: var(--ds-shadow-card);
   margin-bottom: 24px;
@@ -4109,10 +4104,10 @@ html[data-p07-ui="enabled"] .feature-console-toolbar {
 }
 
 html[data-p07-ui="enabled"] .feature-console-toolbar select {
-  min-height: 42px;
+  min-height: var(--ds-touch-min);
   padding: 8px 14px;
   border: 1px solid var(--ds-border);
-  border-radius: 8px;
+  border-radius: var(--ds-radius-sm);
   background: var(--ds-surface);
   color: var(--ds-text);
   font-size: 0.875rem;
@@ -4120,7 +4115,7 @@ html[data-p07-ui="enabled"] .feature-console-toolbar select {
 
 html[data-p07-ui="enabled"] #adminFeatureFlagsView fieldset {
   border: 1px solid var(--ds-border);
-  border-radius: 12px;
+  border-radius: var(--ds-radius-sm);
   padding: 16px 18px;
   margin: 0;
 }
@@ -4133,11 +4128,11 @@ html[data-p07-ui="enabled"] #adminFeatureFlagsView fieldset legend {
 }
 
 html[data-p07-ui="enabled"] label:has(#featureFlagKillSwitch:checked) {
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.4);
-  border-radius: 8px;
+  background: var(--ds-error-soft);
+  border: 1px solid var(--ds-error-border);
+  border-radius: var(--ds-radius-sm);
   padding: 6px 12px;
-  color: #dc2626 !important;
+  color: var(--ds-error);
   font-weight: 750;
 }
 
@@ -4146,7 +4141,7 @@ html[data-p07-ui="enabled"] #learningMetrics,
 html[data-p07-ui="enabled"] #featureEvaluationResult {
   background: var(--ds-surface-subtle);
   border: 1px solid var(--ds-border);
-  border-radius: 10px;
+  border-radius: var(--ds-radius-md);
   padding: 14px;
   color: var(--ds-text);
   font-family: var(--ds-font-mono, monospace);
@@ -4158,7 +4153,7 @@ html[data-p07-ui="enabled"] #featureEvaluationResult {
 html[data-p07-ui="enabled"] :is(.admin-user-card, .admin-login-card, .admin-log-card, .admin-message-card) {
   background: var(--ds-surface);
   border: 1px solid var(--ds-border);
-  border-radius: 16px;
+  border-radius: var(--ds-density-radius, var(--ds-radius-sm));
   padding: 20px 24px;
   box-shadow: var(--ds-shadow-card);
   margin-bottom: 14px;
@@ -4206,10 +4201,10 @@ html[data-p07-ui="enabled"] .admin-toolbar {
 }
 
 html[data-p07-ui="enabled"] .admin-toolbar input[type="search"] {
-  min-height: 42px;
+  min-height: var(--ds-touch-min);
   padding: 8px 14px;
   border: 1px solid var(--ds-border);
-  border-radius: 8px;
+  border-radius: var(--ds-radius-sm);
   background: var(--ds-surface);
   color: var(--ds-text);
   font-size: 0.875rem;
@@ -4231,7 +4226,7 @@ html[data-p07-ui="enabled"] .admin-toolbar input[type="search"] {
 html[data-p07-ui="enabled"] .finance-candidates-section {
   background: var(--ds-surface);
   border: 1px solid var(--ds-border);
-  border-radius: 20px;
+  border-radius: var(--ds-density-radius, var(--ds-radius-md));
   padding: 24px;
   box-shadow: var(--ds-shadow-card);
   margin: 24px 0;
@@ -4249,7 +4244,7 @@ html[data-p07-ui="enabled"] .finance-candidates-section summary {
 html[data-p07-ui="enabled"] article.finance-candidate {
   background: var(--ds-surface);
   border: 1px solid var(--ds-border-subtle);
-  border-radius: 16px;
+  border-radius: var(--ds-density-radius, var(--ds-radius-sm));
   padding: 20px 22px;
   margin-top: 14px;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;

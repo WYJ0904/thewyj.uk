@@ -1037,9 +1037,9 @@ textarea {
   white-space: nowrap;
 }
 
-.achievement-tier {
-  color: #8bbdd3 !important;
-  font-size: 11px !important;
+.achievement-item .achievement-tier {
+  color: var(--ds-text-secondary, #475569);
+  font-size: 11px;
 }
 
 .achievement-card-progress {
@@ -3247,7 +3247,7 @@ textarea::placeholder {
 }
 
 .achievement-item.unlocked .achievement-tier {
-  color: #7fe8b0 !important;
+  color: var(--ds-success, #4fd1a5);
 }
 
 .field-label span,

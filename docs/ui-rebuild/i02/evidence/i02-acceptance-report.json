@@ -1,0 +1,371 @@
+{
+  "scope": "Isolated local Miniflare D1/R2 + headless Chrome CDP",
+  "browserVersion": "Chrome/157.0.8103.79",
+  "viewports": [
+    1440,
+    1024,
+    768,
+    390,
+    375,
+    320
+  ],
+  "scenarios": [
+    {
+      "name": "theme-switch-public-and-login",
+      "status": "PASS",
+      "detail": {
+        "lightBtn": {
+          "bg": "rgb(17, 17, 19)",
+          "color": "rgb(255, 255, 255)",
+          "radius": "8px",
+          "switching": null
+        },
+        "darkBtn": {
+          "bg": "rgb(248, 250, 252)",
+          "color": "rgb(17, 17, 19)",
+          "theme": "dark",
+          "switching": null
+        }
+      }
+    },
+    {
+      "name": "buttons-and-link-primary-parity",
+      "status": "PASS",
+      "detail": {
+        "downloadPrimary": {
+          "aBg": "rgb(17, 17, 19)",
+          "aColor": "rgb(255, 255, 255)",
+          "aHeight": 44,
+          "aRadius": "8px",
+          "secBg": "rgb(255, 255, 255)",
+          "secColor": "rgb(24, 33, 47)",
+          "secHeight": 44
+        },
+        "focused": {
+          "tag": "A",
+          "id": "publicDownloadBtn",
+          "outlineStyle": "solid",
+          "outlineWidth": 2
+        }
+      }
+    },
+    {
+      "name": "forms-input-validation-and-login",
+      "status": "PASS",
+      "detail": {
+        "errStyle": {
+          "text": "用户名或登录密钥错误",
+          "visible": true,
+          "color": "rgb(255, 148, 148)",
+          "bg": "rgb(47, 24, 28)"
+        }
+      }
+    },
+    {
+      "name": "selection-controls-numerals-and-workbench",
+      "status": "PASS",
+      "detail": {
+        "cbMetrics": {
+          "checked": true,
+          "width": 20,
+          "height": 20
+        },
+        "financeMetrics": {
+          "totalText": "¥12,807.50",
+          "fontVariantNumeric": "tabular-nums",
+          "incColor": "rgb(15, 118, 110)",
+          "expColor": "rgb(194, 51, 51)",
+          "cardRadius": "6px"
+        },
+        "adminMetrics": {
+          "cbW": 20,
+          "cbH": 20,
+          "ksW": 20,
+          "ksH": 20,
+          "auditFont": "\"Cascadia Code\", \"JetBrains Mono\", SFMono-Regular, Consolas, monospace"
+        },
+        "achContrast": {
+          "light": {
+            "color": "rgb(71, 85, 105)",
+            "bg": "rgb(237, 244, 255)",
+            "lockedRatio": 6.85,
+            "unlockedRatio": null
+          },
+          "dark": {
+            "color": "rgb(197, 206, 219)",
+            "bg": "rgb(27, 41, 68)",
+            "lockedRatio": 9.14,
+            "unlockedRatio": null
+          }
+        }
+      }
+    },
+    {
+      "name": "modal-focus-trap-and-account-theme",
+      "status": "PASS",
+      "detail": {
+        "zCheck": {
+          "navZ": 620,
+          "modalZ": 9001
+        },
+        "restoredId": "openDeleteAccountBtn"
+      }
+    },
+    {
+      "name": "routing-and-history-back",
+      "status": "PASS",
+      "detail": {
+        "backRoute": "/",
+        "overflow": -15
+      }
+    },
+    {
+      "name": "reduced-motion-operability",
+      "status": "PASS",
+      "detail": {
+        "transitionDuration": "1e-06s",
+        "modalOperable": true
+      }
+    },
+    {
+      "name": "offline-degradation-and-local-tool",
+      "status": "PASS",
+      "detail": {
+        "label": "离线模式",
+        "online": false,
+        "bg": "rgb(246, 247, 249)"
+      }
+    },
+    {
+      "name": "p07-off-fallback-regression",
+      "status": "PASS",
+      "detail": {
+        "p07": "disabled",
+        "overflowX": 0,
+        "sidebarDisplay": "none",
+        "financeLinkVisible": true
+      }
+    }
+  ],
+  "viewportMatrix": [
+    {
+      "width": 1440,
+      "mode": "light",
+      "scrollWidth": 1425,
+      "overflowX": 0,
+      "navHeight": 61,
+      "smallTargets": []
+    },
+    {
+      "width": 1440,
+      "mode": "dark",
+      "scrollWidth": 1425,
+      "overflowX": 0,
+      "navHeight": 61,
+      "smallTargets": []
+    },
+    {
+      "width": 1024,
+      "mode": "light",
+      "scrollWidth": 1009,
+      "overflowX": 0,
+      "navHeight": 61,
+      "smallTargets": []
+    },
+    {
+      "width": 1024,
+      "mode": "dark",
+      "scrollWidth": 1009,
+      "overflowX": 0,
+      "navHeight": 61,
+      "smallTargets": []
+    },
+    {
+      "width": 768,
+      "mode": "light",
+      "scrollWidth": 753,
+      "overflowX": 0,
+      "navHeight": 61,
+      "smallTargets": []
+    },
+    {
+      "width": 768,
+      "mode": "dark",
+      "scrollWidth": 753,
+      "overflowX": 0,
+      "navHeight": 61,
+      "smallTargets": []
+    },
+    {
+      "width": 390,
+      "mode": "light",
+      "scrollWidth": 390,
+      "overflowX": 0,
+      "navHeight": 108,
+      "smallTargets": []
+    },
+    {
+      "width": 390,
+      "mode": "dark",
+      "scrollWidth": 390,
+      "overflowX": 0,
+      "navHeight": 108,
+      "smallTargets": []
+    },
+    {
+      "width": 375,
+      "mode": "light",
+      "scrollWidth": 375,
+      "overflowX": 0,
+      "navHeight": 108,
+      "smallTargets": []
+    },
+    {
+      "width": 375,
+      "mode": "dark",
+      "scrollWidth": 375,
+      "overflowX": 0,
+      "navHeight": 108,
+      "smallTargets": []
+    },
+    {
+      "width": 320,
+      "mode": "light",
+      "scrollWidth": 320,
+      "overflowX": 0,
+      "navHeight": 160,
+      "smallTargets": []
+    },
+    {
+      "width": 320,
+      "mode": "dark",
+      "scrollWidth": 320,
+      "overflowX": 0,
+      "navHeight": 160,
+      "smallTargets": []
+    }
+  ],
+  "axeScans": [
+    {
+      "label": "home-1440-light-system",
+      "violationCount": 0,
+      "passes": 39,
+      "violations": []
+    },
+    {
+      "label": "home-1440-dark",
+      "violationCount": 0,
+      "passes": 39,
+      "violations": []
+    },
+    {
+      "label": "download-1440-light",
+      "violationCount": 0,
+      "passes": 39,
+      "violations": []
+    },
+    {
+      "label": "login-1440-dark",
+      "violationCount": 0,
+      "passes": 45,
+      "violations": []
+    },
+    {
+      "label": "finance-1440-light",
+      "violationCount": 0,
+      "passes": 44,
+      "violations": []
+    },
+    {
+      "label": "finance-1440-dark",
+      "violationCount": 0,
+      "passes": 44,
+      "violations": []
+    },
+    {
+      "label": "admin-1440-light",
+      "violationCount": 0,
+      "passes": 46,
+      "violations": []
+    },
+    {
+      "label": "achievements-1440-dark",
+      "violationCount": 0,
+      "passes": 42,
+      "violations": []
+    },
+    {
+      "label": "account-1440-dark",
+      "violationCount": 0,
+      "passes": 48,
+      "violations": []
+    }
+  ],
+  "componentSnapshot": {
+    "light": {
+      "primaryBtn": {
+        "bg": "rgb(17, 17, 19)",
+        "color": "rgb(255, 255, 255)",
+        "radius": "8px",
+        "height": 46
+      },
+      "secondaryBtn": {
+        "bg": "rgb(255, 255, 255)",
+        "color": "rgb(71, 85, 105)",
+        "border": "rgb(194, 203, 215)",
+        "radius": "8px"
+      },
+      "ghostBtn": {
+        "bg": "rgba(0, 0, 0, 0)",
+        "color": "rgb(71, 85, 105)"
+      },
+      "card": {
+        "bg": "rgb(255, 255, 255)",
+        "border": "rgb(213, 226, 245)",
+        "radius": "12px"
+      }
+    },
+    "dark": {
+      "primaryBtn": {
+        "bg": "rgb(248, 250, 252)",
+        "color": "rgb(17, 17, 19)",
+        "radius": "8px",
+        "height": 46
+      },
+      "secondaryBtn": {
+        "bg": "rgb(20, 25, 34)",
+        "color": "rgb(197, 206, 219)",
+        "border": "rgb(57, 71, 92)",
+        "radius": "8px"
+      },
+      "ghostBtn": {
+        "bg": "rgba(0, 0, 0, 0)",
+        "color": "rgb(197, 206, 219)"
+      },
+      "card": {
+        "bg": "rgb(20, 25, 34)",
+        "border": "rgb(40, 60, 92)",
+        "radius": "12px"
+      }
+    }
+  },
+  "screenshots": [
+    "desktop-home-light.png",
+    "theme-seq-1-light.png",
+    "desktop-home-dark.png",
+    "theme-seq-2-dark.png",
+    "theme-seq-3-system.png",
+    "desktop-download-light.png",
+    "desktop-login-dark.png",
+    "desktop-finance-light.png",
+    "desktop-finance-dark.png",
+    "desktop-admin-flags-light.png",
+    "desktop-account-dark.png",
+    "mobile-modal-light.png",
+    "mobile-home-light.png",
+    "mobile-home-dark.png",
+    "desktop-p07-off-light.png"
+  ],
+  "android_physical_device": "NOT_TESTED — NOT REQUIRED FOR I02 ACCEPTANCE",
+  "production_release": "NOT_TOUCHED"
+}
