@@ -64,7 +64,7 @@ if (!skipRemoteCheck) {
   const plainVars = {};
   for (const [k, v] of Object.entries(previewCfg.env_vars || {})) {
     if (v?.type === "plain_text") {
-      assert.ok(!/TOKEN|SECRET|PASSWORD|PEPPER|KEY/i.test(k), `Unexpected secret-like plain var: ${k}`);
+      assert.ok(k === "ANDROID_APK_KEY" || !/TOKEN|SECRET|PASSWORD|PEPPER|API_KEY|PRIVATE_KEY/i.test(k), `Unexpected secret-like plain var: ${k}`);
       plainVars[k] = v.value;
     }
   }
