@@ -1,0 +1,224 @@
+{
+  "scope": "Isolated Miniflare D1/R2 + real headless Chrome CDP",
+  "gitSha": "beaf33283dd6a88c570af17a848b04f2f3a1f02e",
+  "browserVersion": "Chrome/157.0.8103.79",
+  "scenarios": [
+    {
+      "name": "controls-buttons-switch-form",
+      "status": "PASS",
+      "detail": {
+        "pressedAttr": "true",
+        "failSwitchState": {
+          "checked": false,
+          "text": "保存失败，已回滚至：关闭"
+        }
+      }
+    },
+    {
+      "name": "tabs-rapid-skeleton-cancellation",
+      "status": "PASS",
+      "detail": {
+        "title": "文件传输 · 140ms 骨架预览",
+        "staleDroppedCount": 2
+      }
+    },
+    {
+      "name": "flip-bidirectional-reversal-density-keyboard",
+      "status": "PASS",
+      "detail": {
+        "midDownTransform": "matrix(1, 0, 0, 1, -198.779, 0)",
+        "midUpTransform": "matrix(1, 0, 0, 1, -144.425, 49.2091)",
+        "flipIdentity": "4 / 4"
+      }
+    },
+    {
+      "name": "pointer-drag-sort-and-cancel",
+      "status": "PASS",
+      "detail": {
+        "orderAfterDrop": [
+          "card-2",
+          "card-1",
+          "card-3",
+          "card-4"
+        ],
+        "orderAfterCancel": [
+          "card-2",
+          "card-1",
+          "card-3",
+          "card-4"
+        ]
+      }
+    },
+    {
+      "name": "keyed-table-node-identity-and-kill-switch",
+      "status": "PASS",
+      "detail": {
+        "sameRef": true,
+        "rowRebuilds": 0,
+        "lockedDisabled": true
+      }
+    },
+    {
+      "name": "toast-5-burst-max-2-queue",
+      "status": "PASS",
+      "detail": {
+        "visible": [
+          {
+            "id": "toast-5",
+            "tone": "error",
+            "message": "队列 #1 (Error)：保留优先提示",
+            "count": 1
+          },
+          {
+            "id": "toast-6",
+            "tone": "info",
+            "message": "队列 #2 (Info)：首屏第 2 条",
+            "count": 1
+          }
+        ],
+        "queued": [
+          {
+            "id": "toast-7",
+            "tone": "success",
+            "message": "队列 #3 (Success)：排队等待",
+            "count": 1
+          },
+          {
+            "id": "toast-8",
+            "tone": "warning",
+            "message": "队列 #4 (Warning)：排队等待",
+            "count": 1
+          },
+          {
+            "id": "toast-9",
+            "tone": "info",
+            "message": "队列 #5 (Info)：排队等待",
+            "count": 1
+          }
+        ],
+        "maxVisible": 2
+      }
+    },
+    {
+      "name": "scroll-3d-reversible-and-bento-seam-lock",
+      "status": "PASS",
+      "detail": {
+        "entryTransform": "matrix3d(0.9428, 0, 0, 0, 0, 0.924069, 0.186997, -0.00015583, 0, -0.198342, 0.980133, -0.000816777, 0, 22.89, 0, 1)",
+        "flatTransform": "matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, -0.000833333, 0, 0, 0, 1)",
+        "reversedTransform": "matrix3d(0.9428, 0, 0, 0, 0, 0.924069, 0.186997, -0.00015583, 0, -0.198342, 0.980133, -0.000816777, 0, 22.89, 0, 1)",
+        "maxSeamDrift": 0
+      }
+    },
+    {
+      "name": "desktop-modal-and-mobile-gesture-drawer",
+      "status": "PASS",
+      "detail": {
+        "desktopModal": "PASS",
+        "mobileDrawerSnapAndDismiss": "PASS",
+        "formValuePreserved": true
+      }
+    },
+    {
+      "name": "dark-theme-and-performance-telemetry",
+      "status": "PASS",
+      "detail": {
+        "worstFrameMs": 158.4,
+        "longTaskCount": 1,
+        "maxSeamDriftPx": 0.5556640625
+      }
+    },
+    {
+      "name": "real-app-routes-modal-tabs-p07off",
+      "status": "PASS",
+      "detail": {
+        "realAppMotionReady": true,
+        "feedbackMobileMode": "drawer",
+        "deleteMode": "modal",
+        "p07Off": {
+          "p07": "disabled",
+          "modalOperable": true,
+          "overflowX": 0
+        }
+      }
+    }
+  ],
+  "axeScans": [
+    {
+      "label": "fixture-desktop-light",
+      "violationCount": 0,
+      "passes": 46,
+      "violations": []
+    },
+    {
+      "label": "fixture-mobile-375-dark",
+      "violationCount": 0,
+      "passes": 46,
+      "violations": []
+    },
+    {
+      "label": "fixture-desktop-dark",
+      "violationCount": 0,
+      "passes": 46,
+      "violations": []
+    },
+    {
+      "label": "real-app-public-home",
+      "violationCount": 0,
+      "passes": 39,
+      "violations": []
+    },
+    {
+      "label": "real-app-admin-flags",
+      "violationCount": 0,
+      "passes": 46,
+      "violations": []
+    }
+  ],
+  "viewportMatrix": [
+    {
+      "width": 1440,
+      "overflowX": 0
+    },
+    {
+      "width": 1024,
+      "overflowX": 0
+    },
+    {
+      "width": 390,
+      "overflowX": 0
+    },
+    {
+      "width": 375,
+      "overflowX": 0
+    }
+  ],
+  "performance": {
+    "worstFrameMs": 158.4,
+    "longTaskCount": 1,
+    "maxSeamDriftPx": 0.5556640625
+  },
+  "screenshots": [
+    "fixture-desktop-1440-light.png",
+    "flip-seq-1-initial.png",
+    "flip-seq-2-mid-down.png",
+    "flip-seq-3-mid-up.png",
+    "flip-seq-4-single-col.png",
+    "drag-seq-1-lifting.png",
+    "drag-seq-2-settled.png",
+    "toast-seq-1-burst.png",
+    "scroll-seq-1-entry.png",
+    "scroll-seq-2-flattened.png",
+    "scroll-seq-3-reversed.png",
+    "desktop-modal-open.png",
+    "mobile-drawer-seq-1-open.png",
+    "mobile-drawer-seq-2-dragging.png",
+    "fixture-mobile-375-light.png",
+    "fixture-mobile-375-dark-reduced.png",
+    "fixture-desktop-1440-dark.png",
+    "real-app-feedback-modal-tabs.png",
+    "real-app-admin-flags.png",
+    "real-app-mobile-delete-confirm.png"
+  ],
+  "android_physical_device": "NOT_TESTED — NOT REQUIRED FOR I07 WEB ACCEPTANCE",
+  "production_release": "NOT_TOUCHED"
+}

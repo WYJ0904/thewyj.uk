@@ -1,8 +1,29 @@
-/** Presentation only. Business locks, routing and durable state remain in their owners. */
+/**
+ * Aeris V6.3 I07 Shared Motion & Interaction Engine.
+ * Presentation only. Business locks, routing and durable state remain in their owners.
+ * Consolidated inside CORE_SHELL (/js/core/motion.js) to preserve RC5/P5 89-asset offline publication integrity.
+ */
+
+// ============================================================================
+// 1. Motion Tokens, Reduced-Motion Guard & Lifecycle Scope
+// ============================================================================
 export const MOTION = Object.freeze({
-  pressed: 80, fast: 140, expand: 200, page: 220, sheet: 280,
-  pressedScale: 0.985, pressedOpacity: 0.92, distance: 8,
+  pressed: 80,
+  fast: 140,
+  skeleton: 140,
+  expand: 200,
+  page: 220,
+  sheet: 280,
+  container: 420,
+  toastIn: 220,
+  toastOut: 180,
+  pressedScale: 0.985,
+  pressedOpacity: 0.92,
+  distance: 8,
   easing: "cubic-bezier(0.2, 0, 0, 1)",
+  easingEmphasized: "cubic-bezier(0.2, 0.8, 0.2, 1)",
+  spring: "cubic-bezier(0.22, 1, 0.36, 1)",
+  decelerate: "cubic-bezier(0.16, 1, 0.3, 1)",
 });
 
 export function pressedReleaseDelay(started, now, minimum = MOTION.pressed) {
@@ -18,6 +39,1630 @@ export function motionDuration(kind, view = globalThis.window) {
   return prefersReducedMotion(view) ? 0 : (MOTION[kind] ?? MOTION.fast);
 }
 
+/**
+ * Tracks animations, timers, observers, and event listeners for deterministic teardown.
+ */
+export function createMotionScope(view = globalThis.window) {
+  const disposers = [];
+  const animations = new Set();
+  const timers = new Set();
+  let disposed = false;
+
+  return Object.freeze({
+    get disposed() { return disposed; },
+    add(cleanup) {
+      if (typeof cleanup !== "function") return cleanup;
+      if (disposed) { try { cleanup(); } catch (_) {} return cleanup; }
+      disposers.push(cleanup);
+      return cleanup;
+    },
+    listen(target, type, handler, options) {
+      if (!target?.addEventListener) return () => {};
+      target.addEventListener(type, handler, options);
+      const off = () => target.removeEventListener?.(type, handler, options);
+      return this.add(off);
+    },
+    timeout(fn, ms) {
+      if (disposed || !view?.setTimeout) return 0;
+      const id = view.setTimeout(() => {
+        timers.delete(id);
+        if (!disposed) fn();
+      }, ms);
+      timers.add(id);
+      return id;
+    },
+    clearTimeout(id) {
+      if (!id) return;
+      timers.delete(id);
+      view?.clearTimeout?.(id);
+    },
+    trackAnimation(animation) {
+      if (!animation) return animation;
+      if (disposed) { try { animation.cancel?.(); } catch (_) {} return animation; }
+      animations.add(animation);
+      animation.finished?.then?.(
+        () => animations.delete(animation),
+        () => animations.delete(animation),
+      );
+      return animation;
+    },
+    dispose() {
+      if (disposed) return;
+      disposed = true;
+      for (const id of timers) view?.clearTimeout?.(id);
+      timers.clear();
+      for (const anim of animations) {
+        try { anim.cancel?.(); } catch (_) {}
+      }
+      animations.clear();
+      while (disposers.length) {
+        const fn = disposers.pop();
+        try { fn(); } catch (_) {}
+      }
+    },
+  });
+}
+
+// ============================================================================
+// 2. Bidirectional FLIP & Pointer/Keyboard Drag Sort
+// ============================================================================
+const activeFlips = new WeakMap();
+const DEFAULT_DURATION = 420;
+const DEFAULT_EASING = "cubic-bezier(0.22, 1, 0.36, 1)";
+
+function resolveView(container, explicitView) {
+  return explicitView || container?.ownerDocument?.defaultView || globalThis.window;
+}
+
+function defaultKey(element, index) {
+  return element?.dataset?.flipKey || element?.dataset?.workspaceKey || element?.id || `__idx_${index}`;
+}
+
+function isVisibleRect(rect) {
+  return Boolean(rect && (rect.width > 0 || rect.height > 0));
+}
+
+function cancelActiveFlip(element) {
+  const current = activeFlips.get(element);
+  if (!current) return null;
+  // Measure live mid-flight visual rect BEFORE cancelling so reversal starts from where the eye sees it.
+  let liveRect = null;
+  try {
+    liveRect = element.getBoundingClientRect();
+  } catch (_) {
+    liveRect = null;
+  }
+  current.generation += 1;
+  try { current.animation?.cancel(); } catch (_) {}
+  if (element.style) {
+    if (current.prevTransform !== undefined) element.style.transform = current.prevTransform;
+    if (current.prevOrigin !== undefined) element.style.transformOrigin = current.prevOrigin;
+  }
+  element.removeAttribute?.("data-flip-moving");
+  activeFlips.delete(element);
+  return liveRect;
+}
+
+/**
+ * Measure current bounding rects of candidate items before a DOM/layout mutation.
+ * Interrupts any active FLIP animation smoothly and captures live mid-flight visual rects.
+ */
+export function captureFlipSnapshot(container, {
+  selector = ":scope > *",
+  getKey = defaultKey,
+} = {}) {
+  const snapshot = new Map();
+  if (!container?.querySelectorAll) return snapshot;
+  const elements = [...container.querySelectorAll(selector)];
+  elements.forEach((element, index) => {
+    if (!element || element.hidden || element.classList?.contains?.("hidden")) return;
+    const liveRect = cancelActiveFlip(element);
+    const rect = liveRect || element.getBoundingClientRect?.();
+    if (!isVisibleRect(rect)) return;
+    snapshot.set(getKey(element, index), {
+      element,
+      rect: { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
+    });
+  });
+  return snapshot;
+}
+
+/**
+ * Play bidirectional FLIP transitions between a pre-mutation snapshot and current DOM positions.
+ */
+export function playFlipSnapshot(container, beforeSnapshot, {
+  selector = ":scope > *",
+  getKey = defaultKey,
+  duration = DEFAULT_DURATION,
+  easing = DEFAULT_EASING,
+  scale = true,
+  animateEnter = true,
+  doubleRaf = false,
+  view = null,
+} = {}) {
+  const hostView = resolveView(container, view);
+  const reduced = prefersReducedMotion(hostView);
+  const elements = container?.querySelectorAll ? [...container.querySelectorAll(selector)] : [];
+  if (!elements.length) {
+    return { animatedCount: 0, cancel() {}, finished: Promise.resolve() };
+  }
+
+  // Batch read all Last rects before any style writes (avoid layout thrashing).
+  const measurements = [];
+  elements.forEach((element, index) => {
+    if (!element || element.hidden || element.classList?.contains?.("hidden")) return;
+    const key = getKey(element, index);
+    const first = beforeSnapshot?.get(key)?.rect || null;
+    const last = element.getBoundingClientRect?.();
+    if (!isVisibleRect(last)) return;
+    measurements.push({ element, key, first, last });
+  });
+
+  if (reduced || typeof elements[0]?.animate !== "function") {
+    for (const { element } of measurements) cancelActiveFlip(element);
+    return { animatedCount: 0, cancel() {}, finished: Promise.resolve() };
+  }
+
+  const pendingAnimations = [];
+  const rafIds = [];
+  let cancelled = false;
+
+  const startElementAnimation = (element, keyframes, animDuration, animEasing, savedTransform = "", savedOrigin = "") => {
+    const state = {
+      generation: 1,
+      animation: null,
+      prevTransform: savedTransform,
+      prevOrigin: savedOrigin,
+    };
+    const prevState = activeFlips.get(element);
+    if (prevState) state.generation = prevState.generation + 1;
+    activeFlips.set(element, state);
+    element.setAttribute?.("data-flip-moving", "true");
+    if (element.style) {
+      element.style.transform = "";
+      element.style.transformOrigin = scale ? "0 0" : "50% 50%";
+    }
+    const animation = element.animate(keyframes, {
+      duration: animDuration,
+      easing: animEasing,
+      fill: "none",
+    });
+    state.animation = animation;
+    const cleanup = () => {
+      const current = activeFlips.get(element);
+      if (current !== state) return;
+      activeFlips.delete(element);
+      element.removeAttribute?.("data-flip-moving");
+      if (element.style) {
+        element.style.transform = savedTransform;
+        element.style.transformOrigin = savedOrigin;
+      }
+    };
+    animation.finished.then(cleanup, cleanup);
+    pendingAnimations.push(animation);
+  };
+
+  const toPlay = [];
+  for (const { element, first, last } of measurements) {
+    const savedTransform = element.style?.transform ?? "";
+    const savedOrigin = element.style?.transformOrigin ?? "";
+    if (!first) {
+      if (animateEnter) {
+        toPlay.push({
+          element,
+          keyframes: [
+            { opacity: 0, transform: "translate3d(0, 8px, 0) scale(0.97)" },
+            { opacity: 1, transform: "translate3d(0, 0, 0) scale(1)" },
+          ],
+          duration: Math.min(duration, 240),
+          easing,
+          invertTransform: null,
+          savedTransform,
+          savedOrigin,
+        });
+      }
+      continue;
+    }
+    const dx = first.left - last.left;
+    const dy = first.top - last.top;
+    const sx = scale && last.width > 0 ? first.width / last.width : 1;
+    const sy = scale && last.height > 0 ? first.height / last.height : 1;
+    const moved = Math.abs(dx) >= 0.5 || Math.abs(dy) >= 0.5;
+    const resized = scale && (Math.abs(sx - 1) >= 0.01 || Math.abs(sy - 1) >= 0.01);
+    if (!moved && !resized) continue;
+    const invertTransform = resized
+      ? `translate3d(${dx.toFixed(2)}px, ${dy.toFixed(2)}px, 0) scale(${sx.toFixed(4)}, ${sy.toFixed(4)})`
+      : `translate3d(${dx.toFixed(2)}px, ${dy.toFixed(2)}px, 0)`;
+    const targetTransform = resized ? "translate3d(0, 0, 0) scale(1, 1)" : "translate3d(0, 0, 0)";
+    toPlay.push({
+      element,
+      keyframes: [{ transform: invertTransform }, { transform: targetTransform }],
+      duration,
+      easing,
+      invertTransform,
+      savedTransform,
+      savedOrigin,
+    });
+  }
+
+  let resolveFinished;
+  const finished = new Promise((resolve) => { resolveFinished = resolve; });
+
+  const launchAll = () => {
+    if (cancelled) {
+      for (const item of toPlay) {
+        item.element.removeAttribute?.("data-flip-moving");
+        if (item.element.style) {
+          item.element.style.transform = item.savedTransform;
+          item.element.style.transformOrigin = item.savedOrigin;
+        }
+      }
+      resolveFinished();
+      return;
+    }
+    for (const item of toPlay) {
+      startElementAnimation(item.element, item.keyframes, item.duration, item.easing, item.savedTransform, item.savedOrigin);
+    }
+    Promise.allSettled(pendingAnimations.map((a) => a.finished)).then(() => resolveFinished());
+  };
+
+  if (doubleRaf && toPlay.length && typeof hostView?.requestAnimationFrame === "function") {
+    for (const item of toPlay) {
+      item.element.setAttribute?.("data-flip-moving", "true");
+      if (item.invertTransform && item.element.style) {
+        item.element.style.transformOrigin = scale ? "0 0" : "50% 50%";
+        item.element.style.transform = item.invertTransform;
+      }
+    }
+    const f1 = hostView.requestAnimationFrame(() => {
+      const f2 = hostView.requestAnimationFrame(launchAll);
+      rafIds.push(f2);
+    });
+    rafIds.push(f1);
+  } else {
+    launchAll();
+  }
+
+  return {
+    animatedCount: toPlay.length,
+    finished,
+    cancel() {
+      cancelled = true;
+      for (const id of rafIds) hostView?.cancelAnimationFrame?.(id);
+      rafIds.length = 0;
+      for (const item of toPlay) {
+        item.element.removeAttribute?.("data-flip-moving");
+        if (item.element.style) {
+          item.element.style.transform = "";
+          item.element.style.transformOrigin = "";
+        }
+        cancelActiveFlip(item.element);
+      }
+      resolveFinished();
+    },
+  };
+}
+
+/**
+ * Convenience wrapper: First -> mutateFn() -> Last -> Invert -> Play.
+ */
+export function flipLayout(container, mutateFn, options = {}) {
+  const before = captureFlipSnapshot(container, options);
+  mutateFn?.();
+  return playFlipSnapshot(container, before, options);
+}
+
+/**
+ * Pointer-based drag-and-drop sorting controller with live FLIP sibling displacement,
+ * pointercancel/Escape revert, and zero layout-thrashing during move.
+ */
+export function createDragSortController(container, {
+  itemSelector = "[data-flip-key]",
+  handleSelector = "[data-drag-handle]",
+  getKey = defaultKey,
+  onOrderChange = null,
+  onDragStateChange = null,
+  threshold = 6,
+  view = null,
+} = {}) {
+  if (!container?.addEventListener) return { dispose() {}, cancel() {} };
+  const hostView = resolveView(container, view);
+  const doc = container.ownerDocument || globalThis.document;
+  let drag = null;
+  let rafId = 0;
+
+  const getItems = () => [...container.querySelectorAll(itemSelector)];
+
+  function clearDragVisuals(item) {
+    if (!item) return;
+    item.removeAttribute("data-dragging");
+    if (item.style) {
+      item.style.transform = "";
+      item.style.zIndex = "";
+      item.style.pointerEvents = "";
+    }
+  }
+
+  function cancelDrag(revert = true) {
+    if (rafId) hostView?.cancelAnimationFrame?.(rafId);
+    rafId = 0;
+    if (!drag) return;
+    const current = drag;
+    drag = null;
+    clearDragVisuals(current.item);
+    container.removeAttribute("data-drag-active");
+    if (revert && current.moved) {
+      flipLayout(container, () => {
+        for (const node of current.initialOrder) {
+          if (node.parentNode === container) container.append(node);
+        }
+      }, { selector: itemSelector, getKey, duration: 280, scale: false, animateEnter: false, view: hostView });
+    }
+    onDragStateChange?.({ dragging: false, cancelled: true, key: current.key });
+  }
+
+  function updateDragFrame() {
+    rafId = 0;
+    if (!drag) return;
+    const dx = drag.latestX - drag.startX;
+    const dy = drag.latestY - drag.startY;
+    if (!drag.moved && Math.hypot(dx, dy) < threshold) return;
+    if (!drag.moved) {
+      drag.moved = true;
+      drag.item.setAttribute("data-dragging", "true");
+      container.setAttribute("data-drag-active", "true");
+      if (drag.item.style) {
+        drag.item.style.zIndex = "12";
+      }
+      onDragStateChange?.({ dragging: true, key: drag.key });
+    }
+
+    const reduced = prefersReducedMotion(hostView);
+    if (drag.item.style) {
+      drag.item.style.transform = reduced
+        ? `translate3d(${dx.toFixed(1)}px, ${dy.toFixed(1)}px, 0)`
+        : `translate3d(${dx.toFixed(1)}px, ${dy.toFixed(1)}px, 0) scale(1.02)`;
+    }
+
+    // Check midpoint overlap with siblings using cached rects where possible.
+    const items = getItems().filter((node) => node !== drag.item && !node.hidden);
+    const pointerX = drag.latestX;
+    const pointerY = drag.latestY;
+    let targetSibling = null;
+    let insertBefore = true;
+
+    for (const sibling of items) {
+      if (sibling.hasAttribute?.("data-flip-moving")) continue;
+      const rect = sibling.getBoundingClientRect();
+      if (
+        pointerX >= rect.left && pointerX <= rect.right &&
+        pointerY >= rect.top && pointerY <= rect.bottom
+      ) {
+        const siblingsAll = getItems();
+        const myIndex = siblingsAll.indexOf(drag.item);
+        const targetIndex = siblingsAll.indexOf(sibling);
+        targetSibling = sibling;
+        insertBefore = targetIndex < myIndex;
+        break;
+      }
+    }
+
+    if (targetSibling) {
+      const before = captureFlipSnapshot(container, { selector: itemSelector, getKey });
+      // Keep the dragged item out of FLIP snapshot override so pointer follow stays 1:1.
+      before.delete(drag.key);
+      if (drag.item.style) drag.item.style.transform = "";
+      const prevSlot = drag.item.getBoundingClientRect();
+      if (insertBefore) container.insertBefore(drag.item, targetSibling);
+      else container.insertBefore(drag.item, targetSibling.nextElementSibling);
+      const nextSlot = drag.item.getBoundingClientRect();
+      drag.startX += nextSlot.left - prevSlot.left;
+      drag.startY += nextSlot.top - prevSlot.top;
+      const nextDx = drag.latestX - drag.startX;
+      const nextDy = drag.latestY - drag.startY;
+      if (drag.item.style) {
+        drag.item.style.transform = reduced
+          ? `translate3d(${nextDx.toFixed(1)}px, ${nextDy.toFixed(1)}px, 0)`
+          : `translate3d(${nextDx.toFixed(1)}px, ${nextDy.toFixed(1)}px, 0) scale(1.02)`;
+      }
+      playFlipSnapshot(container, before, {
+        selector: itemSelector,
+        getKey,
+        duration: 280,
+        scale: false,
+        animateEnter: false,
+        view: hostView,
+      });
+    }
+  }
+
+  function onPointerDown(event) {
+    if (event.button !== 0 || event.isPrimary === false) return;
+    const handle = handleSelector ? event.target?.closest?.(handleSelector) : event.target?.closest?.(itemSelector);
+    if (!handle || !container.contains(handle)) return;
+    const item = handle.closest(itemSelector);
+    if (!item || !container.contains(item)) return;
+    // Allow dedicated drag handle buttons, but skip unrelated interactive controls inside items.
+    if (!handleSelector && event.target?.closest?.("button, a, input, select, textarea")) return;
+    event.preventDefault();
+    const initialOrder = getItems();
+    const rect = item.getBoundingClientRect();
+    drag = {
+      item,
+      handle,
+      key: getKey(item, initialOrder.indexOf(item)),
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      latestX: event.clientX,
+      latestY: event.clientY,
+      lastVisualLeft: rect.left,
+      lastVisualTop: rect.top,
+      moved: false,
+      initialOrder,
+    };
+  }
+
+  function onPointerMove(event) {
+    if (!drag || event.pointerId !== drag.pointerId) return;
+    drag.latestX = event.clientX;
+    drag.latestY = event.clientY;
+    if (!rafId && hostView?.requestAnimationFrame) {
+      rafId = hostView.requestAnimationFrame(updateDragFrame);
+    } else if (!hostView?.requestAnimationFrame) {
+      updateDragFrame();
+    }
+  }
+
+  function onPointerEnd(event) {
+    if (!drag || event.pointerId !== drag.pointerId) return;
+    if (event.type === "pointercancel") {
+      cancelDrag(true);
+      return;
+    }
+    if (rafId) {
+      hostView?.cancelAnimationFrame?.(rafId);
+      rafId = 0;
+      updateDragFrame();
+    }
+    const current = drag;
+    drag = null;
+    const moved = current.moved;
+    const beforeDrop = moved ? captureFlipSnapshot(container, { selector: itemSelector, getKey }) : null;
+    clearDragVisuals(current.item);
+    container.removeAttribute("data-drag-active");
+    if (moved && beforeDrop) {
+      playFlipSnapshot(container, beforeDrop, {
+        selector: itemSelector,
+        getKey,
+        duration: 240,
+        scale: false,
+        animateEnter: false,
+        view: hostView,
+      });
+      const orderKeys = getItems().map((node, index) => getKey(node, index));
+      onOrderChange?.(orderKeys, { trigger: "pointer", key: current.key });
+    }
+    onDragStateChange?.({ dragging: false, cancelled: false, committed: moved, key: current.key });
+  }
+
+  function onKeyDown(event) {
+    if (event.key === "Escape" && drag) {
+      event.preventDefault();
+      cancelDrag(true);
+    }
+  }
+
+  container.addEventListener("pointerdown", onPointerDown);
+  doc?.addEventListener?.("pointermove", onPointerMove);
+  doc?.addEventListener?.("pointerup", onPointerEnd);
+  doc?.addEventListener?.("pointercancel", onPointerEnd);
+  doc?.addEventListener?.("keydown", onKeyDown);
+
+  return {
+    cancel: () => cancelDrag(true),
+    dispose() {
+      cancelDrag(false);
+      container.removeEventListener("pointerdown", onPointerDown);
+      doc?.removeEventListener?.("pointermove", onPointerMove);
+      doc?.removeEventListener?.("pointerup", onPointerEnd);
+      doc?.removeEventListener?.("pointercancel", onPointerEnd);
+      doc?.removeEventListener?.("keydown", onKeyDown);
+    },
+  };
+}
+
+// ============================================================================
+// 3. Bounded Toast Queue Manager
+// ============================================================================
+const DEFAULT_DURATIONS = Object.freeze({
+  info: 3200,
+  success: 3200,
+  warning: 4800,
+  error: 6500,
+});
+
+const TONE_LABELS = Object.freeze({
+  info: "提示",
+  success: "完成",
+  warning: "注意",
+  error: "错误",
+});
+
+const VALID_TONES = new Set(["info", "success", "warning", "error"]);
+const sharedManagers = new WeakMap();
+
+export function createToastManager({
+  doc = globalThis.document,
+  view = doc?.defaultView || globalThis.window,
+  containerParent = null,
+  maxVisible = 2,
+  maxQueue = 12,
+  durations = DEFAULT_DURATIONS,
+} = {}) {
+  if (!doc?.createElement) {
+    return {
+      show: () => null,
+      dismiss: () => {},
+      clear: () => {},
+      dispose: () => {},
+      snapshot: () => ({ visible: [], queued: [] }),
+    };
+  }
+
+  let seq = 0;
+  let disposed = false;
+  const visible = [];
+  const queue = [];
+  const timers = new Map();
+  let region = null;
+  let listNode = null;
+  let politeLive = null;
+  let assertiveLive = null;
+
+  function ensureRegion() {
+    if (region && region.isConnected) return region;
+    const parent = containerParent || doc.body || doc.documentElement;
+    if (!parent) return null;
+    region = doc.createElement("aside");
+    region.className = "ds-toast-region";
+    region.setAttribute("role", "region");
+    region.setAttribute("aria-label", "系统状态通知");
+
+    listNode = doc.createElement("div");
+    listNode.className = "ds-toast-stack";
+
+    politeLive = doc.createElement("div");
+    politeLive.className = "ds-sr-only";
+    politeLive.setAttribute("aria-live", "polite");
+    politeLive.setAttribute("aria-atomic", "true");
+
+    assertiveLive = doc.createElement("div");
+    assertiveLive.className = "ds-sr-only";
+    assertiveLive.setAttribute("aria-live", "assertive");
+    assertiveLive.setAttribute("aria-atomic", "true");
+
+    region.append(listNode, politeLive, assertiveLive);
+    parent.append(region);
+    return region;
+  }
+
+  function announce(tone, message) {
+    const target = tone === "error" ? assertiveLive : politeLive;
+    if (!target) return;
+    target.textContent = "";
+    const text = `${TONE_LABELS[tone] || "提示"}：${message}`;
+    if (typeof view?.queueMicrotask === "function") {
+      view.queueMicrotask(() => { if (!disposed && target) target.textContent = text; });
+    } else {
+      target.textContent = text;
+    }
+  }
+
+  function clearTimer(id) {
+    const entry = timers.get(id);
+    if (!entry) return;
+    if (entry.timerId) view?.clearTimeout?.(entry.timerId);
+    timers.delete(id);
+  }
+
+  function startTimer(entry) {
+    clearTimer(entry.id);
+    if (entry.sticky || !Number.isFinite(entry.remainingMs) || entry.remainingMs <= 0) return;
+    const startedAt = view?.performance?.now ? view.performance.now() : Date.now();
+    const timerId = view?.setTimeout?.(() => {
+      timers.delete(entry.id);
+      dismiss(entry.id);
+    }, entry.remainingMs);
+    timers.set(entry.id, { timerId, startedAt });
+  }
+
+  function pauseTimer(entry) {
+    const active = timers.get(entry.id);
+    if (!active) return;
+    const now = view?.performance?.now ? view.performance.now() : Date.now();
+    const elapsed = Math.max(0, now - active.startedAt);
+    entry.remainingMs = Math.max(400, entry.remainingMs - elapsed);
+    clearTimer(entry.id);
+  }
+
+  function renderToastNode(entry) {
+    const item = doc.createElement("article");
+    item.className = "ds-toast";
+    item.dataset.toastId = entry.id;
+    item.dataset.tone = entry.tone;
+    item.setAttribute("role", entry.tone === "error" ? "alert" : "status");
+
+    const badge = doc.createElement("span");
+    badge.className = "ds-toast-tone";
+    badge.textContent = TONE_LABELS[entry.tone] || "提示";
+
+    const body = doc.createElement("div");
+    body.className = "ds-toast-body";
+    const text = doc.createElement("p");
+    text.className = "ds-toast-message";
+    text.textContent = entry.message;
+    body.append(text);
+
+    const countBadge = doc.createElement("span");
+    countBadge.className = "ds-toast-repeat";
+    countBadge.hidden = entry.count <= 1;
+    countBadge.textContent = `×${entry.count}`;
+    body.append(countBadge);
+
+    if (entry.actionLabel && typeof entry.onAction === "function") {
+      const actionBtn = doc.createElement("button");
+      actionBtn.type = "button";
+      actionBtn.className = "ds-toast-action button-ghost";
+      actionBtn.textContent = entry.actionLabel;
+      actionBtn.addEventListener("click", () => {
+        try { entry.onAction(); } finally { dismiss(entry.id); }
+      });
+      body.append(actionBtn);
+    }
+
+    const closeBtn = doc.createElement("button");
+    closeBtn.type = "button";
+    closeBtn.className = "ds-toast-close";
+    closeBtn.setAttribute("aria-label", "关闭通知");
+    closeBtn.textContent = "关闭";
+    closeBtn.addEventListener("click", () => dismiss(entry.id));
+
+    item.addEventListener("pointerenter", () => pauseTimer(entry));
+    item.addEventListener("pointerleave", () => {
+      if (visible.includes(entry) && !entry.leaving) startTimer(entry);
+    });
+    item.addEventListener("focusin", () => pauseTimer(entry));
+    item.addEventListener("focusout", (event) => {
+      if (!item.contains(event.relatedTarget) && visible.includes(entry) && !entry.leaving) {
+        startTimer(entry);
+      }
+    });
+
+    item.append(badge, body, closeBtn);
+    entry.node = item;
+    entry.countNode = countBadge;
+    return item;
+  }
+
+  function mountEntry(entry) {
+    ensureRegion();
+    if (!listNode) return;
+    const node = renderToastNode(entry);
+    visible.push(entry);
+    listNode.append(node);
+    announce(entry.tone, entry.message);
+    if (!prefersReducedMotion(view) && typeof node.animate === "function") {
+      entry.enterAnim = node.animate(
+        [
+          { opacity: 0, transform: "translate3d(0, 14px, 0) scale(0.96)" },
+          { opacity: 1, transform: "translate3d(0, 0, 0) scale(1)" },
+        ],
+        { duration: 220, easing: "cubic-bezier(0.22, 1, 0.36, 1)", fill: "none" },
+      );
+      entry.enterAnim?.finished?.catch?.(() => {});
+    }
+    startTimer(entry);
+  }
+
+  function flushQueue() {
+    while (!disposed && visible.length < maxVisible && queue.length > 0) {
+      const next = queue.shift();
+      mountEntry(next);
+    }
+  }
+
+  function enqueueItem(entry) {
+    if (queue.length >= maxQueue) {
+      // Never drop queued errors if low-priority info/success can be evicted.
+      const dropIndex = queue.findIndex((item) => item.tone !== "error");
+      if (dropIndex >= 0) queue.splice(dropIndex, 1);
+      else if (entry.tone !== "error") return null;
+      else queue.shift();
+    }
+    queue.push(entry);
+    return entry.id;
+  }
+
+  function show(input, maybeOptions = {}) {
+    if (disposed) return null;
+    const opts = typeof input === "string" ? { message: input, ...maybeOptions } : { ...(input || {}) };
+    const message = String(opts.message || "").trim();
+    if (!message) return null;
+    const tone = VALID_TONES.has(opts.tone) ? opts.tone : "info";
+    const dedupeKey = String(opts.dedupeKey || `${tone}:${message}`);
+    const sticky = opts.sticky === true || opts.duration === Infinity;
+    const duration = sticky
+      ? Infinity
+      : Math.max(800, Number(opts.duration) || durations[tone] || DEFAULT_DURATIONS.info);
+
+    // Deduplicate identical active or queued toast.
+    const existing = visible.find((item) => !item.leaving && item.dedupeKey === dedupeKey)
+      || queue.find((item) => item.dedupeKey === dedupeKey);
+    if (existing) {
+      existing.count += 1;
+      existing.remainingMs = duration;
+      existing.sticky = sticky;
+      if (existing.countNode) {
+        existing.countNode.textContent = `×${existing.count}`;
+        existing.countNode.hidden = false;
+      }
+      if (visible.includes(existing)) startTimer(existing);
+      return existing.id;
+    }
+
+    const entry = {
+      id: `toast-${++seq}`,
+      tone,
+      message,
+      dedupeKey,
+      sticky,
+      remainingMs: duration,
+      count: 1,
+      actionLabel: opts.actionLabel ? String(opts.actionLabel) : "",
+      onAction: typeof opts.onAction === "function" ? opts.onAction : null,
+      leaving: false,
+      node: null,
+      countNode: null,
+      enterAnim: null,
+      exitAnim: null,
+    };
+
+    if (visible.length < maxVisible) {
+      mountEntry(entry);
+      return entry.id;
+    }
+
+    // Never allow a quick non-error toast to overwrite or evict an active error toast.
+    enqueueItem(entry);
+    return entry.id;
+  }
+
+  function finalizeRemoval(entry) {
+    clearTimer(entry.id);
+    const idx = visible.indexOf(entry);
+    if (idx >= 0) visible.splice(idx, 1);
+    try { entry.enterAnim?.cancel(); } catch (_) {}
+    try { entry.exitAnim?.cancel(); } catch (_) {}
+    entry.node?.remove?.();
+    entry.node = null;
+    flushQueue();
+  }
+
+  function dismiss(id) {
+    const qIdx = queue.findIndex((item) => item.id === id);
+    if (qIdx >= 0) {
+      queue.splice(qIdx, 1);
+      return;
+    }
+    const entry = visible.find((item) => item.id === id);
+    if (!entry || entry.leaving) return;
+    entry.leaving = true;
+    clearTimer(entry.id);
+    entry.node?.setAttribute("data-leaving", "true");
+    if (prefersReducedMotion(view) || typeof entry.node?.animate !== "function") {
+      finalizeRemoval(entry);
+      return;
+    }
+    entry.exitAnim = entry.node.animate(
+      [
+        { opacity: 1, transform: "translate3d(0, 0, 0) scale(1)" },
+        { opacity: 0, transform: "translate3d(0, 8px, 0) scale(0.97)" },
+      ],
+      { duration: 180, easing: "cubic-bezier(0.2, 0, 0, 1)", fill: "forwards" },
+    );
+    entry.exitAnim.finished.then(() => finalizeRemoval(entry), () => finalizeRemoval(entry));
+  }
+
+  function clear({ includeErrors = true } = {}) {
+    for (let i = queue.length - 1; i >= 0; i -= 1) {
+      if (includeErrors || queue[i].tone !== "error") queue.splice(i, 1);
+    }
+    for (const entry of [...visible]) {
+      if (includeErrors || entry.tone !== "error") finalizeRemoval(entry);
+    }
+  }
+
+  function dispose() {
+    if (disposed) return;
+    disposed = true;
+    for (const id of [...timers.keys()]) clearTimer(id);
+    for (const entry of [...visible]) {
+      try { entry.enterAnim?.cancel(); } catch (_) {}
+      try { entry.exitAnim?.cancel(); } catch (_) {}
+      entry.node?.remove?.();
+    }
+    visible.length = 0;
+    queue.length = 0;
+    region?.remove?.();
+    region = null;
+    listNode = null;
+    politeLive = null;
+    assertiveLive = null;
+  }
+
+  function snapshot() {
+    return {
+      visible: visible.map((item) => ({ id: item.id, tone: item.tone, message: item.message, count: item.count })),
+      queued: queue.map((item) => ({ id: item.id, tone: item.tone, message: item.message, count: item.count })),
+      maxVisible,
+    };
+  }
+
+  return Object.freeze({
+    show,
+    info: (message, opts) => show({ ...opts, message, tone: "info" }),
+    success: (message, opts) => show({ ...opts, message, tone: "success" }),
+    warning: (message, opts) => show({ ...opts, message, tone: "warning" }),
+    error: (message, opts) => show({ ...opts, message, tone: "error" }),
+    dismiss,
+    clear,
+    dispose,
+    snapshot,
+  });
+}
+
+export function getSharedToastManager(doc = globalThis.document) {
+  if (!doc) return createToastManager({ doc: null });
+  let manager = sharedManagers.get(doc);
+  if (!manager) {
+    manager = createToastManager({ doc });
+    sharedManagers.set(doc, manager);
+  }
+  return manager;
+}
+
+export function showToast(input, options = {}, doc = globalThis.document) {
+  return getSharedToastManager(doc).show(input, options);
+}
+
+export function dismissToast(id, doc = globalThis.document) {
+  getSharedToastManager(doc).dismiss(id);
+}
+
+// ============================================================================
+// 4. Platform-Adaptive Modal & Mobile Gesture Drawer Adapter
+// ============================================================================
+const MOBILE_BREAKPOINT = 760;
+const adapters = new WeakMap();
+const scrollLocks = new WeakMap();
+
+export function isMobileSheetViewport(view = globalThis.window) {
+  if (!view) return false;
+  return (Number(view.innerWidth) || 0) <= MOBILE_BREAKPOINT;
+}
+
+export function syncModalScrollLock(doc = globalThis.document) {
+  if (!doc?.body) return false;
+  const openLayers = [...(doc.querySelectorAll?.(".modal-layer:not(.hidden)") || [])]
+    .filter((layer) => layer.dataset?.sheetWorkspace !== "true" && layer.getAttribute?.("aria-hidden") !== "true");
+  const active = openLayers.length > 0;
+  doc.body.classList?.toggle("modal-open", active);
+  scrollLocks.set(doc, openLayers.length);
+  return active;
+}
+
+export function getScrollLockCount(doc = globalThis.document) {
+  return scrollLocks.get(doc) || 0;
+}
+
+function setBackgroundScale(doc, scaleTarget, ratio, reduced) {
+  if (!scaleTarget?.style || !doc?.body) return;
+  if (reduced || ratio <= 0) {
+    scaleTarget.style.removeProperty("--ds-bg-scale");
+    doc.body.classList?.remove("ds-sheet-scaling");
+    return;
+  }
+  const scale = 1 - 0.018 * Math.max(0, Math.min(1, ratio));
+  scaleTarget.style.setProperty("--ds-bg-scale", scale.toFixed(4));
+  doc.body.classList?.add("ds-sheet-scaling");
+}
+
+function rubberBand(offset) {
+  // Subtle upward resistance when user pulls above resting position.
+  return -Math.min(28, Math.pow(Math.abs(offset), 0.72));
+}
+
+export function attachSheetAdapter(modalLayer, {
+  panel = null,
+  onRequestClose = null,
+  scaleTarget = null,
+  dismissible = true,
+  mobileDrawer = true,
+  doc = modalLayer?.ownerDocument || globalThis.document,
+  view = doc?.defaultView || globalThis.window,
+} = {}) {
+  if (!modalLayer) return { dispose() {}, syncMode() {}, reset() {} };
+  if (adapters.has(modalLayer)) return adapters.get(modalLayer);
+
+  const panelEl = panel || modalLayer.querySelector?.(".modal-panel") || modalLayer.firstElementChild;
+  if (!panelEl) return { dispose() {}, syncMode() {}, reset() {} };
+
+  const canSwipeDismiss = dismissible
+    && !modalLayer.hasAttribute?.("data-confirm-only")
+    && modalLayer.getAttribute?.("role") !== "alertdialog"
+    && panelEl.getAttribute?.("role") !== "alertdialog";
+
+  let handleEl = panelEl.querySelector?.(".ds-sheet-handle") || null;
+  let createdHandle = false;
+  if (canSwipeDismiss && mobileDrawer && !handleEl && doc?.createElement) {
+    handleEl = doc.createElement("div");
+    handleEl.className = "ds-sheet-handle";
+    handleEl.setAttribute("aria-hidden", "true");
+    const pill = doc.createElement("span");
+    pill.className = "ds-sheet-handle-pill";
+    handleEl.append(pill);
+    panelEl.prepend(handleEl);
+    createdHandle = true;
+  }
+
+  let drag = null;
+  let snapAnim = null;
+  let rafId = 0;
+
+  function resolveScaleTarget() {
+    if (scaleTarget) return scaleTarget;
+    return doc?.querySelector?.(".app-scale-wrap") || doc?.getElementById?.("v3AppFrame") || null;
+  }
+
+  function syncMode() {
+    const mobile = isMobileSheetViewport(view);
+    const useDrawer = Boolean(mobile && mobileDrawer && canSwipeDismiss);
+    modalLayer.dataset.sheetMode = useDrawer ? "drawer" : "modal";
+    panelEl.classList?.toggle("gesture-sheet", useDrawer);
+    if (handleEl) handleEl.hidden = !useDrawer;
+    return useDrawer;
+  }
+
+  function resetVisuals() {
+    if (rafId) view?.cancelAnimationFrame?.(rafId);
+    rafId = 0;
+    try { snapAnim?.cancel(); } catch (_) {}
+    snapAnim = null;
+    drag = null;
+    panelEl.removeAttribute?.("data-sheet-dragging");
+    if (panelEl.style) {
+      panelEl.style.transform = "";
+      panelEl.style.transition = "";
+    }
+    if (modalLayer.style) {
+      modalLayer.style.removeProperty("--ds-backdrop-alpha");
+    }
+    const openOther = [...(doc?.querySelectorAll?.(".modal-layer:not(.hidden)") || [])]
+      .some((el) => el !== modalLayer && el.dataset?.sheetWorkspace !== "true");
+    if (!openOther) setBackgroundScale(doc, resolveScaleTarget(), 0, true);
+  }
+
+  function applyDragFrame() {
+    rafId = 0;
+    if (!drag) return;
+    const rawDy = drag.latestY - drag.startY;
+    const dy = rawDy < 0 ? rubberBand(rawDy) : rawDy;
+    drag.currentDy = dy;
+    const panelHeight = Math.max(160, drag.panelHeight || 360);
+    const progress = Math.max(0, Math.min(1, dy / panelHeight));
+    if (panelEl.style) {
+      panelEl.style.transform = `translate3d(0, ${dy.toFixed(1)}px, 0)`;
+    }
+    if (modalLayer.style) {
+      modalLayer.style.setProperty("--ds-backdrop-alpha", String(Math.max(0.15, 1 - progress * 0.85).toFixed(3)));
+    }
+    setBackgroundScale(doc, resolveScaleTarget(), 1 - progress, prefersReducedMotion(view));
+  }
+
+  function snapBack() {
+    const startDy = drag?.currentDy || 0;
+    drag = null;
+    panelEl.removeAttribute?.("data-sheet-dragging");
+    if (modalLayer.style) modalLayer.style.removeProperty("--ds-backdrop-alpha");
+    const reduced = prefersReducedMotion(view);
+    setBackgroundScale(doc, resolveScaleTarget(), 1, reduced);
+    if (reduced || typeof panelEl.animate !== "function" || Math.abs(startDy) < 1) {
+      if (panelEl.style) panelEl.style.transform = "";
+      return;
+    }
+    if (panelEl.style) panelEl.style.transform = "";
+    snapAnim = panelEl.animate(
+      [
+        { transform: `translate3d(0, ${startDy.toFixed(1)}px, 0)` },
+        { transform: "translate3d(0, 0, 0)" },
+      ],
+      { duration: 280, easing: "cubic-bezier(0.22, 1, 0.36, 1)", fill: "none" },
+    );
+    snapAnim.finished.then(() => { snapAnim = null; }, () => { snapAnim = null; });
+  }
+
+  function onPointerDown(event) {
+    if (!canSwipeDismiss || modalLayer.classList?.contains?.("hidden")) return;
+    if (!syncMode()) return;
+    if (event.button !== 0 || event.isPrimary === false) return;
+    const onHandle = handleEl && (event.target === handleEl || handleEl.contains?.(event.target));
+    const interactive = event.target?.closest?.("button, a, input, select, textarea, label, [role='tab']");
+    if (interactive && !onHandle) return;
+    // Allow internal vertical scroll when content is scrolled down unless grabbing the top handle.
+    if (!onHandle && (panelEl.scrollTop || 0) > 2) return;
+
+    try { snapAnim?.cancel(); } catch (_) {}
+    snapAnim = null;
+    const now = view?.performance?.now ? view.performance.now() : Date.now();
+    drag = {
+      pointerId: event.pointerId,
+      startY: event.clientY,
+      latestY: event.clientY,
+      prevY: event.clientY,
+      prevAt: now,
+      velocityY: 0,
+      currentDy: 0,
+      moved: false,
+      panelHeight: panelEl.getBoundingClientRect?.().height || 360,
+    };
+    if (onHandle) event.preventDefault();
+  }
+
+  function onPointerMove(event) {
+    if (!drag || event.pointerId !== drag.pointerId) return;
+    const rawDy = event.clientY - drag.startY;
+    if (!drag.moved) {
+      if (Math.abs(rawDy) < 6) return;
+      // If user scrolls upward inside body content, yield to native scroll unless on handle.
+      const onHandle = handleEl && (event.target === handleEl || handleEl.contains?.(event.target));
+      if (!onHandle && rawDy < 0 && (panelEl.scrollHeight > panelEl.clientHeight + 2)) {
+        drag = null;
+        return;
+      }
+      drag.moved = true;
+      panelEl.setAttribute?.("data-sheet-dragging", "true");
+      try { panelEl.setPointerCapture?.(event.pointerId); } catch (_) {}
+    }
+    const now = view?.performance?.now ? view.performance.now() : Date.now();
+    const dt = Math.max(1, now - drag.prevAt);
+    drag.velocityY = (event.clientY - drag.prevY) / dt;
+    drag.prevY = event.clientY;
+    drag.prevAt = now;
+    drag.latestY = event.clientY;
+    if (drag.moved && event.cancelable) event.preventDefault();
+    if (!rafId && view?.requestAnimationFrame) {
+      rafId = view.requestAnimationFrame(applyDragFrame);
+    } else {
+      applyDragFrame();
+    }
+  }
+
+  function onPointerEnd(event) {
+    if (!drag || event.pointerId !== drag.pointerId) return;
+    if (rafId) {
+      view?.cancelAnimationFrame?.(rafId);
+      rafId = 0;
+      applyDragFrame();
+    }
+    try { panelEl.releasePointerCapture?.(drag.pointerId); } catch (_) {}
+    if (event.type === "pointercancel" || !drag.moved) {
+      snapBack();
+      return;
+    }
+    const dy = drag.currentDy;
+    const vy = drag.velocityY;
+    const threshold = Math.min(130, Math.max(72, drag.panelHeight * 0.28));
+    if (dy > threshold || (dy > 56 && vy > 0.65)) {
+      drag = null;
+      panelEl.removeAttribute?.("data-sheet-dragging");
+      const finishClose = () => {
+        if (typeof onRequestClose === "function") {
+          onRequestClose("swipe", { currentDy: dy });
+        } else {
+          resetVisuals();
+        }
+      };
+      if (prefersReducedMotion(view) || typeof panelEl.animate !== "function") {
+        finishClose();
+        return;
+      }
+      if (panelEl.style) panelEl.style.transform = "";
+      snapAnim = panelEl.animate(
+        [
+          { transform: `translate3d(0, ${dy.toFixed(1)}px, 0)` },
+          { transform: "translate3d(0, 100%, 0)" },
+        ],
+        { duration: 160, easing: "cubic-bezier(0.2, 0, 0, 1)", fill: "forwards" },
+      );
+      snapAnim.finished.then(() => {
+        snapAnim = null;
+        finishClose();
+      }, () => {
+        snapAnim = null;
+        finishClose();
+      });
+      return;
+    }
+    snapBack();
+  }
+
+  function onOpened() {
+    resetVisuals();
+    const isDrawer = syncMode();
+    if (!isDrawer && !prefersReducedMotion(view)) {
+      setBackgroundScale(doc, resolveScaleTarget(), 1, false);
+    } else if (isDrawer && !prefersReducedMotion(view)) {
+      setBackgroundScale(doc, resolveScaleTarget(), 1, false);
+    }
+    syncModalScrollLock(doc);
+  }
+
+  function onClosed() {
+    resetVisuals();
+    syncModalScrollLock(doc);
+  }
+
+  const onResize = () => {
+    if (!modalLayer.classList?.contains?.("hidden")) syncMode();
+  };
+
+  panelEl.addEventListener?.("pointerdown", onPointerDown);
+  panelEl.addEventListener?.("pointermove", onPointerMove);
+  panelEl.addEventListener?.("pointerup", onPointerEnd);
+  panelEl.addEventListener?.("pointercancel", onPointerEnd);
+  panelEl.addEventListener?.("lostpointercapture", onPointerEnd);
+  view?.addEventListener?.("resize", onResize, { passive: true });
+
+  syncMode();
+  const controller = Object.freeze({
+    syncMode,
+    onOpened,
+    onClosed,
+    reset: resetVisuals,
+    snapBack,
+    dispose() {
+      resetVisuals();
+      panelEl.removeEventListener?.("pointerdown", onPointerDown);
+      panelEl.removeEventListener?.("pointermove", onPointerMove);
+      panelEl.removeEventListener?.("pointerup", onPointerEnd);
+      panelEl.removeEventListener?.("pointercancel", onPointerEnd);
+      panelEl.removeEventListener?.("lostpointercapture", onPointerEnd);
+      view?.removeEventListener?.("resize", onResize);
+      if (createdHandle) handleEl?.remove?.();
+      adapters.delete(modalLayer);
+    },
+  });
+  adapters.set(modalLayer, controller);
+  return controller;
+}
+
+// ============================================================================
+// 5. Scroll-Driven 3D Progress & Locked-Frame Bento Parallax
+// ============================================================================
+export function clamp01(value) {
+  return Math.max(0, Math.min(1, Number(value) || 0));
+}
+
+export function lerp(start, end, progress) {
+  const t = clamp01(progress);
+  return start + (end - start) * t;
+}
+
+/**
+ * Compute normalized [0, 1] scroll progress as an element enters from startEdge to endEdge
+ * of the viewport height. Reversible when scrolling up or down.
+ */
+export function computeScrollProgress(rect, viewportHeight, { startEdge = 0.95, endEdge = 0.32 } = {}) {
+  if (!rect || !viewportHeight) return 1;
+  const startY = viewportHeight * startEdge;
+  const endY = viewportHeight * endEdge;
+  const span = Math.max(1, startY - endY);
+  return clamp01((startY - rect.top) / span);
+}
+
+/**
+ * Compute centered [-1, 1] travel factor for subtle internal Bento parallax.
+ */
+export function computeCenteredParallax(rect, viewportHeight) {
+  if (!rect || !viewportHeight) return 0;
+  const total = Math.max(1, viewportHeight + (rect.height || 0));
+  const raw = (viewportHeight - rect.top) / total;
+  return Math.max(-1, Math.min(1, raw * 2 - 1));
+}
+
+export function createScrollProgressController({
+  root = globalThis.document,
+  doc = root?.ownerDocument || globalThis.document,
+  view = doc?.defaultView || globalThis.window,
+  onSample = null,
+} = {}) {
+  if (!root || !view) {
+    return { refresh() {}, updateNow() {}, dispose() {} };
+  }
+
+  let disposed = false;
+  let rafId = 0;
+  const visibleElements = new Set();
+  const observedElements = new Set();
+
+  const readTargets = () => {
+    const raw3d = [...(root.querySelectorAll?.("[data-scroll-3d], .scroll-preview-wrap") || [])];
+    const rawBento = [...(root.querySelectorAll?.("[data-bento-wall], .apple-bento-wall") || [])];
+    const scroll3d = raw3d.filter((el) => !el.matches || el.matches("[data-scroll-3d], .scroll-preview-wrap"));
+    const bentoWalls = rawBento.filter((el) => !el.matches || el.matches("[data-bento-wall], .apple-bento-wall"));
+    return { scroll3d, bentoWalls };
+  };
+
+  function resetNode(el, isBento = false) {
+    if (!el?.style?.setProperty) return;
+    if (isBento) {
+      el.querySelectorAll?.(".tile-inner")?.forEach?.((inner) => {
+        inner.style?.setProperty?.("--ds-parallax-y", "0px");
+      });
+      return;
+    }
+    el.style.setProperty("--ds-scroll-progress", "1");
+    el.style.setProperty("--ds-scroll-rx", "0deg");
+    el.style.setProperty("--ds-scroll-scale", "1");
+    el.style.setProperty("--ds-scroll-ty", "0px");
+  }
+
+  function updateNow() {
+    rafId = 0;
+    if (disposed) return;
+    const reduced = prefersReducedMotion(view);
+    const { scroll3d, bentoWalls } = readTargets();
+    const vh = view.innerHeight || doc?.documentElement?.clientHeight || 900;
+
+    if (reduced) {
+      for (const el of scroll3d) resetNode(el, false);
+      for (const wall of bentoWalls) resetNode(wall, true);
+      onSample?.({ reduced: true, scroll3d: [], bento: [] });
+      return;
+    }
+
+    // Batch-read all active rects first (avoid read-write interleaving).
+    const active3d = scroll3d
+      .filter((el) => !observedElements.size || visibleElements.has(el))
+      .map((el) => ({ el, rect: el.getBoundingClientRect() }));
+    const activeWalls = bentoWalls
+      .filter((wall) => !observedElements.size || visibleElements.has(wall))
+      .map((wall) => ({
+        wall,
+        rect: wall.getBoundingClientRect(),
+        inners: [...(wall.querySelectorAll?.(".tile-inner") || [])],
+      }));
+
+    // Batch-write GPU CSS custom properties.
+    const sampled3d = [];
+    for (const { el, rect } of active3d) {
+      if (!el?.style?.setProperty) continue;
+      const startEdge = Number(el.dataset?.scrollStart ?? 0.96);
+      const endEdge = Number(el.dataset?.scrollEnd ?? 0.30);
+      const maxRx = Number(el.dataset?.scrollMaxRx ?? 12);
+      const minScale = Number(el.dataset?.scrollMinScale ?? 0.94);
+      const maxTy = Number(el.dataset?.scrollMaxTy ?? 24);
+      const progress = computeScrollProgress(rect, vh, { startEdge, endEdge });
+      const rx = lerp(maxRx, 0, progress);
+      const scale = lerp(minScale, 1, progress);
+      const ty = lerp(maxTy, 0, progress);
+
+      el.style.setProperty("--ds-scroll-progress", progress.toFixed(4));
+      el.style.setProperty("--ds-scroll-rx", `${rx.toFixed(2)}deg`);
+      el.style.setProperty("--ds-scroll-scale", scale.toFixed(4));
+      el.style.setProperty("--ds-scroll-ty", `${ty.toFixed(2)}px`);
+      sampled3d.push({ el, progress, rx, scale, ty });
+    }
+
+    const sampledBento = [];
+    for (const { wall, rect, inners } of activeWalls) {
+      const centered = computeCenteredParallax(rect, vh);
+      const maxShift = Number(wall.dataset?.parallaxMax ?? 14);
+      for (const inner of inners) {
+        const speed = Number(inner.dataset?.parallaxSpeed ?? 0.55);
+        const shift = Math.max(-maxShift, Math.min(maxShift, centered * speed * maxShift));
+        inner.style.setProperty("--ds-parallax-y", `${shift.toFixed(2)}px`);
+        sampledBento.push({ inner, shift });
+      }
+    }
+
+    onSample?.({ reduced: false, scroll3d: sampled3d, bento: sampledBento });
+  }
+
+  function schedule() {
+    if (disposed || rafId) return;
+    if (typeof view.requestAnimationFrame === "function") {
+      rafId = view.requestAnimationFrame(updateNow);
+    } else {
+      updateNow();
+    }
+  }
+
+  const intersectionObserver = typeof view.IntersectionObserver === "function"
+    ? new view.IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) visibleElements.add(entry.target);
+        else visibleElements.delete(entry.target);
+      }
+      schedule();
+    }, { rootMargin: "140px 0px" })
+    : null;
+
+  function refresh() {
+    if (disposed) return;
+    const { scroll3d, bentoWalls } = readTargets();
+    const allTargets = new Set([...scroll3d, ...bentoWalls]);
+    for (const el of [...observedElements]) {
+      if (!allTargets.has(el)) {
+        intersectionObserver?.unobserve(el);
+        observedElements.delete(el);
+        visibleElements.delete(el);
+      }
+    }
+    for (const el of allTargets) {
+      if (!observedElements.has(el)) {
+        observedElements.add(el);
+        visibleElements.add(el);
+        intersectionObserver?.observe(el);
+      }
+    }
+    updateNow();
+  }
+
+  const onReducedChange = () => schedule();
+  const media = view.matchMedia?.("(prefers-reduced-motion: reduce)");
+
+  view.addEventListener?.("scroll", schedule, { passive: true });
+  view.addEventListener?.("resize", schedule, { passive: true });
+  doc?.addEventListener?.("thewyj:reduced-motion", onReducedChange);
+  media?.addEventListener?.("change", onReducedChange);
+
+  refresh();
+
+  return Object.freeze({
+    refresh,
+    updateNow,
+    dispose() {
+      if (disposed) return;
+      disposed = true;
+      if (rafId) view.cancelAnimationFrame?.(rafId);
+      rafId = 0;
+      intersectionObserver?.disconnect();
+      const { scroll3d, bentoWalls } = readTargets();
+      for (const el of scroll3d) resetNode(el, false);
+      for (const wall of bentoWalls) resetNode(wall, true);
+      visibleElements.clear();
+      observedElements.clear();
+      view.removeEventListener?.("scroll", schedule);
+      view.removeEventListener?.("resize", schedule);
+      doc?.removeEventListener?.("thewyj:reduced-motion", onReducedChange);
+      media?.removeEventListener?.("change", onReducedChange);
+    },
+  });
+}
+
+// ============================================================================
+// 6. Delegated Controls, Tab Indicator & Skeleton Switcher Orchestrator
+// ============================================================================
+const INTERACTIVE_SELECTOR = [
+  "button",
+  "a[href]",
+  "summary",
+  "[role='button']",
+  "[role='tab']",
+  "[role='menuitem']",
+  "[role='switch']",
+  "input[type='checkbox']",
+  "input[type='radio']",
+  "input[type='submit']",
+  "input[type='button']",
+  "input[type='file']",
+].join(",");
+
+/**
+ * Set semantic interaction state on a control without pretending success on disabled/failed states.
+ */
+export function setControlFeedbackState(element, state = "idle", { message = "" } = {}) {
+  if (!element?.setAttribute) return false;
+  const disabled = Boolean(element.disabled) || element.getAttribute("aria-disabled") === "true";
+  if (state === "success" && disabled) return false;
+
+  if (!state || state === "idle") {
+    element.removeAttribute("data-feedback-state");
+    element.removeAttribute("aria-busy");
+    return true;
+  }
+  element.setAttribute("data-feedback-state", String(state));
+  if (state === "pending") {
+    element.setAttribute("aria-busy", "true");
+  } else {
+    element.removeAttribute("aria-busy");
+  }
+  if (message && element.dataset) {
+    element.dataset.feedbackMessage = String(message);
+  }
+  return true;
+}
+
+/**
+ * Interruptible preview tab skeleton switcher (120-150ms) with latest-only generation guard.
+ */
+export function createTabSkeletonSwitcher({
+  duration = MOTION.skeleton,
+  view = globalThis.window,
+} = {}) {
+  let generation = 0;
+  let timerId = 0;
+  let activePanel = null;
+  let pendingResolve = null;
+
+  function clearPending() {
+    if (timerId && view?.clearTimeout) {
+      view.clearTimeout(timerId);
+    }
+    timerId = 0;
+    if (pendingResolve) {
+      const done = pendingResolve;
+      pendingResolve = null;
+      done(false);
+    }
+    if (activePanel) {
+      activePanel.removeAttribute?.("data-skeleton-loading");
+      activePanel.removeAttribute?.("aria-busy");
+    }
+  }
+
+  function switchTab(panel, renderContent, { immediate = false } = {}) {
+    const token = ++generation;
+    clearPending();
+    activePanel = panel || null;
+    if (!panel || typeof renderContent !== "function") return Promise.resolve(false);
+
+    const ms = immediate || prefersReducedMotion(view) ? 0 : Math.max(120, Math.min(150, Number(duration) || MOTION.skeleton));
+    if (!ms || !view?.setTimeout) {
+      renderContent(panel);
+      return Promise.resolve(true);
+    }
+
+    panel.setAttribute?.("data-skeleton-loading", "true");
+    panel.setAttribute?.("aria-busy", "true");
+
+    return new Promise((resolve) => {
+      pendingResolve = resolve;
+      timerId = view.setTimeout(() => {
+        timerId = 0;
+        pendingResolve = null;
+        if (token !== generation) {
+          resolve(false);
+          return;
+        }
+        panel.removeAttribute?.("data-skeleton-loading");
+        panel.removeAttribute?.("aria-busy");
+        renderContent(panel);
+        if (!prefersReducedMotion(view) && typeof panel.animate === "function") {
+          panel.animate(
+            [{ opacity: 0.72, transform: "translate3d(0, 4px, 0)" }, { opacity: 1, transform: "translate3d(0, 0, 0)" }],
+            { duration: 140, easing: MOTION.easing, fill: "none" },
+          )?.finished?.catch?.(() => {});
+        }
+        resolve(true);
+      }, ms);
+    });
+  }
+
+  return Object.freeze({
+    switchTab,
+    cancel() {
+      generation += 1;
+      clearPending();
+    },
+  });
+}
+
+/**
+ * Shared drag-and-drop file zone feedback helper (active, invalid, idle).
+ */
+export function attachFileDropFeedback(zone, {
+  validate = null,
+  onFiles = null,
+  doc = zone?.ownerDocument || globalThis.document,
+} = {}) {
+  if (!zone?.addEventListener) return () => {};
+  let depth = 0;
+  const setState = (state) => {
+    if (!state || state === "idle") zone.removeAttribute("data-drop-state");
+    else zone.setAttribute("data-drop-state", state);
+  };
+  const onDragEnter = (event) => {
+    event.preventDefault();
+    depth += 1;
+    setState("active");
+  };
+  const onDragOver = (event) => {
+    event.preventDefault();
+    setState("active");
+  };
+  const onDragLeave = () => {
+    depth = Math.max(0, depth - 1);
+    if (depth === 0) setState("idle");
+  };
+  const onDrop = (event) => {
+    event.preventDefault();
+    depth = 0;
+    const files = [...(event.dataTransfer?.files || [])];
+    if (!files.length) {
+      setState("idle");
+      return;
+    }
+    if (typeof validate === "function") {
+      const check = validate(files);
+      if (check && check.ok === false) {
+        setState("error");
+        showToast({ tone: "error", message: check.message || "文件校验未通过，请重新选择。" }, {}, doc);
+        return;
+      }
+    }
+    setState("idle");
+    onFiles?.(files);
+  };
+
+  zone.addEventListener("dragenter", onDragEnter);
+  zone.addEventListener("dragover", onDragOver);
+  zone.addEventListener("dragleave", onDragLeave);
+  zone.addEventListener("drop", onDrop);
+  return () => {
+    setState("idle");
+    zone.removeEventListener("dragenter", onDragEnter);
+    zone.removeEventListener("dragover", onDragOver);
+    zone.removeEventListener("dragleave", onDragLeave);
+    zone.removeEventListener("drop", onDrop);
+  };
+}
+
+/**
+ * Publish safe core motion helpers on `window.WYJMotion` for classic scripts
+ * (tools.js / workflows.js) without breaking module graph boundaries.
+ */
+export function installMotionGlobal(target = typeof window === "undefined" ? globalThis : window) {
+  if (!target) return null;
+  const api = Object.freeze({
+    MOTION,
+    prefersReducedMotion,
+    motionDuration,
+    createMotionScope,
+    setControlFeedbackState,
+    createTabSkeletonSwitcher,
+    attachFileDropFeedback,
+    captureFlipSnapshot,
+    playFlipSnapshot,
+    flipLayout,
+    createDragSortController,
+    createToastManager,
+    getSharedToastManager,
+    showToast,
+    dismissToast,
+    isMobileSheetViewport,
+    syncModalScrollLock,
+    attachSheetAdapter,
+    createScrollProgressController,
+  });
+  try {
+    target.WYJMotion = api;
+  } catch (_) {}
+  return api;
+}
+
 const installed = new WeakMap();
 export function installMotionSystem(doc = globalThis.document) {
   if (!doc?.addEventListener) return () => {};
@@ -29,42 +1674,118 @@ export function installMotionSystem(doc = globalThis.document) {
   const disclosures = new WeakMap();
   const indicators = new Map();
   const indicatorFrames = new Map();
+  const observedTablists = new Set();
   const clock = () => view.performance.now();
-  const target = node => node?.closest?.("button,a[href],summary,[role='button'],[role='tab'],input[type='checkbox'],input[type='radio']");
-  const usable = node => node && !node.disabled && node.getAttribute("aria-disabled") !== "true" && !node.closest("[inert]");
+
+  const resolveInteractiveTarget = (node) => {
+    if (!node?.closest) return null;
+    const direct = node.closest(INTERACTIVE_SELECTOR);
+    if (direct) return direct;
+    const label = node.closest("label");
+    if (label?.control && !label.control.disabled) return label.control;
+    return null;
+  };
+
+  const usable = (node) => node && !node.disabled && node.getAttribute?.("aria-disabled") !== "true" && !node.closest?.("[inert]");
+
   function clear(node) {
     const item = pressed.get(node);
     if (item?.timer) view.clearTimeout(item.timer);
-    pressed.delete(node); node.removeAttribute("data-aeris-pressed");
+    pressed.delete(node);
+    node?.removeAttribute?.("data-aeris-pressed");
   }
+
   function press(node) {
-    if (!usable(node) || node.hasAttribute?.("data-widget-drag")) return;
-    clear(node); pressed.set(node, { at: clock(), timer: null });
-    node.setAttribute("data-aeris-pressed", "true");
+    if (!usable(node) || node.hasAttribute?.("data-widget-drag") || node.hasAttribute?.("data-drag-handle")) return;
+    clear(node);
+    pressed.set(node, { at: clock(), timer: null });
+    node.setAttribute?.("data-aeris-pressed", "true");
   }
+
   function release(node, cancel = false) {
-    const item = pressed.get(node); if (!item) return;
+    const item = pressed.get(node);
+    if (!item) return;
     const remaining = cancel || prefersReducedMotion(view) ? 0 : pressedReleaseDelay(item.at, clock());
     if (!remaining) clear(node);
     else item.timer = view.setTimeout(() => clear(node), remaining);
   }
-  function reset() { for (const node of [...pressed.keys()]) clear(node); pointerTargets.clear(); }
+
+  function reset() {
+    for (const node of [...pressed.keys()]) clear(node);
+    pointerTargets.clear();
+  }
+
   function listen(type, handler, options = { capture: true }) {
     doc.addEventListener(type, handler, options);
     disposers.push(() => doc.removeEventListener(type, handler, options));
   }
-  listen("pointerdown", event => {
+
+  listen("pointerdown", (event) => {
     if (event.button !== 0 || event.isPrimary === false) return;
-    const node = target(event.target); if (!usable(node)) return;
-    pointerTargets.set(event.pointerId, node); press(node);
+    const node = resolveInteractiveTarget(event.target);
+    if (!usable(node)) return;
+    pointerTargets.set(event.pointerId, node);
+    press(node);
   }, { capture: true, passive: true });
-  listen("pointerup", event => { const node = pointerTargets.get(event.pointerId); if (node) release(node); pointerTargets.delete(event.pointerId); }, { capture: true, passive: true });
-  listen("pointercancel", event => { const node = pointerTargets.get(event.pointerId); if (node) release(node, true); pointerTargets.delete(event.pointerId); }, { capture: true, passive: true });
-  listen("keydown", event => { if (!event.repeat && (event.key === "Enter" || event.key === " ")) press(target(event.target)); });
-  listen("keyup", event => { if (event.key === "Enter" || event.key === " ") release(target(event.target)); });
+
+  listen("pointerup", (event) => {
+    const node = pointerTargets.get(event.pointerId);
+    if (node) release(node);
+    pointerTargets.delete(event.pointerId);
+  }, { capture: true, passive: true });
+
+  listen("pointercancel", (event) => {
+    const node = pointerTargets.get(event.pointerId);
+    if (node) release(node, true);
+    pointerTargets.delete(event.pointerId);
+  }, { capture: true, passive: true });
+
+  listen("keydown", (event) => {
+    if (!event.repeat && (event.key === "Enter" || event.key === " ")) {
+      press(resolveInteractiveTarget(event.target));
+    }
+  });
+
+  listen("keyup", (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      release(resolveInteractiveTarget(event.target));
+    }
+  });
+
+  // Semantic invalid/input feedback sync across native forms.
+  listen("invalid", (event) => {
+    const control = event.target;
+    if (!control?.setAttribute) return;
+    control.setAttribute("data-feedback-state", "error");
+    if (!prefersReducedMotion(view) && typeof control.animate === "function") {
+      control.animate(
+        [
+          { transform: "translate3d(-3px, 0, 0)" },
+          { transform: "translate3d(3px, 0, 0)" },
+          { transform: "translate3d(-2px, 0, 0)" },
+          { transform: "translate3d(0, 0, 0)" },
+        ],
+        { duration: 180, easing: MOTION.easing },
+      )?.finished?.catch?.(() => {});
+    }
+  }, { capture: true });
+
+  listen("input", (event) => {
+    if (event.target?.getAttribute?.("data-feedback-state") === "error") {
+      event.target.removeAttribute("data-feedback-state");
+    }
+  }, { capture: true, passive: true });
+
+  listen("change", (event) => {
+    if (event.target?.getAttribute?.("data-feedback-state") === "error") {
+      event.target.removeAttribute("data-feedback-state");
+    }
+  }, { capture: true, passive: true });
+
   listen("visibilitychange", () => { if (doc.hidden) reset(); });
   listen("thewyj:reduced-motion", reset);
-  view.addEventListener("blur", reset); disposers.push(() => view.removeEventListener("blur", reset));
+  view.addEventListener("blur", reset);
+  disposers.push(() => view.removeEventListener("blur", reset));
 
   // Native details semantics remain the authority, including programmatic opens.
   // Only a small disclosure is allowed to animate layout; large ledgers keep a
@@ -72,19 +1793,35 @@ export function installMotionSystem(doc = globalThis.document) {
   function setDisclosureOpen(details, state, value) {
     if (details.open !== value) { state.ownedWrites++; details.open = value; }
   }
+
   function animateDisclosure(details, summary) {
     let state = disclosures.get(details);
-    if (!state) { state = { targetOpen: details.open, generation: 0, ownedWrites: 0, animation: null, height: details.style.height, overflow: details.style.overflow }; disclosures.set(details, state); }
+    if (!state) {
+      state = {
+        targetOpen: details.open,
+        generation: 0,
+        ownedWrites: 0,
+        animation: null,
+        height: details.style.height,
+        overflow: details.style.overflow,
+      };
+      disclosures.set(details, state);
+    }
     const start = details.getBoundingClientRect().height;
-    state.targetOpen = !state.targetOpen; const generation = ++state.generation;
-    state.animation?.cancel(); details.style.height = state.height; details.style.overflow = state.overflow;
+    state.targetOpen = !state.targetOpen;
+    const generation = ++state.generation;
+    state.animation?.cancel();
+    details.style.height = state.height;
+    details.style.overflow = state.overflow;
     if (state.targetOpen) setDisclosureOpen(details, state, true);
     summary.setAttribute("aria-expanded", String(state.targetOpen));
     const end = state.targetOpen ? details.getBoundingClientRect().height : summary.getBoundingClientRect().height;
     const finish = () => {
       if (generation !== state.generation) return;
-      details.style.height = state.height; details.style.overflow = state.overflow;
-      setDisclosureOpen(details, state, state.targetOpen); state.animation = null;
+      details.style.height = state.height;
+      details.style.overflow = state.overflow;
+      setDisclosureOpen(details, state, state.targetOpen);
+      state.animation = null;
     };
     const duration = motionDuration("expand", view);
     if (!duration || typeof details.animate !== "function") { finish(); return; }
@@ -97,22 +1834,31 @@ export function installMotionSystem(doc = globalThis.document) {
     }
     state.animation.finished.then(finish, () => {});
   }
-  listen("click", event => {
+
+  listen("click", (event) => {
     const summary = event.target?.closest?.("summary");
     if (!summary || event.target?.closest?.("a,button,input") || event.defaultPrevented) return;
-    const details = summary.parentElement; if (details?.tagName !== "DETAILS") return;
+    const details = summary.parentElement;
+    if (details?.tagName !== "DETAILS") return;
     // Anchored menus render an overlay popover outside summary flow.
     if (details.classList?.contains("account-menu") || summary.getAttribute?.("aria-haspopup") === "menu") return;
-    event.preventDefault(); animateDisclosure(details, summary);
+    event.preventDefault();
+    animateDisclosure(details, summary);
   }, { capture: false });
-  const disclosureObserver = new view.MutationObserver(records => {
+
+  const disclosureObserver = new view.MutationObserver((records) => {
     for (const record of records) {
-      const details = record.target; const state = disclosures.get(details);
+      const details = record.target;
+      const state = disclosures.get(details);
       if (!state) continue;
       if (state.ownedWrites > 0) { state.ownedWrites--; continue; }
       // Data/viewport owners can open or close; either supersedes old completion.
-      state.targetOpen = details.open; state.generation++; state.animation?.cancel(); state.animation = null;
-      details.style.height = state.height; details.style.overflow = state.overflow;
+      state.targetOpen = details.open;
+      state.generation++;
+      state.animation?.cancel();
+      state.animation = null;
+      details.style.height = state.height;
+      details.style.overflow = state.overflow;
       details.querySelector("summary")?.setAttribute("aria-expanded", String(details.open));
     }
   });
@@ -120,42 +1866,116 @@ export function installMotionSystem(doc = globalThis.document) {
   disposers.push(() => disclosureObserver.disconnect());
 
   function updateIndicator(group) {
-    if (!group.isConnected) return;
-    const selected = group.querySelector("[role='tab'][aria-selected='true']");
+    if (!group?.isConnected) return;
+    const selected = group.querySelector("[role='tab'][aria-selected='true']") || group.querySelector("[role='tab'].active");
     if (!selected) return;
     let indicator = indicators.get(group);
-    if (!indicator) { indicator = doc.createElement("span"); indicator.className = "ds-tab-indicator"; indicator.setAttribute("aria-hidden", "true"); group.append(indicator); group.classList.add("ds-motion-tabs"); indicators.set(group, indicator); }
+    if (!indicator) {
+      indicator = doc.createElement("span");
+      const segmented = group.classList?.contains?.("ds-segmented") || group.dataset?.indicatorStyle === "pill";
+      indicator.className = segmented ? "ds-tab-indicator seg-indicator" : "ds-tab-indicator";
+      indicator.setAttribute("aria-hidden", "true");
+      group.append(indicator);
+      group.classList.add("ds-motion-tabs");
+      indicators.set(group, indicator);
+    }
     // Layout coordinates stay stable while pressed scale changes visual bounds.
-    let left = selected.offsetLeft, parent = selected.offsetParent;
-    while (parent && parent !== group) { left += parent.offsetLeft; parent = parent.offsetParent; }
-    indicator.style.width = `${selected.offsetWidth}px`; indicator.style.transform = `translateX(${left}px)`;
+    let left = selected.offsetLeft;
+    let top = selected.offsetTop || 0;
+    let parent = selected.offsetParent;
+    while (parent && parent !== group) {
+      left += parent.offsetLeft;
+      top += parent.offsetTop || 0;
+      parent = parent.offsetParent;
+    }
+    indicator.style.width = `${selected.offsetWidth}px`;
+    if (indicator.classList?.contains?.("seg-indicator")) {
+      indicator.style.height = `${selected.offsetHeight}px`;
+      indicator.style.transform = `translate3d(${left}px, ${top}px, 0)`;
+    } else {
+      indicator.style.transform = `translateX(${left}px)`;
+    }
   }
-  const tabGroups = [...doc.querySelectorAll("[role='tablist']")];
+
   function scheduleIndicator(group) {
-    if (indicatorFrames.has(group)) return;
+    if (!group || indicatorFrames.has(group)) return;
     indicatorFrames.set(group, view.requestAnimationFrame(() => {
       indicatorFrames.delete(group);
       if (group.getBoundingClientRect().width > 0) updateIndicator(group);
     }));
   }
-  listen("click", () => {
-    // Covers a tablist revealed by navigation; no observer on progress events.
-    for (const group of tabGroups) scheduleIndicator(group);
-  }, { capture: false });
-  // Async and programmatic tab owners can commit selection after click dispatch.
-  const tabObserver = new view.MutationObserver(records => {
+
+  const tabObserver = new view.MutationObserver((records) => {
     for (const record of records) {
       const group = record.target.closest?.("[role='tablist']");
       if (group) scheduleIndicator(group);
     }
   });
-  for (const group of tabGroups) tabObserver.observe(group, { subtree: true, attributes: true, attributeFilter: ["aria-selected"] });
-  disposers.push(() => { tabObserver.disconnect(); for (const frame of indicatorFrames.values()) view.cancelAnimationFrame(frame); indicatorFrames.clear(); });
-  const resize = () => { for (const group of indicators.keys()) updateIndicator(group); };
-  view.addEventListener("resize", resize); disposers.push(() => view.removeEventListener("resize", resize));
-  for (const group of tabGroups) if (group.getBoundingClientRect().width > 0) updateIndicator(group);
+
+  function registerTabGroup(group) {
+    if (!group || observedTablists.has(group)) return;
+    observedTablists.add(group);
+    tabObserver.observe(group, { subtree: true, attributes: true, attributeFilter: ["aria-selected", "class"] });
+    if (group.getBoundingClientRect().width > 0) updateIndicator(group);
+  }
+
+  const initialTabGroups = [...doc.querySelectorAll("[role='tablist']")];
+  for (const group of initialTabGroups) registerTabGroup(group);
+
+  listen("click", () => {
+    // Covers a tablist revealed by navigation; no observer on progress events.
+    for (const group of observedTablists) scheduleIndicator(group);
+  }, { capture: false });
+
+  // Also discover dynamically mounted [role='tablist'] nodes in real DOM documents.
+  if (doc.documentElement?.nodeType === 1) {
+    const dynamicTabObserver = new view.MutationObserver((records) => {
+      for (const record of records) {
+        for (const node of record.addedNodes || []) {
+          if (node.nodeType !== 1) continue;
+          if (node.getAttribute?.("role") === "tablist") registerTabGroup(node);
+          node.querySelectorAll?.("[role='tablist']")?.forEach(registerTabGroup);
+        }
+      }
+    });
+    dynamicTabObserver.observe(doc.documentElement, { childList: true, subtree: true });
+    disposers.push(() => dynamicTabObserver.disconnect());
+  }
+
+  disposers.push(() => {
+    tabObserver.disconnect();
+    for (const frame of indicatorFrames.values()) view.cancelAnimationFrame(frame);
+    indicatorFrames.clear();
+  });
+
+  const resize = () => {
+    for (const group of indicators.keys()) {
+      if (group.isConnected && group.getBoundingClientRect().width > 0) updateIndicator(group);
+    }
+  };
+  view.addEventListener("resize", resize);
+  disposers.push(() => view.removeEventListener("resize", resize));
+
+  // Scroll-progress & Bento internal parallax controller (auto-tracks [data-scroll-3d] & [data-bento-wall]).
+  const scrollController = createScrollProgressController({ root: doc, doc, view });
+  disposers.push(() => scrollController.dispose());
+
+  // Install global bridge for classic scripts when running in a browser window.
+  if (view && view === globalThis.window) installMotionGlobal(view);
 
   doc.documentElement.setAttribute?.("data-aeris-motion-ready", "true");
-  const dispose = () => { reset(); for (const cleanup of disposers) cleanup(); for (const [group, indicator] of indicators) { indicator.remove(); group.classList.remove("ds-motion-tabs"); } doc.documentElement.removeAttribute?.("data-aeris-motion-ready"); installed.delete(doc); };
-  installed.set(doc, dispose); return dispose;
+  const dispose = () => {
+    reset();
+    for (const cleanup of disposers) cleanup();
+    for (const [group, indicator] of indicators) {
+      indicator.remove();
+      group.classList.remove("ds-motion-tabs");
+    }
+    observedTablists.clear();
+    indicators.clear();
+    doc.documentElement.removeAttribute?.("data-aeris-motion-ready");
+    installed.delete(doc);
+  };
+  installed.set(doc, dispose);
+  return dispose;
 }
