@@ -139,7 +139,10 @@ export async function handleDsSsoRequest(context) {
     if (action === 'authorize' || action === 'prepare') {
       const input = authorizationInput(url, client);
       if (!input) return response({ error: 'invalid_request' }, 400);
-      if (action === 'authorize') return authorizationPage(client, input);
+      if (action === 'authorize') {
+        await securityRate(context, 'ds-sso-authorize', '', 90, 60);
+        return authorizationPage(client, input);
+      }
       const payload = await readJsonBounded(request, 128);
       if (Object.keys(payload).length) return response({ error: 'invalid_request' }, 400);
       const actor = await webActor(context);

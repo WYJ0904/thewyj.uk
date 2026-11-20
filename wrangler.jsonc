@@ -64,7 +64,7 @@
         "WYJ_ENVIRONMENT": "preview",
         "AERIS_DS_SSO_ENABLED": "true",
         "AERIS_DS_SSO_CLIENT_ID": "ds-task05-preview",
-        "AERIS_DS_SSO_ISSUER": "https://codex-aeris-ds-sso-integration.thewyj-uk.pages.dev",
+        "AERIS_DS_SSO_ISSUER": "https://codex-aeris-ds-sso-integrati.thewyj-uk.pages.dev",
         "AERIS_DS_SSO_CALLBACK": "https://codex-ds-task05-aeris-sso.ds-thewyj-uk.pages.dev/api/auth/callback",
         "CLOUD_FOUNDATION_ENABLED": "true",
         "CLOUD_STATUS_MODE": "cloud",

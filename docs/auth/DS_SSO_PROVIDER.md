@@ -4,7 +4,7 @@ Task 05 adds a confidential-client authorization-code provider for the DS Previe
 
 | Registration | Preview value |
 | --- | --- |
-| Issuer | `https://codex-aeris-ds-sso-integration.thewyj-uk.pages.dev` |
+| Issuer | `https://codex-aeris-ds-sso-integrati.thewyj-uk.pages.dev` (Cloudflare's reported branch alias) |
 | Client ID | `ds-task05-preview` |
 | Redirect URI | `https://codex-ds-task05-aeris-sso.ds-thewyj-uk.pages.dev/api/auth/callback` |
 | Encrypted credential | `AERIS_DS_SSO_CLIENT_SECRET` (Aeris) and `AERIS_CLIENT_SECRET` (DS) |
@@ -21,7 +21,7 @@ The browser requests `GET /api/sso/ds/authorize` with the registered client, red
 ## Safety and operations
 
 - Browser writes require exact same-origin `Origin` and `X-Aeris-SSO: 1`. The envelope allows only known fields and caps JSON at 128/512 bytes and backchannel forms at 1 KiB. All responses are no-store and avoid referrer propagation. The first-party authorization page forbids framing, external connections and form navigation.
-- Existing Task 27 rate limiting covers prepare and approve at 12/minute per account, exchange at 120/minute per client and introspection at 600/minute per client. Step-up keeps its own limits, logging and MFA handling. The SSO store keeps time/status evidence for seven days after expiry, with bounded opportunistic cleanup. Unhandled errors log only a fixed event and known route.
+- Existing Task 27 rate limiting covers the authorization page at 90/minute per request source, prepare and approve at 12/minute per account, exchange at 120/minute per client and introspection at 600/minute per client. Step-up keeps its own limits, logging and MFA handling. The SSO store keeps time/status evidence for seven days after expiry, with bounded opportunistic cleanup. Unhandled errors log only a fixed event and known route.
 - Error responses include `400 invalid_request/invalid_grant` for invalid inputs, `401 invalid_client` for failed client authentication, `401/403/428` for source/session/policy gates, `409` for an authorization changed during approval, `429` for rate limit and `503 sso_unavailable` for a missing schema or service failure. Disabled stages/origins return 404. Inactive, missing and revoked grants return the same `200 {"active":false}` shape.
 - `0041_ds_sso_provider.sql` adds two tables and their indexes, depending on Task 12/27. When shared Preview is at `0037`, a scoped `wyj_ds_sso_preview_migrations` ledger can install the single idempotent migration without applying Task 28–30 or reordering `wyj_d1_migrations`. Use a Preview-only configuration with the verified UUID and a migration directory containing only the hash-checked file. The normal migration chain can later record `0041` in order after `0038–0040`.
 - Before remote changes, inspect the binding, both ledgers, this component's schema, recent activity and foreign keys, then record the current D1 Time Travel bookmark. Afterward compare the original ledger and selected data counts, verify the new ledger and foreign keys, and retain the result separately from CI. If rollback is needed, disable the branch feature first. An entire database restore needs a separate decision because it can discard other Preview writes.
