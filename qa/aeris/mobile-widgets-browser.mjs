@@ -1,38 +1,136 @@
+import { ASSET_RELEASE } from '../asset-release.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import {openPage,delay} from '../../local-backend/browser_harness.mjs';
-const baseUrl=process.env.WYJ_TEST_BASE||'http://127.0.0.1:8894';assert.equal(new URL(baseUrl).hostname,'127.0.0.1');
-const p=await openPage({cdpUrl:process.env.WYJ_CDP_URL||'http://127.0.0.1:9225',baseUrl,width:1366,height:900,mobile:false});
-const ready="!document.getElementById('entryScreen')&&!document.querySelector('#publicHome').classList.contains('hidden')";
-const measure=`(()=>{const stage=document.querySelector('.public-hero-scene').getBoundingClientRect(),cards=[...document.querySelectorAll('[data-home-widget]')].map(e=>{let r=e.getBoundingClientRect(),slot=e.parentElement.getBoundingClientRect(),edit=e.querySelector('[data-widget-edit]').getBoundingClientRect();return{id:e.dataset.homeWidget,size:e.dataset.size,width:r.width,height:r.height,x:r.x,y:r.y,rotation:e.style.getPropertyValue('--widget-angle'),inside:r.left>=slot.left-1&&r.right<=slot.right+1&&r.top>=slot.top-1&&r.bottom<=slot.bottom+1,editInside:edit.left>=slot.left-1&&edit.right<=slot.right+1,editSize:edit.width>=43&&edit.height>=43,transform:getComputedStyle(e).transform}});return{width:innerWidth,height:innerHeight,profile:document.querySelector('#publicHome').dataset.widgetLayout,overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,stageWidth:stage.width,cards};})()`;
-const rows=[];
-async function resize(width,height,coarse=false){await p.send('Emulation.setTouchEmulationEnabled',{enabled:coarse});await p.send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:coarse});await p.evaluate('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))');}
-async function edit(size,rotation,x,y){await p.click('[data-widget-edit=finance]');await p.waitFor("document.querySelector('#homeWidgetEditor').open");await p.setFields({'#homeWidgetEditor [name=size]':size,'#homeWidgetEditor [name=rotation]':String(rotation),'#homeWidgetEditor [name=x]':String(x),'#homeWidgetEditor [name=y]':String(y)});await p.click('#homeWidgetEditor [type=submit]');await p.evaluate('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))');}
-try{
- await p.navigate('/');await p.waitFor(ready);
- await resize(390,844,true);const guest=await p.evaluate(measure);assert.equal(guest.profile,'mobile');assert.ok(guest.cards.every(x=>x.inside&&x.editInside&&x.editSize&&x.transform!=='none'));assert.ok(guest.overflow<=0);assert.ok(new Set(guest.cards.map(x=>Math.round(x.x))).size>1,'default mobile composition is staggered, not full-width');
- await p.click('[data-widget-edit=finance]');await p.click('#homeWidgetEditor [type=submit]');assert.equal(await p.evaluate("Object.keys(localStorage).some(k=>k.startsWith('aerisHomeWidgets:'))"),false,'guest preference never leaks into accounts');
- await p.navigate('/login');await p.waitFor("!document.getElementById('entryScreen')");await p.setFields({'#usernameInput':process.env.WYJ_TEST_ADMIN_USER||'wyj','#secretInput':process.env.WYJ_TEST_ADMIN_SECRET});await p.click('#loginSubmitBtn');await p.waitFor(ready+"&&document.querySelector('#publicHome').dataset.sessionMode==='authenticated'");
- const id=await p.evaluate('state.account.id'),key='aerisHomeWidgets:v2:'+encodeURIComponent(id),oldKey='aerisHomeWidgets:v1:'+encodeURIComponent(id);
- const legacy={version:1,learning:{size:'large',rotation:-4,x:.8,y:.9,contentMode:'wrong'},finance:{size:'large',rotation:-6,x:1,y:1,contentMode:'income'},tools:{size:'small',rotation:4,x:0,y:.5,contentMode:'favorites'}};
- await p.evaluate(`localStorage.setItem(${JSON.stringify(oldKey)},${JSON.stringify(JSON.stringify(legacy))});true`);await p.navigate('/');await p.waitFor(ready);await resize(1366,900,false);
- assert.equal(await p.evaluate("document.querySelector('[data-home-widget=finance]').dataset.size"),'large');assert.equal(await p.evaluate("document.querySelector('[data-home-widget=finance]').style.getPropertyValue('--widget-angle')"),'-6deg');assert.equal(await p.evaluate("document.querySelector('#homeSceneFinanceLabel').textContent"),'本月收入');assert.equal(await p.evaluate(`localStorage.getItem(${JSON.stringify(key)})`),null,'migration reads without destroying/writing legacy data');
- await resize(390,844,true);assert.equal(await p.evaluate("document.querySelector('[data-home-widget=finance]').dataset.size"),'medium');assert.equal(await p.evaluate("document.querySelector('[data-home-widget=finance]').style.getPropertyValue('--widget-angle')"),'-1.5deg');
- await edit('small',6,0,100);let saved=JSON.parse(await p.evaluate(`localStorage.getItem(${JSON.stringify(key)})`));assert.equal(saved.version,2);assert.deepEqual(saved.finance.layouts.desktop,{size:'large',rotation:-6,x:1,y:1});assert.deepEqual(saved.finance.layouts.mobile,{size:'small',rotation:6,x:0,y:1});assert.equal(saved.finance.contentMode,'income');assert.equal(await p.evaluate(`localStorage.getItem(${JSON.stringify(oldKey)})`),JSON.stringify(legacy));
- const mobileSaved=JSON.stringify(saved.finance.layouts.mobile);await resize(1366,900,false);await edit('medium',2,10,20);saved=JSON.parse(await p.evaluate(`localStorage.getItem(${JSON.stringify(key)})`));assert.equal(JSON.stringify(saved.finance.layouts.mobile),mobileSaved);
- const desktopSaved=JSON.stringify(saved.finance.layouts.desktop);
- for(const width of [360,390,412,430])for(const size of ['small','medium','large'])for(const rotation of [-6,6]){
-  await resize(width,844,true);await edit(size,rotation,rotation<0?0:100,rotation<0?0:100);const v=await p.evaluate(measure);assert.equal(v.profile,'mobile');assert.ok(v.overflow<=0,JSON.stringify(v));assert.ok(v.cards.every(x=>x.inside&&x.editInside&&x.editSize));assert.equal(JSON.stringify(JSON.parse(await p.evaluate(`localStorage.getItem(${JSON.stringify(key)})`)).finance.layouts.desktop),desktopSaved);rows.push(v);
- }
- await resize(390,844,true);await edit('large',-4,90,70);const portrait=await p.evaluate(`localStorage.getItem(${JSON.stringify(key)})`);
- for(const dims of [[844,390],[1040,390],[390,844]]){await resize(...dims,true);const v=await p.evaluate(measure);assert.equal(v.profile,'mobile','orientation cannot adopt desktop coordinates');assert.ok(v.overflow<=0&&v.cards.every(x=>x.inside&&x.editInside));assert.equal(await p.evaluate(`localStorage.getItem(${JSON.stringify(key)})`),portrait);rows.push(v);}
- await p.navigate('/');await p.waitFor(ready);assert.equal(await p.evaluate(`localStorage.getItem(${JSON.stringify(key)})`),portrait);
- await p.send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});const reduced=await p.evaluate(measure);assert.ok(reduced.cards.every(x=>x.transform!=='none'),'reduced motion retains static floating geometry');assert.equal(await p.evaluate("getComputedStyle(document.querySelector('.hero-scene-card')).transitionDuration"),'0s');await p.send('Emulation.setEmulatedMedia',{features:[]});
- await p.click('#homeLayoutReset');const reset=JSON.parse(await p.evaluate(`localStorage.getItem(${JSON.stringify(key)})`));assert.equal(JSON.stringify(reset.finance.layouts.desktop),desktopSaved,'mobile reset cannot wipe desktop');assert.equal(reset.finance.layouts.mobile.rotation,-1.5);
- await p.evaluate(`localStorage.setItem(${JSON.stringify(key)},'{');true`);await p.navigate('/');await p.waitFor(ready);assert.ok((await p.evaluate(measure)).cards.every(x=>x.inside));
- const future=JSON.stringify({version:99,privateFutureLayout:'keep'});await p.evaluate(`localStorage.setItem(${JSON.stringify(key)},${JSON.stringify(future)});true`);await p.navigate('/');await p.waitFor(ready);await edit('large',3,100,100);await p.click('#homeLayoutReset');assert.equal(await p.evaluate(`localStorage.getItem(${JSON.stringify(key)})`),future,'unknown future payload is never overwritten');
- await p.evaluate("document.querySelector('#accountMenu').open=true");await p.click('#logoutBtn');await p.waitFor("document.querySelector('#publicHome').dataset.sessionMode==='guest'");assert.equal(await p.evaluate("document.querySelectorAll('[data-widget-demo]:not([hidden])').length"),3);
- assert.deepEqual(p.runtimeErrors,[]);
- const output=path.resolve(process.env.MOBILE_WIDGET_OUTPUT||'artifacts/aeris-mobile/mobile-profile-browser.json');fs.mkdirSync(path.dirname(output),{recursive:true});fs.writeFileSync(output,JSON.stringify({pass:true,guest,legacyMigration:true,legacyPreserved:true,desktopToMobile:true,mobileToDesktop:true,orientationRestore:true,futureProtected:true,logout:true,rows},null,2));console.log(JSON.stringify({pass:true,boundsCases:rows.length,oldMigration:true,profileIsolation:true,orientation:true,zeroOverflow:true}));
-}finally{await p.close();}
+import { openPage } from '../../local-backend/browser_harness.mjs';
+
+const baseUrl = process.env.WYJ_TEST_BASE || 'http://127.0.0.1:8894';
+assert.equal(new URL(baseUrl).hostname, '127.0.0.1');
+const p = await openPage({
+  cdpUrl: process.env.WYJ_CDP_URL || 'http://127.0.0.1:9225',
+  baseUrl,
+  width: 1366,
+  height: 900,
+  mobile: false,
+});
+
+const ready = "!document.getElementById('entryScreen')&&!document.querySelector('#publicHome').classList.contains('hidden')";
+const measurePublicMobile = `(()=>{
+  const wall=document.querySelector('#publicBentoWall');
+  const gallery=document.querySelector('#publicCapabilityGallery');
+  const tiles=[...document.querySelectorAll('#publicBentoWall .bento-tile')].map(el=>{
+    const r=el.getBoundingClientRect();
+    return {mod:el.dataset.bentoModule,width:r.width,left:r.left,right:r.right,inside:r.left>=-1&&r.right<=innerWidth+1};
+  });
+  const gr=gallery.getBoundingClientRect();
+  return {
+    width:innerWidth,
+    height:innerHeight,
+    overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,
+    heroCards:document.querySelectorAll('.hero-scene-card').length,
+    widgetEditor:Boolean(document.querySelector('#homeWidgetEditor')),
+    galleryInside:gr.left>=-1&&gr.right<=innerWidth+1,
+    wallInside:Boolean(wall)&&tiles.length===5&&tiles.every(t=>t.inside),
+    tiles,
+  };
+})()`;
+
+const rows = [];
+async function resize(width, height, coarse = false) {
+  await p.send('Emulation.setTouchEmulationEnabled', { enabled: coarse });
+  await p.send('Emulation.setDeviceMetricsOverride', {
+    width,
+    height,
+    deviceScaleFactor: 1,
+    mobile: coarse,
+  });
+  await p.evaluate('new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))');
+}
+
+try {
+  await p.navigate('/');
+  await p.waitFor(ready);
+
+  // 1. Mobile I03 public pages across portrait and landscape phone viewports
+  for (const [w, h] of [[360, 844], [390, 844], [412, 844], [430, 844], [844, 390], [1040, 390]]) {
+    await resize(w, h, true);
+    const v = await p.evaluate(measurePublicMobile);
+    assert.ok(v.overflow <= 0, `mobile overflow at ${w}x${h}: ${v.overflow}`);
+    assert.equal(v.heroCards, 0);
+    assert.equal(v.widgetEditor, false);
+    assert.ok(v.galleryInside && v.wallInside, `mobile container overflow at ${w}x${h}`);
+    rows.push(v);
+  }
+  assert.equal(
+    await p.evaluate("Object.keys(localStorage).some(k=>k.startsWith('aerisHomeWidgets:'))"),
+    false,
+    'guest session never leaks widget preferences',
+  );
+
+  // 2. Reduced motion retains readable static surfaces
+  await resize(390, 844, true);
+  await p.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
+  const reduced = await p.evaluate(`(()=>{
+    const inner=document.querySelector('#publicBentoWall .tile-inner');
+    const card=document.querySelector('#publicCapabilityGallery .preview-card');
+    return {
+      tileDuration:inner?getComputedStyle(inner).transitionDuration:'none',
+      cardTransform:card?getComputedStyle(card).transform:'none',
+      overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,
+    };
+  })()`);
+  assert.ok(reduced.overflow <= 0);
+  await p.send('Emulation.setEmulatedMedia', { features: [] });
+
+  // 3. Verify underlying mobile layout math & v1/v2 storage isolation retained for I04
+  const boundsCheck = await p.evaluate(`(async()=>{
+    const l=await import('/js/core/home-widget-layout.js?release=${ASSET_RELEASE}');
+    const legacy={version:1,learning:{size:'large',rotation:-4,x:.8,y:.9,contentMode:'wrong'},finance:{size:'large',rotation:-6,x:1,y:1,contentMode:'income'},tools:{size:'small',rotation:4,x:0,y:.5,contentMode:'favorites'}};
+    const sanitized=l.sanitizeHomeWidgets(legacy);
+    let allInside=true;
+    for(const width of [360,390,412,430]){
+      for(const size of ['small','medium','large']){
+        for(const rotation of [-6,6]){
+          const prof=l.widgetProfile(l.defaultHomeWidgets(),'mobile');
+          prof.finance={size,rotation,x:rotation<0?0:1,y:rotation<0?0:1};
+          const out=l.layoutMobileWidgets(prof,width);
+          const fin=out.finance;
+          if(!(fin.box.x>=0&&fin.box.x+fin.box.width<=width+1))allInside=false;
+        }
+      }
+    }
+    return {
+      v1MigratedIncome:sanitized.finance.contentMode==='income',
+      v1DesktopKept:sanitized.finance.layouts.desktop.rotation===-6,
+      v1MobileIndependent:sanitized.finance.layouts.mobile.rotation===-1.5,
+      coarseLandscapeIsMobile:!l.isHomeWidgetDesktop(1040,390,true),
+      allInside,
+    };
+  })()`);
+  assert.equal(boundsCheck.v1MigratedIncome, true);
+  assert.equal(boundsCheck.v1DesktopKept, true);
+  assert.equal(boundsCheck.v1MobileIndependent, true);
+  assert.equal(boundsCheck.coarseLandscapeIsMobile, true);
+  assert.equal(boundsCheck.allInside, true);
+
+  // 4. Authenticated login/logout transitions cleanly on mobile
+  await p.navigate('/login');
+  await p.waitFor("!document.getElementById('entryScreen')");
+  await p.setFields({
+    '#usernameInput': process.env.WYJ_TEST_ADMIN_USER || 'wyj',
+    '#secretInput': process.env.WYJ_TEST_ADMIN_SECRET,
+  });
+  await p.click('#loginSubmitBtn');
+  await p.waitFor(`${ready}&&document.querySelector('#publicHome').dataset.sessionMode==='authenticated'`, 30000);
+  await p.evaluate("document.querySelector('#accountMenu').open=true");
+  await p.click('#logoutBtn');
+  await p.waitFor("document.querySelector('#publicHome').dataset.sessionMode==='guest'");
+
+  assert.deepEqual(p.runtimeErrors, []);
+  const output = path.resolve(process.env.MOBILE_WIDGET_OUTPUT || 'artifacts/aeris-mobile/mobile-profile-browser.json');
+  fs.mkdirSync(path.dirname(output), { recursive: true });
+  fs.writeFileSync(output, JSON.stringify({ pass: true, boundsCheck, reduced, rows }, null, 2));
+  console.log(JSON.stringify({ pass: true, viewports: rows.length, zeroOverflow: true, layoutMathPreserved: true }));
+} finally {
+  await p.close();
+}

@@ -6,13 +6,13 @@ All modules live under `js/core/` and are exposed both via ES module imports (`?
 
 - **Press, Disclosure, Form Validation & Tabs (`js/core/motion.js`)**:
   - `installMotionSystem(root)` automatically handles all buttons/links press cues, `<details>` height animation, `<form>` `invalid` cues, and `.seg-indicator` across static and dynamically inserted `[role="tablist"]` nodes (`MutationObserver` watches DOM additions).
-  - `createTabSkeletonSwitcher({ duration: MOTION.skeleton, view })`: Use in I03 public showcase tabs & I04 workspace views to avoid stale async panel renders overwriting newer user clicks (`switchTo(...)` resolves `false` if superseded).
+  - `createTabSkeletonSwitcher({ duration: MOTION.skeleton, view })`: Use in I03 public showcase tabs & I04 workspace views to avoid stale async panel renders overwriting newer user clicks (`switchTab(panel, renderContent, { immediate })` passes `{ signal, generation }` and resolves `false` if superseded or aborted).
   - `setControlFeedbackState(el, state, options)`: Use on all domain async submit/save buttons (`"idle" | "pending" | "success" | "error"`). Never flip disabled controls to `"success"`.
-  - `attachFileDropFeedback(zoneEl, { validate, onFiles, doc })`: Use on upcoming file upload/import dropzones (already wired on `#transferDropZone`).
+  - `attachFileDropFeedback(zoneEl, { validate, onFiles, onDropEvent, doc })`: Use on file upload/import dropzones (already wired on `#transferDropZone` with `onDropEvent`).
 - **Bidirectional FLIP, Drag Sort & Keyed Tables (`js/core/motion.js`, `js/core/keyed-list.js`)**:
-  - Use `reconcileKeyedRows(tbody, items, { getKey, createRow, updateRow, flip: true })` instead of clearing `tbody.innerHTML` when updating finance ledgers (I05/I06), wrong-question lists (I05), or admin user/flag tables (I09).
+  - Use `reconcileKeyedRows(tbody, items, { key, signature, render, empty: '', flip: true })` instead of clearing `tbody.innerHTML` when updating finance ledgers (I05/I06), wrong-question lists (I05), or admin user/flag tables (I09).
   - Use `captureFlipSnapshot` + `playFlipSnapshot` (or `flipLayout`) when reordering I04 workspace cards, filtering tool cards, or changing grid column density.
-  - Use `createDragSortController` for sortable cards/lists — already handles pointer events on `document` and `ArrowUp`/`ArrowDown`/`Escape` keyboard cancellation cleanly.
+  - Use `createDragSortController(container, { itemSelector, handleSelector, axis: 'auto' | 'x' | 'y' | 'both', ... })` for sortable cards/lists — handles pointer events and shared keyboard `ArrowUp`/`ArrowDown`/`ArrowLeft`/`ArrowRight`/`Escape` natively.
 - **Desktop Modal vs Mobile Drawer (`js/core/motion.js`)**:
   - Wire new overlays through `openModal`/`closeModal` in `app.js` (which calls `attachSheetAdapter` + reference-counted `syncModalScrollLock`).
   - Set `role="alertdialog"` or `data-confirm-only="true"` (or `dismissible: false`) on any destructive confirmation dialog so mobile viewports keep it centered and non-swipeable.

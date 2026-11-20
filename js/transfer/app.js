@@ -1,10 +1,11 @@
-import { randomId } from "../core/capabilities.js?release=20261119-aeris-i07-preview";
-import { ACCOUNT_SESSION_KEY, accountSessionHeaders, isThewyjAndroidApp } from "../core/session.js?release=20261119-aeris-i07-preview";
-import { getSafeStorage } from "../core/storage.js?release=20261119-aeris-i07-preview";
-import { withInteractionFeedback } from "../core/perf.js?release=20261119-aeris-i07-preview";
-import { createTransferUpdateScheduler } from "./updates.js?release=20261119-aeris-i07-preview";
-import { putPartWithRecovery } from "./upload-part.js?release=20261119-aeris-i07-preview";
-import { reconcileKeyedRows } from "../core/keyed-list.js?release=20261119-aeris-i07-preview";
+import { randomId } from "../core/capabilities.js?release=20261119-aeris-i03-preview";
+import { ACCOUNT_SESSION_KEY, accountSessionHeaders, isThewyjAndroidApp } from "../core/session.js?release=20261119-aeris-i03-preview";
+import { getSafeStorage } from "../core/storage.js?release=20261119-aeris-i03-preview";
+import { withInteractionFeedback } from "../core/perf.js?release=20261119-aeris-i03-preview";
+import { createTransferUpdateScheduler } from "./updates.js?release=20261119-aeris-i03-preview";
+import { putPartWithRecovery } from "./upload-part.js?release=20261119-aeris-i03-preview";
+import { reconcileKeyedRows } from "../core/keyed-list.js?release=20261119-aeris-i03-preview";
+import { attachFileDropFeedback } from "../core/motion.js?release=20261119-aeris-i03-preview";
 
 const QUEUE_STORAGE_KEY = "wyjTransferQueue:v1";
 const GUEST_ID_KEY = "wyjTransferGuest:v1";
@@ -1561,24 +1562,9 @@ export function createTransferController({
     element("transferPage")?.addEventListener("click", handleClick);
     element('transferPrivate')?.addEventListener('change',renderQueue);
     const dropZone = element("transferDropZone");
-    let dropDepth = 0;
-    dropZone?.addEventListener("dragenter", (event) => {
-      event.preventDefault();
-      dropDepth += 1;
-      dropZone.setAttribute("data-drop-state", "active");
-    });
-    dropZone?.addEventListener("dragover", (event) => {
-      event.preventDefault();
-      dropZone.setAttribute("data-drop-state", "active");
-    });
-    dropZone?.addEventListener("dragleave", () => {
-      dropDepth = Math.max(0, dropDepth - 1);
-      if (dropDepth === 0) dropZone.removeAttribute("data-drop-state");
-    });
-    dropZone?.addEventListener("drop", (event) => {
-      dropDepth = 0;
-      dropZone.removeAttribute("data-drop-state");
-      handleDrop(event);
+    attachFileDropFeedback(dropZone, {
+      doc: document,
+      onDropEvent: (event) => handleDrop(event),
     });
     element("transferFileInput")?.addEventListener("change", (event) => {
       addFiles(event.target.files);

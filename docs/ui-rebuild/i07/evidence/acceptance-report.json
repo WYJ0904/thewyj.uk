@@ -1,6 +1,6 @@
 {
   "scope": "Isolated Miniflare D1/R2 + real headless Chrome CDP",
-  "gitSha": "beaf33283dd6a88c570af17a848b04f2f3a1f02e",
+  "gitSha": "df4ef2ed1992b12485952d8c15c5c5cee8ff6390",
   "browserVersion": "Chrome/157.0.8103.79",
   "scenarios": [
     {
@@ -26,8 +26,8 @@
       "name": "flip-bidirectional-reversal-density-keyboard",
       "status": "PASS",
       "detail": {
-        "midDownTransform": "matrix(1, 0, 0, 1, -198.779, 0)",
-        "midUpTransform": "matrix(1, 0, 0, 1, -144.425, 49.2091)",
+        "midDownTransform": "matrix(1, 0, 0, 1, -201.58, 0)",
+        "midUpTransform": "matrix(1, 0, 0, 1, -192.528, 65.5987)",
         "flipIdentity": "4 / 4"
       }
     },
@@ -64,13 +64,13 @@
       "detail": {
         "visible": [
           {
-            "id": "toast-5",
+            "id": "toast-6",
             "tone": "error",
             "message": "队列 #1 (Error)：保留优先提示",
             "count": 1
           },
           {
-            "id": "toast-6",
+            "id": "toast-7",
             "tone": "info",
             "message": "队列 #2 (Info)：首屏第 2 条",
             "count": 1
@@ -78,34 +78,60 @@
         ],
         "queued": [
           {
-            "id": "toast-7",
+            "id": "toast-8",
             "tone": "success",
             "message": "队列 #3 (Success)：排队等待",
             "count": 1
           },
           {
-            "id": "toast-8",
+            "id": "toast-9",
             "tone": "warning",
             "message": "队列 #4 (Warning)：排队等待",
             "count": 1
           },
           {
-            "id": "toast-9",
+            "id": "toast-10",
             "tone": "info",
             "message": "队列 #5 (Info)：排队等待",
             "count": 1
           }
         ],
-        "maxVisible": 2
+        "maxVisible": 2,
+        "disposed": false
       }
     },
     {
       "name": "scroll-3d-reversible-and-bento-seam-lock",
       "status": "PASS",
       "detail": {
-        "entryTransform": "matrix3d(0.9428, 0, 0, 0, 0, 0.924069, 0.186997, -0.00015583, 0, -0.198342, 0.980133, -0.000816777, 0, 22.89, 0, 1)",
-        "flatTransform": "matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, -0.000833333, 0, 0, 0, 1)",
-        "reversedTransform": "matrix3d(0.9428, 0, 0, 0, 0, 0.924069, 0.186997, -0.00015583, 0, -0.198342, 0.980133, -0.000816777, 0, 22.89, 0, 1)",
+        "entryState": {
+          "stage": "enter",
+          "rx": 11.97,
+          "scale": 0.9402,
+          "tz": 0,
+          "transform": "matrix3d(0.9402, 0, 0, 0, 0, 0.919757, 0.194997, -0.000162498, 0, -0.2074, 0.978256, -0.000815214, 0, 23.93, 0, 1)"
+        },
+        "flatState": {
+          "stage": "level",
+          "rx": 0,
+          "scale": 1,
+          "tz": 0,
+          "transform": "matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, -0.000833333, 0, 0, 0, 1)"
+        },
+        "exitState": {
+          "stage": "exit",
+          "rx": -3.66,
+          "scale": 0.9817,
+          "tz": -8.78,
+          "transform": "matrix3d(0.9817, 0, 0, 0, 0, 0.979698, -0.0626674, 5.22229e-05, 0, 0.0638356, 0.99796, -0.000831634, 0, -6.58, -8.78, 1.00732)"
+        },
+        "reversedState": {
+          "stage": "before",
+          "rx": 12,
+          "scale": 0.94,
+          "tz": 0,
+          "transform": "matrix3d(0.94, 0, 0, 0, 0, 0.919459, 0.195437, -0.000162864, 0, -0.207912, 0.978148, -0.000815123, 0, 24, 0, 1)"
+        },
         "maxSeamDrift": 0
       }
     },
@@ -122,9 +148,9 @@
       "name": "dark-theme-and-performance-telemetry",
       "status": "PASS",
       "detail": {
-        "worstFrameMs": 158.4,
+        "worstFrameMs": 146.9,
         "longTaskCount": 1,
-        "maxSeamDriftPx": 0.5556640625
+        "maxSeamDriftPx": 0.4208984375
       }
     },
     {
@@ -164,7 +190,7 @@
     {
       "label": "real-app-public-home",
       "violationCount": 0,
-      "passes": 39,
+      "passes": 45,
       "violations": []
     },
     {
@@ -177,28 +203,33 @@
   "viewportMatrix": [
     {
       "width": 1440,
-      "overflowX": 0
+      "overflowX": 0,
+      "badSwitches": 0
     },
     {
-      "width": 1024,
-      "overflowX": 0
+      "width": 768,
+      "overflowX": 0,
+      "badSwitches": 0
     },
     {
       "width": 390,
-      "overflowX": 0
+      "overflowX": 0,
+      "badSwitches": 0
     },
     {
       "width": 375,
-      "overflowX": 0
+      "overflowX": 0,
+      "badSwitches": 0
     }
   ],
   "performance": {
-    "worstFrameMs": 158.4,
+    "worstFrameMs": 146.9,
     "longTaskCount": 1,
-    "maxSeamDriftPx": 0.5556640625
+    "maxSeamDriftPx": 0.4208984375
   },
   "screenshots": [
     "fixture-desktop-1440-light.png",
+    "switch-fixed-desktop-light.png",
     "flip-seq-1-initial.png",
     "flip-seq-2-mid-down.png",
     "flip-seq-3-mid-up.png",
@@ -208,7 +239,8 @@
     "toast-seq-1-burst.png",
     "scroll-seq-1-entry.png",
     "scroll-seq-2-flattened.png",
-    "scroll-seq-3-reversed.png",
+    "scroll-seq-3-exit-stage.png",
+    "scroll-seq-4-reversed.png",
     "desktop-modal-open.png",
     "mobile-drawer-seq-1-open.png",
     "mobile-drawer-seq-2-dragging.png",

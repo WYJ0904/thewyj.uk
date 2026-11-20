@@ -1,4 +1,4 @@
-import { createSecurityCenter } from './js/account/security-center.js?release=20261119-aeris-i07-preview';
+import { createSecurityCenter } from './js/account/security-center.js?release=20261119-aeris-i03-preview';
 let task27Ui = null;
 import {
   AI_TIMEOUT_MS,
@@ -11,27 +11,27 @@ import {
   BUSINESS_TIME_ZONE,
   STATUS_RETRY_BASE_DELAYS_MS,
   STATUS_TIMEOUT_MS,
-} from "./js/core/config.js?release=20261119-aeris-i07-preview";
-import { reconcileKeyedRows } from "./js/core/keyed-list.js?release=20261119-aeris-i07-preview";
+} from "./js/core/config.js?release=20261119-aeris-i03-preview";
+import { reconcileKeyedRows } from "./js/core/keyed-list.js?release=20261119-aeris-i03-preview";
 import {
   capabilityProblems,
   detectCapabilities,
   randomId,
-} from "./js/core/capabilities.js?release=20261119-aeris-i07-preview";
+} from "./js/core/capabilities.js?release=20261119-aeris-i03-preview";
 import {
   createApiClient,
   fetchWithTimeout,
   isCanonicalSessionFailure,
   retryDelayWithJitter,
   waitForDelay,
-} from "./js/core/api.js?release=20261119-aeris-i07-preview";
+} from "./js/core/api.js?release=20261119-aeris-i03-preview";
 import {
   createChangelogSelection,
   loadCloudChangelog,
   mergeChangelogEntries,
   staticChangelogEntries,
-} from "./js/core/changelog.js?release=20261119-aeris-i07-preview";
-import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation, nativeAppRoute } from "./js/core/router.js?release=20261119-aeris-i07-preview";
+} from "./js/core/changelog.js?release=20261119-aeris-i03-preview";
+import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation, nativeAppRoute } from "./js/core/router.js?release=20261119-aeris-i03-preview";
 import {
   ACCOUNT_CACHE_KEY,
   NATIVE_ACCOUNT_SESSION,
@@ -44,31 +44,31 @@ import {
   requestNativeSessionRefresh,
   restoreAccountSession,
   subscribeAccountSessionChanges,
-} from "./js/core/session.js?release=20261119-aeris-i07-preview";
-import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?release=20261119-aeris-i07-preview";
-import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?release=20261119-aeris-i07-preview";
-import { initDesignSystem, setExperienceMode, setInterfaceEnhancementsEnabled, dialogFocusTargets, focusDialog } from "./js/core/design-system.js?release=20261119-aeris-i07-preview";
-import { createPublicUiPolicyController } from "./js/core/public-ui-policy.js?release=20261119-aeris-i07-preview";
-import { completeStartupSplash, canPresentWorkspace, waitForPresentation } from "./js/core/startup.js?release=20261119-aeris-i07-preview";
-import { installMotionSystem, motionDuration, prefersReducedMotion, attachSheetAdapter, syncModalScrollLock, showToast } from "./js/core/motion.js?release=20261119-aeris-i07-preview";
-import { initPublicExperience, renderPublicPlanCatalog } from "./js/core/public-experience.js?release=20261119-aeris-i07-preview";
-import { createAndroidDownloadController } from "./js/core/download.js?release=20261119-aeris-i07-preview";
-import { createFeatureController } from "./js/core/feature-flags.js?release=20261119-aeris-i07-preview";
-import { createFeatureConsole } from "./js/core/feature-console.js?release=20261119-aeris-i07-preview";
-import { createMasteryController } from "./js/language/mastery.js?release=20261119-aeris-i07-preview";
-import { createWrongReviewController } from './js/language/wrong-review-sync.js?release=20261119-aeris-i07-preview';
-import { wrongEntryWord, wrongEntryKey, findWrongEntry } from './js/language/wrong-book.js?release=20261119-aeris-i07-preview';
-import { orderWrongReview, wrongReviewView, mergeWrongReview, wrongReviewDigest, wrongReviewSource, reviewDictationOptions } from './js/language/wrong-review.js?release=20261119-aeris-i07-preview';
-import { clearMasteryJournalAccount } from "./js/language/mastery-journal.js?release=20261119-aeris-i07-preview";
-import { masteryStorageKey, parseIssuedQuestion } from "./js/language/mastery-state.js?release=20261119-aeris-i07-preview";
-import { speakText, stopSpeech } from "./js/language/speech.js?release=20261119-aeris-i07-preview";
+} from "./js/core/session.js?release=20261119-aeris-i03-preview";
+import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?release=20261119-aeris-i03-preview";
+import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?release=20261119-aeris-i03-preview";
+import { initDesignSystem, setExperienceMode, setInterfaceEnhancementsEnabled, dialogFocusTargets, focusDialog } from "./js/core/design-system.js?release=20261119-aeris-i03-preview";
+import { createPublicUiPolicyController } from "./js/core/public-ui-policy.js?release=20261119-aeris-i03-preview";
+import { completeStartupSplash, canPresentWorkspace, waitForPresentation } from "./js/core/startup.js?release=20261119-aeris-i03-preview";
+import { installMotionSystem, motionDuration, prefersReducedMotion, attachSheetAdapter, syncModalScrollLock, showToast } from "./js/core/motion.js?release=20261119-aeris-i03-preview";
+import { initPublicExperience, renderPublicPlanCatalog } from "./js/core/public-experience.js?release=20261119-aeris-i03-preview";
+import { createAndroidDownloadController } from "./js/core/download.js?release=20261119-aeris-i03-preview";
+import { createFeatureController } from "./js/core/feature-flags.js?release=20261119-aeris-i03-preview";
+import { createFeatureConsole } from "./js/core/feature-console.js?release=20261119-aeris-i03-preview";
+import { createMasteryController } from "./js/language/mastery.js?release=20261119-aeris-i03-preview";
+import { createWrongReviewController } from './js/language/wrong-review-sync.js?release=20261119-aeris-i03-preview';
+import { wrongEntryWord, wrongEntryKey, findWrongEntry } from './js/language/wrong-book.js?release=20261119-aeris-i03-preview';
+import { orderWrongReview, wrongReviewView, mergeWrongReview, wrongReviewDigest, wrongReviewSource, reviewDictationOptions } from './js/language/wrong-review.js?release=20261119-aeris-i03-preview';
+import { clearMasteryJournalAccount } from "./js/language/mastery-journal.js?release=20261119-aeris-i03-preview";
+import { masteryStorageKey, parseIssuedQuestion } from "./js/language/mastery-state.js?release=20261119-aeris-i03-preview";
+import { speakText, stopSpeech } from "./js/language/speech.js?release=20261119-aeris-i03-preview";
 import {
   loadSpeechRate,
   saveSpeechRate,
-} from "./js/language/speech-rate.js?release=20261119-aeris-i07-preview";
-import { formatFinanceMoney } from "./js/finance/format.js?release=20261119-aeris-i07-preview";
-import { createLazyController, installLazyTools, createRetryableImport } from "./js/core/lazy-controller.js?release=20261119-aeris-i07-preview";
-import { createDashboardView } from "./js/core/dashboard.js?release=20261119-aeris-i07-preview";
+} from "./js/language/speech-rate.js?release=20261119-aeris-i03-preview";
+import { formatFinanceMoney } from "./js/finance/format.js?release=20261119-aeris-i03-preview";
+import { createLazyController, installLazyTools, createRetryableImport } from "./js/core/lazy-controller.js?release=20261119-aeris-i03-preview";
+import { createDashboardView } from "./js/core/dashboard.js?release=20261119-aeris-i03-preview";
 import {
   INTERACTION_STAGES,
   beginInteraction,
@@ -76,15 +76,15 @@ import {
   interactionTraceApi,
   withInteractionFeedback,
   withInteractionFeedbackQuiet,
-} from "./js/core/perf.js?release=20261119-aeris-i07-preview";
-import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?release=20261119-aeris-i07-preview";
+} from "./js/core/perf.js?release=20261119-aeris-i03-preview";
+import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?release=20261119-aeris-i03-preview";
 import {
   calculateStudyStreak,
   formatDuration,
   localDayKey,
   sanitizeStudyRecords,
   studyDaySeries,
-} from "./js/language/history.js?release=20261119-aeris-i07-preview";
+} from "./js/language/history.js?release=20261119-aeris-i03-preview";
 import {
   DEFAULT_PROFILE,
   LANGUAGE_LABELS,
@@ -121,16 +121,16 @@ import {
   trimRubricCache,
   wordIdentity,
   wordMatchesLanguage,
-} from "./js/language/quiz.js?release=20261119-aeris-i07-preview";
-import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?release=20261119-aeris-i07-preview";
-import { createWrongBookPdf } from "./js/language/pdf.js?release=20261119-aeris-i07-preview";
+} from "./js/language/quiz.js?release=20261119-aeris-i03-preview";
+import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?release=20261119-aeris-i03-preview";
+import { createWrongBookPdf } from "./js/language/pdf.js?release=20261119-aeris-i03-preview";
 import {
   filterWrongBookByLanguage as filterWrongBookByLanguageModel,
   mergeWrongBooks,
   removeLanguageFromWrongBook as removeLanguageFromWrongBookModel,
   sanitizeWrongBook,
   updateWrongEntry as updateWrongEntryModel,
-} from "./js/language/wrong-book.js?release=20261119-aeris-i07-preview";
+} from "./js/language/wrong-book.js?release=20261119-aeris-i03-preview";
 import {
   accountEntitlements as accountEntitlementsModel,
   accountMembershipSummary as accountMembershipSummaryModel,
@@ -139,7 +139,7 @@ import {
   isAdmin as isAdminModel,
   isSuperAdmin as isSuperAdminModel,
   membershipLabel,
-} from "./js/membership/account.js?release=20261119-aeris-i07-preview";
+} from "./js/membership/account.js?release=20261119-aeris-i03-preview";
 import {
   MEMBERSHIP_GOALS,
   MEMBERSHIP_PLAN_ORDER,
@@ -147,20 +147,20 @@ import {
   membershipGoalForPlan,
   normalizedMembershipGoal,
   planDetails as planDetailsModel,
-} from "./js/membership/plans.js?release=20261119-aeris-i07-preview";
+} from "./js/membership/plans.js?release=20261119-aeris-i03-preview";
 import {
   DEFAULT_PAYMENT_METHODS,
   normalizedPaymentMethod as normalizedPaymentMethodModel,
   paymentMethodLabel as paymentMethodLabelModel,
   paymentStatusLabel,
   rechargeStatusLabel,
-} from "./js/membership/recharge.js?release=20261119-aeris-i07-preview";
+} from "./js/membership/recharge.js?release=20261119-aeris-i03-preview";
 import {
   createAdminEmailCenter,
   loginLocationLabel,
   loginReasonLabel,
   membershipDateValue as membershipDateValueModel,
-} from "./js/admin/formatters.js?release=20261119-aeris-i07-preview";
+} from "./js/admin/formatters.js?release=20261119-aeris-i03-preview";
 
 const localStorage = getSafeStorage("localStorage");
 const sessionStorage = getSafeStorage("sessionStorage");
@@ -1498,10 +1498,14 @@ function changelogSectionMarkup(label, items) {
   return `<section><h3>${escapeHtml(label)}</h3><ul>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></section>`;
 }
 
+let changelogError = "";
+
 function renderChangelog() {
   const list = $("changelogList");
   const entries = changelogEntries();
   if (!list) return;
+  const error = changelogError;
+  list.setAttribute("aria-busy", "false");
   list.innerHTML = entries.map((entry) => `<article id="${escapeHtml(changelogArticleId(entry.build))}">
     <header class="changelog-entry-header"><time datetime="${escapeHtml(entry.date)}">${escapeHtml(String(entry.date || "").replaceAll("-", "/"))}</time><a href="#${encodeURIComponent(changelogArticleId(entry.build))}" data-changelog-select="${escapeHtml(entry.build)}">v${escapeHtml(entry.version)}</a></header>
     <div class="changelog-entry-content"><h2>${escapeHtml(entry.title)}</h2><div class="changelog-sections">
@@ -1510,7 +1514,7 @@ function renderChangelog() {
       ${changelogSectionMarkup("修复", entry.fixes)}
       ${changelogSectionMarkup("安全更新", entry.security)}
     </div></div>
-  </article>`).join("") || '<p class="dashboard-empty">暂无更新记录。</p>';
+  </article>`).join("") || `<p class="dashboard-empty">${escapeHtml(error ? `更新日志读取失败：${error}` : "暂无更新记录。")}</p>`;
   list.querySelectorAll("[data-changelog-select]").forEach((link) => link.addEventListener("click", (event) => {
     event.preventDefault();
     if (!changelogSelection.choose(link.dataset.changelogSelect, changelogEntries())) return;
@@ -3875,11 +3879,16 @@ function setTrialTool(value) {
   document.querySelectorAll("[data-trial-tool]").forEach((button) => {
     const active = button.dataset.trialTool === tool;
     button.classList.toggle("active", active);
-    button.setAttribute("aria-pressed", String(active));
+    button.setAttribute("aria-selected", String(active));
+    button.tabIndex = active ? 0 : -1;
   });
   document.querySelectorAll("[data-trial-panel]").forEach((panel) => {
     const panelName = tool.startsWith("image-") ? "image" : tool;
-    panel.classList.toggle("hidden", panel.dataset.trialPanel !== panelName);
+    const isTarget = panel.dataset.trialPanel === panelName;
+    panel.classList.toggle("hidden", !isTarget);
+    if (isTarget) {
+      panel.removeAttribute("hidden");
+    }
   });
   if (tool.startsWith("image-")) {
     trialState.imageMode = tool === "image-format" ? "format" : "compress";
@@ -3896,6 +3905,23 @@ function setTrialTool(value) {
   renderAccountUi();
 }
 
+let pendingPopScroll = null;
+
+function applyPublicRouteScroll(pushHistory) {
+  const restore = () => {
+    if (!pushHistory && pendingPopScroll && Number.isFinite(pendingPopScroll.scrollY)) {
+      const target = pendingPopScroll;
+      pendingPopScroll = null;
+      window.scrollTo({ left: target.scrollX || 0, top: target.scrollY, behavior: "instant" });
+    } else if (pushHistory) {
+      window.scrollTo({ left: 0, top: 0, behavior: "instant" });
+    }
+    window.WYJPublicScroll?.refresh?.();
+  };
+  restore();
+  window.requestAnimationFrame(() => window.requestAnimationFrame(() => window.WYJPublicScroll?.refresh?.()));
+}
+
 function showPublicHome(pushHistory = true) {
   stopProjectActivity();
   currentProject = "";
@@ -3907,15 +3933,22 @@ function showPublicHome(pushHistory = true) {
   document.body.classList.remove("project-picker-active");
   if (pushHistory) pushRoute("/");
   renderAccountUi();
+  applyPublicRouteScroll(pushHistory);
   // Share the existing catalog owner/promise; never block the public page.
   void loadMembershipPlans().then(plans=>renderPublicPlanCatalog(document,plans)).catch(error=>renderPublicPlanCatalog(document,[],error.message));
 }
 
-function resetChangelogScroll() {
+function resetChangelogScroll(pushHistory = true) {
   const goToLatest = () => {
     if (currentRoutePath() !== "/changelog" || $("changelogPage")?.classList.contains("hidden")) return;
     const selected = changelogSelection.current(changelogEntries());
     const article = selected ? document.getElementById(changelogArticleId(selected)) : null;
+    if (!article && !pushHistory && pendingPopScroll && Number.isFinite(pendingPopScroll.scrollY)) {
+      const target = pendingPopScroll;
+      pendingPopScroll = null;
+      window.scrollTo({ left: target.scrollX || 0, top: target.scrollY, behavior: "instant" });
+      return;
+    }
     const headerHeight = $("accountBar")?.getBoundingClientRect().height || 0;
     const top = article ? Math.max(0, window.scrollY + article.getBoundingClientRect().top - headerHeight - 16) : 0;
     window.scrollTo({ left: 0, top, behavior: "instant" });
@@ -3939,7 +3972,7 @@ function showChangelog(pushHistory = true) {
     history.replaceState(history.state, "", location.pathname + location.search);
   }
   renderAccountUi();
-  resetChangelogScroll();
+  resetChangelogScroll(pushHistory);
 }
 
 let androidDownloadController = null;
@@ -3956,6 +3989,7 @@ function showDownload(pushHistory = true) {
   androidDownloadController?.show();
   if (pushHistory) pushRoute("/download");
   renderAccountUi();
+  applyPublicRouteScroll(pushHistory);
 }
 
 function showTrial(pushHistory = true, tool = "") {
@@ -3970,6 +4004,7 @@ function showTrial(pushHistory = true, tool = "") {
   setTrialTool(tool || trialState.tool);
   if (pushHistory) pushRoute("/trial");
   renderAccountUi();
+  applyPublicRouteScroll(pushHistory);
 }
 
 function presentationState() {
@@ -4201,8 +4236,10 @@ function showAuth(message = "", options = {}) {
   $("offlineReviewBtn").classList.add("hidden");
   document.body.classList.add("project-picker-active");
   const path = options.path || (mode === "register" ? "/register" : "/login");
+  const isRoutePush = !options.skipRoute && location.pathname !== path;
   if (!options.skipRoute) pushRoute(path, Boolean(options.replace));
   renderAccountUi();
+  if (isRoutePush || pendingPopScroll) applyPublicRouteScroll(Boolean(isRoutePush && !options.replace));
 }
 
 function showWorkspace() {
@@ -5062,14 +5099,14 @@ async function apiGet(path,options={}) {
 }
 
 installLazyTools({
-  loadTools: createRetryableImport(new URL("./tools.js?release=20261119-aeris-i07-preview", import.meta.url)),
-  loadWorkflows: createRetryableImport(new URL("./workflows.js?release=20261119-aeris-i07-preview", import.meta.url)),
+  loadTools: createRetryableImport(new URL("./tools.js?release=20261119-aeris-i03-preview", import.meta.url)),
+  loadWorkflows: createRetryableImport(new URL("./workflows.js?release=20261119-aeris-i03-preview", import.meta.url)),
   onReady: () => renderDashboard(),
 });
 
-const loadFinanceModule = createRetryableImport(new URL("./js/finance/app.js?release=20261119-aeris-i07-preview", import.meta.url));
-const loadCandidateModule = createRetryableImport(new URL("./js/finance/candidates.js?release=20261119-aeris-i07-preview", import.meta.url));
-const loadTransferModule = createRetryableImport(new URL("./js/transfer/app.js?release=20261119-aeris-i07-preview", import.meta.url));
+const loadFinanceModule = createRetryableImport(new URL("./js/finance/app.js?release=20261119-aeris-i03-preview", import.meta.url));
+const loadCandidateModule = createRetryableImport(new URL("./js/finance/candidates.js?release=20261119-aeris-i03-preview", import.meta.url));
+const loadTransferModule = createRetryableImport(new URL("./js/transfer/app.js?release=20261119-aeris-i03-preview", import.meta.url));
 
 financeController = createLazyController({
   methods: ["syncNow", "verifyTransaction", "render"],
@@ -7228,7 +7265,7 @@ function showAuthTransition(message = "正在验证身份与权限…") {
     overlay.setAttribute("aria-label", message);
     overlay.setAttribute("aria-hidden", "false");
     overlay.innerHTML = '<div class="entry-content">' +
-      '<img class="entry-logo" src="/icon-192.png?release=20261119-aeris-i07-preview" width="76" height="76" alt="" />' +
+      '<img class="entry-logo" src="/icon-192.png?release=20261119-aeris-i03-preview" width="76" height="76" alt="" />' +
       '<strong>Aeris</strong>' +
       '<span class="entry-progress" aria-hidden="true"></span>' +
       '</div>';
@@ -7419,7 +7456,8 @@ function closeAccountMenu() {
 }
 
 function dismissTopOverlay() {
-  if ($("homeWidgetEditor")?.open) { $("homeWidgetEditor").close(); return true; }
+  const homeWidgetEditor = document.getElementById("homeWidgetEditor");
+  if (homeWidgetEditor?.open) { homeWidgetEditor.close(); return true; }
   const modal = [...document.querySelectorAll(".modal-layer:not(.hidden)")].at(-1);
   if (modal) {
     if (modal.hasAttribute("data-confirm-only")) modal.querySelector("button")?.focus({ preventScroll: true });
@@ -7701,7 +7739,21 @@ async function boot() {
   $("viewVersionDetailsBtn")?.addEventListener("click", () => { dismissVersionNotice(); changelogSelection.clear(); showChangelog(true); });
   $("trialHomeBtn")?.addEventListener("click", () => state.session && state.account ? showModulePicker(true) : showPublicHome(true));
   ["trialRegisterBtn", "trialQuizRegisterBtn"].forEach((id) => $(id)?.addEventListener("click", () => showAuth("注册后可保存词表、错题和学习记录", { mode: "register", path: "/register" })));
-  document.querySelectorAll("[data-trial-tool]").forEach((button) => button.addEventListener("click", () => setTrialTool(button.dataset.trialTool)));
+  const trialTabs = [...document.querySelectorAll("[data-trial-tool]")];
+  trialTabs.forEach((button, idx) => {
+    button.addEventListener("click", () => setTrialTool(button.dataset.trialTool));
+    button.addEventListener("keydown", (event) => {
+      let next = idx;
+      if (event.key === "ArrowRight") next = (idx + 1) % trialTabs.length;
+      else if (event.key === "ArrowLeft") next = (idx + trialTabs.length - 1) % trialTabs.length;
+      else if (event.key === "Home") next = 0;
+      else if (event.key === "End") next = trialTabs.length - 1;
+      else return;
+      event.preventDefault();
+      setTrialTool(trialTabs[next].dataset.trialTool);
+      trialTabs[next].focus({ preventScroll: true });
+    });
+  });
   $("trialQuizStartBtn")?.addEventListener("click", startTrialQuiz);
   $("trialQuizAnswerForm")?.addEventListener("submit", submitTrialQuizAnswer);
   $("trialQuizNextBtn")?.addEventListener("click", nextTrialQuestion);
@@ -7900,7 +7952,10 @@ async function boot() {
     closeModal("roundSummaryModal", true);
     setView("setupView");
   });
-  window.addEventListener("popstate", () => routeCurrent());
+  window.addEventListener("popstate", (event) => {
+    pendingPopScroll = (event?.state && Number.isFinite(event.state.scrollY)) ? event.state : null;
+    routeCurrent();
+  });
   $("offlineReviewBtn").addEventListener("click", () => {
     pendingScreen = "workspace";
     showWorkspace();

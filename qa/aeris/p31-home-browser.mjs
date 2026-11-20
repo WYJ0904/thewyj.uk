@@ -8,13 +8,12 @@ for(const width of [320,390,1366,1920]){
   const catalog=await fetch(baseUrl+'/api/membership/plans').then(r=>r.json());assert.equal(catalog.ok,true);
   await page.waitFor("document.querySelectorAll('#publicModulePlans [data-plan-code]').length>0 && document.querySelectorAll('#publicPermanentPlans [data-plan-code]').length>0");
   const actual=await page.evaluate("[...document.querySelectorAll('.aeris-plan-catalog [data-plan-code]')].map(x=>({code:x.dataset.planCode,name:x.querySelector('span').textContent,price:x.querySelector('strong').textContent}))");
-  await page.click('#homeProductDetails>summary');
   for(const row of actual){const plan=catalog.plans.find(p=>p.code===row.code);assert.ok(plan?.purchasable);assert.equal(row.name,plan.name);assert.ok(row.price.includes(new Intl.NumberFormat('zh-CN',{style:'currency',currency:plan.currency}).format(plan.price_cents/100)));}
   const writes=[];page.client.listeners.add(event=>{if(event.method==='Network.requestWillBeSent'){const request=event.params.request;if(request.method!=='GET'&&/\/api\/(transfer\/uploads|finance|learning\/sync)/.test(request.url))writes.push({method:request.method,url:request.url});}});
-  await page.click('#publicFilesTab');await page.setFile('#publicFilesInput',previewFile);await page.waitFor("document.querySelector('#publicFilesPreview').textContent.includes('p31-local-preview.txt')");assert.deepEqual(writes,[],'Product Window must never upload or write account data');
+  await page.click('#publicFilesTab');await page.waitFor("document.querySelector('#capabilityShareBody').hidden===false");await page.setFile('#publicFilesInput',previewFile);await page.waitFor("document.querySelector('#publicFilesPreview').textContent.includes('p31-local-preview.txt')");assert.deepEqual(writes,[],'Product Window must never upload or write account data');
   for(const theme of ['light','dark']){
    await page.evaluate(`document.documentElement.dataset.theme=${JSON.stringify(theme)}`);
-   for(const scene of ['learning','finance','tools']){await page.click(`#public${scene[0].toUpperCase()+scene.slice(1)}Tab`);assert.equal(await page.evaluate("document.querySelector('[data-product-window]').dataset.selected"),scene);}
+   for(const scene of ['learning','finance','tools']){await page.click(`#public${scene[0].toUpperCase()+scene.slice(1)}Tab`);await page.waitFor(`document.querySelector('[data-product-window]').dataset.selected===${JSON.stringify(scene)} && !document.querySelector('.aeris-window-content')?.hasAttribute('aria-busy')`);}
    await page.evaluate("document.querySelector('#publicLearningTab').focus()");await page.send('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});await page.send('Input.dispatchKeyEvent',{type:'char',key:'Enter',code:'Enter',text:'\r',windowsVirtualKeyCode:13});await page.send('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});assert.equal(await page.evaluate("document.querySelector('#publicLearningTab').getAttribute('aria-selected')"),'true');
    assert.equal(await page.evaluate("document.documentElement.scrollWidth>innerWidth+1"),false);
    await page.send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});assert.equal(await page.evaluate("getComputedStyle(document.querySelector('.aeris-product-panel.active')).animationName"),'none');await page.send('Emulation.setEmulatedMedia',{features:[]});
@@ -23,9 +22,6 @@ for(const width of [320,390,1366,1920]){
   }
   for(const [selector,expected] of [['[data-public-capability=learning]','/trial'],['[data-public-capability=tools]','/trial'],['[data-public-capability=finance]','/login'],['[data-public-capability=files]','/transfer'],['[data-public-capability=account]','/login'],['#publicTrialBtn','/trial'],['#publicPlansBtn','/login'],['#publicLoginBtn','/login'],['#publicRegisterBtn','/trial'],['#navRegisterBtn','/register'],['[data-public-section=final] [data-site-nav=download]','/download'],['#publicChangelogBtn','/changelog']]){
    if(await page.evaluate("location.pathname!=='/'")){await page.click('.site-brand[data-site-nav=home]');await page.waitFor("location.pathname==='/' && !document.querySelector('#publicHome').classList.contains('hidden')");}
-   const capability=selector.match(/data-public-capability=(\w+)/)?.[1];
-   if(!await page.evaluate("document.querySelector('#homeProductDetails').open"))await page.click('#homeProductDetails>summary');
-   if(capability)await page.click(`[data-core-capability=${capability==='files'?'share':capability}]>.capability-trigger`);
    await page.click(selector);await page.waitFor(`location.pathname===${JSON.stringify(expected)}`,30000,'existing entry '+selector);
   }
   assert.deepEqual(page.runtimeErrors,[]);

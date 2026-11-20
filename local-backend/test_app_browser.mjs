@@ -740,8 +740,8 @@ async function main() {
         }
       }
 
-      if(!await evaluate("document.querySelector('#homeProductDetails').open"))await click('#homeProductDetails>summary');
       await click('.capability-trigger[aria-controls="capabilityToolsBody"]');
+      await waitFor("!document.querySelector('[data-capability-panel=tools]').hidden && !document.querySelector('.aeris-window-content')?.hasAttribute('aria-busy')", 3_000, "preview tools tab skeleton settle");
       assert.equal(await evaluate("document.querySelector('[data-capability-panel=tools]').classList.contains('active')"), true);
       assert.equal(await evaluate("getComputedStyle(document.querySelector('#capabilityLearningBody')).display"), "none");
       const pwa = await evaluate(`(async () => {
@@ -807,6 +807,7 @@ async function main() {
       await touchTap("#trialHomeBtn");
       await waitFor("location.pathname === '/' && !document.querySelector('#publicHome')?.classList.contains('hidden')", 4_000, "mobile home after trial navigation");
       await touchTap('.capability-trigger[aria-controls="capabilityFinanceBody"]');
+      await waitFor("!document.querySelector('[data-capability-panel=finance]').hidden && !document.querySelector('.aeris-window-content')?.hasAttribute('aria-busy')", 3_000, "mobile finance tab skeleton settle");
       assert.equal(await evaluate("document.querySelector('[data-capability-panel=finance]').classList.contains('active')"), true);
       const mobileAccordionShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
       fs.writeFileSync(path.join(TEST_ROOT, `public-accordion-390-${RUN_ID}.png`), Buffer.from(mobileAccordionShot.data, "base64"));
@@ -950,7 +951,7 @@ async function main() {
       assert.equal(await evaluate("document.querySelector('#publicHome').dataset.sessionMode === 'authenticated'"), true);
       assert.equal(await evaluate("document.querySelectorAll('#publicHome .public-hero').length"), 1);
       assert.equal(await evaluate("document.querySelectorAll('.dashboard-metric').length"), 0);
-      assert.equal(await evaluate("document.querySelectorAll('.capability-panel').length"), 5);
+      assert.equal(await evaluate("document.querySelectorAll('#publicBentoWall .bento-tile').length"), 5);
       assert.equal(await evaluate("document.querySelectorAll('[data-dashboard-project]').length"), 2);
       assert.equal(await evaluate("document.querySelectorAll('#publicHome [data-module=language]').length >= 1"), true);
       assert.equal(await evaluate("document.querySelectorAll('#publicHome [data-module=tools]').length >= 1"), true);
@@ -959,9 +960,7 @@ async function main() {
       assert.ok((await evaluate("document.querySelector('#dashboardLatestResult').textContent")).length > 4);
       await assertReadable("#dashboardMembershipName");
       await assertReadable("#dashboardMembershipExpiry");
-      await click('[data-core-capability=tools]>.capability-trigger');
       await assertReadable(".dashboard-empty");
-      await click('[data-core-capability=learning]>.capability-trigger');
       assert.equal(await evaluate("document.documentElement.dataset.themePreference"), "light");
       await click("#themeToggleBtn");
       assert.equal(await evaluate("document.documentElement.dataset.themePreference"), "dark");
@@ -976,24 +975,23 @@ async function main() {
       const mobileHome = await evaluate(`({
         viewport: innerWidth,
         scrollWidth: document.documentElement.scrollWidth,
-        cards: document.querySelectorAll('.capability-panel').length,
-        productColumns: getComputedStyle(document.querySelector('.capability-gallery')).gridTemplateColumns.split(' ').length,
+        cards: document.querySelectorAll('#publicBentoWall .bento-tile').length,
+        bentoCols: getComputedStyle(document.querySelector('#publicBentoWall')).gridTemplateColumns.split(' ').length,
         heroHeight: document.querySelector('.public-hero').getBoundingClientRect().height,
         headingVisible: document.querySelector('#publicHomeTitle').getBoundingClientRect().height > 0,
       })`);
       assert.ok(mobileHome.scrollWidth <= mobileHome.viewport + 1, JSON.stringify(mobileHome));
       assert.equal(mobileHome.cards, 5);
-      assert.equal(mobileHome.productColumns, 1);
-      assert.ok(mobileHome.heroHeight >= 600 && mobileHome.heroHeight < 1100, JSON.stringify(mobileHome));
+      assert.ok(mobileHome.heroHeight >= 180 && mobileHome.heroHeight < 1100, JSON.stringify(mobileHome));
       assert.equal(mobileHome.headingVisible, true);
       const mobileShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
       fs.writeFileSync(path.join(TEST_ROOT, `authenticated-home-390-${RUN_ID}.png`), Buffer.from(mobileShot.data, "base64"));
       await send("Emulation.setDeviceMetricsOverride", { width: 1920, height: 1080, deviceScaleFactor: 1, mobile: false });
       const desktopHome = await evaluate(`({
-        productColumns: getComputedStyle(document.querySelector('.capability-gallery')).gridTemplateColumns.split(' ').length,
+        bentoCols: getComputedStyle(document.querySelector('#publicBentoWall')).gridTemplateColumns.split(' ').length,
         learningButtons: [...document.querySelectorAll('[data-dashboard-project]')].map(e=>{const r=e.getBoundingClientRect();return {width:r.width,height:r.height};}),
       })`);
-      assert.equal(desktopHome.productColumns, 3);
+      assert.equal(desktopHome.bentoCols, 12);
       assert.equal(desktopHome.learningButtons.length, 2);
       assert.ok(desktopHome.learningButtons.every(r=>r.width>=44&&r.height>=44));
       const wideShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true });
@@ -1007,8 +1005,7 @@ async function main() {
     });
 
     await check("learning data sync is local-first and receives a second-device update", async () => {
-      await click('[data-core-capability=account]>.capability-trigger');
-      await click('.authenticated-service-details>summary');
+      if(!await evaluate("document.querySelector('.authenticated-service-details').open"))await click('.authenticated-service-details>summary');
       await waitFor(
         "/已同步|已合并/.test(document.querySelector('#dashboardSyncStatus')?.textContent || '')",
         15_000,
@@ -1612,13 +1609,19 @@ async function main() {
       });
       await evaluate("window.__languageMatrixRandom = Math.random; Math.random = () => 0.999999; true");
 
+      const openDashboardModule = async (mod) => {
+        const p07 = await evaluate("document.documentElement.dataset.p07Ui === 'enabled'");
+        if (p07) await tap(`[data-v3-summary=${JSON.stringify(mod)}]`);
+        else await tap(`.home-quick-access a[data-site-nav=${JSON.stringify(mod === "learning" ? "language" : mod)}]`);
+      };
+
       const ensureEnglishProject = async () => {
         if (await evaluate("location.pathname === '/tools'")) {
           await tap("#leaveToolsBtn");
           await waitFor("location.pathname === '/'", 5_000, "leave tools");
         }
         if (await evaluate("location.pathname === '/'")) {
-          await tap('[data-home-widget-open=learning]');
+          await openDashboardModule("learning");
           await waitFor("location.pathname === '/language'", 5_000, "language picker from dashboard");
         }
         if (await evaluate("location.pathname === '/language'")) {
@@ -1730,14 +1733,14 @@ async function main() {
       await tap("#accountMenu summary");
       await tap("#homeBtn");
       await waitFor("location.pathname === '/'", 5_000, "scenario D dashboard");
-      await tap('[data-home-widget-open=learning]');
+      await openDashboardModule("learning");
       await tap('[data-project="english"]');
       await waitFor("location.pathname === '/language/english'", 8_000, "scenario D first return");
       assert.ok(Number((await evaluate("document.querySelector('#progressLabel').textContent")).split("/")[0]) <= 2);
       await tap("#backProjectBtn");
       await tap("#languageBackBtn");
       await waitFor("location.pathname === '/'", 5_000, "scenario D module picker");
-      await tap('[data-home-widget-open=tools]');
+      await openDashboardModule("tools");
       await waitFor("location.pathname === '/tools' && !document.querySelector('#toolsPanel')?.classList.contains('hidden')", 10_000, "scenario D tools");
       await tap("#leaveToolsBtn");
       await ensureEnglishProject();

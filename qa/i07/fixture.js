@@ -12,9 +12,9 @@ import {
   attachSheetAdapter,
   syncModalScrollLock,
   createScrollProgressController,
-} from "/js/core/motion.js?release=20261119-aeris-i07-preview";
-import { reconcileKeyedRows } from "/js/core/keyed-list.js?release=20261119-aeris-i07-preview";
-import { focusDialog, dialogFocusTargets } from "/js/core/design-system.js?release=20261119-aeris-i07-preview";
+} from "/js/core/motion.js?release=20261119-aeris-i03-preview";
+import { reconcileKeyedRows } from "/js/core/keyed-list.js?release=20261119-aeris-i03-preview";
+import { focusDialog, dialogFocusTargets } from "/js/core/design-system.js?release=20261119-aeris-i03-preview";
 
 const $ = (id) => document.getElementById(id);
 const statusLine = $("fixtureStatusLine");
@@ -340,28 +340,14 @@ flipGrid.addEventListener("click", (event) => {
   }
 });
 
-flipGrid.addEventListener("keydown", (event) => {
-  const handle = event.target.closest("[data-drag-handle]");
-  if (!handle) return;
-  const card = handle.closest("[data-flip-key]");
-  if (!card) return;
-  if (event.key === "ArrowUp" || event.key === "ArrowLeft") {
-    event.preventDefault();
-    moveCard(card.dataset.flipKey, -1);
-    handle.focus({ preventScroll: true });
-  } else if (event.key === "ArrowDown" || event.key === "ArrowRight") {
-    event.preventDefault();
-    moveCard(card.dataset.flipKey, 1);
-    handle.focus({ preventScroll: true });
-  }
-});
-
 createDragSortController(flipGrid, {
   itemSelector: "[data-flip-key]",
   handleSelector: "[data-drag-handle]",
-  onOrderChange: (order) => {
+  axis: "both",
+  onOrderChange: (order, meta = {}) => {
     verifyFlipIdentity();
-    setStatus(`拖拽排序完成：${order.join(" → ")}`);
+    const label = meta.trigger === "keyboard" ? `键盘排序 (${meta.key})` : "拖拽排序完成";
+    setStatus(`${label}：${order.join(" → ")}`);
   },
   onDragStateChange: ({ cancelled }) => {
     if (cancelled) setStatus("拖拽已取消，已恢复原排序。");
@@ -667,7 +653,7 @@ createScrollProgressController({
       $("scrollTelemetryBadge").textContent = "Reduced Motion · transform locked flat";
     } else if (item) {
       $("scrollTelemetryBadge").textContent =
-        `progress ${item.progress.toFixed(2)} · rotateX ${item.rx.toFixed(1)}deg · scale ${item.scale.toFixed(3)}`;
+        `${item.stage || "level"} · p ${item.progress.toFixed(2)} · rx ${item.rx.toFixed(1)}deg · scale ${item.scale.toFixed(3)} · tz ${(item.tz || 0).toFixed(0)}px`;
     }
     const wallRect = bentoWall.getBoundingClientRect();
     // Re-baseline if viewport responsive breakpoint resized the outer wall.

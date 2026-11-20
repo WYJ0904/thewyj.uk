@@ -7,9 +7,9 @@ import { fileURLToPath } from "node:url";
 import { stagePages } from "../../scripts/stage_pages_deploy.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const PROJECT = "thewyj-p07-ui-rc";
-const PREVIEW_BRANCH = "i07-motion-engine";
-const PREVIEW_D1_ID = "ee869f78-b54a-4018-bc99-871089ecb8cd";
+const PROJECT = process.env.I07_PREVIEW_PROJECT || "thewyj-p07-ui-rc";
+const PREVIEW_BRANCH = process.env.I07_PREVIEW_BRANCH || "i07-motion-engine";
+const PREVIEW_D1_ID = process.env.I07_PREVIEW_D1_ID || "ee869f78-b54a-4018-bc99-871089ecb8cd";
 const ACCOUNT_ID = "97c274a981e8dd6703aa6388e11c4614";
 const PRODUCTION_DB_ID = "11c288d8-c584-409f-bb1f-7e7af11793e5";
 const WRANGLER = path.join(ROOT, "node_modules", "wrangler", "bin", "wrangler.js");
@@ -107,6 +107,7 @@ if (!skipRemoteCheck) {
     priorPreviewR2,
     targetR2Count: 0,
     targetAiCount: 0,
+    bindingConsistent: priorPreviewD1Id === PREVIEW_D1_ID && priorPreviewR2.length === 0,
   };
 }
 
@@ -118,7 +119,7 @@ await fs.cp(staged.output, OUTPUT_DIR, { recursive: true });
 
 // Apply isolated preview banner + I07 Fixture under /__preview/* (never present in Production builds)
 const origHtml = await fs.readFile(path.join(OUTPUT_DIR, "index.html"), "utf8");
-const banner = `<aside class="owner-preview-banner" id="ownerPreviewBanner" role="status" data-preview-source="${commit}">` +
+const banner = `<aside class="owner-preview-banner" id="ownerPreviewBanner" aria-label="隔离 Preview 环境" data-preview-source="${commit}">` +
   `<strong>隔离 Preview · Aeris I07 共享动效引擎</strong><span>独立预览分支 <code>${PREVIEW_BRANCH}</code>，不连接正式账目与生产数据。</span>` +
   `<details><summary>版本与 I07 验收入口</summary><small>源码 <code>${commit}</code> · <a href="/__preview/i07-fixture.html">打开 I07 动效验收 Fixture</a> · <a href="/__preview/build.json">构建证据</a></small></details></aside>`;
 let nextHtml = origHtml.replace("</head>", '    <link rel="stylesheet" href="/__preview/preview-ui.css" />\n  </head>');
@@ -139,6 +140,9 @@ await fs.copyFile(path.join(ROOT, "qa/p07ui/preview-ui.css"), path.join(previewD
 await fs.copyFile(path.join(ROOT, "qa/i07/fixture.html"), path.join(previewDir, "i07-fixture.html"));
 await fs.copyFile(path.join(ROOT, "qa/i07/fixture.css"), path.join(previewDir, "i07-fixture.css"));
 await fs.copyFile(path.join(ROOT, "qa/i07/fixture.js"), path.join(previewDir, "i07-fixture.js"));
+
+await fs.cp(path.join(ROOT, "functions"), path.join(STAGE_ROOT, "functions"), { recursive: true });
+await fs.cp(path.join(ROOT, "js"), path.join(STAGE_ROOT, "js"), { recursive: true });
 
 if (previewWrangler) {
   await fs.writeFile(path.join(STAGE_ROOT, "wrangler.jsonc"), `${JSON.stringify(previewWrangler, null, 2)}\n`);
@@ -182,7 +186,8 @@ if (doDeploy) {
     { cwd: STAGE_ROOT, encoding: "utf8", timeout: 180_000 },
   );
   assert.equal(dep.status, 0, `Wrangler deploy failed:\n${dep.stdout}\n${dep.stderr}`);
-  const urls = (dep.stdout + "\n" + dep.stderr).match(/https:\/\/[a-z0-9-]+\.thewyj-p07-ui-rc\.pages\.dev/g) || [];
+  const projectPattern = new RegExp(`https:\\/\\/[a-z0-9-]+\\.${PROJECT.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&")}\\.pages\\.dev`, "g");
+  const urls = (dep.stdout + "\n" + dep.stderr).match(projectPattern) || [];
   let deployedD1 = null;
   let deployedR2 = null;
   let deployedAi = null;
@@ -192,15 +197,29 @@ if (doDeploy) {
     const token = getWranglerToken();
     const list = await cfApiGet(token, `/pages/projects/${PROJECT}/deployments`);
     const matchDep = list.find((item) => item.deployment_trigger?.metadata?.branch === PREVIEW_BRANCH);
-    if (matchDep) {
-      const fullDep = await cfApiGet(token, `/pages/projects/${PROJECT}/deployments/${matchDep.id}`);
-      deploymentId = fullDep.id;
-      aliases = fullDep.aliases || [];
-      deployedD1 = fullDep.d1_databases || null;
-      deployedR2 = fullDep.r2_buckets || null;
-      deployedAi = fullDep.ai_bindings || null;
-      assert.notEqual(fullDep.d1_databases?.WYJ_DB?.id, PRODUCTION_DB_ID, "Deployed Preview D1 must never equal Production DB");
-    }
+    assert.ok(matchDep, `Deployed branch ${PREVIEW_BRANCH} must appear in ${PROJECT} deployments`);
+    const fullDep = await cfApiGet(token, `/pages/projects/${PROJECT}/deployments/${matchDep.id}`);
+    deploymentId = fullDep.id;
+    aliases = fullDep.aliases || [];
+    deployedD1 = fullDep.d1_databases || null;
+    deployedR2 = fullDep.r2_buckets || null;
+    deployedAi = fullDep.ai_bindings || null;
+    assert.notEqual(fullDep.d1_databases?.WYJ_DB?.id, PRODUCTION_DB_ID, "Deployed Preview D1 must never equal Production DB");
+    assert.equal(
+      fullDep.d1_databases?.WYJ_DB?.id,
+      PREVIEW_D1_ID,
+      `Deployed Preview D1 (${fullDep.d1_databases?.WYJ_DB?.id}) must match isolated target D1 (${PREVIEW_D1_ID})`,
+    );
+    assert.equal(
+      Object.keys(fullDep.r2_buckets || {}).length,
+      0,
+      `Deployed Preview R2 buckets must be empty ([]), got ${JSON.stringify(fullDep.r2_buckets || {})}`,
+    );
+    assert.equal(
+      Object.keys(fullDep.ai_bindings || {}).length,
+      0,
+      `Deployed Preview AI bindings must be empty ([]), got ${JSON.stringify(fullDep.ai_bindings || {})}`,
+    );
   }
   deployResult = {
     deployed: true,
