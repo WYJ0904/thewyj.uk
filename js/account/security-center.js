@@ -218,9 +218,9 @@ export function createSecurityCenter({api,apiGet,publicApi,getSession,getAccount
       const data=await apiGet('/api/security/overview');if(snapshot!==key())return;
       const valid=data.sessions.filter(session=>session.valid);
       body(node).innerHTML=`<div class="task27-security-summary"><article><h3>登录密码</h3><p>${data.password_changed_at?`最近修改：${esc(date(data.password_changed_at))}`:'历史修改时间未知，从功能启用后开始计算提醒。'}</p><p>30 天提醒仅为个人安全建议，不强制修改。</p><button type="button" data-security-password>修改密码</button></article><article><h3>绑定邮箱</h3><p>${esc(data.email || '尚未绑定已验证邮箱')}</p>${data.email_test_allowlist_active?'<p class="task27-note">测试环境仅允许向授权测试邮箱发送验证码。</p>':''}<button type="button" data-security-email>${data.email?'更换邮箱':'绑定并验证邮箱'}</button></article><article><h3>双重验证</h3><p>当前方式：${esc(labels[data.mfa_method])}</p><p>普通用户自主开启，不影响会员权益。</p>${data.enrollment_enabled&&!data.email?'<p class="task27-note">需先完成“绑定并验证邮箱”，才能切换为邮箱双重验证。</p>':''}<div class="action-row">${data.enrollment_enabled?'<button type="button" data-security-mfa="email">使用邮箱</button><button type="button" data-security-mfa="totp">使用验证器</button>':'<p>新的验证方式设置尚未开放。</p>'}${data.mfa_method!=='none'?'<button type="button" data-security-disable>关闭双重验证</button>':''}</div></article><article><h3>一次性恢复码</h3><p>${data.mfa_method==='totp'?`剩余 ${Number(data.recovery_codes_remaining)} 个；已有恢复码无法再次查看。`:'开启 TOTP 后可获得恢复码。'}</p>${data.mfa_method==='totp'?'<button type="button" data-security-recovery>重新生成恢复码</button>':''}</article><article><h3>数据导出与加密备份</h3><p>导出云端财务账目、审核候选与云端结构化通知（不含 Android 本地原始正文），支持加密恢复与只读预检。</p><button type="button" data-security-backup>打开数据备份中心</button></article><article><h3>隐私与数据管理</h3><p>查看云端与设备端数据分类、撤回可选处理授权、发起不可逆安全删除并查看结果报告。</p><button type="button" data-security-privacy>打开隐私控制中心</button></article></div><h3>登录设备与会话</h3><p>Web 会话显示可确认的客户端类型，不推测具体设备型号。</p><div class="task27-session-list">${valid.map(session=>`<article><div><strong>${esc(session.client || '浏览器会话')}${session.current?' · 当前会话':''}</strong><p>创建：${esc(date(session.created_at))}<br>最近活动：${esc(date(session.last_seen_at))}</p></div><button type="button" data-revoke-id="${esc(session.id)}" data-kind="${session.kind}">退出此会话</button></article>`).join('') || '<p>暂无有效会话。</p>'}</div><div class="action-row"><button type="button" data-revoke-mode="others">退出其他设备</button><button type="button" data-revoke-mode="all">退出全部设备</button></div><h3>最近安全活动</h3><ul>${data.events.map(event=>`<li>${esc(eventLabels[event.event_type] || '账户安全操作')} · ${esc(date(event.created_at))}</li>`).join('') || '<li>暂无记录</li>'}</ul>`;
-      const profile = await apiGet('/api/account/profile').catch(() => null);
       const summary = body(node).querySelector('.task27-security-summary');
-      if (profile && summary && snapshot === key()) {
+      void apiGet('/api/account/profile').then(profile => {
+        if (!summary?.isConnected || snapshot !== key()) return;
         const card = document.createElement('article');
         const heading = document.createElement('h3');
         const current = document.createElement('p');
@@ -241,7 +241,7 @@ export function createSecurityCenter({api,apiGet,publicApi,getSession,getAccount
           if (snapshot === key()) current.textContent = saved.username;
           status(node, '账号名已更新，下次登录请使用新账号名。');
         });
-      }
+      }).catch(() => {});
       bind(node,'[data-security-password]',async()=>{
         const grant=await stepup('password_change');
         const values=await prompt('修改登录密码',[{name:'new_secret',label:'新密码（至少 9 位混合密码）',type:'password',autocomplete:'new-password'},{name:'confirm_secret',label:'再次输入新密码',type:'password',autocomplete:'new-password'}]);
