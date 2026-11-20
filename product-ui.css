@@ -328,6 +328,105 @@ textarea::placeholder {
   box-shadow: 0 1px 3px rgba(16, 24, 40, 0.04);
 }
 
+.site-nav-bar {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.home-inline-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.home-inline-nav a {
+  padding: 10px 12px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-sm);
+  text-decoration: none;
+  border-radius: var(--radius-control);
+}
+
+.site-release-actions {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  min-width: 0;
+}
+
+.site-release-actions > a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 4px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  color: var(--color-text-secondary);
+  background: var(--color-surface);
+  font-size: var(--font-sm);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.site-release-actions svg {
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+}
+
+.home-search {
+  width: 44px;
+  padding: 10px;
+}
+
+.home-search svg,
+.site-nav-toggle svg,
+.theme-toggle svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+
+.site-nav-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  z-index: 820;
+  width: min(calc(100% - 32px), var(--page-max));
+  max-height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  opacity: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-dialog);
+  transform: translate(-50%, -8px);
+  pointer-events: none;
+}
+
+.site-nav.nav-open .site-nav-panel {
+  max-height: 420px;
+  overflow: auto;
+  visibility: visible;
+  opacity: 1;
+  border-color: var(--color-border);
+  transform: translate(-50%, 0);
+  pointer-events: auto;
+}
+
 .site-brand {
   display: inline-flex;
   align-items: center;

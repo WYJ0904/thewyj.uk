@@ -99,11 +99,11 @@ const REQUIRED_SHELL = [...CORE_SHELL, ...TASK26_SHELL, ...FINANCE_SHELL, ...TAS
 const INSTALL_SHELL = REQUIRED_SHELL;
 // Canonical UTF-8 hashes bind the current S0 shell plus Task27 additions.
 const TASK26_INTEGRITY = Object.freeze({
-  "/": "96006b0418758c05076bf8f8a59f98994effbe5be772002c3e12dc79dca78e16",
-  "/index.html": "96006b0418758c05076bf8f8a59f98994effbe5be772002c3e12dc79dca78e16",
+  "/": "cfe4489aeea701469c94aaf18221c55a755c41668d4b1f6959e6e4b7d6dfc39f",
+  "/index.html": "cfe4489aeea701469c94aaf18221c55a755c41668d4b1f6959e6e4b7d6dfc39f",
   "/app.js?release=20261119-aeris-i03-preview": "08c4bdd7d10b028ba55bc7161aa32054ee4256e518bb201687f6c17879150e69",
   "/learning-sync.js?release=20261119-aeris-i03-preview": "74ced24b8dab7c8ad16dc6b4b68ff81a89e968d18a607bbba6b066a8bee7727d",
-  "/product-ui.css?release=20261119-aeris-i03-preview": "ce2b68926618ff6690ff2246d6e4359f195f9a5a4b59a149af4a2efbbfcea137",
+  "/product-ui.css?release=20261119-aeris-i03-preview": "a2598656d43f2c83b613835d6f97496259f779b9be8ea10a40e538dd6f8e427e",
   "/js/language/mastery.js?release=20261119-aeris-i03-preview": "4a7d1569df211aac958e4c8ab83904e82926ba4258b9d03c5c266aeda331c7a7",
   "/js/language/quiz.js?release=20261119-aeris-i03-preview": "cd4546dc7e48876bac503c49e259267bde99b79ab0cf5565cb917c1ed031e3b0",
   "/js/language/wrong-book.js?release=20261119-aeris-i03-preview": "658e93029afc5269ec5b5b02b47043fdd385d297a7e67c890a5f67862be80049",
@@ -120,7 +120,7 @@ const TASK26_INTEGRITY = Object.freeze({
   "/js/account/password-policy.js?release=20261119-aeris-i03-preview": "48fd3d494120682e5b8baac8c73fb6ff68714cbc89d567318e9ea39549c80c56",
   "/js/account/password-fields.js?release=20261119-aeris-i03-preview": "2454b6113bbd45df46898c3fa189af09c83df2b9bd5d69460ec81d75e31c5a37"
 });
-const PUBLICATION_HASH = "c56b55391395cb8089ff679cbac2b310c29a0de664d48a656508adc688a5d622";
+const PUBLICATION_HASH = "7d1399360cb95bbb6c238e18d58cc2cd7b3091e4c301df8a4f29f4e1a46e2a5e";
 const PUBLICATION_CACHE = `${CACHE}-task26-${PUBLICATION_HASH.slice(0, 16)}`;
 const PUBLICATION_MARKER = "/__aeris/task26-publication";
 

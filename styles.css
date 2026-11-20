@@ -188,6 +188,23 @@ h1 {
   display: none !important;
 }
 
+/* Defensive baseline for shared navigation drawer & SVG icons if downstream stylesheets lag or fail. */
+.site-nav-panel[aria-hidden="true"],
+.site-nav:not(.nav-open) .site-nav-panel {
+  position: absolute;
+  max-height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.site-nav svg {
+  flex-shrink: 0;
+  fill: none;
+  stroke: currentColor;
+}
+
 @keyframes resultAutoHide {
   0%,
   88% {
