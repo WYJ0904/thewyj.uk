@@ -1,21 +1,21 @@
 {
   "previewUrl": "https://i04-workspace.thewyj-i04-preview.pages.dev",
-  "checkedAt": "2026-11-20T06:06:02.718Z",
+  "checkedAt": "2026-11-20T06:13:01.778Z",
   "apiStatus": {
     "ok": true,
-    "status": "ok",
+    "status": "degraded",
     "service": "wyj-cloud-foundation",
     "environment": "preview",
     "build": "2026-08-26-task15-cloud-only",
-    "time": "2026-11-20T06:05:59.463Z",
+    "time": "2026-11-20T06:13:00.518Z",
     "auth": true,
     "backend_ready": true,
-    "ai_ready": true,
-    "model": "@cf/meta/llama-3.1-8b-instruct-fast",
+    "ai_ready": false,
+    "model": "Cloudflare rules only",
     "bindings": {
       "d1": true,
-      "r2": true,
-      "workers_ai": true
+      "r2": false,
+      "workers_ai": false
     },
     "task11": {
       "schema_ready": true,
@@ -86,7 +86,7 @@
       "task14_temporary_primary": true,
       "task14_legacy_writes_frozen": true,
       "task14_temporary_secret": true,
-      "workers_ai": true,
+      "workers_ai": false,
       "task15_cloud_only": true,
       "task16_cloud_reads": true,
       "task16_cloud_writes": true,
@@ -106,15 +106,19 @@
       "limit": 120,
       "window_seconds": 60
     },
-    "degraded_reasons": [],
-    "request_id": "cae99763-d0a0-449b-afbb-0014fb660fc5"
+    "degraded_reasons": [
+      "r2_binding_missing",
+      "task13_r2_binding_missing",
+      "task14_r2_binding_missing"
+    ],
+    "request_id": "4eed7480-45fa-4ba7-a4d8-c08530dc7535"
   },
   "apiHealth": {
     "ok": false,
     "error": "请先登录",
     "code": "authentication_required",
     "retryable": false,
-    "request_id": "1b6fafeb-be73-4a85-aaa0-4e4dc082e24c"
+    "request_id": "8f5b81f9-45ce-4b18-bcde-02762356f6a5"
   },
   "uiFeatures": {
     "ok": true,
@@ -122,13 +126,13 @@
       "schema_version": 1,
       "flag_key": "p07_accessibility",
       "enabled": true,
-      "revision": 56,
+      "revision": 3,
       "reason": "public_stable",
-      "observed_at": "2026-11-20T06:06:01.713Z",
-      "expires_at": "2026-11-20T06:06:31.713Z",
+      "observed_at": "2026-11-20T06:13:01.396Z",
+      "expires_at": "2026-11-20T06:13:31.396Z",
       "max_age_seconds": 30
     },
-    "request_id": "a031f5af-3cdc-4465-a580-5c97b7ae278f"
+    "request_id": "83a1184a-75fd-4bb3-a997-0ede4dde3421"
   },
   "plansCount": 8,
   "checks": {
@@ -160,7 +164,7 @@
     {
       "label": "preview-mobile-390",
       "violationCount": 0,
-      "passes": 44,
+      "passes": 45,
       "violations": []
     }
   ]
