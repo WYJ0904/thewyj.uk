@@ -1,5 +1,5 @@
 /** Pure presentation of the existing dashboard owners; never fetches or persists. */
-export function projectHomeWidgets({ demo=false, records=[], wrongCount=0, streak=0, goals=[], finance={}, financeKnown=false, tools={}, toolsReady=true, workflow={}, online=true, learningStatus={}, money=String, language=String, time=String, now=new Date() }={}) {
+export function projectHomeWidgets({ demo=false, records=[], wrongCount=0, streak=0, goals=[], finance={}, financeKnown=false, tools={}, toolsReady=true, workflow={}, transfer={}, membership={}, account={}, notifications={}, online=true, learningStatus={}, money=String, language=String, time=String, now=new Date() }={}) {
   const item=(label,value,detail,status,state='ready',extra='')=>({label,value,detail,status,state,extra});
   if(demo)return {
     demo:true,
@@ -18,11 +18,22 @@ export function projectHomeWidgets({ demo=false, records=[], wrongCount=0, strea
   const recent=tools.recent||[],favorites=tools.favorites||[],toolState=toolsReady?'empty':online?'loading':'error';
   const activity=[...sorted.slice(0,3).map(x=>({id:'learning:'+x.id,at:x.finishedAt,label:`完成了 ${x.total} 道${language(x.language)}练习题`,path:'learning'})),...recent.slice(0,3).filter(x=>Number.isFinite(Date.parse(x.used_at))).map(x=>({id:'tool:'+x.tool_id,at:x.used_at,label:`使用了${x.name||x.tool_id}`,path:'/tools/'+encodeURIComponent(x.tool_id)}))].sort((a,b)=>Date.parse(b.at)-Date.parse(a.at)).slice(0,4);
   const latestWorkflow=workflow.recent?.[0];
+  const transferCount=Number.isFinite(Number(transfer.count))?Number(transfer.count):null;
+  const transferKnown=Boolean(transfer.known)&&transferCount!==null;
+  const transferAllowed=transfer.allowed!==false;
+  const transferState=!transferAllowed?'restricted':transferKnown?(transferCount>0?'ready':'empty'):(online?'loading':'error');
+  const transferValue=!transferAllowed?'会员权限受限':transferKnown?`${transferCount} 个文件`:(online?'尚未读取':'网络离线');
+  const transferDetail=transfer.detail||(!transferAllowed?'开通包含文件传输的会员后可管理上传与受控分享。':transferKnown?(transferCount>0?`当前账户共有 ${transferCount} 个传输记录`:'暂无文件传输记录'):(online?'打开文件传输读取账户配额与清单':'联网后可读取文件记录'));
+  const memberName=membership.name||'未开通会员';
+  const memberExpiry=membership.expiry||'尚未开通或按次使用';
+  const pendingNotifications=notifications.pendingCount;
   return {
     demo:false,
     learning:{modes:{latest:item('学习记录',latest?language(latest.language):learnState==='loading'?'正在读取':learnState==='error'?'暂时不可用':'暂无记录',latest?`${latest.total} 题 · 正确率 ${latest.accuracy}%`:'完成测试后显示进度',learnStatus,learnState),today:item('今日进度',`${today} 题`,goalText,learnStatus,learnState),streak:item('连续学习',`${streak} 天`,'按已完成学习记录计算',learnStatus,learnState),wrong:item('错题数量',`${wrongCount} 个`,'进入学习后复习',learnStatus,learnState)},extra:goalText},
     finance:{modes:{balance:item('本月账本',finValue(finance.balance_minor),'本月收支余额',finStatus,finState),income:item('本月收入',finValue(finance.income_minor),'本月收入合计',finStatus,finState),expense:item('本月支出',finValue(finance.expense_minor),'本月支出合计',finStatus,finState)},extra:financeKnown?`${finance.count||0} 笔记录 · ${finance.last_sync_at?'最近同步 '+time(finance.last_sync_at):'本机修改待同步'}`:'打开账本查看真实收支。'},
     tools:{modes:{recent:item('最近工具',recent[0]?.name||(toolsReady?'暂无最近工具':online?'正在读取':'暂时不可用'),recent[0]?.used_at?time(recent[0].used_at):'使用后显示最近工具',recent.length?`${favorites.length} 项收藏`:'工具箱',recent.length?'ready':toolState),favorites:item('收藏工具',favorites[0]?.name||(toolsReady?'暂无收藏工具':'尚未读取'),`${favorites.length} 项收藏`,'工具箱',favorites.length?'ready':toolState),workflow:item('最近工作流',latestWorkflow?.name||(workflow.known?'暂无工作流':'尚未读取'),latestWorkflow?'最近编辑 '+time(latestWorkflow.updated_at):'打开工作流后读取','工具箱',latestWorkflow?'ready':workflow.known?'empty':'loading')},extra:`${favorites.length} 项收藏 · ${recent.length} 项最近使用`,continuePath:recent[0]?'/tools/'+encodeURIComponent(recent[0].tool_id):''},
+    transfer:{value:transferValue,detail:transferDetail,status:!transferAllowed?'权限受限':(transferKnown?(online?'账户传输配额':'离线'):(online?'尚未读取':'离线')),state:transferState,count:transferCount},
+    account:{memberName,memberExpiry,entitlementsSummary:membership.entitlements||'基础账户能力',status:online?'在线':'离线',state:online?'ready':'error',username:account.username||'',pendingNotifications:pendingNotifications??null},
     activity,
   };
 }

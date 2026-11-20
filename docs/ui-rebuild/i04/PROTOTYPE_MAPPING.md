@@ -1,0 +1,20 @@
+# I04 Prototype Mapping: Gemini Reference -> Aeris Real Workspace -> I07 Motion API -> Acceptance
+
+## Reference Inputs Verified
+- `Aeris_I_series_UI_interactive_prototype_2026-11-17.html` (2,072 lines, SHA-256 `d063fa75683d947bd5a3c400f806efcd16e16b9f4810e02236a1561cc930a5cc`)
+- `Aeris_I_series_UI_refactor_execution_baseline_v1.1_2026-11-17.txt` (107 lines, SHA-256 `6d41e58b14a3b499a86fe04f5f74daad21dbb3804e9ad4a4959dbd92bfdba46c`)
+- `proto_1440.png`, `proto_390.png`
+
+## Component & Interaction Mapping
+
+| Gemini Prototype Reference | Aeris Real Workspace Implementation | I07 Engine / Shared API Reused | I04 Acceptance Action |
+|---|---|---|---|
+| `#view-workspace` / `.console-shell` / `.console-topbar` | `#publicHome[data-session-mode="authenticated"]` + `#authWorkspaceSection` + `#authWorkspaceHeader` / `#workspaceConsoleToolbar` on `/` and `/select` inside `#v3AppFrame` | `--ds-*` I02 tokens, `--ds-workspace-canvas`, `--ds-radius-sm`/`md` | Enter `/select` after sign-in -> real user greeting, real modules, `/select` URL retained |
+| `#customizeLayoutBtn` (`自定义布局`) | `#workspaceCustomizeBtn` (`自定义布局` <-> `完成编辑`) + `#workspaceSaveBtn` + `#workspaceDiscardBtn` + `#workspaceSaveStatus` | `dirty` / `saved` / `failed` / `reset` state machine in `js/core/home-widgets.js` | Enter edit mode, make draft edits, verify dirty field list, save or discard cleanly |
+| `#densityToggleBtn` (`密度`) | `#workspaceDensityBtn` switching `#workspaceBentoGrid[data-density="comfortable" \| "compact"]` | `captureFlipSnapshot()` + `playFlipSnapshot(..., { scale: true })` | Toggle Comfortable (2-col Bento) <-> Compact (1-col high-density horizontal strip) with visible structural change |
+| `.bento-grid` / `.bento-card` | `#workspaceBentoGrid` with 6 persistent `<article data-workspace-card="<id>" data-home-widget="<id>">` nodes (`learning`, `finance`, `tools`, `transfer`, `activity`, `account`) | `moveWorkspaceVisibleModule()`, `applyWorkspaceVisibleOrder()`, `grid.appendChild(card)` (NO `innerHTML` rebuild) | Reorder cards ↑, ↓, pointer drag, Arrow keys; verify `cardBefore === cardAfter` DOM node identity |
+| Prototype `↑` (non-FLIP) / `↓` (asymmetric FLIP) | **FIXED**: Unified bidirectional `captureFlipSnapshot()` + `playFlipSnapshot()` for BOTH `↑` and `↓`, plus focus preservation when boundary disables ↑/↓ | `js/core/motion.js` `captureFlipSnapshot`, `playFlipSnapshot`, `flipLayout` | Verify WAAPI transform animations fire on both `↑` and `↓` + swapped sibling |
+| Pointer Drag & Keyboard Sort | `[data-workspace-drag-handle]` inside each card (`touch-action: none` on handle only; `touch-action: pan-y` on card body) | `createDragSortController()` + `#workspaceLiveRegion` (`aria-live="polite"`) | Pointer drag commits order; `Escape` mid-drag restores pre-drag order with 0 residual `transform`; Arrow keys move card and keep handle focus |
+| `#hiddenWidgetsBar` & empty hide-all | `#hiddenWidgetsBar` + `#workspaceAllHiddenState` (`当前工作台模块已全部隐藏`) + `#restoreAllWidgetsBtn` + `#workspaceResetBtn` + `#workspaceUndoResetBtn` | `setWorkspaceModuleHidden()` + FLIP on remaining/restored cards | Hide 1 card -> chip restore; hide all 6 -> centered empty state with toolbar intact -> restore all -> reset + undo |
+| Mock workspace numbers & simulated sync | **FIXED**: Real owner projections via `js/core/dashboard.js` & `js/core/home-widget-data.js` (`projectHomeWidgets`) | Zero fake balances/streak; distinguishes `ready` / `empty` / `loading` / `restricted` / `error` | Verify empty/entitlement-restricted userB vs entitled userA + controlled save-failure fallback |
+| `.sheet-backdrop` / `.gesture-sheet` (identical modal on PC & mobile in prototype) | **FIXED**: `#workspaceDetailModal` opened via `app.js` `openModal()`/`closeModal()` with `[data-sheet-mode="modal"]` on desktop vs `[data-sheet-mode="drawer"]` on mobile (`<= 760px`) | `attachSheetAdapter()`, `syncModalScrollLock()`, `--ds-bg-scale` on `#v3AppFrame` | Desktop centered spring modal (`Tab` trap, `Escape` focus return); Mobile bottom drawer (slow snap-back, reverse snap-back, threshold swipe dismiss) |

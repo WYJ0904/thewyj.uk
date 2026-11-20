@@ -1,0 +1,167 @@
+{
+  "previewUrl": "https://i04-workspace.thewyj-i04-preview.pages.dev",
+  "checkedAt": "2026-11-20T06:06:02.718Z",
+  "apiStatus": {
+    "ok": true,
+    "status": "ok",
+    "service": "wyj-cloud-foundation",
+    "environment": "preview",
+    "build": "2026-08-26-task15-cloud-only",
+    "time": "2026-11-20T06:05:59.463Z",
+    "auth": true,
+    "backend_ready": true,
+    "ai_ready": true,
+    "model": "@cf/meta/llama-3.1-8b-instruct-fast",
+    "bindings": {
+      "d1": true,
+      "r2": true,
+      "workers_ai": true
+    },
+    "task11": {
+      "schema_ready": true,
+      "schema_version": "1"
+    },
+    "task12": {
+      "schema_ready": true,
+      "schema_version": "1",
+      "session_strategy": "invalidate_legacy_sessions",
+      "password_pepper_configured": true
+    },
+    "task13": {
+      "schema_ready": true,
+      "schema_version": "1",
+      "payment_primary": true
+    },
+    "task14": {
+      "schema_ready": true,
+      "schema_version": "1",
+      "temporary_primary": true,
+      "secret_configured": true
+    },
+    "task15": {
+      "schema_ready": true,
+      "schema_version": "1",
+      "cloud_only": true
+    },
+    "task16": {
+      "schema_ready": true,
+      "schema_version": "5",
+      "cloud_reads": true,
+      "cloud_writes": true
+    },
+    "task18": {
+      "schema_ready": true,
+      "schema_version": "1",
+      "enabled": true,
+      "owner_count": 1
+    },
+    "task20": {
+      "schema_ready": true,
+      "schema_version": "1",
+      "enabled": true,
+      "session_secret_configured": true
+    },
+    "task22": {
+      "schema_ready": true,
+      "schema_version": "2",
+      "reads_enabled": true,
+      "writes_enabled": true
+    },
+    "features": {
+      "cloud_foundation": true,
+      "cloud_reads": true,
+      "cloud_writes": true,
+      "task11_cloud_reads": true,
+      "task11_cloud_writes": true,
+      "task12_cloud_accounts": true,
+      "task12_import": true,
+      "task12_password_pepper": true,
+      "task13_cloud_reads": true,
+      "task13_cloud_writes": true,
+      "task13_import": true,
+      "task13_payment_primary": true,
+      "task14_cloud_reads": true,
+      "task14_cloud_writes": true,
+      "task14_import": true,
+      "task14_temporary_primary": true,
+      "task14_legacy_writes_frozen": true,
+      "task14_temporary_secret": true,
+      "workers_ai": true,
+      "task15_cloud_only": true,
+      "task16_cloud_reads": true,
+      "task16_cloud_writes": true,
+      "task16_import": true,
+      "task18_admin_messages": true,
+      "task20_android_app": true,
+      "task22_transfer_reads": true,
+      "task22_transfer_writes": true,
+      "task25_feature_flags": true,
+      "task30_privacy": true,
+      "legacy_api_fallback": false,
+      "payment_cloud_migration": true
+    },
+    "rate_limit": {
+      "enabled": true,
+      "degraded": false,
+      "limit": 120,
+      "window_seconds": 60
+    },
+    "degraded_reasons": [],
+    "request_id": "cae99763-d0a0-449b-afbb-0014fb660fc5"
+  },
+  "apiHealth": {
+    "ok": false,
+    "error": "请先登录",
+    "code": "authentication_required",
+    "retryable": false,
+    "request_id": "1b6fafeb-be73-4a85-aaa0-4e4dc082e24c"
+  },
+  "uiFeatures": {
+    "ok": true,
+    "public_ui": {
+      "schema_version": 1,
+      "flag_key": "p07_accessibility",
+      "enabled": true,
+      "revision": 56,
+      "reason": "public_stable",
+      "observed_at": "2026-11-20T06:06:01.713Z",
+      "expires_at": "2026-11-20T06:06:31.713Z",
+      "max_age_seconds": 30
+    },
+    "request_id": "a031f5af-3cdc-4465-a580-5c97b7ae278f"
+  },
+  "plansCount": 8,
+  "checks": {
+    "reloadedOrder": [
+      "learning",
+      "tools",
+      "finance",
+      "transfer",
+      "activity",
+      "account"
+    ],
+    "userBOrder": [
+      "learning",
+      "finance",
+      "tools",
+      "transfer",
+      "activity",
+      "account"
+    ],
+    "isolatedAccountsVerified": true
+  },
+  "axeScans": [
+    {
+      "label": "preview-desktop-modal",
+      "violationCount": 0,
+      "passes": 33,
+      "violations": []
+    },
+    {
+      "label": "preview-mobile-390",
+      "violationCount": 0,
+      "passes": 44,
+      "violations": []
+    }
+  ]
+}
