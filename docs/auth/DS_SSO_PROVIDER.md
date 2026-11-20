@@ -1,31 +1,29 @@
-# Aeris DS SSO Provider
+# Aeris account authority for DS
 
-Task 05 adds a confidential-client authorization-code provider for the DS Preview branch. Its source identity is the Aeris account ID from the existing Task 12 Web session. The authorization page requires explicit consent and a fresh Task 27 Step-up proof. Aeris supplies its configured password/MFA flow and checks policy reacceptance, password-change requirements, account standing and both security generations.
+Task 05 is a native DS experience. The browser stays on DS, and Aeris validates the credentials through its existing Task 12 login and Task 27 account security. The historical `/api/sso/ds/*` routes return 404. There is no authorization code or redirect in the active contract.
 
-| Registration | Preview value |
+## Preview registration and lifecycle
+
+| Setting | Value |
 | --- | --- |
-| Issuer | `https://codex-aeris-ds-sso-integrati.thewyj-uk.pages.dev` (Cloudflare's reported branch alias) |
-| Client ID | `ds-task05-preview` |
-| Redirect URI | `https://codex-ds-task05-aeris-sso.ds-thewyj-uk.pages.dev/api/auth/callback` |
-| Encrypted credential | `AERIS_DS_SSO_CLIENT_SECRET` (Aeris) and `AERIS_CLIENT_SECRET` (DS) |
-| Environment gate | `WYJ_ENVIRONMENT=preview` and exact issuer hostname, with a separate local loopback test mode |
+| Registered Aeris issuer | `https://codex-aeris-ds-sso-integrati.thewyj-uk.pages.dev` |
+| Registered DS origin | `https://codex-ds-task05-aeris-sso.ds-thewyj-uk.pages.dev` |
+| DS client | `ds-task05-preview` |
+| Client authentication | Signed HTTPS request at `POST /api/internal/ds-identity/v1` |
+| Secret bindings | Existing paired `AERIS_DS_SSO_CLIENT_SECRET` / `AERIS_CLIENT_SECRET`. `AERIS_DS_NATIVE_SEAL_KEY` exists only in Aeris Preview |
 
-## Protocol
+Both deployed applications are Pages projects. The current environment has no standalone identity Worker Service Binding target. The HTTPS path validates exact stage, TLS/host, client, signature, time, nonce and full bounded request body. It rate-limits account operations and reuses normal Task 12/27 limits with the signed client IP. Errors log fixed operation names; password and OTP values stay in transient request processing. [Pages Service Bindings](https://developers.cloudflare.com/pages/functions/bindings/#service-bindings)
 
-The browser requests `GET /api/sso/ds/authorize` with the registered client, redirect URI, random state and PKCE S256 challenge. The page uses the same-origin Aeris Web session and calls `POST /prepare` under the same prefix. The server issues a five-minute nonce bound to the source session, account, policy gate, security version and the original DS parameters. Through the existing Task 27 endpoints, the user completes Step-up for the exact `ds_sso_authorize:<nonce>` scope. `POST /approve` requires that proof, the same source session, explicit consent and a same-origin custom header. It consumes the proof in the same D1 transaction that issues a code. Cancel returns to the same registered DS callback with `error=access_denied`.
+The explicit operation map covers registration, password login, login MFA, password reset and force change, policy reacceptance, profile read/save, password, security email, MFA, recovery codes, devices and introspection/revoke. Browser-safe transfer contains only required fields. Canonical Aeris session and step-up/challenge credentials remain encrypted in Aeris. A successful login issues a separate native Grant for the DS client with pollable status and an eight-hour maximum. Device logout, account-wide revocation, current policy or security generation changes invalidate the Grant. DS revokes only the source belonging to the current grant when logging out.
 
-`POST /api/sso/ds/exchange` requires Basic client authentication, the exact redirect URI, the authorization code and its PKCE verifier. The code lasts at most 60 seconds, and a single D1 batch claims it and inserts the grant. The response has `iss/aud/sub/grant_id/iat/exp`. A grant lasts up to eight hours and expires by the source session's original deadline. It contains the stable Aeris ID and never exposes passwords, Web session credentials, email or permissions.
+Aeris and DS share the same account name and optimistic revision from `/api/account/profile`. The Aeris security center reads and updates this route directly. DS calls the narrow backchannel, using the same Task 27 `profile_change` proof. Username changes preserve the immutable account ID and future DS mapping. Stale `expected_revision` fails with 409. Most security writes invalidate earlier sessions using Aeris policy.
 
-`POST /api/sso/ds/introspect` requires the same authenticated client. It rechecks grant registration and lifetime, Task 12 source session and account, Task 27 security generation and current policy before returning `active:true`. A known inactive grant records its revocation reason and time. The grant cannot become active again. Single logout revokes the source session's grants, while a password/MFA/security generation change or global logout affects all associated grants.
+## Deployment and I-series compatibility
 
-## Safety and operations
+The `0042` SQL adds the nonce ledger and encrypted envelopes to the `0041` Grant schema. It can be installed on the scoped Preview migration ledger once `0041` is present; no need to advance shared `wyj_d1_migrations` through unrelated work. Preserve the original `0037` ledger, confirm the database identity and current recovery point, and compare the existing schema/selected account counts. Scope and evidence for actual deployment are recorded in the Draft PR.
 
-- Browser writes require exact same-origin `Origin` and `X-Aeris-SSO: 1`. The envelope allows only known fields and caps JSON at 128/512 bytes and backchannel forms at 1 KiB. All responses are no-store and avoid referrer propagation. The first-party authorization page forbids framing, external connections and form navigation.
-- Existing Task 27 rate limiting covers the authorization page at 90/minute per request source, prepare and approve at 12/minute per account, exchange at 120/minute per client and introspection at 600/minute per client. Step-up keeps its own limits, logging and MFA handling. The SSO store keeps time/status evidence for seven days after expiry, with bounded opportunistic cleanup. Unhandled errors log only a fixed event and known route.
-- Error responses include `400 invalid_request/invalid_grant` for invalid inputs, `401 invalid_client` for failed client authentication, `401/403/428` for source/session/policy gates, `409` for an authorization changed during approval, `429` for rate limit and `503 sso_unavailable` for a missing schema or service failure. Disabled stages/origins return 404. Inactive, missing and revoked grants return the same `200 {"active":false}` shape.
-- `0041_ds_sso_provider.sql` adds two tables and their indexes, depending on Task 12/27. When shared Preview is at `0037`, a scoped `wyj_ds_sso_preview_migrations` ledger can install the single idempotent migration without applying Task 28–30 or reordering `wyj_d1_migrations`. Use a Preview-only configuration with the verified UUID and a migration directory containing only the hash-checked file. The normal migration chain can later record `0041` in order after `0038–0040`.
-- Before remote changes, inspect the binding, both ledgers, this component's schema, recent activity and foreign keys, then record the current D1 Time Travel bookmark. Afterward compare the original ledger and selected data counts, verify the new ledger and foreign keys, and retain the result separately from CI. If rollback is needed, disable the branch feature first. An entire database restore needs a separate decision because it can discard other Preview writes.
+At 15:28 Hong Kong time on 2026-11-20, the verified Aeris Preview UUID `a3e6253b-689f-49f3-998b-7c5828ea255a` advanced its scoped ledger to `0042`. `0041` was skipped as applied. The canonical ledger through `0037`, existing schema and selected counts were unchanged. Foreign key violations were zero. Preflight, Time Travel and post-migration results are stored in `.wrangler/task05-native-preview-20261120T072837Z`.
 
-On 2026-11-20 at 14:45 Hong Kong time, Wrangler applied the scoped `0041` to `wyj-cloud-preview` (`a3e6253b-689f-49f3-998b-7c5828ea255a`). The 38-row canonical ledger through `0037`, existing schema and selected account/security/session counts matched the preflight. The two tables, four indexes and single scoped ledger row were verified and the foreign-key check returned zero. The pre-migration Time Travel bookmark and sanitized checks are retained under the ignored `.wrangler/task05-preview-proof-20261120T064513Z` evidence directory.
+I04 #166 changes security-center presentation, password fields and session consumption. The I05 handoff covers module pages including /account and /admin. The shared contract belongs to this canonical account service. Later I-series changes need to retain stable IDs, policy and challenge behavior, profile revision checks, and cross-project revocation. See the DS contract for the handoff. [DS PR #6](https://github.com/WYJ0904/ds.thewyj.uk/pull/6) · [Aeris I04 PR #166](https://github.com/WYJ0904/thewyj.uk/pull/166)
 
-`npm run test:ds-sso` builds actual Pages Functions and tests the provider with local workerd and D1 at the 0037 compatibility boundary. Task 12, Task 20 and Task 27 regression checks run separately. See the Draft PR for exact-head CI and Hosted evidence. [DS integration](https://github.com/WYJ0904/ds.thewyj.uk/pull/6)
+Run `npm run test:ds-sso` for the compiled Pages/D1 provider on the `0037 + 0041 + 0042` compatibility path. Real Preview browser and mail checks are reported separately.

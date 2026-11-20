@@ -59,6 +59,7 @@ export function revokeAllStatements(db, userId, when = nowIso()) {
   ];
 }
 export const EVENT_TEXT = Object.freeze({
+  profile_changed:['账号资料已修改','您的 Aeris 账号名已更新。'],
   password_changed:['登录密码已修改','您的登录密码已修改，旧的登录会话已撤销。'],
   password_reset:['登录密码已重置','管理员已重置您的密码。旧会话已撤销，下次登录完成原有双重验证后须设置新密码。'],
   password_recovered:['账户密码已恢复','您的密码已通过账户恢复流程修改。原有双重验证保留，旧会话已撤销。'],

@@ -23,7 +23,7 @@ import { handleTask27Request } from '../_lib/task27-api.mjs';
 import { handleTask27EmailRequest } from '../_lib/task27-email-gateway.mjs';
 import { handleTask29Request } from '../_lib/task29-backup-api.mjs';
 import { handleTask30Request } from '../_lib/task30-privacy-api.mjs';
-import { handleDsSsoRequest } from '../_lib/ds-sso-api.mjs';
+import { handleDsNativeRequest } from '../_lib/ds-native-api.mjs';
 
 const SENSITIVE_ADMIN_ACTIONS = Object.freeze({
   "/api/admin/secret": ["password_reset", "user", "user_id"],
@@ -91,7 +91,7 @@ export async function onRequest(context) {
     ? SENSITIVE_ADMIN_ACTIONS[pathname]
     : null;
   const bodyRequest = sensitiveDescriptor ? context.request.clone() : null;
-  const response = await handleDsSsoRequest(context)
+  const response = await handleDsNativeRequest(context)
     || await handleTask27EmailRequest(context,handleEmailRequest)
     || await handleTask27Request(context)
     || await handleTask29Request(context)
