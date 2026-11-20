@@ -1279,7 +1279,6 @@ export function attachSheetAdapter(modalLayer, {
       }
       drag.moved = true;
       panelEl.setAttribute?.("data-sheet-dragging", "true");
-      try { panelEl.setPointerCapture?.(event.pointerId); } catch (_) {}
     }
     const now = view?.performance?.now ? view.performance.now() : Date.now();
     const dt = Math.max(1, now - drag.prevAt);
@@ -1296,13 +1295,12 @@ export function attachSheetAdapter(modalLayer, {
   }
 
   function onPointerEnd(event) {
-    if (!drag || event.pointerId !== drag.pointerId) return;
+    if (!drag || (event.pointerId !== undefined && event.pointerId !== drag.pointerId)) return;
     if (rafId) {
       view?.cancelAnimationFrame?.(rafId);
       rafId = 0;
       applyDragFrame();
     }
-    try { panelEl.releasePointerCapture?.(drag.pointerId); } catch (_) {}
     if (event.type === "pointercancel" || !drag.moved) {
       snapBack();
       return;
@@ -1364,11 +1362,13 @@ export function attachSheetAdapter(modalLayer, {
     if (!modalLayer.classList?.contains?.("hidden")) syncMode();
   };
 
+  const moveTarget = doc?.addEventListener ? doc : panelEl;
+  const onBlur = () => { if (drag) snapBack(); };
   panelEl.addEventListener?.("pointerdown", onPointerDown);
-  panelEl.addEventListener?.("pointermove", onPointerMove);
-  panelEl.addEventListener?.("pointerup", onPointerEnd);
-  panelEl.addEventListener?.("pointercancel", onPointerEnd);
-  panelEl.addEventListener?.("lostpointercapture", onPointerEnd);
+  moveTarget.addEventListener?.("pointermove", onPointerMove);
+  moveTarget.addEventListener?.("pointerup", onPointerEnd);
+  moveTarget.addEventListener?.("pointercancel", onPointerEnd);
+  view?.addEventListener?.("blur", onBlur);
   view?.addEventListener?.("resize", onResize, { passive: true });
 
   syncMode();
@@ -1381,10 +1381,10 @@ export function attachSheetAdapter(modalLayer, {
     dispose() {
       resetVisuals();
       panelEl.removeEventListener?.("pointerdown", onPointerDown);
-      panelEl.removeEventListener?.("pointermove", onPointerMove);
-      panelEl.removeEventListener?.("pointerup", onPointerEnd);
-      panelEl.removeEventListener?.("pointercancel", onPointerEnd);
-      panelEl.removeEventListener?.("lostpointercapture", onPointerEnd);
+      moveTarget.removeEventListener?.("pointermove", onPointerMove);
+      moveTarget.removeEventListener?.("pointerup", onPointerEnd);
+      moveTarget.removeEventListener?.("pointercancel", onPointerEnd);
+      view?.removeEventListener?.("blur", onBlur);
       view?.removeEventListener?.("resize", onResize);
       if (createdHandle) handleEl?.remove?.();
       adapters.delete(modalLayer);

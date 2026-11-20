@@ -1,5 +1,16 @@
 /** UI preferences only. Content is shared; viewport geometry is never shared. */
 export const HOME_WIDGET_VERSION = 2;
+export const WORKSPACE_SCHEMA_VERSION = 1;
+export const WORKSPACE_MODULE_IDS = Object.freeze(['learning', 'finance', 'tools', 'transfer', 'activity', 'account']);
+export const WORKSPACE_DENSITIES = Object.freeze(['comfortable', 'compact']);
+export const WORKSPACE_MODULE_META = Object.freeze({
+  learning: Object.freeze({ id: 'learning', title: '语言学习', kicker: 'LEARNING', route: '/language', cta: '进入学习' }),
+  finance: Object.freeze({ id: 'finance', title: '本月账本', kicker: 'FINANCE', route: '/finance', cta: '打开账本' }),
+  tools: Object.freeze({ id: 'tools', title: '实用工具箱', kicker: 'TOOLS', route: '/tools', cta: '打开工具箱' }),
+  transfer: Object.freeze({ id: 'transfer', title: '文件传输', kicker: 'TRANSFER', route: '/transfer', cta: '文件传输' }),
+  activity: Object.freeze({ id: 'activity', title: '最近活动', kicker: 'ACTIVITY', route: '/select#homeRecentActivity', cta: '查看通知' }),
+  account: Object.freeze({ id: 'account', title: '会员与数据服务', kicker: 'ACCOUNT', route: '/account', cta: '账户与会员' }),
+});
 export const WIDGET_IDS = Object.freeze(['learning', 'finance', 'tools']);
 export const WIDGET_MODES = Object.freeze({
   learning: { latest:'最近学习', today:'今日进度', streak:'连续学习', wrong:'错题数量' },
@@ -76,4 +87,131 @@ export function layoutMobileWidgets(config,stageWidth,sizes=MOBILE_WIDGET_SIZES)
     return [id,{width,height:preferred.height,x:bx+(box.width-width)/2,y:by+(box.height-preferred.height)/2,
       slotHeight:Math.ceil(box.height+2*padding+verticalRoom),box:{x:bx,y:by,...box}}];
   }));
+}
+
+export function defaultWorkspaceBento() {
+  return {
+    schemaVersion: WORKSPACE_SCHEMA_VERSION,
+    order: [...WORKSPACE_MODULE_IDS],
+    hidden: [],
+    density: 'comfortable',
+    customized: false,
+  };
+}
+
+export function sanitizeWorkspaceBento(raw) {
+  const source = raw && typeof raw === 'object' && raw.workspace && typeof raw.workspace === 'object'
+    ? raw.workspace
+    : (raw && typeof raw === 'object' && (Array.isArray(raw.order) || Array.isArray(raw.hidden) || typeof raw.density === 'string') ? raw : null);
+  const defaults = defaultWorkspaceBento();
+  if (!source) return defaults;
+  if (source.schemaVersion !== undefined && Number(source.schemaVersion) > WORKSPACE_SCHEMA_VERSION) {
+    return defaults;
+  }
+  const seen = new Set();
+  const order = [];
+  if (Array.isArray(source.order)) {
+    for (const id of source.order) {
+      if (WORKSPACE_MODULE_IDS.includes(id) && !seen.has(id)) {
+        seen.add(id);
+        order.push(id);
+      }
+    }
+  }
+  for (const id of WORKSPACE_MODULE_IDS) {
+    if (!seen.has(id)) {
+      seen.add(id);
+      order.push(id);
+    }
+  }
+  const hiddenSet = new Set();
+  const hidden = [];
+  if (Array.isArray(source.hidden)) {
+    for (const id of source.hidden) {
+      if (WORKSPACE_MODULE_IDS.includes(id) && !hiddenSet.has(id)) {
+        hiddenSet.add(id);
+        hidden.push(id);
+      }
+    }
+  }
+  const density = WORKSPACE_DENSITIES.includes(source.density) ? source.density : defaults.density;
+  const orderChanged = order.some((id, idx) => id !== defaults.order[idx]);
+  const customized = Boolean(source.customized) || orderChanged || hidden.length > 0 || density !== defaults.density;
+  return { schemaVersion: WORKSPACE_SCHEMA_VERSION, order, hidden, density, customized };
+}
+
+export function hasFutureWorkspaceSchema(raw) {
+  if (!raw || typeof raw !== 'object') return false;
+  if (Number(raw.version) > HOME_WIDGET_VERSION) return true;
+  return Number(raw.workspace?.schemaVersion) > WORKSPACE_SCHEMA_VERSION;
+}
+
+export function mergeHomeWidgetsRecord(existingRaw, workspaceConfig) {
+  const base = sanitizeHomeWidgets(existingRaw);
+  return { ...base, workspace: sanitizeWorkspaceBento(workspaceConfig) };
+}
+
+export function visibleWorkspaceOrder(config) {
+  const hiddenSet = new Set(config.hidden || []);
+  return (config.order || WORKSPACE_MODULE_IDS).filter((id) => !hiddenSet.has(id));
+}
+
+export function moveWorkspaceVisibleModule(config, moduleId, delta) {
+  const clean = sanitizeWorkspaceBento(config);
+  const visible = visibleWorkspaceOrder(clean);
+  const currentIdx = visible.indexOf(moduleId);
+  if (currentIdx < 0) return clean;
+  const targetIdx = currentIdx + delta;
+  if (targetIdx < 0 || targetIdx >= visible.length) return clean;
+  const targetId = visible[targetIdx];
+  const nextOrder = [...clean.order];
+  const fullA = nextOrder.indexOf(moduleId);
+  const fullB = nextOrder.indexOf(targetId);
+  if (fullA < 0 || fullB < 0) return clean;
+  nextOrder[fullA] = targetId;
+  nextOrder[fullB] = moduleId;
+  return sanitizeWorkspaceBento({ ...clean, order: nextOrder, customized: true });
+}
+
+export function applyWorkspaceVisibleOrder(config, visibleKeys) {
+  const clean = sanitizeWorkspaceBento(config);
+  const hiddenSet = new Set(clean.hidden);
+  const validVisible = [];
+  const used = new Set();
+  for (const id of visibleKeys || []) {
+    if (WORKSPACE_MODULE_IDS.includes(id) && !hiddenSet.has(id) && !used.has(id)) {
+      used.add(id);
+      validVisible.push(id);
+    }
+  }
+  for (const id of visibleWorkspaceOrder(clean)) {
+    if (!used.has(id)) {
+      used.add(id);
+      validVisible.push(id);
+    }
+  }
+  let vCursor = 0;
+  const nextOrder = clean.order.map((id) => (hiddenSet.has(id) ? id : validVisible[vCursor++]));
+  return sanitizeWorkspaceBento({ ...clean, order: nextOrder, customized: true });
+}
+
+export function setWorkspaceModuleHidden(config, moduleId, hidden) {
+  const clean = sanitizeWorkspaceBento(config);
+  if (!WORKSPACE_MODULE_IDS.includes(moduleId)) return clean;
+  const nextHidden = hidden
+    ? [...new Set([...clean.hidden, moduleId])]
+    : clean.hidden.filter((id) => id !== moduleId);
+  return sanitizeWorkspaceBento({ ...clean, hidden: nextHidden, customized: true });
+}
+
+export function diffWorkspaceDraftFields(saved, draft) {
+  const a = sanitizeWorkspaceBento(saved);
+  const b = sanitizeWorkspaceBento(draft);
+  const fields = [];
+  if (a.order.some((id, idx) => id !== b.order[idx])) fields.push('模块顺序');
+  const hiddenA = [...a.hidden].sort().join(',');
+  const hiddenB = [...b.hidden].sort().join(',');
+  if (hiddenA !== hiddenB) fields.push('隐藏/显示模块');
+  if (a.density !== b.density) fields.push('布局密度');
+  return fields;
 }
