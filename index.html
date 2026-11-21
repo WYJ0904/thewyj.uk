@@ -1238,7 +1238,7 @@
       <section class="tools-panel hidden" id="toolsPanel" aria-hidden="true">
         <header class="tools-header">
           <div><p class="section-kicker">本地优先处理</p><h1>在线工具箱</h1><p id="toolsMembershipStatus">正在验证会员权限</p></div>
-          <div class="action-row compact"><button id="toolsTransferBtn" type="button">文件传输</button><button id="toolsAccountBtn" type="button">账户</button><button id="leaveToolsBtn" type="button">返回功能选择</button></div>
+          <div class="action-row compact"><button class="button-secondary" id="toolsTransferBtn" type="button">文件传输</button><button class="button-secondary" id="toolsAccountBtn" type="button">账户</button><button class="button-ghost" id="leaveToolsBtn" type="button">返回功能选择</button></div>
         </header>
         <div class="tools-dashboard" id="toolsDashboard">
           <label class="tool-search" for="toolSearchInput"><span>模糊搜索工具</span><input id="toolSearchInput" type="search" autocomplete="off" placeholder="输入名称、用途或近似关键词，例如 JSON、压图、随机密码" /></label>
@@ -1248,43 +1248,43 @@
             <button class="primary" id="openWorkflowBtn" type="button">打开工作流</button>
           </section>
           <section class="tool-shelf hidden" id="favoriteToolsSection"><div class="tool-section-title"><h2>收藏与固定</h2></div><div class="tool-chip-list" id="favoriteToolsList"></div></section>
-          <section class="tool-shelf hidden" id="recentToolsSection"><div class="tool-section-title"><h2>最近使用</h2><button id="clearToolHistoryBtn" type="button">清除记录</button></div><div class="tool-chip-list" id="recentToolsList"></div></section>
+          <section class="tool-shelf hidden" id="recentToolsSection"><div class="tool-section-title"><h2>最近使用</h2><button class="button-ghost" id="clearToolHistoryBtn" type="button">清除记录</button></div><div class="tool-chip-list" id="recentToolsList"></div></section>
           <section class="tool-category-grid" id="toolCategoryList" aria-label="工具分类"></section>
           <section class="tool-catalog-section"><div class="tool-section-title"><h2 id="toolCatalogTitle">全部工具</h2><span id="toolResultCount">0 项</span></div><div class="tool-catalog" id="toolCatalog"></div><button class="button-secondary" id="toolCatalogMoreBtn" type="button" hidden>显示更多</button></section>
         </div>
         <section class="tool-workbench hidden" id="toolWorkbench" aria-hidden="true">
-          <header><button id="closeToolWorkbenchBtn" type="button">返回工具列表</button><div><p id="toolWorkbenchCategory"></p><h2 id="toolWorkbenchTitle">工具</h2><p id="toolWorkbenchDescription"></p></div><div class="tool-workbench-actions"><button id="favoriteToolBtn" type="button">收藏</button><button id="pinToolBtn" type="button">固定</button></div></header>
+          <header><button class="button-ghost" id="closeToolWorkbenchBtn" type="button">返回工具列表</button><div><p id="toolWorkbenchCategory"></p><h2 id="toolWorkbenchTitle">工具</h2><p id="toolWorkbenchDescription"></p></div><div class="tool-workbench-actions"><button class="button-secondary" id="favoriteToolBtn" type="button">收藏</button><button class="button-secondary" id="pinToolBtn" type="button">固定</button></div></header>
           <div id="toolWorkbenchBody"></div>
           <p class="error" id="toolWorkbenchMessage" aria-live="polite"></p>
         </section>
         <section class="workflow-workspace hidden" id="workflowWorkspace" aria-hidden="true">
           <header class="workflow-header">
-            <button id="closeWorkflowBtn" type="button">返回工具列表</button>
+            <button class="button-ghost" id="closeWorkflowBtn" type="button">返回工具列表</button>
             <div><p class="section-kicker">工具工作流</p><h1 id="workflowTitle">可配置处理流程</h1><p>步骤按顺序在当前浏览器执行，原始文本、图片和文件不会上传。</p></div>
             <span class="status-badge" id="workflowAccessBadge">正在验证权限</span>
           </header>
           <div class="workflow-layout">
             <aside class="workflow-sidebar" aria-label="工作流列表">
-              <div class="workflow-sidebar-heading"><h2>我的工作流</h2><button id="createWorkflowBtn" type="button">新建</button></div>
+              <div class="workflow-sidebar-heading"><h2>我的工作流</h2><button class="button-secondary" id="createWorkflowBtn" type="button">新建</button></div>
               <div class="workflow-list" id="workflowList"></div>
               <div class="workflow-template-box"><h2>内置模板</h2><div id="workflowTemplateList"></div></div>
-              <div class="workflow-import-row"><button id="importWorkflowBtn" type="button">导入 JSON</button><input class="visually-hidden" id="workflowImportInput" aria-labelledby="importWorkflowBtn" type="file" accept="application/json,.json" /></div>
+              <div class="workflow-import-row"><button class="button-ghost" id="importWorkflowBtn" type="button">导入 JSON</button><input class="visually-hidden" id="workflowImportInput" aria-labelledby="importWorkflowBtn" type="file" accept="application/json,.json" /></div>
             </aside>
             <section class="workflow-editor" id="workflowEditor" aria-label="工作流编辑器">
               <div class="workflow-editor-empty" id="workflowEmptyState"><h2>选择或创建工作流</h2><p>可以从空白流程开始，也可以使用内置模板。</p></div>
               <div class="hidden" id="workflowEditorBody">
                 <div class="workflow-title-row">
                   <label><span>名称</span><input id="workflowNameInput" maxlength="80" /></label>
-                  <div class="action-row compact"><button id="saveWorkflowBtn" class="primary" type="button">保存</button><button id="duplicateWorkflowBtn" type="button">复制流程</button><button id="exportWorkflowBtn" type="button">导出 JSON</button><button class="danger" id="deleteWorkflowBtn" type="button">删除</button></div>
+                  <div class="action-row compact"><button id="saveWorkflowBtn" class="primary" type="button">保存</button><button class="button-secondary" id="duplicateWorkflowBtn" type="button">复制流程</button><button class="button-ghost" id="exportWorkflowBtn" type="button">导出 JSON</button><button class="button-ghost danger-text" id="deleteWorkflowBtn" type="button">删除</button></div>
                 </div>
                 <p class="meta-line" id="workflowSaveState" aria-live="polite"></p>
-                <section class="workflow-steps" aria-labelledby="workflowStepsTitle"><div class="workflow-section-heading"><h2 id="workflowStepsTitle">处理步骤</h2><div><select id="workflowToolSelect" aria-label="选择要添加的工具"></select><button id="addWorkflowStepBtn" type="button">添加步骤</button></div></div><ol id="workflowStepList"></ol></section>
+                <section class="workflow-steps" aria-labelledby="workflowStepsTitle"><div class="workflow-section-heading"><h2 id="workflowStepsTitle">处理步骤</h2><div><select id="workflowToolSelect" aria-label="选择要添加的工具"></select><button class="button-secondary" id="addWorkflowStepBtn" type="button">添加步骤</button></div></div><ol id="workflowStepList"></ol></section>
                 <section class="workflow-runner" aria-labelledby="workflowRunTitle">
                   <div class="workflow-section-heading"><div><h2 id="workflowRunTitle">运行</h2><p id="workflowInputHint">请先添加步骤。</p></div><span class="status-badge" id="workflowRunState">等待</span></div>
                   <label class="workflow-text-input hidden" id="workflowTextInputWrap"><span>输入文本</span><textarea id="workflowTextInput" spellcheck="false"></textarea></label>
                   <label class="file-drop hidden" id="workflowFileInputWrap"><span id="workflowFileInputLabel">选择文件</span><input id="workflowFileInput" type="file" /></label>
                   <label class="workflow-batch-toggle hidden" id="workflowBatchToggleWrap"><input id="workflowBatchToggle" type="checkbox" /> 批量运行并打包结果</label>
-                  <div class="action-row"><button class="primary" id="runWorkflowBtn" type="button">运行工作流</button><button id="cancelWorkflowBtn" type="button" disabled>取消</button><button id="downloadWorkflowResultBtn" type="button" disabled>下载结果</button><button id="copyWorkflowResultBtn" type="button" disabled>复制结果</button></div>
+                  <div class="action-row"><button class="primary" id="runWorkflowBtn" type="button">运行工作流</button><button class="button-ghost" id="cancelWorkflowBtn" type="button" disabled>取消</button><button class="button-ghost" id="downloadWorkflowResultBtn" type="button" disabled>下载结果</button><button class="button-ghost" id="copyWorkflowResultBtn" type="button" disabled>复制结果</button></div>
                   <div class="workflow-step-statuses" id="workflowStepStatuses" aria-live="polite"></div>
                   <div class="workflow-item-results hidden" id="workflowItemResults"></div>
                   <label class="workflow-result"><span>最终结果</span><textarea id="workflowResultText" readonly></textarea></label>
@@ -1316,8 +1316,8 @@
             <p class="admin-role-context" id="adminRoleContext"></p>
           </div>
           <div class="action-row compact">
-            <button id="refreshAdminBtn" type="button">刷新</button>
-            <button id="leaveAdminBtn" type="button">返回项目</button>
+            <button class="button-ghost" id="refreshAdminBtn" type="button">刷新</button>
+            <button class="button-secondary" id="leaveAdminBtn" type="button">返回项目</button>
           </div>
         </header>
         <dl class="admin-kpi-strip" id="adminKpiStrip" aria-label="后台概况（本次加载的服务端数据）">
@@ -1341,19 +1341,19 @@
         <section class="admin-view feature-console" id="adminFeatureFlagsView" role="tabpanel" aria-labelledby="adminFeatureFlagsTab">
           <h2>功能开关与放量</h2>
           <p>紧急关闭、全局 OFF 和通道限制优先于用户覆盖。保存后影响新的服务端评估，已有预览功能最多 30 秒内关闭。</p>
-          <div class="action-row feature-console-toolbar"><label>功能<select id="featureFlagSelect"></select></label><button id="newFeatureFlagBtn" type="button">新建功能</button><button id="refreshFeatureFlagsBtn" type="button">刷新配置</button></div>
+          <div class="action-row feature-console-toolbar"><label>功能<select id="featureFlagSelect"></select></label><button class="button-secondary" id="newFeatureFlagBtn" type="button">新建功能</button><button class="button-ghost" id="refreshFeatureFlagsBtn" type="button">刷新配置</button></div>
           <form id="featureFlagForm" data-revision="0">
             <label>功能标识<input id="featureFlagKey" required pattern="[a-z][a-z0-9._\-]{1,63}" maxlength="64" /></label>
             <label>说明<textarea id="featureFlagDescription" maxlength="500"></textarea></label>
             <div class="action-row"><label><input id="featureFlagEnabled" type="checkbox" />全局 ON</label><label><input id="featureFlagKillSwitch" type="checkbox" />紧急关闭</label></div>
             <fieldset><legend>允许通道</legend><div class="action-row"><label><input id="featureChannel_stable" type="checkbox" />Stable</label><label><input id="featureChannel_beta" type="checkbox" />Beta</label><label><input id="featureChannel_experimental" type="checkbox" checked />Experimental</label></div></fieldset>
             <label>放量比例 (%)<input id="featureFlagPercentage" type="number" min="0" max="100" step="0.01" value="100" required /></label>
-            <button id="saveFeatureFlagBtn" type="submit">保存功能设置</button>
+            <button class="primary" id="saveFeatureFlagBtn" type="submit">保存功能设置</button>
           </form>
-          <form id="featureOverrideForm"><h3>用户覆盖</h3><label>用户 ID<input id="featureOverrideUser" maxlength="80" required /></label><label>覆盖<select id="featureOverrideValue"><option value="inherit">跟随放量</option><option value="on">ON</option><option value="off">OFF</option></select></label><button id="saveFeatureOverrideBtn" type="submit">保存覆盖</button></form>
-          <form id="featureEvaluateForm"><h3>预演评估</h3><label>用户 ID<input id="featureEvaluateUser" maxlength="80" required /></label><label>通道<select id="featureEvaluateChannel"><option value="stable">Stable</option><option value="beta">Beta</option><option value="experimental">Experimental</option></select></label><button id="evaluateFeatureBtn" type="submit">评估</button><pre id="featureEvaluationResult" aria-live="polite"></pre></form>
+          <form id="featureOverrideForm"><h3>用户覆盖</h3><label>用户 ID<input id="featureOverrideUser" maxlength="80" required /></label><label>覆盖<select id="featureOverrideValue"><option value="inherit">跟随放量</option><option value="on">ON</option><option value="off">OFF</option></select></label><button class="button-secondary" id="saveFeatureOverrideBtn" type="submit">保存覆盖</button></form>
+          <form id="featureEvaluateForm"><h3>预演评估</h3><label>用户 ID<input id="featureEvaluateUser" maxlength="80" required /></label><label>通道<select id="featureEvaluateChannel"><option value="stable">Stable</option><option value="beta">Beta</option><option value="experimental">Experimental</option></select></label><button class="button-secondary" id="evaluateFeatureBtn" type="submit">评估</button><pre id="featureEvaluationResult" aria-live="polite"></pre></form>
           <p id="featureConsoleStatus" role="status" aria-live="polite"></p><details><summary>修改审计</summary><pre id="featureFlagAudit"></pre></details>
-          <details><summary>学习服务状态</summary><p>仅显示汇总状态，不能修改用户掌握度。</p><button id="refreshLearningMetricsBtn" type="button" class="secondary">读取学习状态</button><pre id="learningMetrics" role="status"></pre></details>
+          <details><summary>学习服务状态</summary><p>仅显示汇总状态，不能修改用户掌握度。</p><button id="refreshLearningMetricsBtn" type="button" class="button-ghost">读取学习状态</button><pre id="learningMetrics" role="status"></pre></details>
         </section>
         <section class="admin-view active" id="adminUsersView" role="tabpanel" aria-labelledby="adminUsersTab">
           <div class="admin-toolbar">
@@ -1382,7 +1382,7 @@
         </section>
         <section class="admin-view" id="adminMessagesView" role="tabpanel" aria-labelledby="adminMessagesTab">
           <form class="admin-message-compose" id="adminMessageForm">
-            <div class="action-row"><button id="task27MailOpenBtn" type="button">服务邮件管理</button></div>
+            <div class="action-row"><button class="button-secondary" id="task27MailOpenBtn" type="button">服务邮件管理</button></div>
             <div class="admin-message-grid">
               <label class="field-label"><span>目标范围</span><select id="adminMessageScope"><option value="single">指定单个用户</option><option value="multiple">选择多个用户</option><option value="all">全部用户</option></select></label>
               <label class="field-label"><span>消息类型</span><select id="adminMessageType"><option value="normal">普通</option><option value="important">重要</option><option value="maintenance">维护</option><option value="account">账户</option></select></label>
@@ -1450,7 +1450,7 @@
           <div class="plan-grid" id="membershipPlanList" aria-live="polite"></div>
           <div class="load-recovery hidden" id="membershipPlanRecovery">
             <p id="membershipPlanError">会员方案暂时无法加载。</p>
-            <button id="retryMembershipPlansBtn" type="button">重新加载套餐</button>
+            <button class="button-secondary" id="retryMembershipPlansBtn" type="button">重新加载套餐</button>
           </div>
           <label class="field-label hidden" id="trialLanguageField"><span>已选语言</span><select id="trialLanguageSelect"><option value="english">英语</option><option value="japanese">日语</option></select></label>
         </section>
@@ -1467,7 +1467,7 @@
           <div class="payment-order-dual-grid">
             <div class="payment-order-info-card">
               <h3 class="payment-order-card-title">订单详情</h3>
-              <dl><dt>用户名</dt><dd id="paymentUsername">-</dd><dt>会员方案</dt><dd id="paymentPlan">-</dd><dt class="hidden" id="paymentLanguageTerm">所选语言</dt><dd class="hidden" id="paymentLanguage">-</dd><dt>支付方式</dt><dd id="paymentMethod">-</dd><dt>应付金额</dt><dd id="paymentAmount">-</dd><dt>订单编号</dt><dd><code id="paymentOrderNumber">-</code> <button id="copyOrderBtn" type="button">复制</button></dd><dt>付款备注</dt><dd><span id="paymentNote">-</span> <button id="copyPaymentNoteBtn" type="button">复制</button></dd><dt>订单状态</dt><dd id="paymentStatus">-</dd></dl>
+              <dl><dt>用户名</dt><dd id="paymentUsername">-</dd><dt>会员方案</dt><dd id="paymentPlan">-</dd><dt class="hidden" id="paymentLanguageTerm">所选语言</dt><dd class="hidden" id="paymentLanguage">-</dd><dt>支付方式</dt><dd id="paymentMethod">-</dd><dt>应付金额</dt><dd id="paymentAmount">-</dd><dt>订单编号</dt><dd><code id="paymentOrderNumber">-</code> <button class="button-ghost" id="copyOrderBtn" type="button">复制</button></dd><dt>付款备注</dt><dd><span id="paymentNote">-</span> <button class="button-ghost" id="copyPaymentNoteBtn" type="button">复制</button></dd><dt>订单状态</dt><dd id="paymentStatus">-</dd></dl>
             </div>
             <div class="payment-order-action-card">
               <h3 class="payment-order-card-title">扫码与人工审核流程</h3>
@@ -1478,7 +1478,7 @@
               </div>
               <div class="action-row membership-order-actions">
                 <button class="primary hidden" id="confirmPaymentBtn" type="button">我已付款</button>
-                <button class="hidden" id="cancelPaymentOrderBtn" type="button">取消并更换</button>
+                <button class="button-ghost hidden" id="cancelPaymentOrderBtn" type="button">取消并更换</button>
               </div>
             </div>
           </div>

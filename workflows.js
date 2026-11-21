@@ -811,7 +811,7 @@
     list.innerHTML = workflow.steps.map((step, index) => `<li class="workflow-step${step.enabled ? "" : " disabled"}" data-step-id="${step.id}" draggable="true">
       <div class="workflow-step-heading"><span class="workflow-step-number">${index + 1}</span><div><strong>${escapeHtml(CAPABILITY_REGISTRY[step.tool_id].name)}</strong><small>${escapeHtml(step.tool_id)} · ${CAPABILITY_REGISTRY[step.tool_id].input_types.join("/")} → ${CAPABILITY_REGISTRY[step.tool_id].output_types.join("/")}</small></div><label><input data-step-enabled type="checkbox"${step.enabled ? " checked" : ""} /> 启用</label></div>
       ${configFields(step)}
-      <div class="workflow-step-actions"><button data-step-up type="button" aria-label="上移第 ${index + 1} 步">上移</button><button data-step-down type="button" aria-label="下移第 ${index + 1} 步">下移</button><button data-step-duplicate type="button">复制步骤</button><button data-step-delete type="button">删除</button></div>
+      <div class="workflow-step-actions"><button class="button-ghost" data-step-up type="button" aria-label="上移第 ${index + 1} 步">上移</button><button class="button-ghost" data-step-down type="button" aria-label="下移第 ${index + 1} 步">下移</button><button class="button-ghost" data-step-duplicate type="button">复制步骤</button><button class="button-ghost danger-text" data-step-delete type="button">删除</button></div>
     </li>`).join("") || '<li class="workflow-empty">还没有步骤，请从下方列表添加。</li>';
     const addable = addableCapabilities(workflow);
     byId("workflowToolSelect").innerHTML = addable.map(([id, item]) => `<option value="${id}">${item.name}</option>`).join("");

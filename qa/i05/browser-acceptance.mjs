@@ -689,6 +689,42 @@ try {
     assert.ok(wfDesktop.importBox && wfDesktop.importBox[0] <= 2 && wfDesktop.importBox[1] <= 2, `1440 #workflowImportInput size invalid: ${JSON.stringify(wfDesktop)}`);
     await shot("1440-route-workflows.png");
 
+    // C01/C02: Verify continuous template rows, ghost/secondary hierarchy, and single-line Add Step button
+    await pointerClick("#workflowTemplateList button[data-workflow-template]");
+    await page.waitFor("!document.querySelector('#workflowEditorBody')?.classList.contains('hidden')", 10_000, "workflow template opened");
+    await settle();
+    const wfHierarchy = await page.evaluate(`(() => {
+      const tpl = document.querySelector('#workflowTemplateList button');
+      const addBtn = document.getElementById('addWorkflowStepBtn');
+      const saveBtn = document.getElementById('saveWorkflowBtn');
+      const dupBtn = document.getElementById('duplicateWorkflowBtn');
+      const expBtn = document.getElementById('exportWorkflowBtn');
+      const impBtn = document.getElementById('importWorkflowBtn');
+      const runner = document.querySelector('.workflow-runner');
+      const range = document.createRange();
+      range.selectNodeContents(addBtn);
+      const addLines = new Set([...range.getClientRects()].filter(l => l.width > 0).map(l => Math.round(l.top))).size;
+      return {
+        tplBorderTop: tpl ? getComputedStyle(tpl).borderTopWidth : '',
+        runnerBorderLeft: runner ? getComputedStyle(runner).borderLeftWidth : '',
+        addLines,
+        saveBg: getComputedStyle(saveBtn).backgroundColor,
+        dupBg: getComputedStyle(dupBtn).backgroundColor,
+        expBg: getComputedStyle(expBtn).backgroundColor,
+        impBg: getComputedStyle(impBtn).backgroundColor,
+      };
+    })()`);
+    assert.equal(wfHierarchy.tplBorderTop, "0px", `Workflow template row still has outer border: ${JSON.stringify(wfHierarchy)}`);
+    assert.equal(wfHierarchy.runnerBorderLeft, "0px", `Workflow runner still has nested side border: ${JSON.stringify(wfHierarchy)}`);
+    assert.equal(wfHierarchy.addLines, 1, `#addWorkflowStepBtn wrapped on desktop: ${JSON.stringify(wfHierarchy)}`);
+    assert.equal(wfHierarchy.saveBg, "rgb(17, 17, 19)", `Primary saveWorkflowBtn mismatch: ${JSON.stringify(wfHierarchy)}`);
+    assert.equal(wfHierarchy.dupBg, "rgb(241, 244, 248)", `Secondary duplicateWorkflowBtn mismatch: ${JSON.stringify(wfHierarchy)}`);
+    assert.equal(wfHierarchy.expBg, "rgba(0, 0, 0, 0)", `Ghost exportWorkflowBtn mismatch: ${JSON.stringify(wfHierarchy)}`);
+    assert.equal(wfHierarchy.impBg, "rgba(0, 0, 0, 0)", `Ghost importWorkflowBtn mismatch: ${JSON.stringify(wfHierarchy)}`);
+    await shot("1440-workflow-editor-light.png");
+    await pointerClick("#deleteWorkflowBtn");
+    await page.waitFor("!document.querySelector('#workflowEmptyState')?.classList.contains('hidden')", 5_000);
+
     await setViewport(375, 812);
     const wfMobile = await page.evaluate(`(() => {
       const sb = document.querySelector('.workflow-sidebar');
@@ -796,6 +832,38 @@ try {
     })()`);
     assert.ok(rechargeDesktop.x >= 220 && Math.abs(rechargeDesktop.x - rechargeDesktop.breadcrumbOlX) <= 2, `/recharge 1440 container left mismatch: ${JSON.stringify(rechargeDesktop)}`);
     assert.ok(rechargeDesktop.overflow <= 1, `/recharge 1440 overflow: ${JSON.stringify(rechargeDesktop)}`);
+    await pointerClick("#membershipGoalList button[data-membership-goal='finance']");
+    await page.waitFor("document.querySelector('#membershipGoalList button[data-membership-goal=\"finance\"]')?.getAttribute('aria-pressed') === 'true' && Boolean(document.querySelector('#membershipPlanList .plan-option'))", 10_000, "finance recharge goal & plans");
+    await pointerClick("#membershipPlanList .plan-option");
+    await page.waitFor("!document.querySelector('#paymentMethodField')?.classList.contains('hidden') && Boolean(document.querySelector('#paymentMethodList label'))", 10_000, "payment methods visible");
+    await pointerClick("#paymentMethodList label");
+    await page.waitFor("document.querySelector('#submitRechargeBtn:not(:disabled)') !== null", 10_000, "recharge submit enabled after payment method");
+    await delay(220);
+    await settle();
+    const rechargeHierarchy = await page.evaluate(`(() => {
+      const gf = document.getElementById('membershipGoalField');
+      const ps = document.getElementById('membershipPlanStep');
+      const pf = document.getElementById('paymentMethodField');
+      const pmLabel = document.querySelector('#paymentMethodList label');
+      const submit = document.getElementById('submitRechargeBtn');
+      const copyBtn = document.getElementById('copyOrderBtn');
+      return {
+        goalFieldBg: getComputedStyle(gf).backgroundColor,
+        goalFieldBorderTop: getComputedStyle(gf).borderTopWidth,
+        planStepBorderTop: getComputedStyle(ps).borderTopWidth,
+        payFieldBorderTop: getComputedStyle(pf).borderTopWidth,
+        pmLabelBorderLeft: pmLabel ? getComputedStyle(pmLabel).borderLeftWidth : '',
+        submitBg: getComputedStyle(submit).backgroundColor,
+        copyBg: getComputedStyle(copyBtn).backgroundColor,
+      };
+    })()`);
+    assert.equal(rechargeHierarchy.goalFieldBg, "rgba(0, 0, 0, 0)", `Recharge outer goal field should not be white box: ${JSON.stringify(rechargeHierarchy)}`);
+    assert.equal(rechargeHierarchy.goalFieldBorderTop, "0px", `Recharge outer goal field should not have outer border: ${JSON.stringify(rechargeHierarchy)}`);
+    assert.equal(rechargeHierarchy.planStepBorderTop, "0px", `Recharge outer plan step should not have outer border: ${JSON.stringify(rechargeHierarchy)}`);
+    assert.equal(rechargeHierarchy.payFieldBorderTop, "0px", `Recharge outer payment field should not have outer border: ${JSON.stringify(rechargeHierarchy)}`);
+    assert.equal(rechargeHierarchy.pmLabelBorderLeft, "0px", `Payment method row should not have side border: ${JSON.stringify(rechargeHierarchy)}`);
+    assert.equal(rechargeHierarchy.submitBg, "rgb(17, 17, 19)", `Primary submitRechargeBtn mismatch: ${JSON.stringify(rechargeHierarchy)}`);
+    assert.equal(rechargeHierarchy.copyBg, "rgba(0, 0, 0, 0)", `Ghost copyOrderBtn mismatch: ${JSON.stringify(rechargeHierarchy)}`);
     await shot("1440-route-recharge.png");
 
     await setViewport(390, 844);
@@ -879,6 +947,29 @@ try {
     }
 
     await page.waitFor("document.querySelector('#adminFeatureFlagsView')?.classList.contains('active') && document.querySelectorAll('#featureFlagSelect option').length > 0", 15_000, "feature flags view ready");
+    const flagBtnHierarchy = await page.evaluate(`(() => {
+      const style = id => {
+        const el = document.getElementById(id);
+        const s = getComputedStyle(el);
+        return { bg: s.backgroundColor, color: s.color, borderTopColor: s.borderTopColor };
+      };
+      const fs = document.querySelector('#adminFeatureFlagsView fieldset');
+      return {
+        save: style('saveFeatureFlagBtn'),
+        newBtn: style('newFeatureFlagBtn'),
+        refreshBtn: style('refreshFeatureFlagsBtn'),
+        overrideBtn: style('saveFeatureOverrideBtn'),
+        evalBtn: style('evaluateFeatureBtn'),
+        fieldsetBorderLeft: fs ? getComputedStyle(fs).borderLeftWidth : '',
+      };
+    })()`);
+    assert.equal(flagBtnHierarchy.save.bg, "rgb(17, 17, 19)", `saveFeatureFlagBtn must use primary solid fill: ${JSON.stringify(flagBtnHierarchy)}`);
+    assert.equal(flagBtnHierarchy.save.color, "rgb(255, 255, 255)", `saveFeatureFlagBtn text contrast mismatch: ${JSON.stringify(flagBtnHierarchy)}`);
+    assert.equal(flagBtnHierarchy.newBtn.bg, "rgb(241, 244, 248)", `newFeatureFlagBtn must use secondary fill: ${JSON.stringify(flagBtnHierarchy)}`);
+    assert.equal(flagBtnHierarchy.overrideBtn.bg, "rgb(241, 244, 248)", `saveFeatureOverrideBtn must use secondary fill: ${JSON.stringify(flagBtnHierarchy)}`);
+    assert.equal(flagBtnHierarchy.evalBtn.bg, "rgb(241, 244, 248)", `evaluateFeatureBtn must use secondary fill: ${JSON.stringify(flagBtnHierarchy)}`);
+    assert.equal(flagBtnHierarchy.refreshBtn.bg, "rgba(0, 0, 0, 0)", `refreshFeatureFlagsBtn must use transparent ghost: ${JSON.stringify(flagBtnHierarchy)}`);
+    assert.equal(flagBtnHierarchy.fieldsetBorderLeft, "0px", `Feature flag channel fieldset must not be nested box: ${JSON.stringify(flagBtnHierarchy)}`);
     await shot("1440-admin-flags-before.png");
 
     const cbSizes = await page.evaluate(`(() => {

@@ -5383,3 +5383,266 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal #releaseCha
     grid-template-columns: 1fr;
   }
 }
+
+/* ==========================================================================
+ * I05 Closure: C01 Button Hierarchy & C02 Nested-Box Convergence
+ * ========================================================================== */
+html[data-p07-ui="enabled"] body[data-workspace-route] button:not(.primary):not(.button-primary):not(.button-secondary):not(.button-ghost):not(.danger-button):not(.icon-button):not(.modal-close):not(.membership-goal-option):not(.plan-option):not(.workflow-list button):not(#workflowTemplateList button):not(.tool-category-card):not(.tool-open):not(.tool-card-favorite):not(.home-widget-hide):not(.home-widget-move):not(.workspace-preview-btn):not([role="tab"]) {
+  border-color: transparent;
+  background: var(--ds-surface-muted);
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] button:not(.primary):not(.button-primary):not(.button-secondary):not(.button-ghost):not(.danger-button):not(.icon-button):not(.modal-close):not(.membership-goal-option):not(.plan-option):not(.workflow-list button):not(#workflowTemplateList button):not(.tool-category-card):not(.tool-open):not(.tool-card-favorite):not(.home-widget-hide):not(.home-widget-move):not(.workspace-preview-btn):not([role="tab"]):hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--ds-surface-hover);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] :is(.button-ghost, .admin-tabs button, .v3-sidebar-nav button, #accountModal .account-settings-list > button) {
+  border-color: transparent;
+  background: transparent;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] .button-ghost:hover:not(:disabled) {
+  border-color: transparent;
+  background: var(--ds-hover);
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #adminFeatureFlagsView fieldset {
+  border: 0;
+  border-top: 1px solid var(--ds-divider);
+  border-radius: 0;
+  padding: 12px 0 0;
+  margin: 4px 0 0;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #adminFeatureFlagsView fieldset legend {
+  padding: 0;
+  margin-bottom: 8px;
+}
+
+/* C02 Workflows: Continuous Grouped Lists & Single-Line Step Toolbar */
+html[data-p07-ui="enabled"] body[data-workspace-route] :is(.workflow-list, #workflowTemplateList) {
+  display: grid;
+  gap: 0;
+  border: 1px solid var(--ds-divider);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface-subtle);
+  overflow: hidden;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] :is(.workflow-list, #workflowTemplateList) > p {
+  margin: 0;
+  padding: 12px 14px;
+  font-size: 0.8125rem;
+  color: var(--ds-text-muted);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] :is(.workflow-list button, #workflowTemplateList button) {
+  border: 0;
+  border-bottom: 1px solid var(--ds-divider);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  margin-bottom: 0;
+  padding: 11px 14px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] :is(.workflow-list button, #workflowTemplateList button):last-child {
+  border-bottom: 0;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] :is(.workflow-list button, #workflowTemplateList button):hover {
+  border-color: var(--ds-divider);
+  background: var(--ds-surface-hover);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] .workflow-list button.active {
+  border-color: var(--ds-divider);
+  background: var(--ds-surface);
+  box-shadow: inset 3px 0 0 var(--ds-action-primary);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] .workflow-runner {
+  border: 0;
+  border-top: 1px solid var(--ds-divider);
+  border-radius: 0;
+  background: transparent;
+  padding: 20px 0 0;
+  margin-top: 24px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] .workflow-title-row {
+  gap: 12px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] .workflow-title-row > label {
+  flex: 1 1 180px;
+  min-width: 160px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] .workflow-title-row .action-row {
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+  gap: 6px;
+  margin-top: 0;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] .workflow-title-row .action-row button {
+  flex: 0 0 auto;
+  padding-inline: 12px;
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  html[data-p07-ui="enabled"] body[data-workspace-route] .workflow-title-row .action-row {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] .workflow-section-heading > div:last-child {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #workflowToolSelect {
+  flex: 1 1 200px;
+  min-width: 0;
+  width: auto;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #addWorkflowStepBtn {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  html[data-p07-ui="enabled"] body[data-workspace-route] .workflow-section-heading {
+    flex-wrap: wrap;
+  }
+
+  html[data-p07-ui="enabled"] body[data-workspace-route] .workflow-section-heading > div:last-child {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+}
+
+/* C02 Recharge: Converge Outer/Inner Duplicate Borders into Clean Step Rhythm */
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal :is(#membershipGoalField, #membershipPlanStep, #paymentMethodField) {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--ds-divider);
+  border-radius: 0;
+  padding: 14px 0 18px;
+  margin: 0;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal :is(.membership-goal-field legend, .payment-method-field legend) {
+  padding: 0;
+  margin: 0 0 12px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal :is(.membership-goal-option, .plan-option) {
+  border: 1px solid transparent;
+  background: var(--ds-surface);
+  box-shadow: none;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal :is(.membership-goal-option, .plan-option):hover {
+  border-color: transparent;
+  background: var(--ds-surface-hover);
+  transform: none;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal :is(.membership-goal-option[aria-pressed="true"], .membership-goal-option.active, .plan-option.selected) {
+  border-color: var(--ds-action-primary);
+  background: var(--ds-surface);
+  box-shadow: inset 0 0 0 1px var(--ds-action-primary);
+}
+
+:root[data-theme="dark"] html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal :is(.membership-goal-option[aria-pressed="true"], .membership-goal-option.active, .plan-option.selected) {
+  background: var(--ds-surface-active);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .payment-method-list {
+  gap: 0;
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+  overflow: hidden;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .payment-method-list label {
+  border: 0;
+  border-bottom: 1px solid var(--ds-divider);
+  border-radius: 0;
+  background: transparent;
+  margin: 0;
+  padding: 12px 14px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .payment-method-list label:last-child {
+  border-bottom: 0;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .payment-method-list label:hover {
+  background: var(--ds-surface-hover);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .payment-method-list label:has(input:checked) {
+  background: var(--ds-surface-subtle);
+  box-shadow: inset 3px 0 0 var(--ds-action-primary);
+  font-weight: 650;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] .membership-checkout-bar {
+  margin: 16px 0 12px;
+  border-color: var(--ds-border);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] .membership-checkout-bar #purchaseSummary {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] .admin-header > .action-row.compact {
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+  gap: 8px;
+  margin-top: 0;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] .admin-header > .action-row.compact button {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  html[data-p07-ui="enabled"] body[data-workspace-route] .admin-header {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  html[data-p07-ui="enabled"] body[data-workspace-route] .admin-header > div:first-child {
+    width: 100%;
+    text-align: left;
+  }
+
+  html[data-p07-ui="enabled"] body[data-workspace-route] .admin-header > .action-row.compact {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    width: 100%;
+  }
+
+  html[data-p07-ui="enabled"] body[data-workspace-route] .admin-header > .action-row.compact button {
+    flex: 1 1 0;
+    width: auto;
+  }
+}

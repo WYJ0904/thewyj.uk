@@ -24,7 +24,7 @@ export function snapshotFeatureEnabled(snapshot, key, accountId, now = Date.now(
 }
 
 export function createFeatureController({ getAccount, apiGet, api, document = globalThis.document, onAvailable = () => {}, onChange = () => {} }) {
-  let available = false, availabilityKnown = false, accountId = '', snapshot = null, sequence = 0, timer = null, renewalTimer = null, busy = false, status = '', phase = 'pending';
+  let available = false, availabilityKnown = false, accountId = '', snapshot = null, sequence = 0, timer = null, renewalTimer = null, busy = false, status = '', phase = 'pending', selectDirty = false;
   const node = id => document.getElementById(id);
   const currentId = () => String(getAccount()?.id || '');
   function render(message) {
@@ -32,7 +32,7 @@ export function createFeatureController({ getAccount, apiGet, api, document = gl
     node('releaseChannelSection')?.classList.toggle('hidden', !available || !accountId);
     node('releaseChannelSelect')?.toggleAttribute('disabled', busy || !snapshot);
     node('saveReleaseChannelBtn')?.toggleAttribute('disabled', busy || !snapshot);
-    if (snapshot && node('releaseChannelSelect')) node('releaseChannelSelect').value = snapshot.channel;
+    if (snapshot && node('releaseChannelSelect') && !selectDirty) node('releaseChannelSelect').value = snapshot.channel;
     if (node('releaseChannelStatus')) node('releaseChannelStatus').textContent = status || (snapshot ? `当前通道：${RELEASE_CHANNEL_LABELS[snapshot.channel]}` : '正在读取体验设置…');
     node('experimentalFeatureBadge')?.classList.toggle('hidden', !snapshotFeatureEnabled(snapshot, 'aeris_experimental_badge', accountId));
     onChange();
@@ -71,15 +71,16 @@ export function createFeatureController({ getAccount, apiGet, api, document = gl
   }
   function updateAccount() {
     const next = currentId(); if (next === accountId) return;
-    accountId = next; sequence++; busy = false; clear(); onAvailable(available && Boolean(accountId));
+    accountId = next; sequence++; busy = false; selectDirty = false; clear(); onAvailable(available && Boolean(accountId));
     if (node('releaseChannelSelect')) node('releaseChannelSelect').value = 'stable';
     if (accountId) void refresh();
   }
   function setAvailable(enabled) {
     if (availabilityKnown && available === (enabled === true)) return;
-    availabilityKnown = true; available = enabled === true; sequence++; busy = false; clear('', available ? 'pending' : 'disabled'); onAvailable(available && Boolean(accountId));
+    availabilityKnown = true; available = enabled === true; sequence++; busy = false; selectDirty = false; clear('', available ? 'pending' : 'disabled'); onAvailable(available && Boolean(accountId));
     if (available) void refresh();
   }
+  node('releaseChannelSelect')?.addEventListener('change', () => { selectDirty = true; });
   node('saveReleaseChannelBtn')?.addEventListener('click', async () => {
     if (busy || !snapshot) return;
     const owner = accountId, ticket = ++sequence, channel = node('releaseChannelSelect').value;
@@ -91,11 +92,12 @@ export function createFeatureController({ getAccount, apiGet, api, document = gl
       snapshot = parseFeatureSnapshot(response.snapshot, owner);
       if (!snapshot) throw new Error('体验设置响应无效');
       phase = 'decided';
+      selectDirty = false;
       render('体验通道已保存'); scheduleExpiry();
     } catch (error) { if (owner === currentId() && ticket === sequence) clear(error.message, 'error'); }
     finally { if (ticket === sequence) { busy = false; render(); } }
   });
-  node('refreshReleaseChannelBtn')?.addEventListener('click', () => void refresh());
+  node('refreshReleaseChannelBtn')?.addEventListener('click', () => { selectDirty = false; void refresh(); });
   document.addEventListener('visibilitychange', () => {
     sequence++; busy = false; if (document.hidden) render(); else void refresh();
   });
