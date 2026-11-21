@@ -432,6 +432,7 @@ jobs:
           npm run test:task27:login-guard 2>&1 | tee artifacts/task27-login-guard.log
           npm run test:task27:owner 2>&1 | tee artifacts/task27-operation-owner.log
           npm run test:ds-sso 2>&1 | tee artifacts/aeris-ds-sso.log
+          node --test qa/ds-sso/merge-policy.test.mjs 2>&1 | tee artifacts/aeris-ds-merge-policy.log
           npm run test:task28 2>&1 | tee artifacts/task28-secure-files.log
           node qa/task28/workerd.mjs 2>&1 | tee artifacts/task28-workerd.log
           npm install --prefix .wrangler/task27-reference/otpauth-lab --ignore-scripts --no-audit --no-fund --no-save otpauth@9.6.0 jsqr@1.4.0
