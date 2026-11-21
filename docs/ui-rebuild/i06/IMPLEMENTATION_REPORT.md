@@ -2,9 +2,9 @@
 
 - **Branch**: `hydrogen/i06-module-experience`
 - **Stacked Base**: `hydrogen/i05-workspace-admin-density` (`3c2e8a829533d1a5625a3c59929846bd0c04c872`, PR #172)
-- **Product & Core QA Commit**: `6592f0df8c21ae458a1aa5153595ffd138b14106`
+- **Product & Core QA Commits**: `6592f0df8c21ae458a1aa5153595ffd138b14106`, `872a70b07cb6f9cec168f94d95a2d2063b83e43e` (`class="wrong-rejudge-button"` static contract fix)
 - **Preview Scripts Commits**: `5a337a28989db29c7cf290d36d518d17cb60963f`, `3b6f261edfde05d4cf371503ef30ccc540794211`
-- **Isolated Hosted Preview**: `https://ff39eb68.thewyj-i06-preview.pages.dev` (Alias: `https://i06-module-experience.thewyj-i06-preview.pages.dev`, Project: `thewyj-i06-preview`, D1: `aeris-i06-preview` / `949eb48b-4662-4f63-98d8-043c7afc17b6`, `r2_buckets: []`, `ai_bindings: []`, `WORKERS_AI_ENABLED: "false"`)
+- **Isolated Hosted Preview**: `https://9a3ea537.thewyj-i06-preview.pages.dev` (Alias: `https://i06-module-experience.thewyj-i06-preview.pages.dev`, Project: `thewyj-i06-preview`, D1: `aeris-i06-preview` / `949eb48b-4662-4f63-98d8-043c7afc17b6`, `r2_buckets: []`, `ai_bindings: []`, `WORKERS_AI_ENABLED: "false"`)
 - **Production Status**: `NOT_TOUCHED` (`WYJ_DB` `11c288d8-c584-409f-bb1f-7e7af11793e5`, Production R2, feature flags, accounts, and Stable pointers untouched)
 
 ---
@@ -42,14 +42,15 @@
 
 ## 2. Verification Matrix
 
-### A. I06 Clean-HEAD Browser & Unit Acceptance (Commit `6592f0df8c21ae458a1aa5153595ffd138b14106`)
+### A. I06 Clean-HEAD Browser & Unit Acceptance (Commit `872a70b07cb6f9cec168f94d95a2d2063b83e43e`)
 
 | Check | Result | Scope & Observed Details |
 | :--- | :--- | :--- |
-| `node qa/i06/browser-acceptance.mjs` | **PASS** (6/6) | Isolated Miniflare D1/R2 + Chrome `158.0.8127.36`; `worktreeDirty: false`, `sourceMatchesCommit: true`; `apiErrors: []`, `runtimeErrors: []`; 8 screenshots captured; 5 axe scans (`/language` 41 passes, `/finance` 47, `/tools` 46, `/transfer` 47, `/admin` 50 -> **0 serious/critical violations**) + `P07 OFF` clean fallback |
+| `node qa/i06/browser-acceptance.mjs` | **PASS** (6/6) | Isolated Miniflare D1/R2 + Chrome `158.0.8127.36`; `worktreeDirty: false`, `sourceMatchesCommit: true`; `apiErrors: []`, `runtimeErrors: []`; 8 screenshots captured; 5 axe scans + `P07 OFF` clean fallback |
 | `node --test local-backend/test_i06_module_experience.mjs` | **PASS** (2/2) | `workspaceRouteMeta` optional `languageSection`, I06 CSS layer `0` `!important`, `P07 OFF` suppression, 12 HTML markers, SW shell counts (`81/89/89`) |
+| `python -m unittest local-backend/test_static.py` | **PASS** (31/31) | Static HTML/CSS/JS contracts including `class="wrong-rejudge-button"` |
 | `node scripts/check_js_module_graph.mjs` | **PASS** | `67 files, 114 imports`, 0 cycles or reversed core dependencies |
-| `npm run task27:publication` | **PASS** | Publication hash `8e7d20d25345dc9bc9fe253b142f9485d2757ba90bb6d6a143bae99db67f5ef8`, 20 entries, `prior_core_shell_preserved: true` |
+| `npm run task27:publication` | **PASS** | Publication hash `f09a04cde6364e65edaaedb3408dd851c812221bfc3af651a944cf29424ff0a0`, 20 entries, `prior_core_shell_preserved: true` |
 | `npm run build` & `npm run cf:check` | **PASS** | Staged `.wrangler/pages-output` & compiled Cloudflare Pages Worker cleanly |
 
 ### B. Regression & Security Suites (Post Final Code Edit)
@@ -67,9 +68,9 @@
 ### C. Isolated Hosted Preview Verification (`thewyj-i06-preview`)
 
 - **Provision**: `node qa/i06/provision-preview.mjs` -> D1 `aeris-i06-preview` (`949eb48b-4662-4f63-98d8-043c7afc17b6`), `r2_buckets: []`, `ai_bindings: []`, `p07_accessibility=1` seeded.
-- **Deploy**: `node qa/i06/stage-preview.mjs --deploy` -> Deployment `ff39eb68-361d-481a-91dc-0c859bfc15c1`, `file_count: 205`, `artifact_tree_sha256: 9545e9e479ed154e6a3629d64aa2d09516a9e01cdb72cf4efaad49ca0d47dc69`.
+- **Deploy**: `node qa/i06/stage-preview.mjs --deploy` -> Deployment `9a3ea537-e030-4d2a-b15f-0d29838d39fb`, `file_count: 205`, `artifact_tree_sha256: d9513c0af895e43ae6a87e220d6090cb90178586ab4ffdad979abdf0fde6958f`.
 - **`node qa/i06/verify-preview.mjs --source-only`**: **PASS** — `/api/status` `ok: true`, unauthenticated `/api/health` fail-closed `authentication_required`, `/api/ui/features` `public_ui.enabled: true`, and exact SHA-256 byte parity across all 8 verified assets (`design-system.css`, `spatial-experience.css`, `app.js`, `tools.js`, `js/core/design-system.js`, `js/core/feature-console.js`, `js/finance/app.js`, `js/transfer/app.js`).
-- **`node qa/i06/verify-preview.mjs`**: **PASS** — Dark-mode `.owner-preview-banner` locked (`strongColor: "rgb(67, 20, 7)"`, `bg: "rgb(255, 247, 237)"`), ephemeral synthetic registration `i06p_mwqssprc`, fail-closed unpaid `/tools` -> `/recharge` gate, `/transfer` collapsible config expansion, `/trial` reachability, and `4/4` axe scans with `0` serious/critical violations and `0` runtime errors.
+- **`node qa/i06/verify-preview.mjs`**: **PASS** — Dark-mode `.owner-preview-banner` locked (`strongColor: "rgb(67, 20, 7)"`, `bg: "rgb(255, 247, 237)"`), ephemeral synthetic registration `i06p_mwqtd6ef`, fail-closed unpaid `/tools` -> `/recharge` gate, `/transfer` collapsible config expansion, `/trial` reachability, and `4/4` axe scans with `0` serious/critical violations and `0` runtime errors.
 
 ---
 

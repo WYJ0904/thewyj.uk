@@ -3,7 +3,7 @@
     "schema_version": 1,
     "environment": "isolated-preview",
     "stage": "I06-module-experience",
-    "source_commit": "5a337a28989db29c7cf290d36d518d17cb60963f",
+    "source_commit": "872a70b07cb6f9cec168f94d95a2d2063b83e43e",
     "project_name": "thewyj-i06-preview",
     "branch": "i06-module-experience",
     "remote_check": {
@@ -20,11 +20,11 @@
       "bindingConsistent": true
     },
     "file_count": 205,
-    "artifact_tree_sha256": "9545e9e479ed154e6a3629d64aa2d09516a9e01cdb72cf4efaad49ca0d47dc69"
+    "artifact_tree_sha256": "d9513c0af895e43ae6a87e220d6090cb90178586ab4ffdad979abdf0fde6958f"
   },
   "deployResult": {
-    "deployedUrl": "https://ff39eb68.thewyj-i06-preview.pages.dev",
+    "deployedUrl": "https://9a3ea537.thewyj-i06-preview.pages.dev",
     "aliasUrl": "https://i06-module-experience.thewyj-i06-preview.pages.dev",
-    "deploymentId": "ff39eb68-361d-481a-91dc-0c859bfc15c1"
+    "deploymentId": "9a3ea537-e030-4d2a-b15f-0d29838d39fb"
   }
 }

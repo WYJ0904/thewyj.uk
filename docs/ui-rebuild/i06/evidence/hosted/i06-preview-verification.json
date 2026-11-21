@@ -1,12 +1,12 @@
 {
   "previewUrl": "https://i06-module-experience.thewyj-i06-preview.pages.dev",
-  "headCommit": "3b6f261edfde05d4cf371503ef30ccc540794211",
-  "checkedAt": "2026-11-21T19:25:23.285Z",
+  "headCommit": "872a70b07cb6f9cec168f94d95a2d2063b83e43e",
+  "checkedAt": "2026-11-21T19:41:20.606Z",
   "buildInfo": {
     "schema_version": 1,
     "environment": "isolated-preview",
     "stage": "I06-module-experience",
-    "source_commit": "5a337a28989db29c7cf290d36d518d17cb60963f",
+    "source_commit": "872a70b07cb6f9cec168f94d95a2d2063b83e43e",
     "project_name": "thewyj-i06-preview",
     "branch": "i06-module-experience",
     "remote_check": {
@@ -23,7 +23,7 @@
       "bindingConsistent": true
     },
     "file_count": 205,
-    "artifact_tree_sha256": "9545e9e479ed154e6a3629d64aa2d09516a9e01cdb72cf4efaad49ca0d47dc69"
+    "artifact_tree_sha256": "d9513c0af895e43ae6a87e220d6090cb90178586ab4ffdad979abdf0fde6958f"
   },
   "apiStatus": {
     "ok": true,
@@ -31,7 +31,7 @@
     "service": "wyj-cloud-foundation",
     "environment": "preview",
     "build": "2026-08-26-task15-cloud-only",
-    "time": "2026-11-21T19:25:19.706Z",
+    "time": "2026-11-21T19:41:16.936Z",
     "auth": true,
     "backend_ready": true,
     "ai_ready": false,
@@ -136,14 +136,14 @@
       "task13_r2_binding_missing",
       "task14_r2_binding_missing"
     ],
-    "request_id": "3615bab4-efa8-42fc-9887-f1b58877bee2"
+    "request_id": "bdeb9466-eebb-4695-9738-1ab8862933e2"
   },
   "apiHealth": {
     "ok": false,
     "error": "请先登录",
     "code": "authentication_required",
     "retryable": false,
-    "request_id": "69e465f3-1375-46c2-bc72-10fa97a48b26"
+    "request_id": "04f654ee-6a6d-4b2f-8bc2-da10c5685925"
   },
   "uiFeatures": {
     "ok": true,
@@ -153,11 +153,11 @@
       "enabled": true,
       "revision": 1,
       "reason": "public_stable",
-      "observed_at": "2026-11-21T19:25:20.792Z",
-      "expires_at": "2026-11-21T19:25:50.792Z",
+      "observed_at": "2026-11-21T19:41:18.112Z",
+      "expires_at": "2026-11-21T19:41:48.112Z",
       "max_age_seconds": 30
     },
-    "request_id": "d8e364a2-3dac-419d-b18f-e1ec68a05101"
+    "request_id": "839e030d-196e-4fe6-913b-d3a6f55e26f9"
   },
   "verifiedAssets": [
     {
@@ -207,7 +207,7 @@
     "bg": "rgb(255, 247, 237)"
   },
   "moduleChecks": {
-    "registeredUser": "i06p_mwqssprc",
+    "registeredUser": "i06p_mwqtd6ef",
     "unpaidToolsRedirectedToRecharge": true,
     "transferDisclosureAndExpanded": true,
     "trialPageReachable": true

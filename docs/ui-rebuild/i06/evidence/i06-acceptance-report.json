@@ -1,16 +1,16 @@
 {
   "scope": "Isolated local Miniflare D1/R2 + headless Chrome CDP (I06 Module Experiences)",
-  "gitSha": "6592f0df8c21ae458a1aa5153595ffd138b14106",
+  "gitSha": "872a70b07cb6f9cec168f94d95a2d2063b83e43e",
   "gitBranch": "hydrogen/i06-module-experience",
   "worktreeDirty": false,
   "dirtyFiles": [],
   "source": {
-    "commit": "6592f0df8c21ae458a1aa5153595ffd138b14106",
-    "tree": "829f8275ce2a5007ccc7e1fb12b6ac351eb7718d",
+    "commit": "872a70b07cb6f9cec168f94d95a2d2063b83e43e",
+    "tree": "f284fc207e570b757cdde2de0649cab60ea3c3cf",
     "branch": "hydrogen/i06-module-experience",
     "sourceMatchesCommit": true,
     "changedInputs": [],
-    "inputsSha256": "339c89deb7a0ba30d1a1250e566542076c9fba7ead6c5a9ace1ff7e35e02efc6",
+    "inputsSha256": "2280874075e66c529e8ca61abd87f5162aa965b3ab74a82a50e093f38e31e2d6",
     "inputs": [
       {
         "file": "THIRD_PARTY_NOTICES.md",
@@ -670,7 +670,7 @@
       },
       {
         "file": "index.html",
-        "sha256": "0c64ebe6cc7771405e1b9678fefa05ffc7dbc7375288b7ea179e0d55e2f72aa4"
+        "sha256": "bb3a985e30b21de53d8cebaf0f18228bbc4ba7988e3f9408cbfb28ec0f94b263"
       },
       {
         "file": "js/account/password-fields.js",
@@ -982,7 +982,7 @@
       },
       {
         "file": "sw.js",
-        "sha256": "24dbf9b1c9a35185c321511496717165858cb081f2a99c7f596c62480d02c75d"
+        "sha256": "94c683fda2745eb3e9615f0d3d3ca1dd0cd947f2d5ea61e10e3ff2ae3afd2394"
       },
       {
         "file": "tools.js",
@@ -1018,13 +1018,13 @@
       }
     ]
   },
-  "checkedAt": "2026-11-21T19:13:11.893Z",
+  "checkedAt": "2026-11-21T19:39:23.491Z",
   "browserVersion": "Chrome/158.0.8127.36",
   "scenarios": [
     {
       "name": "m1_language_focus_and_fsrs_context",
       "status": "PASS",
-      "ms": 2067,
+      "ms": 2104,
       "detail": {
         "quizBox": {
           "width": 760,
@@ -1042,7 +1042,7 @@
     {
       "name": "m2_finance_borderless_ledger_and_drawer",
       "status": "PASS",
-      "ms": 8814,
+      "ms": 9000,
       "detail": {
         "ledgerCheck": {
           "tabular": "tabular-nums",
@@ -1071,7 +1071,7 @@
     {
       "name": "m3_tools_two_pane_and_split_workbench",
       "status": "PASS",
-      "ms": 2456,
+      "ms": 2501,
       "detail": {
         "twoPane": {
           "railRight": 504,
@@ -1091,7 +1091,7 @@
     {
       "name": "m4_transfer_collapsible_config_and_progress",
       "status": "PASS",
-      "ms": 5831,
+      "ms": 3419,
       "detail": {
         "initialFold": {
           "open": false,
@@ -1109,7 +1109,7 @@
     {
       "name": "m5_admin_flags_capsules_timeline_and_dom_identity",
       "status": "PASS",
-      "ms": 14743,
+      "ms": 17341,
       "detail": {
         "preNodes": {
           "dirCount": 9,
@@ -1139,7 +1139,7 @@
     {
       "name": "a11y_p07_off_and_runtime_clean",
       "status": "PASS",
-      "ms": 30129,
+      "ms": 32899,
       "detail": {
         "axeRoutes": 5,
         "p07OffChecked": true
@@ -1193,7 +1193,7 @@
       "name": "1440-i06-language-quiz-light.png",
       "width": 1440,
       "height": 900,
-      "sha256": "8367f158ec734b74bf287778619dd1b80f18d5b980b22d7c493d2c783a897963",
+      "sha256": "c330f8d8f98e4e4cbc88321ecef37cbcd171a190c43504df18633e63d5b332f1",
       "viewport": {
         "width": 1440,
         "height": 900,
@@ -1208,7 +1208,7 @@
       "name": "1440-i06-finance-drawer-light.png",
       "width": 1440,
       "height": 900,
-      "sha256": "d9fb7a9f77f57a1a3b4a65abd88af13dee24c76b97fe133d2c60d134b3d7ba83",
+      "sha256": "7a54bdeb6e648df4ee01258ced5f8d1448f4aed500ef368ec3812da24b1096ef",
       "viewport": {
         "width": 1440,
         "height": 900,
@@ -1223,7 +1223,7 @@
       "name": "390-i06-finance-sheet-dark.png",
       "width": 390,
       "height": 844,
-      "sha256": "675a700e54128f476ffa72074e2593d9d467ae2b81da6aea3fa9e535f11535eb",
+      "sha256": "876dcf81a4f84944d258f38d840e5b8505a2d92308bd91eb44d5cd602effccad",
       "viewport": {
         "width": 390,
         "height": 844,
@@ -1253,7 +1253,7 @@
       "name": "1440-i06-tools-workbench-light.png",
       "width": 1440,
       "height": 900,
-      "sha256": "98813a89ad31d6d71f7427f76aaa4abe99a1bbc03a6bb5126d2537a219257c8d",
+      "sha256": "5ea5400c39061aeb43c814608005121c66cced6564abdda462309a574fc4e03a",
       "viewport": {
         "width": 1440,
         "height": 900,
@@ -1283,7 +1283,7 @@
       "name": "1440-i06-admin-flags-timeline-light.png",
       "width": 1440,
       "height": 900,
-      "sha256": "cee69e108050d5959ad18cbe2408a3cb6ae11637e609036a3606db3e3143849d",
+      "sha256": "5bb520d019f172c704be3ead24a3ead7b802dc33605f30020adf0be6cde154aa",
       "viewport": {
         "width": 1440,
         "height": 900,
@@ -1298,7 +1298,7 @@
       "name": "390-i06-admin-flags-dark.png",
       "width": 390,
       "height": 844,
-      "sha256": "8a7d3c85f855aef3aa440cb2a66b95fe8b7a68480d6fd709845c28a426d15885",
+      "sha256": "3b20a13eb0121e2b3046f0ba8c2bc3fbc92401e11bd75c5638b6792059dec136",
       "viewport": {
         "width": 390,
         "height": 844,
