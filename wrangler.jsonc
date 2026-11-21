@@ -209,7 +209,10 @@
         "TASK30_PRIVACY_ENABLED": "true",
         "AZURE_SPEECH_REGION": "eastasia",
         "EMAIL_SENDING_ENABLED": "true",
-        "EMAIL_SUPPORT_SENDER_AUTHORIZED": "true"
+        "EMAIL_SUPPORT_SENDER_AUTHORIZED": "true",
+        "AERIS_DS_SSO_ISSUER": "https://thewyj.uk",
+        "AERIS_DS_SSO_ORIGIN": "https://ds.thewyj.uk",
+        "AERIS_DS_SSO_CLIENT_ID": "ds-production-v1"
       },
       "d1_databases": [
         {
