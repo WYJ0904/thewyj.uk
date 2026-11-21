@@ -16,13 +16,13 @@
 
 ## 2. Code & Asset Changes
 - **`index.html`**:
-  - Added `#v3Sidebar` grouped labels (`.v3-sidebar-group-title`: `工作区`, `账户与系统`), sticky `#workspaceBreadcrumb` bar (`nav[aria-label="面包屑导航"]`), `#adminRoleContext` role summary, 4-cell `#adminKpiStrip` (`#adminKpiUsers`, `#adminKpiRecharge`, `#adminKpiAudit`, `#adminKpiLoginFailed`), `.admin-list-head` structural table column headers across Users/Recharge/Audit/Login tabs, and One UI grouped `#accountModal` summary/settings wrappers (`.account-settings-list`).
+  - Added `#v3Sidebar` grouped labels, sticky `#workspaceBreadcrumb` navigation, `#adminRoleContext`, and the four-cell `#adminKpiStrip`. The Users, Recharge, Audit, Login, and Tool Statistics tabs have desktop `.admin-list-head` visual column labels aligned with the corresponding record fields. At narrower widths, records use a stacked layout with their field text in the row. The account page groups its summary and settings with `.account-settings-list`.
 - **`js/core/design-system.js`**:
   - Implemented `workspaceRouteMeta(pathname, options)` mapping `/`, `/select`, `/language`, `/language/english`, `/language/japanese`, `/tools`, `/tools/workflows`, `/tools/:tool_id`, `/finance`, `/transfer`, `/account`, `/recharge`, and `/admin` (+ section trail).
   - Implemented `syncWorkspaceShell(doc, meta)` setting `document.body.dataset.workspaceRoute` and updating `#workspaceBreadcrumb` with `<li>` node reuse (no full DOM destruction) and `aria-current="page"`.
 - **`app.js`**:
   - Added `refreshWorkspaceShell()` hooked into route/view transitions (`showModulePicker`, `showDashboard`, `showLanguageWorkspace`, `showToolsPanel`, `showToolsRoute`, `showWorkflowsRoute`, `showFinancePage`, `showTransferPage`, `openAccountModal`, `openRechargePage`, `showAdminPanel`, `selectAdminTab`, `openPublicTool`, and `hidePrimaryScreens`).
-  - Added `setAdminKpi(id, value)` (keyed numeric update with `kpi-bump` micro-feedback without rebuilding container nodes) and `resetAdminKpis()` integrated cleanly into `loadAdminUsers()`, `loadAdminRechargeRequests()`, `loadAdminSecurityLogs()`, `loadAdminLoginEvents()`, and logout/non-admin cleanup.
+  - `setAdminKpi(id, value, status)` updates the existing value node and its state when the corresponding admin API loads or fails. `resetAdminKpis()` restores the pending placeholder when the session is cleared.
 - **`design-system.css`, `styles.css`, `workspace-experience.css`, `spatial-experience.css`**:
   - Added `--ds-container-console: 1320px` and expanded `tabular-nums` coverage (`account-detail-grid`, admin KPI values, audit/log rows, quotas, SHA-256).
   - Replaced 25 literal `border-radius` values on existing workspace/card selectors with `--ds-radius-lg` / `--ds-radius-md` / `--ds-radius-sm` (4–8px scale).
