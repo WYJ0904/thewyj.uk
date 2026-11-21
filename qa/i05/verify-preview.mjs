@@ -154,7 +154,7 @@ try {
   const runAxe = async (label) => {
     await page.evaluate(axeSource);
     const res = await page.evaluate(`axe.run(document).then(r => ({
-      violations: r.violations.filter(v => ['serious','critical'].includes(v.impact)).map(v => ({ id: v.id, impact: v.impact, nodes: v.nodes.slice(0, 3).map(n => n.target) })),
+      violations: r.violations.filter(v => ['serious','critical'].includes(v.impact)).map(v => ({ id: v.id, impact: v.impact, nodes: v.nodes.slice(0, 5).map(n => ({ target: n.target, data: n.any?.[0]?.data || null })) })),
       passes: r.passes.length,
     }))`);
     report.axeScans.push({ label, violationCount: res.violations.length, passes: res.passes, violations: res.violations });
@@ -221,6 +221,7 @@ try {
   await runAxe("preview-1440-finance");
 
   // /admin KPIs, tabs, and Feature Flag creation + step-up
+  await page.evaluate("const s = document.getElementById('featureConsoleStatus'); if (s) s.textContent = '';");
   await pointerClick('#v3Sidebar [data-v3-nav="admin"]');
   await page.waitFor("document.body.dataset.workspaceRoute === 'admin' && Boolean(document.querySelector('#adminUserList')?.textContent?.trim())", 20_000, "preview admin users");
   const kpiCheck = await page.evaluate(`(async () => {
@@ -237,20 +238,36 @@ try {
   assert.equal(Number(kpiCheck.kpiText), kpiCheck.apiTotal);
 
   await pointerClick("#adminFeatureFlagsTab");
-  await page.waitFor("document.querySelector('#adminFeatureFlagsView')?.classList.contains('active') && document.querySelectorAll('#featureFlagSelect option').length > 0", 15_000, "preview flags ready");
+  await page.waitFor(
+    "document.querySelector('#adminFeatureFlagsView')?.classList.contains('active') && document.querySelectorAll('#featureFlagSelect option').length > 0 && document.querySelector('#featureConsoleStatus')?.textContent?.includes('已读取最新配置')",
+    20_000,
+    "preview flags ready",
+  );
   const flagKey = `i05_preview_${Date.now().toString(36).slice(-6)}`;
   await pointerClick("#newFeatureFlagBtn");
+  await page.waitFor("document.getElementById('featureFlagKey')?.readOnly === false", 5_000, "new flag editable");
   await page.setFields({
     "#featureFlagKey": flagKey,
     "#featureFlagDescription": "I05 live preview fixture flag (0%)",
     "#featureFlagPercentage": "0",
   });
   await pointerClick("#saveFeatureFlagBtn");
-  await page.waitFor("!document.querySelector('#task27Prompt')?.classList.contains('hidden')", 15_000, "preview step-up");
+  try {
+    await page.waitFor("Boolean(document.querySelector('#task27Prompt:not(.hidden) input[name=\"password\"]'))", 15_000, "preview step-up");
+  } catch (err) {
+    const diag = await page.evaluate(`({
+      status: document.querySelector('#featureConsoleStatus')?.textContent || '',
+      btnDisabled: document.querySelector('#saveFeatureFlagBtn')?.disabled,
+      keyVal: document.querySelector('#featureFlagKey')?.value,
+      rev: document.querySelector('#featureFlagForm')?.dataset?.revision,
+      promptClass: document.querySelector('#task27Prompt')?.className || 'MISSING',
+    })`);
+    throw new Error(`${err.message} | diag=${JSON.stringify(diag)}`);
+  }
   await page.setFields({ "#task27Prompt input[name='password']": adminPass });
   await pointerClick("#task27Prompt button[type='submit']");
   await page.waitFor("document.querySelector('#featureConsoleStatus')?.textContent?.includes('设置已保存')", 20_000, "preview flag saved");
-  await page.waitFor(`document.querySelector('#task27Prompt')?.classList.contains('hidden')`, 10_000);
+  await page.waitFor("!document.querySelector('#task27Prompt:not(.hidden)')", 10_000);
   const auditHasKey = await page.evaluate(`document.getElementById('featureFlagAudit')?.textContent?.includes(${JSON.stringify(flagKey)}) || false`);
   assert.equal(auditHasKey, true);
   await shot("preview-1440-admin-flags.png");
