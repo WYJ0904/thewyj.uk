@@ -1,5 +1,7 @@
 # Interactive Browser Acceptance Matrix (`I05`)
 
+本页表格保留首次验收的实际记录，其 JSON 记录的 `gitSha` 为 I04 基线 `b5ebd1da`。本轮 B01–B04 使用独立证据和产品输入比对，结果见 [本轮验收](IMPLEMENTATION_REPORT.md#规范核对后的修复与复验)。
+
 Executed against real local Miniflare D1/R2 + headless Chrome CDP (`qa/i05/browser-acceptance.mjs`), plus live Hosted Preview verification (`qa/i05/verify-preview.mjs`).
 
 ## 1. Local 13-Scenario Interactive Execution (`qa/i05/browser-acceptance.mjs`)

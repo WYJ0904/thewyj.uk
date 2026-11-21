@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawn, spawnSync } from "node:child_process";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { openPage, delay } from "../../local-backend/browser_harness.mjs";
@@ -36,14 +37,19 @@ assert.equal(staged.deployResult?.deployedD1Id, D1_ID);
 assert.match(staged.buildJson.artifact_tree_sha256 || "", /^[0-9a-f]{64}$/);
 
 const parsedUrl = new URL(process.env.I05_PREVIEW_URL || staged.deployResult.deployedUrl);
-assert.equal(parsedUrl.href, `https://${deploymentId.slice(0, 8)}.${PROJECT}.pages.dev/`,
+assert.ok(parsedUrl.href === `https://${deploymentId.slice(0, 8)}.${PROJECT}.pages.dev/`,
   "Use the exact immutable isolated Preview deployment URL");
 const baseUrl = parsedUrl.origin;
 const auth = spawnSync(process.execPath, [WRANGLER, "auth", "token", "--json"], {
   cwd: ROOT, encoding: "utf8", timeout: 30_000,
 });
 assert.equal(auth.status, 0, "Wrangler did not supply the Preview read credential");
-const authOutput = JSON.parse(auth.stdout);
+let authOutput;
+try {
+  authOutput = JSON.parse(auth.stdout);
+} catch {
+  throw new Error("Wrangler returned invalid read credential metadata");
+}
 const token = authOutput.token || authOutput.oauth_token || authOutput.api_token;
 assert.ok(token, "Cloudflare credential unavailable");
 const cf = async (endpoint) => {
@@ -79,12 +85,26 @@ const buildResponse = await getPublic("/__preview/build.json");
 assert.equal(buildResponse.status, 200, "Missing Preview build manifest");
 const buildJson = await buildResponse.json();
 assert.deepEqual(buildJson, staged.buildJson, "Served manifest differs from the staging record");
+const sha256 = data => createHash("sha256").update(data).digest("hex");
+const assets = await Promise.all(["app.js", "design-system.css", "spatial-experience.css", "sw.js"].map(async file => {
+  const response = await getPublic("/" + file);
+  assert.equal(response.status, 200, `Missing Preview source asset ${file}`);
+  const served = Buffer.from(await response.arrayBuffer());
+  const source = execFileSync("git", ["show", `${expectedCommit}:${file}`], { cwd: ROOT, encoding: "utf8" });
+  const sourceSha256 = sha256(source);
+  const servedSha256 = sha256(served);
+  const lineEndingNormalized = servedSha256 !== sourceSha256 && sha256(served.toString("utf8").replace(/\r\n/g, "\n")) === sourceSha256;
+  assert.ok(servedSha256 === sourceSha256 || lineEndingNormalized, `Served Preview asset differs from source: ${file}`);
+  return { file, sourceSha256, servedSha256, lineEndingNormalized };
+}));
 await mkdir(EVIDENCE_ROOT, { recursive: true });
 const EVIDENCE_DIR = await mkdtemp(path.join(EVIDENCE_ROOT, "run-"));
 const sourceEvidence = {
   checkedAt: new Date().toISOString(),
   deploymentId, sourceCommit: expectedCommit, previewUrl: baseUrl, branch: buildJson.branch,
-  d1Id: D1_ID, d1Name: D1_NAME, artifactTreeSha256: buildJson.artifact_tree_sha256,
+  d1Id: D1_ID, d1Name: D1_NAME, artifactTreeSha256: buildJson.artifact_tree_sha256, assets,
+  verifyScriptSha256: sha256(await readFile(new URL(import.meta.url))),
+  browserProofScriptSha256: sha256(await readFile(new URL("./browser-proofs.mjs", import.meta.url))),
 };
 if (mode === "--source-only") {
   await writeFile(path.join(EVIDENCE_DIR, "i05-preview-source.json"), `${JSON.stringify(sourceEvidence, null, 2)}\n`);
@@ -495,7 +515,9 @@ try {
   report.error = error.message;
   throw error;
 } finally {
-  await writeFile(path.join(EVIDENCE_DIR, "i05-preview-verify.json"), `${JSON.stringify(report, null, 2)}\n`);
+  const pendingEvidence = path.join(EVIDENCE_DIR, "i05-preview-verify.json.tmp");
+  await writeFile(pendingEvidence, `${JSON.stringify(report, null, 2)}\n`, { flag: "wx" });
+  await rename(pendingEvidence, path.join(EVIDENCE_DIR, "i05-preview-verify.json"));
   if (userPage) await userPage.close().catch(() => {});
   if (page) await page.close().catch(() => {});
   child.kill("SIGKILL");

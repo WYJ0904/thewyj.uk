@@ -12,8 +12,9 @@
    - `/finance`: Borderless infinite-feel ledger rows & slide-over transaction detail drawer preserving `#financeIncomeTotal` `tabular-nums` and modal trigger focus restoration.
    - `/tools`: Two-pane instant search & live tool preview preserving `#toolSearchInput` focus and `/tools/:tool_id` + `/tools/workflows` URL routing.
    - `/transfer`: Drag/progress feedback and collapsible transfer options without violating Task 28 D1/R2 encryption invariants.
-   - `/admin`: Flagsmith-style status capsules, clean Flag action-bar flex wrapping (`#newFeatureFlagBtn` / `#refreshFeatureFlagsBtn` on 390px mobile), and structured audit timeline while **preserving DOM node identity** (`sameForm` / `sameCb` / zero `tbody.innerHTML` wipe) and Task 27 step-up flows.
+   - `/admin`: Flagsmith-style status capsules and structured audit timeline while **preserving DOM node identity** (`sameForm` / `sameCb` / zero `tbody.innerHTML` wipe) and Task 27 step-up flows. The 375/390px toolbar and list readability fixes were completed in I05.
 3. **Hold for Later Slices**:
    - Leave `#featureFlagEnabled` / `#featureFlagKillSwitch` global custom switch styling and SVG Lucide icon migration for **I08** (or keep checkbox hits `<= 24px` / a11y-verified if customized).
    - Leave `#versionNotice` & multi-toast stacking untouched until **I09**.
    - Strengthen inactive `.v3-sidebar-nav a` muted contrast/transition if needed to guarantee zero frame-mid-transition axe contrast warnings.
+   - 后补微交互计划中的逐控件状态映射、连续保存、快速切页的迟到响应、复制被拒等，随既定模块边界逐项补充真实证据。

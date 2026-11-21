@@ -1,0 +1,36 @@
+{
+  "deploymentId": "cdee886e-2b92-4bb9-b135-c9381ba61661",
+  "exactSources": [
+    "b1c866a4c12febd96dd884d1e715cd6b35441fc0",
+    "e4e781f2ad5e4cc791f70a2880952d683c041368"
+  ],
+  "alias": "https://i05-workspace-density.thewyj-i05-preview.pages.dev",
+  "immutable": "https://cdee886e.thewyj-i05-preview.pages.dev",
+  "files": [
+    {
+      "path": "index.html",
+      "bytes": 164600,
+      "sha256": "5771481e3061646225067be263f24c0e4775b899e50a700e3207cb448c81672e"
+    },
+    {
+      "path": "app.js",
+      "bytes": 369326,
+      "sha256": "e3c53af85d5615f8417686e25766ab70ae050ed2e70b3e60342926fde424911c"
+    },
+    {
+      "path": "spatial-experience.css",
+      "bytes": 150396,
+      "sha256": "94836e83cb697810e9aad5f2a655752b1ae2133059e933392b462189b59c60fb"
+    },
+    {
+      "path": "design-system.css",
+      "bytes": 55863,
+      "sha256": "e6cac44afaa225dcec88ab1496ffbee3184bc8721cc414358377d3d02b72e614"
+    },
+    {
+      "path": "sw.js",
+      "bytes": 18798,
+      "sha256": "73f1a8548c3e4ec3b31337171fdea35deaa14931f1633a3ddd14a088f72fc193"
+    }
+  ]
+}

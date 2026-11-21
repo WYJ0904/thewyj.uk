@@ -17,6 +17,9 @@ const evidenceRoot = path.join(root, ".wrangler", "i05-local-runs");
 await mkdir(evidenceRoot, { recursive: true });
 const evidenceDir = await mkdtemp(path.join(evidenceRoot, "run-"));
 const source = await captureSource(root);
+const scenarioSelection = process.env.I05_SCENARIOS ? new Set(process.env.I05_SCENARIOS.split(",")) : null;
+assert.ok(!scenarioSelection || [...scenarioSelection].every(value => /^[a-m]$/.test(value)),
+  "I05_SCENARIOS must contain scenario letters a through m separated by commas");
 if (process.env.I05_EXPECTED_SOURCE_COMMIT) {
   assert.equal(source.commit, process.env.I05_EXPECTED_SOURCE_COMMIT, "I05 source commit does not match requested run");
   assert.equal(source.sourceMatchesCommit, true, "Pinned I05 source run requires committed build and test inputs");
@@ -366,6 +369,7 @@ const report = {
   dirtyFiles: source.changedInputs.map(({ file }) => file),
   source,
   checkedAt: new Date().toISOString(),
+  selectedScenarios: scenarioSelection ? [...scenarioSelection] : "all",
   browserVersion: "",
   scenarios: [],
   viewportMatrix: [],
@@ -529,8 +533,17 @@ try {
     );
     await settle(targetPage);
   };
+  const openSignedInPicker = async () => {
+    await page.navigate("/select");
+    await page.waitFor(`document.documentElement.dataset.bootState === 'ready' && location.pathname === '/select' &&
+      document.documentElement.dataset.p07Ui === 'enabled' && document.body.dataset.workspaceRoute === 'home' &&
+      ${isVisibleExpr("#authWorkspaceSection")} && (document.querySelector('#v3Sidebar')?.getBoundingClientRect().width || 0) > 0`,
+    20_000, "Signed-in module picker ready");
+    await settle();
+  };
 
   const recordScenario = async (name, fn) => {
+    if (scenarioSelection && !scenarioSelection.has(name[0])) return;
     const started = Date.now();
     try {
       const detail = await fn();
@@ -538,19 +551,26 @@ try {
       report.scenarios.push({ name, status: "PASS", ms, detail });
       console.log(`PASS scenario: ${name} (${ms}ms)`);
     } catch (error) {
-      report.scenarios.push({ name, status: "FAIL", ms: Date.now() - started, error: error.message });
+      const state = await page.evaluate(`({
+        pathname: location.pathname,
+        route: document.body.dataset.workspaceRoute,
+        bootState: document.documentElement.dataset.bootState,
+        flagStatus: document.getElementById("featureConsoleStatus")?.textContent?.trim() || "",
+        stepUpPromptOpen: Boolean(document.querySelector("#task27Prompt:not(.hidden)")),
+      })`).catch(() => null);
+      report.scenarios.push({ name, status: "FAIL", ms: Date.now() - started, error: error.message, state });
       throw error;
     }
   };
 
   await signIn(page, "i05admin");
+  if (scenarioSelection && !scenarioSelection.has("a")) await openSignedInPicker();
 
   // Scenario a: 1440x900 7-route sidebar navigation + /select check
   await recordScenario("a_seven_route_sidebar_shell", async () => {
     await setViewport(1440, 900);
     await setTheme("light");
-    await page.navigate("/select");
-    await page.waitFor(`document.documentElement.dataset.bootState === 'ready' && document.documentElement.dataset.p07Ui === 'enabled' && document.body.dataset.workspaceRoute === 'home' && ${isVisibleExpr("#authWorkspaceSection")} && (document.querySelector('#v3Sidebar')?.getBoundingClientRect()?.width || 0) > 0`, 20_000, "/select direct load");
+    await openSignedInPicker();
     const selectCrumb = await page.evaluate("document.querySelector('#workspaceBreadcrumb li[aria-current=\"page\"]')?.textContent?.trim() || ''");
     assert.ok(selectCrumb.length > 0, "/select missing active breadcrumb");
 
@@ -912,12 +932,27 @@ try {
     await shot("1440-admin-flags-after.png");
 
     // B01: A deterministic failed POST blocks only this synthetic flag mutation.
+    const selectFixtureFlag = async () => {
+      await page.evaluate(`(() => {
+        const select = document.getElementById('featureFlagSelect');
+        select.value = ${JSON.stringify(flagKey)};
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+      })()`);
+      assert.equal(await page.evaluate("document.getElementById('featureFlagKey')?.value"), flagKey,
+        "Recovery test must select its own synthetic fixture flag");
+    };
+    await selectFixtureFlag();
     const dbFlag = () => db.prepare("SELECT description,revision FROM task25_feature_flags WHERE flag_key=?1").bind(flagKey).first();
     const persistedBeforeError = await dbFlag();
     assert.ok(persistedBeforeError, "Prepare an existing flag before testing failed update");
+    assert.equal(await page.evaluate("document.getElementById('featureFlagDescription')?.value"), persistedBeforeError.description,
+      "Recovery form must match the stored fixture before editing");
     const draft = "I05 retry after a rejected save";
     const failureMessage = "验收模拟：功能配置保存暂不可用";
+    const stepUp = "Boolean(document.querySelector('#task27Prompt:not(.hidden) input[name=password]'))";
     let interceptedPosts = 0;
+    let observedPost;
+    const postSeen = new Promise(resolve => { observedPost = resolve; });
     let completeFailure;
     const pendingFailure = new Promise(resolve => { completeFailure = resolve; });
     await page.setFields({ "#featureFlagDescription": draft });
@@ -925,6 +960,7 @@ try {
       if (method !== "POST" || new URL(url).pathname !== "/api/admin/feature-flags" ||
         JSON.parse(postData).flag_key !== flagKey) return { continue: true };
       interceptedPosts += 1;
+      observedPost();
       await pendingFailure;
       return { status: 503, body: { ok: false, code: "synthetic_i05_save_unavailable", error: failureMessage } };
     } }]);
@@ -935,6 +971,13 @@ try {
         "document.querySelector('#saveFeatureFlagBtn:disabled') !== null",
         5_000, "failed save remains pending and locked until the response",
       );
+      await page.waitFor(stepUp, 10_000, "Task27 step-up before rejected save");
+      await page.setFields({ "#task27Prompt input[name='password']": password });
+      await pointerClick("#task27Prompt button[type='submit']");
+      await Promise.race([
+        postSeen,
+        delay(10_000).then(() => { throw new Error("Expected synthetic flag POST was not observed"); }),
+      ]);
       completeFailure();
       await page.waitFor(
         `document.querySelector('#featureConsoleStatus')?.textContent === ${JSON.stringify(failureMessage)} && ` +
@@ -958,7 +1001,6 @@ try {
     assert.deepEqual(persistedAfterError, persistedBeforeError, "A failed save must not change the stored flag");
 
     await pointerClick("#saveFeatureFlagBtn");
-    const stepUp = "Boolean(document.querySelector('#task27Prompt:not(.hidden) input[name=password]'))";
     const saved = "document.querySelector('#featureConsoleStatus')?.textContent === '设置已保存' && " +
       "document.querySelector('#saveFeatureFlagBtn:not(:disabled)') !== null";
     await page.waitFor(`(${stepUp}) || (${saved})`, 15_000, "retry succeeded or requested step-up");
@@ -970,20 +1012,23 @@ try {
     const persistedAfterRetry = await dbFlag();
     assert.deepEqual(persistedAfterRetry, { description: draft, revision: persistedBeforeError.revision + 1 },
       "Retry must save the preserved draft exactly once");
+    report.flagRecovery = { interceptedPosts, forcedHttpStatus: 503, offlineState,
+      persistedBeforeError, persistedAfterError, persistedAfterRetry, reloaded: false };
     await page.navigate("/admin");
-    await page.waitFor("document.body.dataset.workspaceRoute === 'admin' && !document.querySelector('#adminPanel')?.classList.contains('hidden')", 15_000);
+    await page.waitFor(
+      "document.documentElement.dataset.bootState === 'ready' && document.body.dataset.workspaceRoute === 'admin' && " +
+      "(document.querySelector('#adminFeatureFlagsTab')?.getBoundingClientRect().width || 0) > 0",
+      25_000, "fresh /admin flag tab visible after retry",
+    );
     await pointerClick("#adminFeatureFlagsTab");
     await page.waitFor("document.querySelector('#adminFeatureFlagsView')?.classList.contains('active') && document.querySelector('#featureConsoleStatus')?.textContent?.includes('已读取最新配置')", 15_000);
-    await page.evaluate(`(() => {
-      const sel = document.getElementById('featureFlagSelect');
-      sel.value = ${JSON.stringify(flagKey)};
-      sel.dispatchEvent(new Event('change', { bubbles: true }));
-    })()`);
+    await selectFixtureFlag();
     const persistedDesc = await page.evaluate("document.getElementById('featureFlagDescription')?.value || ''");
     assert.equal(persistedDesc, draft, "Retried save did not persist on reload");
+    report.flagRecovery.reloaded = true;
 
     return { kpiCheck, stickyCheck, headAlignment, loginAlignment, tabCount: tabTrail.length, cbSizes, flagKey, domIntegrity,
-      offlineState, persistedDesc, recovery: { interceptedPosts, forcedHttpStatus: 503, persistedBeforeError, persistedAfterError, persistedAfterRetry } };
+      persistedDesc, recovery: report.flagRecovery };
   });
 
   // Scenario h: Non-admin i05user isolation
@@ -1030,7 +1075,13 @@ try {
       await setTheme(theme);
       for (const spec of expandedRouteSpecs) {
         await setViewport(1440, 900);
-        await openSidebarRoute(spec);
+        if (spec.nav === "home") {
+          // The sidebar Home alias is /. The matrix covers canonical /select.
+          await openSignedInPicker();
+          await setTheme(theme);
+        } else {
+          await openSidebarRoute(spec);
+        }
         if (spec.nav === "admin") {
           await pointerClick("#adminFeatureFlagsTab");
           await delay(80);
@@ -1219,13 +1270,15 @@ try {
     return { routes: routeResults };
   });
 
-  assert.equal(report.viewportMatrix.length, 90, "All I05 viewport/theme/route cells must run");
+  if (!scenarioSelection || scenarioSelection.has("i")) {
+    assert.equal(report.viewportMatrix.length, 90, "All I05 viewport/theme/route cells must run");
+  }
   const endSource = await captureSource(root);
   assert.equal(endSource.commit, source.commit, "HEAD changed during I05 evidence capture");
   assert.equal(endSource.inputsSha256, source.inputsSha256, "Build/test inputs changed during I05 evidence capture");
   report.sourceVerifiedAtEnd = true;
   report.status = "PASS";
-  console.log(`ALL 13 I05 SCENARIOS PASSED (${report.viewportMatrix.length} viewport/theme cells, ${report.screenshots.length} screenshots)`);
+  console.log(`${report.scenarios.length} I05 SCENARIOS PASSED (${report.viewportMatrix.length} viewport/theme cells, ${report.screenshots.length} screenshots)`);
 } catch (error) {
   report.status = "FAIL";
   report.error = error.message;
@@ -1238,7 +1291,7 @@ try {
   if (userPage) await userPage.close().catch(() => {});
   if (page) await page.close().catch(() => {});
   child.kill("SIGKILL");
-  server.close();
+  await new Promise(resolve => server.close(resolve));
   await mf.dispose().catch(() => {});
   await unlink(tempUploadFile).catch(() => {});
   await rm(profile, { recursive: true, force: true }).catch(() => {});

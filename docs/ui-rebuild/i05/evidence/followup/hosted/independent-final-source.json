@@ -1,0 +1,38 @@
+{
+  "checkedAt": "2026-11-21T16:09:55.129Z",
+  "deploymentId": "ae3e538d-8bbc-4fe1-9a30-ff6cc336045e",
+  "sourceCommit": "f85438a876f3c209d96c1a257420417b16df3cb0",
+  "previewUrl": "https://ae3e538d.thewyj-i05-preview.pages.dev",
+  "branch": "i05-workspace-density",
+  "d1Id": "9e76a190-42db-4ff1-b0b7-476e4b312792",
+  "d1Name": "aeris-i05-preview",
+  "artifactTreeSha256": "d4f77e9a972b4aaca7e7d9da7825a5350dfb2d235a44c16133b6757dc3e25e3e",
+  "assets": [
+    {
+      "file": "app.js",
+      "sourceSha256": "e3c53af85d5615f8417686e25766ab70ae050ed2e70b3e60342926fde424911c",
+      "servedSha256": "e3c53af85d5615f8417686e25766ab70ae050ed2e70b3e60342926fde424911c",
+      "lineEndingNormalized": false
+    },
+    {
+      "file": "design-system.css",
+      "sourceSha256": "e6cac44afaa225dcec88ab1496ffbee3184bc8721cc414358377d3d02b72e614",
+      "servedSha256": "e6cac44afaa225dcec88ab1496ffbee3184bc8721cc414358377d3d02b72e614",
+      "lineEndingNormalized": false
+    },
+    {
+      "file": "spatial-experience.css",
+      "sourceSha256": "94836e83cb697810e9aad5f2a655752b1ae2133059e933392b462189b59c60fb",
+      "servedSha256": "94836e83cb697810e9aad5f2a655752b1ae2133059e933392b462189b59c60fb",
+      "lineEndingNormalized": false
+    },
+    {
+      "file": "sw.js",
+      "sourceSha256": "258726e61432f886d6bd6c834d1495a79ff01ef40be9c258b6efc8b1124d44f4",
+      "servedSha256": "258726e61432f886d6bd6c834d1495a79ff01ef40be9c258b6efc8b1124d44f4",
+      "lineEndingNormalized": false
+    }
+  ],
+  "verifyScriptSha256": "5142009193faedb3e52f4c1512c9d6948015c09c5f0467d41eddf083194148a2",
+  "browserProofScriptSha256": "3905cb8f702ee92d501f2051e83b30e00c546c756cd87597b6c1b3212c06d5b8"
+}

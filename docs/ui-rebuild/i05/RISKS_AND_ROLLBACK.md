@@ -2,7 +2,7 @@
 
 ## 1. Observed Minor UI & Test Observations (Honest Scope Disclosure)
 1. **Inactive Sidebar Link Transition Contrast (`#v3SidebarAdminLink`)**: During an intermediate run of `verify-preview.mjs` (`task-923`), `axe-core` flagged a single `color-contrast` check on `#v3SidebarAdminLink > span:nth-child(2)` right after switching away from `/admin` to `/account` before CSS transition completion. Subsequent clean verification (`task-948`) and all 7 routes in local `browser-acceptance.mjs` passed with `0` contrast violations. Recommendation for I06/I08: evaluate strengthening inactive `.v3-sidebar-nav a` light-mode muted text contrast or tightening color transition timing.
-2. **Mobile 390px Flag Toolbar Wrapping**: In `preview/preview-390-admin.png`, `#newFeatureFlagBtn` and `#refreshFeatureFlagsBtn` wrap into compact multi-line labels at 390px next to `#featureFlagSelect` without causing horizontal overflow (`overflow <= 1`); recommended for I06 Feature Flag action-bar cleanup.
+2. **390px 功能配置动作**。旧图 `preview/preview-390-admin.png` 保留逐字换行的历史状态。本轮改为独立选择器和双列按钮，实测见 [本轮验收](IMPLEMENTATION_REPORT.md#规范核对后的修复与复验)。
 3. **Pre-existing I02 / I07 Regression Suite Items (Outside I05 Diff)**:
    - `qa/i02/browser-acceptance.mjs` reports `/` homepage `#publicLearningReset` scaled height `43.32px < 44px` inside `.scroll-preview-wrap` at `scrollY=0`.
    - `qa/i07/browser-acceptance.mjs` scenario `11` times out reopening its HTML fixture after scenario `10` registers `sw.js` on localhost without SW bypass.
