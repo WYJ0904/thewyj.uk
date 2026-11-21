@@ -152,7 +152,16 @@ test('formal native registration scopes signed requests and current grants to th
   const call = (op, input, fields) => request(endpoint, signed(op, input, fields, production));
   const policyRequest = () => signed('policies', {}, {}, production);
 
-  assert.equal(config.env.production.vars.AERIS_DS_SSO_ENABLED, 'false');
+  const productionVars = config.env.production.vars;
+  const enabled = productionVars.AERIS_DS_SSO_ENABLED;
+  const configuredTuple = [
+    productionVars.AERIS_DS_SSO_ISSUER, productionVars.AERIS_DS_SSO_ORIGIN, productionVars.AERIS_DS_SSO_CLIENT_ID,
+  ];
+  assert.ok(enabled === 'false' || enabled === 'true', 'Production Provider switch must be explicitly true or false');
+  if (enabled === 'true' || configuredTuple.some(value => value !== undefined)) {
+    assert.deepEqual(configuredTuple, [production.issuer, production.origin, production.clientId],
+      'Configured production Provider must use the exact formal tuple');
+  }
   for (const overrides of [
     { AERIS_DS_SSO_ENABLED: 'false' },
     { AERIS_DS_SSO_ISSUER: 'https://www.thewyj.uk' },
