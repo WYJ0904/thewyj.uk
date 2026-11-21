@@ -145,12 +145,17 @@ async function issue(db, client, actor, binding, snapshot, input, flow) {
 // The projection is provided by server code that owns the selected columns.
 export async function activeOwnershipRows(context, client, actor, refs, projection='p.proof_id') {
   if (!refs.length) return [];
+  const query = await activeOwnershipQuery(context,client,actor,refs,projection);
+  return rows(context.env.WYJ_DB,query.sql,query.args);
+}
+
+export async function activeOwnershipQuery(context, client, actor, refs, projection='p.proof_id') {
   const db = context.env.WYJ_DB;
   const underHold = reviewConfigured(context.env) && await reviewReady(db)
     ? '(' + noRecovery + ' OR ' + reviewedProof + ')' : noRecovery;
   const now = unixTime();
   const live = liveNativeGrant(client, actor.grant_id, now);
-  return rows(db, `SELECT ${projection} FROM aeris_ds_ownership_proofs p
+  return { sql:`SELECT ${projection} FROM aeris_ds_ownership_proofs p
     JOIN task12_users u ON u.id = p.target_id
     JOIN task27_security sec ON sec.user_id = u.id
     WHERE p.actor_grant = ? AND p.expires_at > ?
@@ -159,7 +164,7 @@ export async function activeOwnershipRows(context, client, actor, refs, projecti
       AND p.terms_version = ? AND p.privacy_version = ? AND p.security_policy_version = ?
       AND ${targetState} AND ${underHold} AND EXISTS (${live.sql})
       AND p.proof_id IN (${refs.map(() => '?').join(', ')})`,
-  [actor.grant_id, now, ...policy, ...policy, ...live.args, ...refs]);
+  args:[actor.grant_id, now, ...policy, ...policy, ...live.args, ...refs] };
 }
 
 async function begin(context, client, cipher, actor, binding, input, ip, flow) {

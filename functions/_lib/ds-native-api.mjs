@@ -1,6 +1,7 @@
 import { handleTask12Request } from './task12-api.mjs';
 import { handleDsOwnership, ownershipOperations } from './ds-ownership.mjs';
 import { handleMergePreview, mergePreviewOperation } from './ds-merge-preview.mjs';
+import { handleAccountMerge, mergeOperations } from './ds-account-merge.mjs';
 import { handleOwnershipReviewStaff, reviewerRoute } from './ds-ownership-review-staff.mjs';
 import { resolveTask12Account } from './task12-auth.mjs';
 import { createSessionToken } from './task12-crypto.mjs';
@@ -70,6 +71,12 @@ function registration(env, url) {
     identity = new URL(issuer);
   } catch { return null; }
   if (ds.origin !== origin || identity.origin !== issuer || origin === issuer) return null;
+  const synthetic = opaque(env.AERIS_DS_MERGE_SANDBOX) && ownershipFlag && !alternate
+    && env.AERIS_DS_MERGE_PREVIEW_ENABLED === 'true';
+  if (preview && synthetic && /^https:\/\/(?:[a-z0-9-]+\.)?aeris-task09-[a-z0-9-]+\.pages\.dev$/.test(url.origin)
+    && /^https:\/\/(?:[a-z0-9-]+\.)?ds-task09-[a-z0-9-]+\.pages\.dev$/.test(origin)) {
+    return { clientId, secret, issuer, origin, ownershipEnabled:true, mergePreviewEnabled:true, mergeExecution:true };
+  }
   if (preview) {
     if (![url, identity].every(host => previewOrigin(host, 'thewyj-uk')) || !previewOrigin(ds, 'ds-thewyj-uk')) return null;
   } else if (env.WYJ_ENVIRONMENT === 'development') {
@@ -79,6 +86,7 @@ function registration(env, url) {
   return {
     clientId, secret, issuer, origin, ownershipEnabled: ownershipFlag && (alternate || !preview),
     mergePreviewEnabled: !preview && ownershipFlag && env.AERIS_DS_MERGE_PREVIEW_ENABLED === 'true',
+    mergeExecution: !preview && synthetic,
   };
 }
 
@@ -264,6 +272,10 @@ export async function handleDsNativeRequest(context) {
     if (op === mergePreviewOperation) {
       auditOperation = op;
       return json(await handleMergePreview(context, client, input, grant));
+    }
+    if (mergeOperations.has(op)) {
+      auditOperation = op;
+      return json(await handleAccountMerge(context,client,op,input,grant));
     }
     await securityRate(context, 'ds-native-operate', ip || client.clientId, 90, 60);
     if (op === 'register') {

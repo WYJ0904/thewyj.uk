@@ -90,16 +90,20 @@ export async function issueNativeGrant(db, client, cipher, sourceToken) {
 
 // Used inside a conditional write or read when a prior grant check can race revocation.
 export function liveNativeGrant(client, grant, now) {
+  return liveNativeGrants(client, now, { condition:'g.grant_id = ?', args:[grant] });
+}
+
+export function liveNativeGrants(client, now, { condition='1', args=[], projection='1' } = {}) {
   return {
-    sql: `SELECT 1 FROM aeris_ds_sso_grants g
+    sql: `SELECT ${projection} FROM aeris_ds_sso_grants g
       JOIN task12_sessions s ON s.token_digest = g.session_digest AND s.user_id = g.user_id
       JOIN task12_users u ON u.id = s.user_id JOIN task27_security sec ON sec.user_id = u.id
-      WHERE g.grant_id = ? AND g.issuer = ? AND g.client_id = ? AND g.redirect_uri = ?
+      WHERE (${condition}) AND g.issuer = ? AND g.client_id = ? AND g.redirect_uri = ?
         AND g.revoked_at IS NULL AND g.expires_at > ?
         AND g.session_version = u.session_version AND g.security_version = sec.version
         AND g.terms_version = ? AND g.privacy_version = ? AND g.security_policy_version = ?
         AND ${validSource}`,
-    args: [grant, client.issuer, client.clientId, client.origin, now, ...policy, now, ...policy],
+    args: [...args, client.issuer, client.clientId, client.origin, now, ...policy, now, ...policy],
   };
 }
 
