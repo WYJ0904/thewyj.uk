@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "description": "Cloudflare Pages development tooling for thewyj.uk",
   "scripts": {
+    "test:ds-sso": "npm run cf:check && node --test qa/ds-sso/provider.test.mjs",
     "test:task30": "node qa/task30/privacy-erasure.mjs",
     "test:task30:runtime": "npm run cf:check && node qa/task30/workerd.mjs",
     "test:task30:browser": "node qa/task30/browser.mjs",

@@ -18,6 +18,7 @@ import {
 import { task20DeviceDigest } from './task20-crypto.mjs';
 import { sessionStorageKey } from './task12-crypto.mjs';
 import { EmailServiceError } from './email-service.mjs';
+import { accountProfile, changeAccountProfile } from './account-profile.mjs';
 import { publicPolicyConfig, validateConsent, consentStatement } from './task27-policy.mjs';
 import { atomic, fail, hasTask27, nowIso } from './task27-store.mjs';
 import { beginStepup, challengeRow, createChallenge, requestPasswordReset, securityRate, task27EnrollmentEnabled, verifyChallenge, verifyStepup } from './task27-auth.mjs';
@@ -31,6 +32,8 @@ const ROUTES=new Map([
   ['GET /api/policies',route('public',[],()=>publicPolicyConfig())],
   ['POST /api/policies/accept',route('user',['terms_accepted','policy_versions'],async(c,a,p)=>{validateConsent(p);await consentStatement(c.env.WYJ_DB,a.id,c.data?.requestId).run();return {accepted:true};})],
   ['GET /api/security/overview',route('user',[],overview)],
+  ['GET /api/account/profile',route('user',[],accountProfile)],
+  ['POST /api/account/profile',route('user',['username','expected_revision','grant'],changeAccountProfile)],
   ['POST /api/security/stepup',route('user',['password','scope'],async(c,a,p)=>beginStepup(c,a,p,await sessionStorageKey(task20TokenFromRequest(c.request))))],
   ['POST /api/security/stepup/verify',route('user',['challenge','code'],async(c,a,p)=>verifyStepup(c,p,await sessionStorageKey(task20TokenFromRequest(c.request))))],
   ['POST /api/security/login/verify',route('public',['challenge','code'],completeLogin)],
