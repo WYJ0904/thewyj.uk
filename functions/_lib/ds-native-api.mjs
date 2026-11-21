@@ -1,4 +1,5 @@
 import { handleTask12Request } from './task12-api.mjs';
+import { handleDsOwnership, ownershipOperations } from './ds-ownership.mjs';
 import { resolveTask12Account } from './task12-auth.mjs';
 import { createSessionToken } from './task12-crypto.mjs';
 import { Task12Error } from './task12-model.mjs';
@@ -41,22 +42,39 @@ const object = value => value && typeof value === 'object' && !Array.isArray(val
 const select = (input, fields = []) => Object.fromEntries(fields.flatMap(key =>
   Object.hasOwn(input, key) ? [[key, input[key]]] : []));
 
+function previewOrigin(url, project) {
+  const [branch, projectLabel, ...suffix] = url.hostname.split('.');
+  return url.protocol === 'https:' && !url.port && /^[a-z0-9-]+$/.test(branch)
+    && projectLabel === project && suffix.join('.') === 'pages.dev';
+}
+
 function registration(env, url) {
   const { AERIS_DS_SSO_ENABLED: enabled, AERIS_DS_SSO_CLIENT_ID: clientId, AERIS_DS_SSO_CLIENT_SECRET: secret,
-    AERIS_DS_SSO_ISSUER: issuer, AERIS_DS_SSO_ORIGIN: origin } = env;
-  if (enabled !== 'true' || issuer !== url.origin || !task27EnrollmentEnabled(env)
+    AERIS_DS_SSO_ISSUER: issuer, AERIS_DS_SSO_ORIGIN: primaryOrigin } = env;
+  if (enabled !== 'true' || !task27EnrollmentEnabled(env)
     || !/^[A-Za-z0-9._-]{1,64}$/.test(clientId || '') || !/^[A-Za-z0-9_-]{43,128}$/.test(secret || '')) return null;
+
+  const preview = env.WYJ_ENVIRONMENT === 'preview';
+  const ownershipFlag = env.AERIS_DS_OWNERSHIP_ENABLED === 'true';
+  const alternate = preview && ownershipFlag && issuer !== url.origin
+    && env.AERIS_DS_OWNERSHIP_PREVIEW_HOST === url.origin;
+  if (!alternate && issuer !== url.origin) return null;
+  const origin = alternate ? env.AERIS_DS_OWNERSHIP_DS_ORIGIN : primaryOrigin;
+  if (alternate && origin === primaryOrigin) return null;
   let ds;
-  try { ds = new URL(origin); } catch { return null; }
-  if (ds.origin !== origin || origin === issuer) return null;
-  if (env.WYJ_ENVIRONMENT === 'preview') {
-    if (url.protocol !== 'https:' || ds.protocol !== 'https:' || url.port || ds.port
-      || !/^[a-z0-9-]+\.thewyj-uk\.pages\.dev$/.test(url.hostname)
-      || !/^[a-z0-9-]+\.ds-thewyj-uk\.pages\.dev$/.test(ds.hostname)) return null;
+  let identity;
+  try {
+    ds = new URL(origin);
+    identity = new URL(issuer);
+  } catch { return null; }
+  if (ds.origin !== origin || identity.origin !== issuer || origin === issuer) return null;
+  if (preview) {
+    if (![url, identity].every(host => previewOrigin(host, 'thewyj-uk')) || !previewOrigin(ds, 'ds-thewyj-uk')) return null;
   } else if (env.WYJ_ENVIRONMENT === 'development') {
     if (![url, ds].every(x => ['localhost', '127.0.0.1'].includes(x.hostname) && ['http:', 'https:'].includes(x.protocol))) return null;
   } else return null;
-  return { clientId, secret, issuer, origin };
+
+  return { clientId, secret, issuer, origin, ownershipEnabled: ownershipFlag && (alternate || !preview) };
 }
 
 async function boundedBody(request) {
@@ -223,6 +241,10 @@ export async function handleDsNativeRequest(context) {
       return json({ stage: 'signin_required' }, 201);
     }
     const cipher = await envelopeCipher(env.AERIS_DS_NATIVE_SEAL_KEY);
+    if (ownershipOperations.has(op)) {
+      auditOperation = op;
+      return json(await handleDsOwnership(context, client, cipher, op, input, grant, binding, ip));
+    }
     if (loginActions.has(op)) {
       auditOperation = op;
       return json(await unauthenticated(context, client, cipher, op, input, binding, ip));

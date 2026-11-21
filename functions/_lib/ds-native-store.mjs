@@ -36,17 +36,18 @@ export async function reserveNonce(db, nonce) {
   return result[1].meta.changes === 1;
 }
 
-export async function saveEnvelope(db, cipher, kind, id, owner, token, expiry) {
+export async function saveEnvelope(db, cipher, kind, id, owner, token, expiry, replace = true) {
   const key = await sessionStorageKey(id);
   const sealed = await cipher.seal(kind, key, owner, token);
-  await db.batch([
+  const results = await db.batch([
     stmt(db, `DELETE FROM aeris_ds_native_envelopes WHERE (kind,id) IN (
       SELECT kind,id FROM aeris_ds_native_envelopes WHERE expires_at <= ? ORDER BY expires_at LIMIT 100
     )`, [unixTime()]),
     stmt(db, `INSERT INTO aeris_ds_native_envelopes(kind,id,owner,sealed,expires_at) VALUES(?,?,?,?,?)
       ON CONFLICT(kind,id) DO UPDATE SET sealed=excluded.sealed,expires_at=excluded.expires_at
-      WHERE owner=excluded.owner`, [kind, key, owner, sealed, expiry]),
+      WHERE owner=excluded.owner AND ?`, [kind, key, owner, sealed, expiry, replace ? 1 : 0]),
   ]);
+  return results[1].meta.changes === 1;
 }
 
 export async function readEnvelope(db, cipher, kind, id, owner) {
@@ -85,6 +86,21 @@ export async function issueNativeGrant(db, client, cipher, sourceToken) {
   ]);
   const row = results[0].results[0];
   return row ? claims(row) : null;
+}
+
+// Used inside a conditional write or read when a prior grant check can race revocation.
+export function liveNativeGrant(client, grant, now) {
+  return {
+    sql: `SELECT 1 FROM aeris_ds_sso_grants g
+      JOIN task12_sessions s ON s.token_digest = g.session_digest AND s.user_id = g.user_id
+      JOIN task12_users u ON u.id = s.user_id JOIN task27_security sec ON sec.user_id = u.id
+      WHERE g.grant_id = ? AND g.issuer = ? AND g.client_id = ? AND g.redirect_uri = ?
+        AND g.revoked_at IS NULL AND g.expires_at > ?
+        AND g.session_version = u.session_version AND g.security_version = sec.version
+        AND g.terms_version = ? AND g.privacy_version = ? AND g.security_policy_version = ?
+        AND ${validSource}`,
+    args: [grant, client.issuer, client.clientId, client.origin, now, ...policy, now, ...policy],
+  };
 }
 
 export async function nativeGrantStatus(db, client, grant) {
