@@ -151,6 +151,7 @@
     "production": {
       "vars": {
         "WYJ_ENVIRONMENT": "production",
+        "AERIS_DS_SSO_ENABLED": "false",
         "CLOUD_FOUNDATION_ENABLED": "true",
         "CLOUD_STATUS_MODE": "cloud",
         "CLOUD_READS_ENABLED": "true",

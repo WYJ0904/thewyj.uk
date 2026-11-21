@@ -18,6 +18,11 @@ import {
 
 const route = '/api/internal/ds-identity/v1';
 const noStore = { 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer', 'X-Content-Type-Options': 'nosniff' };
+const productionIssuer = 'https://thewyj.uk';
+const productionOrigin = 'https://ds.thewyj.uk';
+const productionClientId = 'ds-production-v1';
+const productionSecretPrefix = 'dsprod_v1_';
+const nativeActions = new Set(['policies', 'register', 'introspect', 'revoke']);
 const scopes = new Set(['profile_change', 'password_change', 'email_change', 'mfa_change', 'recovery_regenerate', 'sessions_revoke']);
 const loginActions = new Set(['login', 'login_verify', 'password_force', 'policy_accept', 'recovery_start', 'recovery_finish']);
 const accountActions = new Map([
@@ -61,7 +66,17 @@ function registration(env, url) {
   const { AERIS_DS_SSO_ENABLED: enabled, AERIS_DS_SSO_CLIENT_ID: clientId, AERIS_DS_SSO_CLIENT_SECRET: secret,
     AERIS_DS_SSO_ISSUER: issuer, AERIS_DS_SSO_ORIGIN: primaryOrigin } = env;
   if (enabled !== 'true' || !task27EnrollmentEnabled(env)
-    || !/^[A-Za-z0-9._-]{1,64}$/.test(clientId || '') || !/^[A-Za-z0-9_-]{43,128}$/.test(secret || '')) return null;
+    || typeof clientId !== 'string' || !/^[A-Za-z0-9._-]{1,64}$/.test(clientId)
+    || typeof secret !== 'string' || !/^[A-Za-z0-9_-]{43,128}$/.test(secret)) return null;
+
+  const productionSecret = secret.startsWith(productionSecretPrefix);
+  if (env.WYJ_ENVIRONMENT === 'production') {
+    if (issuer !== productionIssuer || primaryOrigin !== productionOrigin
+      || url.origin !== productionIssuer || clientId !== productionClientId
+      || !productionSecret || !/^[A-Za-z0-9_-]{43,86}$/.test(secret.slice(productionSecretPrefix.length))) return null;
+    return { clientId, secret, issuer, origin: primaryOrigin, production: true };
+  }
+  if (clientId === productionClientId || productionSecret) return null;
 
   const preview = env.WYJ_ENVIRONMENT === 'preview';
   const ownershipFlag = env.AERIS_DS_OWNERSHIP_ENABLED === 'true';
@@ -248,6 +263,13 @@ export async function handleDsNativeRequest(context) {
   if (url.pathname !== route) return null;
   const primary = registration(env, url);
   if (!primary) return json({ error: 'not_found' }, 404);
+  if (primary.production) {
+    const host = request.headers.get('Host');
+    if (host !== null && host !== url.host) return json({ error: 'not_found' }, 404);
+    if (request.headers.has('Origin') || request.headers.has('Cookie')) {
+      return json({ error: 'invalid_client' }, 401);
+    }
+  }
   if (request.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
   if (url.search) return json({ error: 'invalid_request' }, 400);
   let auditOperation = 'invalid';
@@ -265,6 +287,9 @@ export async function handleDsNativeRequest(context) {
     try { envelope = JSON.parse(raw); } catch { throw error('invalid_request', 400); }
     if (!object(envelope) || !object(envelope.input)) throw error('invalid_request', 400);
     const { op, input, binding, grant } = envelope;
+    if (client.production && !nativeActions.has(op) && !loginActions.has(op) && !accountActions.has(op)) {
+      return json({ error: 'not_found' }, 404);
+    }
     const ip = typeof envelope.ip === 'string' && /^[0-9a-f:.]{1,45}$/i.test(envelope.ip) ? envelope.ip : '';
     if (op === 'introspect' || op === 'revoke') {
       auditOperation = op;

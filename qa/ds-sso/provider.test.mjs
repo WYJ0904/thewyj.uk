@@ -55,10 +55,11 @@ function signed(op, input = {}, binding = {}, options = {}) {
   const body = JSON.stringify({ op, input, ...binding, ip: options.ip ?? '127.0.0.1' });
   const stamp = String(options.stamp ?? Math.floor(Date.now() / 1000));
   const nonce = token();
+  const registeredId = options.clientId ?? clientId;
   const proof = createHmac('sha256', options.secret ?? secret)
-    .update(['ds-native-v1', options.issuer ?? issuer, options.origin ?? origin, clientId, stamp, nonce, body].join('\n')).digest('base64url');
+    .update(['ds-native-v1', options.issuer ?? issuer, options.origin ?? origin, registeredId, stamp, nonce, body].join('\n')).digest('base64url');
   return { method: 'POST', body, headers: {
-    'Content-Type': 'application/json', 'X-DS-Time': stamp, 'X-DS-Nonce': nonce, 'X-DS-Client': clientId, 'X-DS-Proof': proof,
+    'Content-Type': 'application/json', 'X-DS-Time': stamp, 'X-DS-Nonce': nonce, 'X-DS-Client': registeredId, 'X-DS-Proof': proof,
   } };
 }
 
@@ -131,6 +132,88 @@ test('disabled legacy endpoints, exact registration, signed body, expiry and sin
   ]);
   assert.deepEqual(duplicate.map(r => r.status).sort(), [200, 409]);
   assert.equal((await identity('profile', {}, { grant: token() })).status, 401);
+});
+
+test('formal native registration scopes signed requests and current grants to the production tuple', async () => {
+  const production = {
+    issuer: 'https://thewyj.uk', origin: 'https://ds.thewyj.uk',
+    clientId: 'ds-production-v1', secret: 'dsprod_v1_' + token(), ip: '192.0.2.210',
+  };
+  const env = {
+    ...bindings, WYJ_DB: db, WYJ_ENVIRONMENT: 'production',
+    AERIS_DS_SSO_ISSUER: production.issuer, AERIS_DS_SSO_ORIGIN: production.origin,
+    AERIS_DS_SSO_CLIENT_ID: production.clientId, AERIS_DS_SSO_CLIENT_SECRET: production.secret,
+    AERIS_DS_OWNERSHIP_REVIEW_ENABLED: 'true', AERIS_DS_MERGE_PREVIEW_ENABLED: 'true', AERIS_DS_MERGE_SANDBOX: token(),
+  };
+  const request = (url, init, variables = env) => onRequest({
+    env: variables, data: {}, request: new Request(url, init), waitUntil() {},
+  }).then(payload);
+  const endpoint = production.issuer + path;
+  const call = (op, input, fields) => request(endpoint, signed(op, input, fields, production));
+  const policyRequest = () => signed('policies', {}, {}, production);
+
+  assert.equal(config.env.production.vars.AERIS_DS_SSO_ENABLED, 'false');
+  for (const overrides of [
+    { AERIS_DS_SSO_ENABLED: 'false' },
+    { AERIS_DS_SSO_ISSUER: 'https://www.thewyj.uk' },
+    { AERIS_DS_SSO_ORIGIN: 'https://preview.ds-thewyj-uk.pages.dev' },
+    { AERIS_DS_SSO_CLIENT_ID: clientId },
+    { AERIS_DS_SSO_CLIENT_SECRET: secret },
+  ]) assert.equal((await request(endpoint, policyRequest(), { ...env, ...overrides })).status, 404);
+  assert.equal((await request('https://thewyj-uk.pages.dev' + path, policyRequest())).status, 404);
+  assert.equal((await request(issuer + path, signed('policies', {}, {}, { secret: production.secret }), {
+    ...bindings, WYJ_DB: db, AERIS_DS_SSO_CLIENT_SECRET: production.secret,
+  })).status, 404);
+  for (const headers of [{ Origin: production.origin }, { Cookie: 'fixture=1' }]) {
+    const init = policyRequest();
+    assert.equal((await request(endpoint, { ...init, headers: { ...init.headers, ...headers } })).status, 401);
+  }
+  const correctlySigned = policyRequest();
+  for (const host of ['thewyj-uk.pages.dev', 'thewyj.uk:443']) {
+    assert.equal((await request(endpoint, {
+      ...correctlySigned, headers: { ...correctlySigned.headers, Host: host },
+    })).status, 404);
+  }
+  assert.equal((await request(endpoint, {
+    ...correctlySigned, headers: { ...correctlySigned.headers, Host: 'thewyj.uk' },
+  })).status, 200);
+  assert.equal((await request(endpoint, correctlySigned)).status, 409);
+  for (const overrides of [{ issuer }, { origin }, { clientId }, { secret }]) {
+    assert.equal((await request(endpoint, signed('policies', {}, {}, { ...production, ...overrides }))).status, 401);
+  }
+  const preview = {
+    issuer: 'https://preview.thewyj-uk.pages.dev', origin: 'https://preview.ds-thewyj-uk.pages.dev',
+  };
+  for (const invalid of [{ secret: production.secret }, { clientId: production.clientId }]) {
+    assert.equal((await request(preview.issuer + path, signed('policies', {}, {}, { ...preview, ...invalid }), {
+      ...bindings, WYJ_DB: db, WYJ_ENVIRONMENT: 'preview',
+      AERIS_DS_SSO_ISSUER: preview.issuer, AERIS_DS_SSO_ORIGIN: preview.origin,
+      AERIS_DS_SSO_CLIENT_ID: invalid.clientId ?? clientId, AERIS_DS_SSO_CLIENT_SECRET: invalid.secret ?? secret,
+    })).status, 404);
+  }
+  assert.equal((await request(production.issuer + '/api/admin/ds-ownership-review/v1', policyRequest())).status, 404);
+  for (const op of ['ownership_start', 'ownership_review_start', 'merge_preview_accounts', 'merge09_status', 'eligibility10_verify_merge']) {
+    assert.equal((await call(op, {}, { grant: token() })).status, 404);
+  }
+
+  const username = 'native-production-fixture';
+  assert.equal((await call('register', {
+    username, secret: password, confirm_secret: password, terms_accepted: true, policy_versions: POLICY_VERSIONS,
+  })).status, 201);
+  const result = await call('login', { username, secret: password }, { binding: token() });
+  assert.equal(result.status, 200, JSON.stringify(result.body));
+  assert.equal(result.body.stage, 'authenticated');
+  const { iss, aud, sub, grant_id: grant } = result.body.claims;
+  assert.equal(iss, production.issuer);
+  assert.equal(aud, production.clientId);
+  assert.equal((await call('profile', {}, { grant })).body.username, username);
+  assert.deepEqual((await identity('introspect', {}, { grant })).body, { active: false });
+  const localActor = await login(username);
+  assert.equal(localActor.claims.sub, sub);
+  assert.deepEqual((await call('introspect', {}, { grant: localActor.grant })).body, { active: false });
+  await db.prepare('UPDATE task27_security SET version=version+1 WHERE user_id=?').bind(sub).run();
+  assert.deepEqual((await call('introspect', {}, { grant })).body, { active: false });
+  assert.equal((await call('profile', {}, { grant })).status, 401);
 });
 
 test('DS registration creates one Aeris account; only successful Aeris login issues a grant', async () => {
