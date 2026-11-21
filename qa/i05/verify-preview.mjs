@@ -1,36 +1,99 @@
 import assert from "node:assert/strict";
-import { spawn, spawnSync } from "node:child_process";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { openPage, delay } from "../../local-backend/browser_harness.mjs";
+import { exerciseReleaseChannel, pngProof, verifyAdminColumns, viewportProof } from "./browser-proofs.mjs";
 
 const ROOT = path.resolve(import.meta.dirname, "../..");
-const STAGE_PATH = path.join(ROOT, "docs", "ui-rebuild", "i05", "evidence", "i05-preview-stage.json");
+const STAGE_PATH = process.env.I05_PREVIEW_STAGE_FILE ||
+  path.join(ROOT, "docs", "ui-rebuild", "i05", "evidence", "i05-preview-stage.json");
 const D1_CONFIG_PATH = path.join(ROOT, ".wrangler", "i05-preview-d1.jsonc");
 const D1_NAME = "aeris-i05-preview";
-const PRODUCTION_DB_ID = "11c288d8-c584-409f-bb1f-7e7af11793e5";
+const PROJECT = "thewyj-i05-preview";
+const ACCOUNT_ID = "97c274a981e8dd6703aa6388e11c4614";
+const D1_ID = "9e76a190-42db-4ff1-b0b7-476e4b312792";
 const WRANGLER = path.join(ROOT, "node_modules", "wrangler", "bin", "wrangler.js");
-const EVIDENCE_DIR = path.join(ROOT, "docs", "ui-rebuild", "i05", "evidence", "preview");
-const CREDS_FILE = process.env.I05_PREVIEW_CREDS_FILE
-  || "C:\\Users\\78252\\.gemini\\antigravity\\brain\\48514f9a-c549-4c3a-8081-c6b7a3fff6d9\\scratch\\i05-preview-admin.local.txt";
+const EVIDENCE_ROOT = path.join(ROOT, ".wrangler", "i05-hosted-runs");
+const mode = process.argv[2];
+assert.ok(process.argv.length === 3 && ["--source-only", "--fixture-writes"].includes(mode),
+  "Select --source-only for read-only source verification or --fixture-writes for isolated app/D1 mutations");
 
-await mkdir(EVIDENCE_DIR, { recursive: true });
+const staged = JSON.parse(await readFile(STAGE_PATH, "utf8"));
+const expectedCommit = process.env.I05_EXPECTED_SOURCE_COMMIT ||
+  execFileSync("git", ["rev-parse", "HEAD"], { cwd: ROOT, encoding: "utf8" }).trim();
+assert.match(expectedCommit, /^[0-9a-f]{40}$/);
+const deploymentId = staged.deployResult?.deploymentId;
+assert.match(deploymentId ?? "", /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/, "Missing staged deployment UUID");
+assert.equal(staged.buildJson?.source_commit, expectedCommit, "Staging record belongs to a different source commit");
+assert.equal(staged.buildJson.project_name, PROJECT);
+assert.equal(staged.buildJson.environment, "isolated-preview");
+assert.equal(staged.buildJson.remote_check?.verified, true);
+assert.equal(staged.buildJson.remote_check?.targetD1Name, D1_NAME);
+assert.equal(staged.buildJson.remote_check?.targetD1Id, D1_ID);
+assert.equal(staged.deployResult?.deployedD1Id, D1_ID);
+assert.match(staged.buildJson.artifact_tree_sha256 || "", /^[0-9a-f]{64}$/);
 
-let baseUrl = process.env.I05_PREVIEW_URL || "";
-if (!baseUrl) {
-  try {
-    const staged = JSON.parse(await readFile(STAGE_PATH, "utf8"));
-    baseUrl = staged.deployResult?.aliasUrl || staged.deployResult?.deployedUrl || "";
-  } catch (_) {}
+const parsedUrl = new URL(process.env.I05_PREVIEW_URL || staged.deployResult.deployedUrl);
+assert.equal(parsedUrl.href, `https://${deploymentId.slice(0, 8)}.${PROJECT}.pages.dev/`,
+  "Use the exact immutable isolated Preview deployment URL");
+const baseUrl = parsedUrl.origin;
+const auth = spawnSync(process.execPath, [WRANGLER, "auth", "token", "--json"], {
+  cwd: ROOT, encoding: "utf8", timeout: 30_000,
+});
+assert.equal(auth.status, 0, "Wrangler did not supply the Preview read credential");
+const authOutput = JSON.parse(auth.stdout);
+const token = authOutput.token || authOutput.oauth_token || authOutput.api_token;
+assert.ok(token, "Cloudflare credential unavailable");
+const cf = async (endpoint) => {
+  const response = await fetch(`https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}${endpoint}`, {
+    headers: { Authorization: `Bearer ${token}` }, redirect: "error", signal: AbortSignal.timeout(20_000),
+  });
+  const result = await response.json().catch(() => null);
+  assert.ok(response.ok && result?.success === true, `Cloudflare Preview metadata unavailable (HTTP ${response.status})`);
+  return result.result;
+};
+const [deployment, database] = await Promise.all([
+  cf(`/pages/projects/${PROJECT}/deployments/${deploymentId}`),
+  cf(`/d1/database/${D1_ID}`),
+]);
+assert.equal(database.uuid, D1_ID);
+assert.equal(database.name, D1_NAME);
+assert.equal(deployment.id, deploymentId);
+assert.equal(deployment.project_name, PROJECT);
+assert.equal(deployment.url, baseUrl);
+assert.equal(deployment.environment, "preview");
+assert.equal(deployment.latest_stage?.status, "success");
+assert.equal(deployment.deployment_trigger?.metadata?.branch, staged.buildJson.branch);
+assert.equal(deployment.deployment_trigger?.metadata?.commit_hash, expectedCommit);
+assert.equal(deployment.d1_databases?.WYJ_DB?.id, D1_ID);
+assert.deepEqual(Object.keys(deployment.d1_databases), ["WYJ_DB"]);
+assert.equal(Object.keys(deployment.r2_buckets || {}).length, 0);
+assert.equal(Object.keys(deployment.ai_bindings || {}).length, 0);
+assert.equal(deployment.env_vars?.WORKERS_AI_ENABLED?.value, "false");
+assert.equal(deployment.env_vars?.EMAIL_SENDING_ENABLED?.value, "false");
+
+const getPublic = (pathname) => fetch(baseUrl + pathname, { redirect: "error", signal: AbortSignal.timeout(15_000) });
+const buildResponse = await getPublic("/__preview/build.json");
+assert.equal(buildResponse.status, 200, "Missing Preview build manifest");
+const buildJson = await buildResponse.json();
+assert.deepEqual(buildJson, staged.buildJson, "Served manifest differs from the staging record");
+await mkdir(EVIDENCE_ROOT, { recursive: true });
+const EVIDENCE_DIR = await mkdtemp(path.join(EVIDENCE_ROOT, "run-"));
+const sourceEvidence = {
+  checkedAt: new Date().toISOString(),
+  deploymentId, sourceCommit: expectedCommit, previewUrl: baseUrl, branch: buildJson.branch,
+  d1Id: D1_ID, d1Name: D1_NAME, artifactTreeSha256: buildJson.artifact_tree_sha256,
+};
+if (mode === "--source-only") {
+  await writeFile(path.join(EVIDENCE_DIR, "i05-preview-source.json"), `${JSON.stringify(sourceEvidence, null, 2)}\n`);
+  console.log(JSON.stringify({ status: "PASS", sourceEvidence, evidenceDir: EVIDENCE_DIR }));
+  process.exit(0);
 }
-if (!baseUrl) baseUrl = "https://i05-workspace-density.thewyj-i05-preview.pages.dev";
 
-const parsedUrl = new URL(baseUrl);
-assert.equal(parsedUrl.protocol, "https:");
-assert.notEqual(parsedUrl.hostname, "thewyj.uk", "Must NEVER verify Preview against Production");
-assert.ok(parsedUrl.hostname.includes("thewyj-i05-preview.pages.dev"), `Unexpected preview host: ${parsedUrl.hostname}`);
-
+const CREDS_FILE = process.env.I05_PREVIEW_CREDS_FILE;
+assert.ok(CREDS_FILE, "Use I05_PREVIEW_CREDS_FILE for the authorized synthetic accounts");
 const rawCreds = await readFile(CREDS_FILE, "utf8");
 const creds = {};
 for (const line of rawCreds.split(/\r?\n/)) {
@@ -47,7 +110,8 @@ assert.ok(memberPass && memberPass.length >= 16, "Missing isolated member passwo
 // Verify D1 config points only to aeris-i05-preview, never Production
 const d1Cfg = JSON.parse(await readFile(D1_CONFIG_PATH, "utf8"));
 assert.equal(d1Cfg.d1_databases?.[0]?.database_name, D1_NAME);
-assert.ok(d1Cfg.d1_databases?.[0]?.database_id && d1Cfg.d1_databases[0].database_id !== PRODUCTION_DB_ID);
+assert.equal(d1Cfg.d1_databases?.length, 1);
+assert.equal(d1Cfg.d1_databases[0].database_id, D1_ID);
 
 function d1ExecRemote(sql) {
   const res = spawnSync(
@@ -59,14 +123,11 @@ function d1ExecRemote(sql) {
   return res.stdout;
 }
 
-const apiStatus = await fetch(`${baseUrl}/api/status`).then((r) => r.json());
-const apiHealth = await fetch(`${baseUrl}/api/health`).then((r) => r.json());
-const uiFeatures = await fetch(`${baseUrl}/api/ui/features`).then((r) => r.json());
-const buildJson = await fetch(`${baseUrl}/__preview/build.json`).then((r) => r.json());
+const apiStatus = await getPublic("/api/status").then((r) => r.json());
+const healthResponse = await getPublic("/api/health");
+const uiFeatures = await getPublic("/api/ui/features").then((r) => r.json());
 assert.equal(apiStatus.ok, true, `Unexpected /api/status: ${JSON.stringify(apiStatus)}`);
 assert.equal(uiFeatures.public_ui?.enabled, true, "Isolated Hosted Preview must start with p07_accessibility ON");
-assert.equal(buildJson.project_name, "thewyj-i05-preview");
-assert.equal(buildJson.remote_check?.targetD1Name, D1_NAME);
 
 const axeSource = await readFile(path.join(ROOT, "qa", "p07-f", "vendor", "axe.min.js"), "utf8");
 const profile = await mkdtemp(path.join(os.tmpdir(), "aeris-i05-preview-chrome-"));
@@ -90,10 +151,12 @@ const report = {
   previewUrl: baseUrl,
   checkedAt: new Date().toISOString(),
   apiStatus: { ok: apiStatus.ok, environment: apiStatus.environment },
-  apiHealthOk: Boolean(apiHealth?.ok ?? true),
+  apiHealthOk: healthResponse.ok,
+  apiHealthStatus: healthResponse.status,
   uiFeaturesPublicEnabled: Boolean(uiFeatures.public_ui?.enabled),
   verifiedSourceCommit: buildJson.source_commit || "",
   buildJson,
+  sourceEvidence,
   routesChecked: [],
   adminChecks: {},
   accountChecks: {},
@@ -101,6 +164,7 @@ const report = {
   p07ToggleChecks: {},
   axeScans: [],
   screenshots: [],
+  screenshotProvenance: [],
   runtimeErrors: [],
   production_release: "NOT_TOUCHED",
 };
@@ -129,9 +193,17 @@ try {
     // Ensure no password input is currently visible before capturing evidence
     const pwVisible = await targetPage.evaluate("[...document.querySelectorAll('input[type=password]')].some(el => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(el).display !== 'none'; })");
     assert.equal(pwVisible, false, `Refusing screenshot ${name} while a password input is visible`);
+    const viewport = await viewportProof(targetPage);
     const data = await targetPage.send("Page.captureScreenshot", { format: "png", captureBeyondViewport: false });
-    await writeFile(path.join(EVIDENCE_DIR, name), Buffer.from(data.data, "base64"));
+    const png = Buffer.from(data.data, "base64");
+    const pixels = pngProof(png);
+    const expectedWidth = Number(/^preview-(\d+)-/.exec(name)?.[1]);
+    assert.deepEqual([pixels.width, pixels.height], [viewport.width, viewport.height], `Screenshot viewport mismatch for ${name}`);
+    assert.equal(pixels.width, expectedWidth, `Screenshot name width mismatch for ${name}`);
+    await writeFile(path.join(EVIDENCE_DIR, name), png, { flag: "wx" });
     report.screenshots.push(name);
+    report.screenshotProvenance.push({ name, ...pixels, viewport,
+      pathname: await targetPage.evaluate("location.pathname") });
   };
   const pointerClick = async (selector, targetPage = page) => {
     const hit = await targetPage.evaluate(`(() => {
@@ -263,29 +335,7 @@ try {
 
   // /account B02 release channel persistence check (change -> save -> reload -> restore)
   await pointerClick('#v3Sidebar [data-v3-nav="account"]');
-  await page.waitFor("document.body.dataset.workspaceRoute === 'account' && !document.querySelector('#accountModal')?.classList.contains('hidden') && !document.querySelector('#releaseChannelSelect')?.disabled", 15_000);
-  const initialChannel = await page.evaluate("document.getElementById('releaseChannelSelect').value");
-  const nextChannel = initialChannel === "beta" ? "experimental" : "beta";
-  await page.evaluate(`(() => {
-    const sel = document.getElementById('releaseChannelSelect');
-    sel.value = ${JSON.stringify(nextChannel)};
-    sel.dispatchEvent(new Event('change', { bubbles: true }));
-  })()`);
-  await pointerClick("#saveReleaseChannelBtn");
-  await page.waitFor("document.querySelector('#releaseChannelStatus')?.textContent?.includes('体验通道已保存') && !document.querySelector('#saveReleaseChannelBtn')?.disabled", 15_000, "preview release channel saved");
-  await page.navigate("/account");
-  await page.waitFor("document.documentElement.dataset.bootState === 'ready' && document.body.dataset.workspaceRoute === 'account' && !document.querySelector('#releaseChannelSelect')?.disabled && !document.querySelector('#releaseChannelStatus')?.textContent?.includes('正在读取')", 20_000, "preview reloaded account");
-  const reloadedChannel = await page.evaluate("document.getElementById('releaseChannelSelect').value");
-  assert.equal(reloadedChannel, nextChannel, `Preview release channel did not persist across reload: ${reloadedChannel} !== ${nextChannel}`);
-  await page.evaluate(`(() => {
-    const sel = document.getElementById('releaseChannelSelect');
-    sel.value = ${JSON.stringify(initialChannel)};
-    sel.dispatchEvent(new Event('change', { bubbles: true }));
-  })()`);
-  await pointerClick("#saveReleaseChannelBtn");
-  await page.waitFor("document.querySelector('#releaseChannelStatus')?.textContent?.includes('体验通道已保存') && !document.querySelector('#saveReleaseChannelBtn')?.disabled", 15_000, "preview release channel restored");
-  const releaseChannelStatus = await page.evaluate("document.querySelector('#releaseChannelStatus')?.textContent?.trim() || ''");
-  report.accountChecks = { initialChannel, nextChannel, reloadedChannel, restoredChannel: initialChannel, releaseChannelStatus };
+  report.accountChecks = await exerciseReleaseChannel(page, pointerClick);
   await shot("preview-1440-account.png");
   await runAxe("preview-1440-account");
 
@@ -329,22 +379,10 @@ try {
   await page.evaluate("window.scrollTo(0, 0)");
   await settle();
 
-  const usersAlign = await page.evaluate(`(() => {
-    const head = document.querySelector('#adminUsersView .admin-list-head[data-admin-cols="users"]');
-    const row = document.querySelector('#adminUserList > .admin-user-card');
-    const drifts = [...head.children].map((sp, i) => Math.abs(sp.getBoundingClientRect().left - row.children[i].getBoundingClientRect().left));
-    return { drifts, maxDrift: Math.max(...drifts, 0) };
-  })()`);
-  assert.ok(usersAlign.maxDrift <= 1.5, `Preview Users header-row drift > 1.5px: ${JSON.stringify(usersAlign)}`);
+  const usersAlign = await verifyAdminColumns(page, "users", "#adminUserList > .admin-user-card", true);
   await pointerClick("#adminLoginTab");
   await page.waitFor("document.querySelectorAll('#adminLoginList .admin-login-card').length > 0", 15_000, "preview login rows ready");
-  const loginAlign = await page.evaluate(`(() => {
-    const head = document.querySelector('#adminLoginView .admin-list-head[data-admin-cols="login"]');
-    const row = document.querySelector('#adminLoginList > .admin-login-card');
-    const drifts = [...head.children].map((sp, i) => Math.abs(sp.getBoundingClientRect().left - row.children[i].getBoundingClientRect().left));
-    return { drifts, maxDrift: Math.max(...drifts, 0) };
-  })()`);
-  assert.ok(loginAlign.maxDrift <= 1.5, `Preview Login header-row drift > 1.5px: ${JSON.stringify(loginAlign)}`);
+  const loginAlign = await verifyAdminColumns(page, "login", "#adminLoginList > .admin-login-card");
 
   await pointerClick("#adminFeatureFlagsTab");
   await page.waitFor(
@@ -450,9 +488,14 @@ try {
 
   report.runtimeErrors = page.runtimeErrors.slice();
   assert.equal(report.runtimeErrors.length, 0, `Preview runtime errors: ${JSON.stringify(report.runtimeErrors)}`);
-  await writeFile(path.join(ROOT, "docs", "ui-rebuild", "i05", "evidence", "i05-preview-verify.json"), `${JSON.stringify(report, null, 2)}\n`);
-  console.log(JSON.stringify({ status: "PASS", previewUrl: baseUrl, axeScans: report.axeScans.length, screenshots: report.screenshots.length }, null, 2));
+  report.status = "PASS";
+  console.log(JSON.stringify({ status: "PASS", previewUrl: baseUrl, axeScans: report.axeScans.length, screenshots: report.screenshots.length, evidenceDir: EVIDENCE_DIR }, null, 2));
+} catch (error) {
+  report.status = "FAIL";
+  report.error = error.message;
+  throw error;
 } finally {
+  await writeFile(path.join(EVIDENCE_DIR, "i05-preview-verify.json"), `${JSON.stringify(report, null, 2)}\n`);
   if (userPage) await userPage.close().catch(() => {});
   if (page) await page.close().catch(() => {});
   child.kill("SIGKILL");

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { createServer } from "node:http";
-import { mkdir, mkdtemp, readFile, readdir, rm, unlink, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rename, rm, unlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { Miniflare } from "miniflare";
@@ -10,7 +10,7 @@ import { onRequest } from "../../functions/api/[[path]].js";
 import { onRequest as status } from "../../functions/api/status.js";
 import { isAllowedPagesFile } from "../../scripts/stage_pages_deploy.mjs";
 import { hashSecret } from "../../functions/_lib/task12-crypto.mjs";
-import { assertViewport, captureSource, exerciseReleaseChannel, pngProof, viewportProof } from "./browser-proofs.mjs";
+import { assertViewport, captureSource, exerciseReleaseChannel, pngProof, verifyAdminColumns, viewportProof } from "./browser-proofs.mjs";
 
 const root = path.resolve(import.meta.dirname, "../..");
 const evidenceRoot = path.join(root, ".wrangler", "i05-local-runs");
@@ -837,36 +837,15 @@ try {
     await settle();
 
     // A05 & A06: Header presence across 5 admin list tabs & column start alignment on Users and Login rows
-    const headAlignment = await page.evaluate(`(() => {
-      const checkView = (viewSel, headColsAttr, rowSel) => {
-        const view = document.querySelector(viewSel);
-        const head = view?.querySelector('.admin-list-head[data-admin-cols="' + headColsAttr + '"]');
-        const row = view?.querySelector(rowSel);
-        if (!head || !row) return { present: Boolean(head), hasRow: Boolean(row), maxDrift: 0 };
-        const hSpans = [...head.children];
-        const rCols = [...row.children];
-        const drifts = hSpans.slice(0, Math.min(hSpans.length, rCols.length)).map((sp, i) =>
-          Math.abs(sp.getBoundingClientRect().left - rCols[i].getBoundingClientRect().left)
-        );
-        return { present: true, hasRow: true, cols: drifts.length, drifts, maxDrift: Math.max(...drifts, 0) };
-      };
-      return {
-        users: checkView('#adminUsersView', 'users', '#adminUserList > .admin-user-card'),
-        hasHeads: ['users', 'recharge', 'audit', 'login', 'tools'].every((k) => Boolean(document.querySelector('.admin-list-head[data-admin-cols="' + k + '"]'))),
-      };
-    })()`);
-    assert.equal(headAlignment.hasHeads, true, "Missing data-admin-cols structural headers");
-    assert.ok(headAlignment.users.hasRow && headAlignment.users.maxDrift <= 1.5, `Users column alignment drift > 1.5px: ${JSON.stringify(headAlignment.users)}`);
+    const hasHeads = await page.evaluate(`['users', 'recharge', 'audit', 'login', 'tools']
+      .every(key => Boolean(document.querySelector('.admin-list-head[data-admin-cols="' + key + '"]')))`);
+    assert.equal(hasHeads, true, "Missing data-admin-cols structural headers");
+    const userAlignment = await verifyAdminColumns(page, "users", "#adminUserList > .admin-user-card", true);
+    const headAlignment = { hasHeads, users: userAlignment };
 
     await pointerClick("#adminLoginTab");
     await page.waitFor("document.querySelectorAll('#adminLoginList .admin-login-card').length > 0", 10_000, "admin login rows loaded");
-    const loginAlignment = await page.evaluate(`(() => {
-      const head = document.querySelector('#adminLoginView .admin-list-head[data-admin-cols="login"]');
-      const row = document.querySelector('#adminLoginList > .admin-login-card');
-      const drifts = [...head.children].map((sp, i) => Math.abs(sp.getBoundingClientRect().left - row.children[i].getBoundingClientRect().left));
-      return { drifts, maxDrift: Math.max(...drifts, 0) };
-    })()`);
-    assert.ok(loginAlignment.maxDrift <= 1.5, `Login column alignment drift > 1.5px: ${JSON.stringify(loginAlignment)}`);
+    const loginAlignment = await verifyAdminColumns(page, "login", "#adminLoginList > .admin-login-card");
     await pointerClick("#adminUsersTab");
 
     const tabTrail = [];
@@ -1060,7 +1039,7 @@ try {
         for (const [w, h] of viewports) {
           const key = `${w}:${theme}:${spec.nav}`;
           await setViewport(w, h, page, !namedShots.has(key));
-        const observedViewport = await assertViewport(page, w, h);
+          const observedViewport = await assertViewport(page, w, h);
           const cell = await page.evaluate(`(() => {
             const sb = document.getElementById('v3Sidebar');
             const sbr = sb ? sb.getBoundingClientRect() : null;
@@ -1252,7 +1231,9 @@ try {
   report.error = error.message;
   throw error;
 } finally {
-  await writeFile(path.join(evidenceDir, "i05-acceptance-report.json"), `${JSON.stringify(report, null, 2)}\n`);
+  const pendingEvidence = path.join(evidenceDir, "i05-acceptance-report.json.tmp");
+  await writeFile(pendingEvidence, `${JSON.stringify(report, null, 2)}\n`, { flag: "wx" });
+  await rename(pendingEvidence, path.join(evidenceDir, "i05-acceptance-report.json"));
   console.log(`I05 evidence: ${evidenceDir}`);
   if (userPage) await userPage.close().catch(() => {});
   if (page) await page.close().catch(() => {});
