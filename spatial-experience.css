@@ -206,20 +206,18 @@ html[data-p07-ui="enabled"] .v3-sidebar-nav a {
     color var(--ds-duration-fast) var(--ds-ease-standard);
 }
 
-/* Visual separation between product workspace modules and account/admin controls */
-html[data-p07-ui="enabled"] .v3-sidebar-nav a[data-v3-nav="recharge"] {
-  margin-top: 10px;
-  padding-top: 2px;
+/* Grouped navigation titles inside #v3Sidebar */
+html[data-p07-ui="enabled"] .v3-sidebar-group-title {
+  margin: 12px 0 4px;
+  padding: 0 14px;
+  color: var(--ds-text-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
 }
 
-html[data-p07-ui="enabled"] .v3-sidebar-nav a[data-v3-nav="recharge"]::after {
-  content: "";
-  position: absolute;
-  top: -6px;
-  left: 10px;
-  right: 10px;
-  height: 1px;
-  background: var(--ds-divider);
+html[data-p07-ui="enabled"] .v3-sidebar-group-title:first-child {
+  margin-top: 0;
 }
 
 html[data-p07-ui="enabled"] .v3-sidebar-nav a[hidden] {
@@ -246,8 +244,8 @@ html[data-p07-ui="enabled"] .v3-nav-dot {
 
 html[data-p07-ui="enabled"] .v3-sidebar-nav a[aria-current="page"],
 html[data-p07-ui="enabled"] .v3-sidebar-nav a.active {
-  background: var(--ds-brand-soft);
-  color: var(--ds-brand);
+  background: var(--ds-surface-muted);
+  color: var(--ds-text);
   font-weight: 600;
 }
 
@@ -260,12 +258,12 @@ html[data-p07-ui="enabled"] .v3-sidebar-nav a.active::before {
   bottom: 9px;
   width: 3px;
   border-radius: 0 var(--ds-radius-xs) var(--ds-radius-xs) 0;
-  background: var(--ds-brand);
+  background: var(--ds-action-primary);
 }
 
 html[data-p07-ui="enabled"] .v3-sidebar-nav a[aria-current="page"] .v3-nav-dot,
 html[data-p07-ui="enabled"] .v3-sidebar-nav a.active .v3-nav-dot {
-  background: var(--ds-brand);
+  background: var(--ds-action-primary);
   transform: scale(1.25);
 }
 
@@ -1960,7 +1958,7 @@ html[data-p07-ui="enabled"] #masteryRetryBtn {
   min-height: 44px;
   padding: 0 18px;
   border: 1px solid var(--ds-border);
-  border-radius: 12px;
+  border-radius: var(--ds-radius-card);
   background: var(--ds-surface);
   color: var(--ds-text);
   font-weight: 600;
@@ -1988,7 +1986,7 @@ html[data-p07-ui="enabled"] .mastery-columns {
 
 html[data-p07-ui="enabled"] .mastery-columns details {
   border: 1px solid var(--ds-border);
-  border-radius: 14px;
+  border-radius: var(--ds-radius-card);
   background: var(--ds-surface-subtle);
   padding: 16px;
 }
@@ -2003,7 +2001,7 @@ html[data-p07-ui="enabled"] .mastery-columns summary {
 html[data-p07-ui="enabled"] .mastery-point {
   padding: 10px 14px;
   border: 1px solid var(--ds-border);
-  border-radius: 10px;
+  border-radius: var(--ds-radius-card);
   background: var(--ds-surface);
   margin-top: 8px;
   display: flex;
@@ -2025,7 +2023,7 @@ html[data-p07-ui="enabled"] #wrongView .scope-tabs {
   gap: 4px;
   padding: 4px;
   border: 1px solid var(--ds-border);
-  border-radius: 12px;
+  border-radius: var(--ds-radius-card);
   background: var(--ds-surface-subtle);
   margin-bottom: 16px;
 }
@@ -2052,7 +2050,7 @@ html[data-p07-ui="enabled"] #wrongSearchInput {
   min-height: 46px;
   padding: 0 16px;
   border: 1.5px solid var(--ds-border);
-  border-radius: 12px;
+  border-radius: var(--ds-radius-card);
   background: var(--ds-surface);
   color: var(--ds-text);
   font-size: 0.9375rem;
@@ -2085,7 +2083,7 @@ html[data-p07-ui="enabled"] #reviewBtn:hover {
 html[data-p07-ui="enabled"] .wrong-item {
   padding: 18px 20px;
   border: 1px solid var(--ds-border);
-  border-radius: 14px;
+  border-radius: var(--ds-radius-card);
   background: var(--ds-surface);
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
   margin-top: 12px;
@@ -2134,7 +2132,7 @@ html[data-p07-ui="enabled"] .achievement-overview {
 html[data-p07-ui="enabled"] .achievement-overview div {
   padding: 16px;
   border: 1px solid var(--ds-border);
-  border-radius: 12px;
+  border-radius: var(--ds-radius-card);
   background: var(--ds-surface-subtle);
   text-align: center;
 }
@@ -2176,7 +2174,7 @@ html[data-p07-ui="enabled"] .study-metrics {
 html[data-p07-ui="enabled"] .study-metrics div {
   padding: 16px;
   border: 1px solid var(--ds-border);
-  border-radius: 14px;
+  border-radius: var(--ds-radius-card);
   background: var(--ds-surface-subtle);
   text-align: center;
 }
@@ -2204,7 +2202,7 @@ html[data-p07-ui="enabled"] #toolSearchInput {
   min-height: 48px;
   padding: 0 18px;
   border: 1.5px solid var(--ds-border);
-  border-radius: 14px;
+  border-radius: var(--ds-radius-card);
   background: var(--ds-surface);
   color: var(--ds-text);
   font-size: 1rem;
@@ -2495,7 +2493,7 @@ html[data-p07-ui="enabled"] .finance-side-panel h2 {
 html[data-p07-ui="enabled"] .finance-transaction-item {
   padding: 16px 18px;
   border: 1px solid var(--ds-border-subtle);
-  border-radius: 12px;
+  border-radius: var(--ds-radius-card);
   background: var(--ds-surface);
   margin-top: 10px;
   display: flex;
@@ -2544,7 +2542,7 @@ html[data-p07-ui="enabled"] .finance-candidate-card,
 html[data-p07-ui="enabled"] .finance-candidate-item {
   padding: 18px 20px;
   border: 1.5px solid var(--ds-border);
-  border-radius: 14px;
+  border-radius: var(--ds-radius-card);
   background: var(--ds-surface-subtle);
   margin-top: 12px;
   display: flex;
@@ -2668,7 +2666,7 @@ html[data-p07-ui="enabled"] .trend-month-card {
   gap: 4px;
   padding: 12px 14px;
   border: 1px solid var(--ds-border);
-  border-radius: 14px;
+  border-radius: var(--ds-radius-card);
   background: var(--ds-surface);
   box-shadow: var(--ds-shadow-card);
   font-size: 0.8125rem;
@@ -2720,7 +2718,7 @@ html[data-p07-ui="enabled"] .finance-chart-empty {
   text-align: center;
   color: var(--ds-text-secondary);
   border: 1.5px dashed var(--ds-border);
-  border-radius: 14px;
+  border-radius: var(--ds-radius-card);
   background: var(--ds-surface-subtle);
   width: 100%;
 }
@@ -2833,7 +2831,7 @@ html[data-p07-ui="enabled"] .v3-step-item {
   gap: 10px;
   padding: 12px 14px;
   border: 1px solid var(--ds-border);
-  border-radius: 12px;
+  border-radius: var(--ds-radius-card);
   background: var(--ds-surface);
   font-size: 0.8125rem;
   font-weight: 600;
@@ -3149,7 +3147,7 @@ html[data-p07-ui="enabled"] .payment-order-info-card,
 html[data-p07-ui="enabled"] .payment-order-action-card {
   padding: 22px;
   border: 1px solid var(--ds-border);
-  border-radius: 18px;
+  border-radius: var(--ds-radius-card);
   background: var(--ds-surface);
   box-shadow: var(--ds-shadow-card);
 }
@@ -3449,7 +3447,7 @@ html[data-p07-ui="enabled"] .transfer-drop-actions {
 html[data-p07-ui="enabled"] .transfer-drop-actions button {
   min-height: 44px;
   padding: 10px 22px;
-  border-radius: 10px;
+  border-radius: var(--ds-radius-card);
   font-size: 0.875rem;
   font-weight: 600;
 }
@@ -3556,7 +3554,7 @@ html[data-p07-ui="enabled"] .transfer-summary-line {
   padding: 14px 20px;
   background: var(--ds-surface);
   border: 1px solid var(--ds-border);
-  border-radius: 12px;
+  border-radius: var(--ds-radius-card);
   font-size: 0.875rem;
   color: var(--ds-text-secondary);
   margin: 20px 0 16px;
@@ -3608,7 +3606,7 @@ html[data-p07-ui="enabled"] .transfer-share-file {
   padding: 16px;
   background: var(--ds-surface);
   border: 1px solid var(--ds-border-subtle);
-  border-radius: 12px;
+  border-radius: var(--ds-radius-card);
   margin-bottom: 10px;
   transition: border-color 0.15s ease;
 }
@@ -3682,7 +3680,7 @@ html[data-p07-ui="enabled"] .transfer-share-link-row input {
 html[data-p07-ui="enabled"] .transfer-qr {
   display: block;
   margin: 16px auto;
-  border-radius: 12px;
+  border-radius: var(--ds-radius-card);
   border: 1px solid var(--ds-border);
   padding: 8px;
   background: #ffffff;
@@ -3775,7 +3773,7 @@ html[data-p07-ui="enabled"] #workflowTemplateList button {
   gap: 3px;
   width: 100%;
   padding: 12px 14px;
-  border-radius: 12px;
+  border-radius: var(--ds-radius-card);
   border: 1px solid var(--ds-border-subtle);
   background: var(--ds-surface);
   color: var(--ds-text);
@@ -3813,7 +3811,7 @@ html[data-p07-ui="enabled"] #workflowTemplateList button small {
 html[data-p07-ui="enabled"] #importWorkflowBtn {
   width: 100%;
   padding: 9px;
-  border-radius: 10px;
+  border-radius: var(--ds-radius-card);
   font-size: 0.875rem;
   font-weight: 600;
 }
@@ -3902,7 +3900,7 @@ html[data-p07-ui="enabled"] .workflow-step {
   position: relative;
   background: var(--ds-surface-subtle);
   border: 1px solid var(--ds-border);
-  border-radius: 14px;
+  border-radius: var(--ds-radius-card);
   padding: 18px 20px;
   margin-bottom: 24px;
   transition: box-shadow 0.15s ease, border-color 0.15s ease;
@@ -3975,7 +3973,7 @@ html[data-p07-ui="enabled"] .workflow-runner {
 html[data-p07-ui="enabled"] #runWorkflowBtn {
   min-height: 44px;
   padding: 10px 24px;
-  border-radius: 10px;
+  border-radius: var(--ds-radius-card);
   font-size: 0.9375rem;
   font-weight: 700;
 }
@@ -3985,7 +3983,7 @@ html[data-p07-ui="enabled"] #workflowResultText {
   min-height: 120px;
   padding: 12px 14px;
   border: 1px solid var(--ds-border);
-  border-radius: 10px;
+  border-radius: var(--ds-radius-card);
   background: var(--ds-surface);
   color: var(--ds-text);
   font-family: var(--ds-font-mono, monospace);
@@ -4309,7 +4307,7 @@ html[data-p07-ui="enabled"] .finance-candidate-actions button {
 html[data-p07-ui="enabled"] .finance-candidate-editor {
   margin-top: 16px;
   padding: 18px;
-  border-radius: 12px;
+  border-radius: var(--ds-radius-card);
   background: var(--ds-surface-subtle);
   border: 1px solid var(--ds-border);
   display: grid;
@@ -4463,5 +4461,539 @@ html[data-p07-ui="enabled"] #trialPage .trial-workbench {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
+  }
+}
+
+/* ==========================================================================
+ * I05 Workspace Console Layer — 已登录工作区密度的唯一负责者；仅 P07 ON；零 !important
+ * ========================================================================== */
+html:not([data-p07-ui="enabled"]) :is(.workspace-breadcrumb, .admin-kpi-strip, .admin-list-head) {
+  display: none;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route]:not([data-workspace-route="home"]) {
+  --ds-radius-card: var(--ds-radius-md);
+  --ds-density-radius: var(--ds-radius-md);
+  --ds-shadow-card: 0 0 0 0 transparent;
+}
+
+/* Breadcrumb */
+html[data-p07-ui="enabled"] .workspace-breadcrumb:not([hidden]) {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  width: min(calc(100% - 48px), var(--ds-container-console));
+  margin: 12px auto 0;
+  color: var(--ds-text-muted);
+  font-size: 0.8125rem;
+}
+
+html[data-p07-ui="enabled"] .workspace-breadcrumb ol {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+html[data-p07-ui="enabled"] .workspace-breadcrumb li + li::before {
+  content: "/";
+  margin-right: 6px;
+  color: var(--ds-border-strong);
+}
+
+html[data-p07-ui="enabled"] .workspace-breadcrumb [aria-current="page"] {
+  color: var(--ds-text);
+  font-weight: 600;
+}
+
+/* Content Width & Spacing */
+html[data-p07-ui="enabled"] body[data-workspace-route] :is(#toolsPanel, #financePage, #transferPage, #adminPanel) {
+  width: min(calc(100% - 48px), var(--ds-container-console));
+  max-width: none;
+  margin: 16px auto 48px;
+  padding-block: 0;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] :is(#projectPicker, #projectApp) {
+  margin: 16px auto 48px;
+  padding-block: 0;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal {
+  width: min(calc(100% - 48px), 880px);
+  max-width: none;
+  margin: 16px auto 48px;
+  padding: 0;
+}
+
+/* Unified Page Headers */
+html[data-p07-ui="enabled"] body[data-workspace-route] :is(.finance-header, .transfer-header, .tools-header, .admin-header, .workflow-header, #projectPicker .project-brand) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px 16px;
+  min-height: 0;
+  margin: 0 0 16px;
+  padding: 0 0 14px;
+  border-bottom: 1px solid var(--ds-border);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] :is(.finance-header, .transfer-header, .tools-header, .admin-header, .workflow-header, #projectPicker .project-brand) h1 {
+  margin: 2px 0 0;
+  font-size: 1.375rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] :is(.finance-header, .transfer-header, .tools-header, .admin-header, .workflow-header, #projectPicker .project-brand) p:not(.section-kicker) {
+  font-size: 0.875rem;
+  color: var(--ds-text-secondary);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] :is(.finance-header, .transfer-header, .tools-header, .admin-header, .workflow-header, #projectPicker .project-brand, #accountModal) .section-kicker {
+  font-size: 0.75rem;
+  color: var(--ds-text-muted);
+  font-weight: 600;
+  text-transform: none;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal #accountTitle {
+  font-size: 1.375rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+  margin: 2px 0 16px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] .admin-role-context {
+  margin: 4px 0 0;
+  font-size: 0.8125rem;
+  color: var(--ds-text-muted);
+}
+
+/* Shared Segmented KPI Strip */
+html[data-p07-ui="enabled"] body[data-workspace-route] :is(.admin-kpi-strip, .finance-summary-grid, .study-metrics, .achievement-overview, #workspace .stats-grid) {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0;
+  margin: 0 0 16px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+  overflow: hidden;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] :is(.admin-kpi-strip, .finance-summary-grid, .study-metrics, .achievement-overview, #workspace .stats-grid) > * {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 12px 16px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  text-align: left;
+  box-shadow: 1px 0 0 var(--ds-divider), 0 1px 0 var(--ds-divider);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] :is(.admin-kpi-strip, .finance-summary-grid, .study-metrics, .achievement-overview, #workspace .stats-grid) > *:hover {
+  border-color: transparent;
+  box-shadow: 1px 0 0 var(--ds-divider), 0 1px 0 var(--ds-divider);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] :is(.admin-kpi-strip, .finance-summary-grid, .study-metrics, .achievement-overview, #workspace .stats-grid) > * :is(strong, dd) {
+  font-size: 1.25rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+  line-height: 1.3;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] :is(.admin-kpi-strip, .finance-summary-grid, .study-metrics, .achievement-overview, #workspace .stats-grid) > * :is(span, dt) {
+  font-size: 0.75rem;
+  color: var(--ds-text-muted);
+  margin: 0;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] :is(.study-metrics, .achievement-overview, #workspace .stats-grid) > * > span {
+  order: -1;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] .admin-kpi-strip dd[data-state="error"] {
+  color: var(--ds-error);
+  font-size: 0.875rem;
+}
+
+html[data-p07-ui="enabled"][data-large-text="true"] body[data-workspace-route] :is(.admin-kpi-strip, .finance-summary-grid, .study-metrics, .achievement-overview, #workspace .stats-grid) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* Unified Panel Padding & Surface Discipline */
+html[data-p07-ui="enabled"] body[data-workspace-route] :is(.finance-summary-section, .finance-ledger-panel, .finance-side-panel, .finance-trend-section, .finance-candidates-section, .transfer-queue, .transfer-my-shares, .transfer-share-card, .transfer-config, #toolWorkbench, .workflow-sidebar, .workflow-editor, #wrongView .panel, #achievementsView .achievement-panel, #studyView .study-panel, .mastery-section, #languagePanel, #accountModal .account-details, #accountModal #changeSecretForm) {
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: none;
+}
+
+/* Transfer High-Density Rules */
+html[data-p07-ui="enabled"] body[data-workspace-route] :is(.transfer-item, .transfer-share-row) {
+  margin: 0;
+  padding: 12px 0;
+  border: 0;
+  border-bottom: 1px solid var(--ds-divider);
+  border-radius: 0;
+  background: transparent;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] :is(.transfer-item, .transfer-share-row):last-child {
+  border-bottom: 0;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] :is(.transfer-item, .transfer-share-row) :is(strong, small, a, code, span) {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] .transfer-share-link-row input {
+  min-width: 0;
+  font-family: var(--ds-font-mono);
+  font-size: 0.8125rem;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #transferDropZone {
+  min-height: 200px;
+  padding: 28px 20px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] .transfer-summary-line {
+  border-radius: var(--ds-radius-md);
+  padding: 12px 16px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #transferCurrentRevokeBtn {
+  color: var(--ds-error);
+  border: 1px solid var(--ds-error-border);
+  background: var(--ds-surface);
+}
+
+/* Tools High-Density Index */
+html[data-p07-ui="enabled"] body[data-workspace-route] #toolSearchInput {
+  min-height: 44px;
+  border-width: 1px;
+  border-radius: var(--ds-radius-md);
+  margin-bottom: 12px;
+  font-size: 0.9375rem;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] .workflow-launcher {
+  margin-block: 16px;
+  padding: 12px 16px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] .tool-card {
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid var(--ds-divider);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] .tool-card:hover {
+  transform: none;
+  box-shadow: none;
+  background: var(--ds-surface-subtle);
+  border-color: var(--ds-divider);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] :is(.tool-category-card:hover, .tool-category-card.active) {
+  background: var(--ds-surface-muted);
+  border-color: var(--ds-border-strong);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] .tool-catalog-section {
+  margin-top: 20px;
+}
+
+/* Language Learning Density */
+html[data-p07-ui="enabled"] body[data-workspace-route] #projectPicker .project-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #projectPicker .project-card {
+  min-height: 72px;
+  padding: 12px 16px;
+  box-shadow: none;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #workspace .tabs {
+  margin-bottom: 16px;
+  padding: 4px;
+  gap: 4px;
+  box-shadow: none;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #workspace .tabs button {
+  padding: 0 14px;
+  font-size: 0.875rem;
+}
+
+/* Admin Console High-Density Layout */
+html[data-p07-ui="enabled"] body[data-workspace-route] .admin-tabs {
+  gap: 0;
+  padding: 0;
+  margin: 0 0 16px;
+  border: 0;
+  border-bottom: 1px solid var(--ds-border);
+  border-radius: 0;
+  background: var(--ds-workspace-canvas);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] .admin-tabs button {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--ds-text-secondary);
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] .admin-tabs button.active {
+  color: var(--ds-text);
+  border-bottom-color: var(--ds-action-primary);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] .admin-tabs .ds-tab-indicator {
+  top: auto;
+  bottom: 0;
+  height: 2px;
+  border-radius: 0;
+  background: var(--ds-action-primary);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] :is(#adminUserList, #adminRechargeList, #adminAuditList, #adminLoginList, #adminToolStatsList, #adminMessageList, #adminRoleList, #adminRoleAuditList, #adminFeedbackList) {
+  display: grid;
+  gap: 0;
+  padding: 0 16px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] :is(.admin-user-card, .admin-login-card, .admin-log-card, .admin-message-card, .admin-feedback-card) {
+  margin: 0;
+  padding: 12px 0;
+  border: 0;
+  border-bottom: 1px solid var(--ds-divider);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  gap: 8px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] :is(.admin-user-card, .admin-login-card, .admin-log-card, .admin-message-card, .admin-feedback-card):last-child {
+  border-bottom: 0;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] .admin-log-card > div:first-child {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 4px 12px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] :is(.admin-log-card time, .admin-user-id, .admin-last-login) {
+  font-family: var(--ds-font-mono);
+  font-size: 0.75rem;
+  color: var(--ds-text-muted);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] .admin-toolbar {
+  padding: 12px;
+  margin: 0 0 12px;
+  border-radius: var(--ds-radius-md);
+  box-shadow: none;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #adminFeatureFlagsView form {
+  margin: 0 0 16px;
+  padding: 16px;
+  gap: 12px;
+  box-shadow: none;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #adminFeatureFlagsView h2 {
+  font-size: 1.125rem;
+  font-weight: 650;
+}
+
+@media (min-width: 981px) {
+  html[data-p07-ui="enabled"] body[data-workspace-route] .admin-list-head {
+    display: grid;
+    grid-template-columns: minmax(130px, 0.8fr) minmax(220px, 1.4fr) minmax(150px, 1fr) auto;
+    gap: 12px;
+    padding: 8px 16px;
+    margin-top: 12px;
+    border: 1px solid var(--ds-border);
+    border-bottom: 0;
+    border-radius: var(--ds-radius-md) var(--ds-radius-md) 0 0;
+    background: var(--ds-surface-subtle);
+    color: var(--ds-text-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  html[data-p07-ui="enabled"] body[data-workspace-route] .admin-list-head + #adminUserList {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+  }
+}
+
+@media (min-width: 1100px) {
+  html[data-p07-ui="enabled"] body[data-workspace-route] #adminFeatureFlagsView.active {
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(320px, 1fr);
+    gap: 16px;
+    align-items: start;
+  }
+
+  html[data-p07-ui="enabled"] body[data-workspace-route] #adminFeatureFlagsView.active > * {
+    grid-column: 1 / -1;
+  }
+
+  html[data-p07-ui="enabled"] body[data-workspace-route] #adminFeatureFlagsView.active > #featureFlagForm {
+    grid-column: 1;
+    grid-row: span 2;
+  }
+
+  html[data-p07-ui="enabled"] body[data-workspace-route] #adminFeatureFlagsView.active > :is(#featureOverrideForm, #featureEvaluateForm) {
+    grid-column: 2;
+  }
+}
+
+/* Account One UI Grouped Settings */
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-settings-list {
+  display: grid;
+  gap: 0;
+  margin: 0 0 16px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+  overflow: hidden;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-settings-list > button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 56px;
+  text-align: left;
+  padding: 12px 16px;
+  border: 0;
+  border-bottom: 1px solid var(--ds-divider);
+  border-radius: 0;
+  background: transparent;
+  color: var(--ds-text);
+  font-weight: 600;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-settings-list > button:last-child {
+  border-bottom: 0;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-settings-list > button::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  margin-left: 12px;
+  border-right: 1.5px solid var(--ds-text-muted);
+  border-top: 1.5px solid var(--ds-text-muted);
+  transform: rotate(45deg);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-settings-list > button:hover {
+  background: var(--ds-surface-subtle);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-section-subtitle {
+  margin: 20px 0 8px;
+  font-size: 0.9375rem;
+  color: var(--ds-text-secondary);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .danger-zone {
+  padding: 16px;
+  border: 1px solid var(--ds-border);
+  border-left: 3px solid var(--ds-error);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .danger-zone strong {
+  color: var(--ds-error);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal #openDeleteAccountBtn {
+  color: var(--ds-error);
+  border: 1px solid var(--ds-error-border);
+  background: var(--ds-surface);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal #releaseChannelSection {
+  padding: 16px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+  margin-bottom: 16px;
+}
+
+@media (max-width: 760px) {
+  html[data-p07-ui="enabled"] .workspace-breadcrumb:not([hidden]) {
+    width: calc(100% - 28px);
+    margin-top: 8px;
+  }
+
+  html[data-p07-ui="enabled"] body[data-workspace-route] :is(#toolsPanel, #financePage, #transferPage, #adminPanel, #accountModal, #projectPicker, #projectApp) {
+    width: calc(100% - 28px);
+    margin: 12px auto 32px;
+  }
+
+  html[data-p07-ui="enabled"] body[data-workspace-route] .admin-tabs {
+    display: flex;
+    overflow-x: auto;
+    scrollbar-width: none;
+    position: relative;
+  }
+
+  html[data-p07-ui="enabled"] body[data-workspace-route] .admin-tabs button {
+    flex: 0 0 auto;
+    width: auto;
+  }
+}
+
+@media (max-width: 600px) {
+  html[data-p07-ui="enabled"] body[data-workspace-route] #projectPicker .project-grid {
+    grid-template-columns: 1fr;
   }
 }

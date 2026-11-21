@@ -3459,3 +3459,4 @@ textarea::placeholder {
 .feature-console pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 280px; overflow: auto; }
 #releaseChannelSection { padding-block: 12px; }
 #releaseChannelSection .action-row { flex-wrap: wrap; margin-block: 12px; }
+.admin-list-head { display: none; }

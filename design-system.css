@@ -94,6 +94,7 @@
   /* Layout and touch */
   --ds-container-reading: 760px;
   --ds-container-default: 1200px;
+  --ds-container-console: 1320px;
   --ds-container-wide: 1440px;
   --ds-touch-min: 44px;
   --ds-skip-link-offset: var(--ds-space-3);
@@ -1618,7 +1619,20 @@ html[data-p07-ui="enabled"] .account-details :is(dd, code) { overflow-wrap: anyw
   .transfer-item-main > small,
   .admin-user-facts,
   .admin-request-confirmed time,
-  .changelog-entry time
+  .changelog-entry time,
+  #transferQuotaText,
+  .transfer-summary-line strong,
+  .study-metrics strong,
+  .achievement-overview strong,
+  .stats-grid strong,
+  .admin-kpi-strip dd,
+  .admin-log-card time,
+  .admin-user-id,
+  .admin-last-login,
+  .account-details dd,
+  .trend-month-card,
+  #adminUserCount,
+  #financeTransactionCount
 ) {
   font-variant-numeric: tabular-nums;
 }
