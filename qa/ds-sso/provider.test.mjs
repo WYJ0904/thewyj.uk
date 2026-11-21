@@ -896,3 +896,121 @@ test('merge projection is bound to its separately signed Preview origin and fall
   assert.equal((await call(mergeOrigin,'merge_preview_accounts',{refs:[]},{grant},
     {...preview,AERIS_DS_MERGE_PREVIEW_ENABLED:'false'})).status,401);
 });
+
+test('Task 10 keeper verifies live committed Aeris evidence and loses it on security, review or compensation changes', async () => {
+  await migrate('0045_ds_account_merge_bridge.sql');
+  const source = await register('eligibility-source');
+  const keep = await register('eligibility-keep');
+  const reviewer = await register('eligibility-reviewer');
+  const sandbox = token();
+  const previewIssuer = 'https://qa.aeris-task10-fixture.pages.dev';
+  const dsOrigin = 'https://qa.ds-task10-fixture.pages.dev';
+  const env = {
+    ...bindings, WYJ_ENVIRONMENT:'preview', WYJ_DB:db,
+    AERIS_DS_SSO_ISSUER:previewIssuer, AERIS_DS_SSO_ORIGIN:dsOrigin,
+    AERIS_DS_MERGE_PREVIEW_ENABLED:'true', AERIS_DS_MERGE_SANDBOX:sandbox,
+  };
+  const call = async (op,input,binding={},originOverride=dsOrigin) => {
+    const request = new Request(previewIssuer+path,signed(op,input,binding,{
+      issuer:previewIssuer,origin:originOverride,ip:'198.51.100.92',
+    }));
+    return payload(await onRequest({env:{...env,AERIS_DS_SSO_ORIGIN:originOverride},data:{},request,waitUntil(){}}));
+  };
+  const grant = async username => {
+    const result = await call('login',{username,secret:password},{binding:token()});
+    assert.equal(result.status,200,JSON.stringify(result.body));
+    return result.body.claims.grant_id;
+  };
+  const member = subject => first(`SELECT u.id AS subject,u.session_version AS sessionVersion,s.version AS securityVersion
+    FROM task12_users u JOIN task27_security s ON s.user_id=u.id WHERE u.id=?`,subject);
+  await update('INSERT INTO aeris_ds_merge_sandbox VALUES (?)',sandbox);
+  for (const [n,subject] of [source,keep,reviewer].entries()) {
+    await update('INSERT INTO aeris_ds_merge_test_accounts VALUES (?,?)',subject,sandbox);
+    await update("UPDATE task27_security SET verified_email=?,email_verified_at=datetime('now') WHERE user_id=?",
+      `task10-${n}@example.test`,subject);
+  }
+  await enrollFixtureTotp(reviewer);
+  await update(`INSERT INTO task18_admin_roles(user_id,role,granted_by_user_id,granted_by_username,granted_at,updated_at)
+    VALUES (?,'admin',?,'Isolated Task 10 reviewer',datetime('now'),datetime('now'))`,reviewer,reviewer);
+  const keepGrant = await grant('eligibility-keep');
+  const sourceGrant = await grant('eligibility-source');
+  const reviewFlow = {binding:token()};
+  const reviewLogin = await call('login',{username:'eligibility-reviewer',secret:password},reviewFlow);
+  assert.equal(reviewLogin.body.stage,'login_verify');
+  const reviewAuth = await call('login_verify',{code:await currentCode()},reviewFlow);
+  assert.equal(reviewAuth.status,200,JSON.stringify(reviewAuth.body));
+  const reviewerGrant = reviewAuth.body.claims.grant_id;
+  const members = await Promise.all([member(keep),member(source)]);
+  const operation = 'eligibility10_verify_merge';
+  const id = token();
+  const version = token();
+  const digest = 'f'.repeat(64);
+  const receipt = 'a'.repeat(64);
+  const input = {id,version};
+  const verify = (value=input, actor=keepGrant) => call(operation,value,{grant:actor});
+  const rejected = async result => assert.deepEqual((await result).body,{error:'eligibility10_merge_invalid'});
+
+  assert.equal((await call('policies',{}, {},'https://qa.ds-task09-fixture.pages.dev')).status,404);
+  const priorIssuer = 'https://qa.aeris-task09-fixture.pages.dev';
+  const priorOrigin = 'https://qa.ds-task09-fixture.pages.dev';
+  const priorEnv = { ...env,AERIS_DS_SSO_ISSUER:priorIssuer,AERIS_DS_SSO_ORIGIN:priorOrigin };
+  const priorRequest = new Request(priorIssuer+path,signed(operation,input,{grant:keepGrant},{
+    issuer:priorIssuer,origin:priorOrigin,ip:'198.51.100.92',
+  }));
+  assert.equal((await onRequest({env:priorEnv,data:{},request:priorRequest,waitUntil(){}})).status,503);
+  await update(`INSERT INTO aeris_ds_merges(id,version,issuer,client_origin,sandbox_id,actor_id,keep_id,config_id,members_json)
+    VALUES (?,?,?,?,?,?,?,?,?)`,id,version,previewIssuer,dsOrigin,sandbox,source,keep,source,JSON.stringify(members));
+  await rejected(verify());
+  for (const [subject, actorGrant] of [[keep,keepGrant],[source,sourceGrant]]) {
+    await call('merge09_consent',{id,version,purpose:'ds_finance_reconciliation_v1',accepted:true},{grant:actorGrant})
+      .then(result => assert.equal(result.status,200,JSON.stringify(result.body)));
+  }
+  const summary = JSON.stringify({finance:{originals:1},membership:{originalGrants:0,needsReview:0}});
+  await update("UPDATE aeris_ds_merges SET state='STAGED',snapshot_digest=?,summary_json=? WHERE id=?",digest,summary,id);
+  await update(`INSERT INTO aeris_ds_merge_reviewers(merge_id,reviewer_id) VALUES (?,?)`,id,reviewer);
+  await update(`INSERT INTO aeris_ds_merge_conflicts(merge_id,id,kind,source_refs,evidence_digest,blocking,suggestion)
+    VALUES (?,?,'weak_match','[]',?,1,'KEEP_DISTINCT_OR_STOP')`,id,receipt,digest);
+  await rejected(verify());
+  const reviewed = await call('merge09_review',{id,conflict:receipt,decision:'KEEP_DISTINCT',reason:'Synthetic review'},
+    {grant:reviewerGrant});
+  assert.equal(reviewed.status,200,JSON.stringify(reviewed.body));
+  await update("UPDATE aeris_ds_merges SET state='COMMITTED',changed_at=unixepoch() WHERE id=?",id);
+  await rejected(verify());
+  await update(`INSERT INTO aeris_ds_merge_receipts(merge_id,kind,subject,original_id,canonical_id,payload_json)
+    VALUES (?,'FINANCE',?,'fixture','fixture','{}')`,id,source);
+  const valid = await verify();
+  assert.equal(valid.status,200,JSON.stringify(valid.body));
+  assert.deepEqual(valid.body,{id,version,issuer:previewIssuer,keepSubject:keep,members,digest});
+  await rejected(verify({id,version:token()}));
+  await rejected(verify(input,sourceGrant));
+  assert.equal((await call('revoke',{}, {grant:sourceGrant})).status,200);
+  assert.deepEqual((await verify()).body,valid.body);
+
+  const roleHistory = async (target,success,epoch) => {
+    const entry = crypto.randomUUID();
+    await update(`INSERT INTO task18_admin_role_audit(id,actor_user_id,actor_username,actor_role,target_user_id,
+      target_username,action,before_role,after_role,success,created_at)
+      VALUES (?,?,'Synthetic authority','super_admin',?,'Synthetic target','admin_revoke','admin','user',?,?)`,
+    entry,reviewer,target,success,new Date(epoch*1000+500).toISOString());
+    return entry;
+  };
+  const {changed_at: committedAt} = await first('SELECT changed_at FROM aeris_ds_merges WHERE id=?',id);
+  await roleHistory(source,0,committedAt);
+  assert.deepEqual((await verify()).body,valid.body);
+  const sourceChange = await roleHistory(source,1,committedAt);
+  await rejected(verify());
+  await update('DELETE FROM task18_admin_role_audit WHERE id=?',sourceChange);
+  const {reviewed_at: reviewedAt} = await first('SELECT reviewed_at FROM aeris_ds_merge_conflicts WHERE id=?',receipt);
+  const reviewerChange = await roleHistory(reviewer,1,reviewedAt);
+  await rejected(verify());
+  await update('DELETE FROM task18_admin_role_audit WHERE id=?',reviewerChange);
+  assert.deepEqual((await verify()).body,valid.body);
+
+  await update("UPDATE task27_security SET version=version+1 WHERE user_id=?",source);
+  await rejected(verify());
+  await update("UPDATE task27_security SET version=version-1 WHERE user_id=?",source);
+  await update("UPDATE aeris_ds_merge_reviewers SET revoked_at=unixepoch() WHERE merge_id=?",id);
+  await rejected(verify());
+  await update("UPDATE aeris_ds_merges SET state='COMPENSATED',changed_at=unixepoch() WHERE id=?",id);
+  await rejected(verify());
+});
