@@ -1,23 +1,16 @@
 {
   "scope": "Isolated local Miniflare D1/R2 + headless Chrome CDP (I05)",
-  "gitSha": "f85438a876f3c209d96c1a257420417b16df3cb0",
-  "gitBranch": "hydrogen/i05-workspace-admin-density",
-  "worktreeDirty": true,
-  "dirtyFiles": [
-    "qa/i05/browser-acceptance.mjs"
-  ],
+  "gitSha": "4ee17f18dc546409770fedade66eaaf37582d569",
+  "gitBranch": "fiery_signal_warps_01h58",
+  "worktreeDirty": false,
+  "dirtyFiles": [],
   "source": {
-    "commit": "f85438a876f3c209d96c1a257420417b16df3cb0",
-    "tree": "fcdc954413c7d31a465613f307c391d070cc8246",
-    "branch": "hydrogen/i05-workspace-admin-density",
-    "sourceMatchesCommit": false,
-    "changedInputs": [
-      {
-        "status": "M",
-        "file": "qa/i05/browser-acceptance.mjs"
-      }
-    ],
-    "inputsSha256": "0afed253abd58372731ffdc89450e657f8bae0d0be4fe756625388521af69ce0",
+    "commit": "4ee17f18dc546409770fedade66eaaf37582d569",
+    "tree": "dfd09c77747fbb62fb8379931a2e3ae29a771a99",
+    "branch": "fiery_signal_warps_01h58",
+    "sourceMatchesCommit": true,
+    "changedInputs": [],
+    "inputsSha256": "a367b15db90f92ee1cb5de10176e4b7427aca9188acc2330e46c025b38ec0a75",
     "inputs": [
       {
         "file": "THIRD_PARTY_NOTICES.md",
@@ -29,7 +22,7 @@
       },
       {
         "file": "app.js",
-        "sha256": "b53ea7215d2bf116f0cb5490e852383ce21231f2191b6dcc214877ac0fb1cd6a"
+        "sha256": "f93e1b18e950befcbb7abc872dfbad689158c3d1ca103247a1a25fb95186d00d"
       },
       {
         "file": "assets/brand/aeris-lockup.png",
@@ -241,7 +234,7 @@
       },
       {
         "file": "design-system.css",
-        "sha256": "05a15e6517f33dcb3c6866eb6a09024797ca7c47d11ac093716acb1d45f7cb0e"
+        "sha256": "046b22f534b29c676bede99c63813bf5e1bb1333ce39f962461537d943ae8bf6"
       },
       {
         "file": "favicon.ico",
@@ -677,7 +670,7 @@
       },
       {
         "file": "index.html",
-        "sha256": "648406cd9a7a6727644eb4be7de0aeab076d04ddcf9d6c203f3530a1f0d84614"
+        "sha256": "4dcea782cea29a5b7fc64d2a6eb326d7d1ad15487c6ad630b17dd286946b7522"
       },
       {
         "file": "js/account/password-fields.js",
@@ -737,7 +730,7 @@
       },
       {
         "file": "js/core/feature-flags.js",
-        "sha256": "4e4d17781fb4c8533e26f47b0766ea64deb6e560342ffdf19311bd151f5f4ddb"
+        "sha256": "54daf30238a5a8b8fd057c8c95212acde542c8bf2e4b3bebed500ed4b4b5757e"
       },
       {
         "file": "js/core/home-widget-data.js",
@@ -965,11 +958,11 @@
       },
       {
         "file": "qa/i05/browser-acceptance.mjs",
-        "sha256": "01d63344b3eb75a14f2598786a74fdb5c982a03f41d6d50d7b8088c9b9e81340"
+        "sha256": "22654dbbf568cb0656aa0cefb5e565fc7cabb96c0e0c9d5eb98a8e4028808bce"
       },
       {
         "file": "qa/i05/browser-proofs.mjs",
-        "sha256": "3905cb8f702ee92d501f2051e83b30e00c546c756cd87597b6c1b3212c06d5b8"
+        "sha256": "0d8927d091a38db655446cf2f738096e335b63da7b306e0d7df84e3bcfc9ab09"
       },
       {
         "file": "qa/p07-f/vendor/axe.min.js",
@@ -981,7 +974,7 @@
       },
       {
         "file": "spatial-experience.css",
-        "sha256": "fd5b5cd42c4289e1f65d43c71d6f83b30619e1ef3e2e530cf4cb3c99dc8a8b79"
+        "sha256": "8ec1bc9a17399f2a5f1c2169d0832999a506e5f4156b802d7500d9ce0c09d3de"
       },
       {
         "file": "styles.css",
@@ -989,7 +982,7 @@
       },
       {
         "file": "sw.js",
-        "sha256": "bade42125559e2aaad61228427b78b2fb1278637204dfda00011c6b65aeb6c85"
+        "sha256": "bbf803c00319e3759db7fd265ca435c594592f1ed84719abbd81d9f041a8b64f"
       },
       {
         "file": "tools.js",
@@ -1013,7 +1006,7 @@
       },
       {
         "file": "workflows.js",
-        "sha256": "ffa8ec1d8cea7a0388824c534b54d26056dd198a4fee9cffc0bf9bad3e517bef"
+        "sha256": "f7b50ce835a2c983211ed77fbc847831307e237b6966acc7cd1774ea975c894a"
       },
       {
         "file": "workspace-experience.css",
@@ -1025,14 +1018,14 @@
       }
     ]
   },
-  "checkedAt": "2026-11-21T16:08:01.999Z",
+  "checkedAt": "2026-11-21T18:33:37.009Z",
   "selectedScenarios": "all",
   "browserVersion": "Chrome/158.0.8127.36",
   "scenarios": [
     {
       "name": "a_seven_route_sidebar_shell",
       "status": "PASS",
-      "ms": 19568,
+      "ms": 16842,
       "detail": {
         "selectCrumb": "个人工作台",
         "routes": [
@@ -1112,7 +1105,7 @@
     {
       "name": "b_history_back_forward",
       "status": "PASS",
-      "ms": 3609,
+      "ms": 3637,
       "detail": {
         "back1Crumb": "工具箱",
         "back2Crumb": "语言学习",
@@ -1122,7 +1115,7 @@
     {
       "name": "c_tools_search_and_workbench",
       "status": "PASS",
-      "ms": 5314,
+      "ms": 5047,
       "detail": {
         "searchState": {
           "focusedId": "toolSearchInput",
@@ -1159,7 +1152,7 @@
     {
       "name": "d_finance_filters_modal_tabular_mobile",
       "status": "PASS",
-      "ms": 6662,
+      "ms": 6713,
       "detail": {
         "tabular": "tabular-nums",
         "restoredFocusId": "financeAddTransactionBtn",
@@ -1169,7 +1162,7 @@
     {
       "name": "e_transfer_queue_and_mobile",
       "status": "PASS",
-      "ms": 9797,
+      "ms": 9770,
       "detail": {
         "mobileOverflow": 0,
         "queueHasFile": true
@@ -1178,7 +1171,7 @@
     {
       "name": "f_account_security_and_release_channel",
       "status": "PASS",
-      "ms": 16906,
+      "ms": 18366,
       "detail": {
         "channel": {
           "original": {
@@ -1228,7 +1221,7 @@
     {
       "name": "g_admin_kpis_flags_dom_identity_and_offline",
       "status": "PASS",
-      "ms": 33253,
+      "ms": 33424,
       "detail": {
         "kpiCheck": {
           "kpiText": "2",
@@ -1236,7 +1229,7 @@
           "apiTotal": 2
         },
         "stickyCheck": {
-          "scrollY": 277,
+          "scrollY": 248,
           "position": "sticky",
           "bcTop": 61,
           "barBottom": 61
@@ -1329,7 +1322,7 @@
             20
           ]
         },
-        "flagKey": "i05_fixture_qlsehg",
+        "flagKey": "i05_fixture_qqzlbo",
         "domIntegrity": {
           "sameForm": true,
           "sameCb": true,
@@ -1364,7 +1357,7 @@
     {
       "name": "h_non_admin_isolation",
       "status": "PASS",
-      "ms": 14614,
+      "ms": 14262,
       "detail": {
         "adminHidden": true,
         "apiStatus": 403,
@@ -1377,7 +1370,7 @@
     {
       "name": "i_responsive_theme_matrix",
       "status": "PASS",
-      "ms": 50687,
+      "ms": 50916,
       "detail": {
         "totalChecks": 90
       }
@@ -1385,7 +1378,7 @@
     {
       "name": "j_reduced_motion",
       "status": "PASS",
-      "ms": 4175,
+      "ms": 6063,
       "detail": {
         "reducedMotionOperable": true
       }
@@ -1393,7 +1386,7 @@
     {
       "name": "k_p07_off_fallback",
       "status": "PASS",
-      "ms": 16946,
+      "ms": 16645,
       "detail": {
         "p07Ui": "disabled",
         "breadcrumbDisplay": "none",
@@ -1405,13 +1398,13 @@
     {
       "name": "l_css_failure_fallback",
       "status": "PASS",
-      "ms": 15270,
+      "ms": 15262,
       "detail": {
         "barHeight": 103.390625,
         "tabHit": {
           "ok": true,
           "cx": 91.9453125,
-          "cy": 561.875,
+          "cy": 562.1887817382812,
           "width": 133.890625,
           "height": 44,
           "hitTag": "BUTTON",
@@ -1423,7 +1416,7 @@
     {
       "name": "m_axe_a11y_and_runtime_clean",
       "status": "PASS",
-      "ms": 30110,
+      "ms": 30654,
       "detail": {
         "routes": [
           {
@@ -3481,6 +3474,7 @@
     "1440-route-account.png",
     "1440-route-admin.png",
     "1440-route-workflows.png",
+    "1440-workflow-editor-light.png",
     "375-workflows-light.png",
     "1440-route-recharge.png",
     "390-recharge-light.png",
@@ -3500,7 +3494,7 @@
       "name": "1440-route-home.png",
       "width": 1440,
       "height": 900,
-      "sha256": "a330769cd77213d965c07f95f1b979f4f566af6afa7cea039bc30ff655121b77",
+      "sha256": "15d51f1b9d743edd7d35d062f9340bbf27e2cc22976ab8cac2e506b86395d88b",
       "viewport": {
         "width": 1440,
         "height": 900,
@@ -3515,7 +3509,7 @@
       "name": "1440-route-language.png",
       "width": 1440,
       "height": 900,
-      "sha256": "4bac7efe2af5e7f30257b00b98c9941da205a01a5bd5c95e93b954eb71e6c7b1",
+      "sha256": "312fcb0c09b5b70a905c335e6ffaf45deec67b17d0bb8d5649943c1b62ab9d93",
       "viewport": {
         "width": 1440,
         "height": 900,
@@ -3530,7 +3524,7 @@
       "name": "1440-route-tools.png",
       "width": 1440,
       "height": 900,
-      "sha256": "f6b8d7864ae4f790e6e74d9aed5db6ddbb63197f6d5e7aa957a5df66ba085e35",
+      "sha256": "94a48b377dc1e1655f4710db7643f71d7ea80059388907f0472c298860f1bc74",
       "viewport": {
         "width": 1440,
         "height": 900,
@@ -3545,7 +3539,7 @@
       "name": "1440-route-finance.png",
       "width": 1440,
       "height": 900,
-      "sha256": "69842f2265dfb31b1715629a6a91f0788d2830d977d7fd0eef801aeccd13c5fa",
+      "sha256": "243ddcb3abfe125d3530fef17fe85d5312e610b3b6de2757f9bf201be8fab33f",
       "viewport": {
         "width": 1440,
         "height": 900,
@@ -3560,7 +3554,7 @@
       "name": "1440-route-transfer.png",
       "width": 1440,
       "height": 900,
-      "sha256": "69d608dbc91f246173714d791ede43487f7b6bd901811b65ed5584bc75fb549f",
+      "sha256": "98c4ee0cfbde11820737053aeb4e6bb94f93d7972fe3d0187d5d71c7ecf4d5ac",
       "viewport": {
         "width": 1440,
         "height": 900,
@@ -3575,7 +3569,7 @@
       "name": "1440-route-account.png",
       "width": 1440,
       "height": 900,
-      "sha256": "3f811a9dbb8279f11c9401b26cbe92ddd48915bf2c94406833dfff10d18f708a",
+      "sha256": "d9b17204a2658c0359278167c608c4f814a74b07a50b6f39156d8fb9f4f61f24",
       "viewport": {
         "width": 1440,
         "height": 900,
@@ -3590,7 +3584,7 @@
       "name": "1440-route-admin.png",
       "width": 1440,
       "height": 900,
-      "sha256": "f60c40547b4d05051294b924cae4daec36b22dadeabcbbe21d5eb94956f58ef1",
+      "sha256": "18b4bb747939553a1b3dc441e648e434537ec2cac2b7b1934a29adc1943ba271",
       "viewport": {
         "width": 1440,
         "height": 900,
@@ -3605,7 +3599,22 @@
       "name": "1440-route-workflows.png",
       "width": 1440,
       "height": 900,
-      "sha256": "bd1b457d75441c81574bb3482b1ba9154bf21d3e02237746ea00174e433b40af",
+      "sha256": "aedabc9e67855c0dbeb028ef2f878bf483bacc7d6f1a1c278b9645b3227b64ac",
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "visualWidth": 1425,
+        "visualHeight": 900,
+        "scale": 1,
+        "dpr": 1
+      },
+      "pathname": "/tools/workflows"
+    },
+    {
+      "name": "1440-workflow-editor-light.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "2a2e7bd87bc61d7b3cfa7fb3877cd511272661d336c0c5aedfa79852ac954136",
       "viewport": {
         "width": 1440,
         "height": 900,
@@ -3620,7 +3629,7 @@
       "name": "375-workflows-light.png",
       "width": 375,
       "height": 812,
-      "sha256": "a6c1a072f1cb9332097023945364f7e9f234bbf23277094770c9e210fe39f9c3",
+      "sha256": "13e82f1dc07c2e6bb40f40423252c329782c985c3e8a1b03f9cbbae48b7f2e7a",
       "viewport": {
         "width": 375,
         "height": 812,
@@ -3635,7 +3644,7 @@
       "name": "1440-route-recharge.png",
       "width": 1440,
       "height": 900,
-      "sha256": "acae375a70e205efb841f1c70fa090a542f6ddd249564950d1f4873d561ab02e",
+      "sha256": "fd1d9b3a9c535bdd5aa1804b7aa052ad3d7629978122780e2193d0d7a53ba1cc",
       "viewport": {
         "width": 1440,
         "height": 900,
@@ -3650,7 +3659,7 @@
       "name": "390-recharge-light.png",
       "width": 390,
       "height": 844,
-      "sha256": "8d324a7e1e92aec8e036dfc9188354a605b0c775a449cf34b9fd25504c58cfa0",
+      "sha256": "ff072690e693402ce46893222f0e0dc892e977b8303f6ca3aa06e745fe70c75f",
       "viewport": {
         "width": 390,
         "height": 844,
@@ -3665,7 +3674,7 @@
       "name": "1440-admin-flags-before.png",
       "width": 1440,
       "height": 900,
-      "sha256": "b35daa0f9e8430bff88d522a965048d672e0ab7f9535c4d59890188cae28d67b",
+      "sha256": "3effe13f7fff2a42346870b82139202e2eeb7155ee2edbf2bb66acd52460708e",
       "viewport": {
         "width": 1440,
         "height": 900,
@@ -3680,7 +3689,7 @@
       "name": "1440-admin-flags-after.png",
       "width": 1440,
       "height": 900,
-      "sha256": "a227648e5f3979f36a311d721ffefe38e4cbf07fc8f24eb202063852ac64e60c",
+      "sha256": "ed98ab1e4f6cfa8cf5e3ccc11812976f5bda59e36f93fb5e487e72e524096a46",
       "viewport": {
         "width": 1440,
         "height": 900,
@@ -3695,7 +3704,7 @@
       "name": "1440-select-light.png",
       "width": 1440,
       "height": 900,
-      "sha256": "b03b722415bed6ae79db7220c1b23f9ba1789228e3a4f9e04542b0737687675b",
+      "sha256": "eaa331b27ca8da8984fda54778b33e2ed58ee5c5b82387786d1b13b127893033",
       "viewport": {
         "width": 1440,
         "height": 900,
@@ -3710,7 +3719,7 @@
       "name": "390-select-light.png",
       "width": 390,
       "height": 844,
-      "sha256": "c3a345e15ac5a36510b12d29d24f602ca022aca7654289415daeb6e7b4de38b8",
+      "sha256": "e433be2663809e909d84deb5e3edffd7bdedd59f97d0e4d5823e9b9904b8ef55",
       "viewport": {
         "width": 390,
         "height": 844,
@@ -3725,7 +3734,7 @@
       "name": "390-account-light.png",
       "width": 390,
       "height": 844,
-      "sha256": "50bc6d8ac4eb5f6efafc3f6278542f1596847fad25db7e8ceae4155fb2e0e3dc",
+      "sha256": "22b2aeb3bd460a60c0049969c3129d136cb2e38a842fe6001b5700b1b4075839",
       "viewport": {
         "width": 390,
         "height": 844,
@@ -3740,7 +3749,7 @@
       "name": "1440-admin-flags-light.png",
       "width": 1440,
       "height": 900,
-      "sha256": "e6733262c3f3f9c35b915a4402f0e63bc819407f5ae9da8f9be3721cde24437d",
+      "sha256": "27537fce7c494612fd70c35fc38a4cc066b319ca42a827df3086a4051099d2b5",
       "viewport": {
         "width": 1440,
         "height": 900,
@@ -3755,7 +3764,7 @@
       "name": "375-admin-flags-light.png",
       "width": 375,
       "height": 812,
-      "sha256": "76757ec65b205e17ee29fe73332ba8fc47a2fbfb813f73e3947679013df729c8",
+      "sha256": "41171a0d357fca3b244eeb1c0ed6a020bcf844245ef93b543803395ba04124ee",
       "viewport": {
         "width": 375,
         "height": 812,
@@ -3770,7 +3779,7 @@
       "name": "390-finance-dark.png",
       "width": 390,
       "height": 844,
-      "sha256": "872b22bf5c9a960268b03bf8ee6abf7f4c96c6cecb097f7a2731807b27cba510",
+      "sha256": "494a6366a836e35e8b1a958e039a7e1c480c49f2535aeda0d24896116c11ab95",
       "viewport": {
         "width": 390,
         "height": 844,
@@ -3785,7 +3794,7 @@
       "name": "390-admin-flags-dark.png",
       "width": 390,
       "height": 844,
-      "sha256": "1e65ea8658c880d5a96f6b58b78288b2d84ba6887332a19fcf75797f3386f559",
+      "sha256": "ea35dd1ffd49986e01f19a421eee57769e87afccb928d555296aaed074029add",
       "viewport": {
         "width": 390,
         "height": 844,
@@ -3800,7 +3809,7 @@
       "name": "1440-admin-users-dark.png",
       "width": 1440,
       "height": 900,
-      "sha256": "3ef8656e5a8274120fa7cfb526701f8cf2b196e96335851302577f129792de3f",
+      "sha256": "f3a9c54bf3de26eb25189dd1d8181233c0c61a96f355a553cfbe12994ffc7ed5",
       "viewport": {
         "width": 1440,
         "height": 900,

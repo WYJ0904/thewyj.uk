@@ -1,38 +1,38 @@
 {
-  "checkedAt": "2026-11-21T16:09:55.129Z",
-  "deploymentId": "ae3e538d-8bbc-4fe1-9a30-ff6cc336045e",
-  "sourceCommit": "f85438a876f3c209d96c1a257420417b16df3cb0",
-  "previewUrl": "https://ae3e538d.thewyj-i05-preview.pages.dev",
+  "checkedAt": "2026-11-21T18:32:05.754Z",
+  "deploymentId": "d3c4bb3c-2d63-4f3c-8039-6fa48fa2b777",
+  "sourceCommit": "4ee17f18dc546409770fedade66eaaf37582d569",
+  "previewUrl": "https://d3c4bb3c.thewyj-i05-preview.pages.dev",
   "branch": "i05-workspace-density",
   "d1Id": "9e76a190-42db-4ff1-b0b7-476e4b312792",
   "d1Name": "aeris-i05-preview",
-  "artifactTreeSha256": "d4f77e9a972b4aaca7e7d9da7825a5350dfb2d235a44c16133b6757dc3e25e3e",
+  "artifactTreeSha256": "d0546bd65dededb99eb0c9ecdfbd7ae887cb2eba577e4c1e46b44dd779e97c31",
   "assets": [
     {
       "file": "app.js",
-      "sourceSha256": "e3c53af85d5615f8417686e25766ab70ae050ed2e70b3e60342926fde424911c",
-      "servedSha256": "e3c53af85d5615f8417686e25766ab70ae050ed2e70b3e60342926fde424911c",
-      "lineEndingNormalized": false
+      "sourceSha256": "167fe48de6b957d522e44b8ebf8d44ff1983be81d0b161d595ebccfa9322adef",
+      "servedSha256": "f93e1b18e950befcbb7abc872dfbad689158c3d1ca103247a1a25fb95186d00d",
+      "lineEndingNormalized": true
     },
     {
       "file": "design-system.css",
-      "sourceSha256": "e6cac44afaa225dcec88ab1496ffbee3184bc8721cc414358377d3d02b72e614",
-      "servedSha256": "e6cac44afaa225dcec88ab1496ffbee3184bc8721cc414358377d3d02b72e614",
-      "lineEndingNormalized": false
+      "sourceSha256": "1160b2264c2276c3de60ff3560137d14f798421c7876301fdd9cfc61e7f18cca",
+      "servedSha256": "046b22f534b29c676bede99c63813bf5e1bb1333ce39f962461537d943ae8bf6",
+      "lineEndingNormalized": true
     },
     {
       "file": "spatial-experience.css",
-      "sourceSha256": "94836e83cb697810e9aad5f2a655752b1ae2133059e933392b462189b59c60fb",
-      "servedSha256": "94836e83cb697810e9aad5f2a655752b1ae2133059e933392b462189b59c60fb",
-      "lineEndingNormalized": false
+      "sourceSha256": "a36f0467933cd1e0fd148900eed83b3b6bf10982b0120ce948525e8c76952f59",
+      "servedSha256": "8ec1bc9a17399f2a5f1c2169d0832999a506e5f4156b802d7500d9ce0c09d3de",
+      "lineEndingNormalized": true
     },
     {
       "file": "sw.js",
-      "sourceSha256": "258726e61432f886d6bd6c834d1495a79ff01ef40be9c258b6efc8b1124d44f4",
-      "servedSha256": "258726e61432f886d6bd6c834d1495a79ff01ef40be9c258b6efc8b1124d44f4",
-      "lineEndingNormalized": false
+      "sourceSha256": "1dd3ceced19b50c4c4a2f23ea366ce68e9ce74128ef589662b01db7d4c9b421a",
+      "servedSha256": "bbf803c00319e3759db7fd265ca435c594592f1ed84719abbd81d9f041a8b64f",
+      "lineEndingNormalized": true
     }
   ],
-  "verifyScriptSha256": "5142009193faedb3e52f4c1512c9d6948015c09c5f0467d41eddf083194148a2",
-  "browserProofScriptSha256": "3905cb8f702ee92d501f2051e83b30e00c546c756cd87597b6c1b3212c06d5b8"
+  "verifyScriptSha256": "748a54e236c7df6335bd097038897edbc0bca7f2fe02a8ca38e2a8955eb2fb9d",
+  "browserProofScriptSha256": "0d8927d091a38db655446cf2f738096e335b63da7b306e0d7df84e3bcfc9ab09"
 }

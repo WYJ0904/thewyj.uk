@@ -1,5 +1,26 @@
 # Aeris V6.3 — I05 Workspace & Admin High-Density Unification: Implementation Report
 
+## 2026-11-22 C01/C02/C03 按钮层级与嵌套外框收口（免二次复审进入 I06）
+
+- **状态结论**：本轮修复完成、自验通过；Owner 已授权免二次复审进入 I06（Draft #172 保留不合并，Production 未触碰）。
+- **产品提交**：[`4ee17f18dc546409770fedade66eaaf37582d569`](https://github.com/WYJ0904/thewyj.uk/commit/4ee17f18dc546409770fedade66eaaf37582d569)（于干净提交上完成全量本地浏览器复验及隔离 Hosted Preview 部署，不再出现 `sourceMatchesCommit=false`）。
+
+### 差异清单（C01 / C02 / C03 与配套修复）
+
+| 项目 | 修复位置 | 前后差异与验证结果 |
+| --- | --- | --- |
+| **C01 按钮视觉层级** | [design-system.css](../../../design-system.css) · [index.html](../../../index.html) · [app.js](../../../app.js) · [workflows.js](../../../workflows.js) · [spatial-experience.css](../../../spatial-experience.css) | `.button-secondary` 收敛为浅底无硬描边（`var(--ds-surface-muted)` / 透明边框），工作区未声明类型的普通 `<button>` 不再默认“白底 + 1px 灰框”。后台 `#saveFeatureFlagBtn`、充值 `#submitRechargeBtn` / `#confirmPaymentBtn`、工作流 `#saveWorkflowBtn` / `#runWorkflowBtn`、充值审核确认按钮统一使用实心主按钮（浅色 `#111113`/白字，深色 `#F8FAFC`/黑字）；`#newFeatureFlagBtn`、`#saveFeatureOverrideBtn`、`#evaluateFeatureBtn`、`#createWorkflowBtn`、`#duplicateWorkflowBtn`、`#addWorkflowStepBtn`、`#leaveAdminBtn` 等使用克制浅底次按钮；`#refreshFeatureFlagsBtn`、`#refreshAdminBtn`、`#importWorkflowBtn`、`#exportWorkflowBtn`、`#deleteWorkflowBtn`、步骤行动作、`#copyOrderBtn`、`#copyPaymentNoteBtn`、`#cancelPaymentOrderBtn` 使用无框 `.button-ghost`（危险动作保留 `.danger-text`）。工作流标题栏 4 按钮与桌面“添加步骤”均保持单行不折行；375/390px `.admin-header` 标题恢复左对齐、操作按钮双列并排。 |
+| **C02 嵌套外框收敛** | [spatial-experience.css](../../../spatial-experience.css) | 工作流 `.workflow-list` 与 `#workflowTemplateList` 改为连续分组列表（仅列表级轻边界与行间 1px 分割线，选中态左侧主色指示条，移除逐项独立白底细框）；`.workflow-runner` 去掉外层嵌套框改用顶部分割线；`#adminFeatureFlagsView fieldset` 改用顶部分割线；充值 `#membershipGoalField`、`#membershipPlanStep`、`#paymentMethodField` 去除外层重复框，`membership-goal-option` 与 `plan-option` 改用浅画布对比与透明边框+选中态描边，`payment-method-list` 改为连续分组行列表，`#purchaseSummary` 去除内嵌框。 |
+| **C03 隔离 Preview 暗色标识** | [preview-ui.css](../../../qa/p07ui/preview-ui.css) | 显式锁定 `.owner-preview-banner` 内 `strong`/`span`/`summary`/`code` 前景色 `#431407`、链接 `#7c2d12`，避免被全局暗色 `strong { color: var(--ds-text); }` 覆写导致浅米底白字不可读。在隔离部署 `https://d3c4bb3c.thewyj-i05-preview.pages.dev` 暗色主题下实测 `strongColor === rgb(67, 20, 7)`，见 [暗色横幅截图](evidence/followup/hosted/hosted-c03-dark-banner.png)。 |
+| **并发竞态顺带修复** | [feature-flags.js](../../../js/core/feature-flags.js) | 跟踪 `#releaseChannelSelect` 未保存用户变更状态（`selectDirty`），防止后台周期续期 `refresh()` 在点击 `#saveReleaseChannelBtn` 前将已选体验通道覆写回旧值；`test_task26_feature_refresh.mjs` 6/6 与本地浏览器 `exerciseReleaseChannel` 均通过。 |
+
+### 本轮自验与证据更新
+
+- **静态与构建**：`npm run task27:publication`（20 项完整性清单）、`test_i02_css_contracts.mjs`、`test_i03_public_pages.mjs`、`test_i04_workspace.mjs`、`test_i05_workspace_shell.mjs`（17/17 PASS）、`test_task26_feature_refresh.mjs`（6/6 PASS）、`check_js_module_graph.mjs`（67 文件 PASS）、`npm run build`（PASS）、`npm run cf:check`（PASS）。
+- **本地浏览器验收（干净提交 `4ee17f18`）**：`node qa/i05/browser-acceptance.mjs` **PASS**（13/13 场景，90/90 视口×主题单元格，22 张截图，`sourceMatchesCommit: true`，0 严重/关键 axe 违规，0 运行时/5xx 错误）。新增 C01/C02 计算样式与单行断言及 [工作流编辑器](evidence/1440-workflow-editor-light.png)、[充值选中态](evidence/1440-route-recharge.png)、[后台开关 1440](evidence/1440-admin-flags-light.png)、[后台开关 375](evidence/375-admin-flags-light.png)、[后台开关 390 深色](evidence/390-admin-flags-dark.png) 实看确认。
+- **I03 / I04 共享 CSS 回归**：`node qa/i03/browser-acceptance.mjs` **PASS**（4 场景、11 axe、21 截图）、`node qa/i04/browser-acceptance.mjs` **PASS**（11 场景、7 axe、10 视口），且未污染 I03/I04 既有证据目录。
+- **隔离 Hosted Preview**：已重新部署至 [`https://d3c4bb3c.thewyj-i05-preview.pages.dev`](https://d3c4bb3c.thewyj-i05-preview.pages.dev)（别名 [`https://i05-workspace-density.thewyj-i05-preview.pages.dev`](https://i05-workspace-density.thewyj-i05-preview.pages.dev)，`deploymentId: d3c4bb3c-2d63-4f3c-8039-6fa48fa2b777`，`d1Id: 9e76a190-42db-4ff1-b0b7-476e4b312792`，`r2: 0`，`ai: false`）。`node qa/i05/verify-preview.mjs --source-only` **PASS**（线上 4 个产物字节与 `4ee17f18` Git 源码一致），暗色横幅 C03 线上实测 PASS（[证据](evidence/followup/hosted/independent-final-source.json)）。
+
 ## 规范核对后的修复与复验
 
 本节对应 2026-11-21 差距核对，保留原轮验收记录供追溯。原远端头为 [`c579b222`](https://github.com/WYJ0904/thewyj.uk/commit/c579b222ff9d72814afb996951b37f7e4fb455dd)，续接现有 `workspace_admin_density` 工作树中的先行修复。产品输入冻结在 [`f85438a876f3c209d96c1a257420417b16df3cb0`](https://github.com/WYJ0904/thewyj.uk/commit/f85438a876f3c209d96c1a257420417b16df3cb0)。保留 [Draft #172](https://github.com/WYJ0904/thewyj.uk/pull/172) 到 I04 的叠加关系。

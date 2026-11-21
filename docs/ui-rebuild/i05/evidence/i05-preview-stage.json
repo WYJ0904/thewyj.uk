@@ -3,7 +3,7 @@
     "schema_version": 1,
     "environment": "isolated-preview",
     "stage": "I05-workspace-admin-density",
-    "source_commit": "e4e781f2ad5e4cc791f70a2880952d683c041368",
+    "source_commit": "4ee17f18dc546409770fedade66eaaf37582d569",
     "project_name": "thewyj-i05-preview",
     "branch": "i05-workspace-density",
     "remote_check": {
@@ -20,12 +20,12 @@
       "bindingConsistent": true
     },
     "file_count": 208,
-    "artifact_tree_sha256": "27b7c4f983f1ad44f2fde7c87fa87b9a4c119b8b791c378ad62df4c3fc98476a"
+    "artifact_tree_sha256": "d0546bd65dededb99eb0c9ecdfbd7ae887cb2eba577e4c1e46b44dd779e97c31"
   },
   "deployResult": {
-    "deployedUrl": "https://f3304762.thewyj-i05-preview.pages.dev",
+    "deployedUrl": "https://d3c4bb3c.thewyj-i05-preview.pages.dev",
     "aliasUrl": "https://i05-workspace-density.thewyj-i05-preview.pages.dev",
-    "deploymentId": "f3304762-c50d-4ead-a52b-fa079838e0ee",
+    "deploymentId": "d3c4bb3c-2d63-4f3c-8039-6fa48fa2b777",
     "deployedD1Id": "9e76a190-42db-4ff1-b0b7-476e4b312792",
     "deployedR2Count": 0,
     "deployedAiEnabled": "false"
