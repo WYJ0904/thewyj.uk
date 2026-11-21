@@ -1,0 +1,211 @@
+{
+  "utc": "2026-11-21T15:49:01.611Z",
+  "project": "thewyj-i05-preview",
+  "branch": "i05-workspace-density",
+  "d1": {
+    "name": "aeris-i05-preview",
+    "uuid": "9e76a190-42db-4ff1-b0b7-476e4b312792"
+  },
+  "productionBranch": "release-held",
+  "canonical": null,
+  "latest": {
+    "id": "f3304762-c50d-4ead-a52b-fa079838e0ee",
+    "environment": "preview",
+    "branch": "i05-workspace-density",
+    "sha": "e4e781f2ad5e4cc791f70a2880952d683c041368",
+    "status": "success",
+    "url": "https://f3304762.thewyj-i05-preview.pages.dev",
+    "aliases": [
+      "https://i05-workspace-density.thewyj-i05-preview.pages.dev"
+    ]
+  },
+  "latestBinding": {
+    "d1": {
+      "WYJ_DB": {
+        "id": "9e76a190-42db-4ff1-b0b7-476e4b312792"
+      }
+    },
+    "r2": [],
+    "ai": [],
+    "service": [],
+    "compatibilityDate": "2026-08-06",
+    "compatibilityFlags": [],
+    "vars": {
+      "ANDROID_APK_FILE_NAME": "plain_text",
+      "ANDROID_APK_KEY": "plain_text",
+      "ANDROID_APK_SHA256": "plain_text",
+      "ANDROID_APK_SIZE_BYTES": "plain_text",
+      "ANDROID_DOWNLOAD_URL": "plain_text",
+      "ANDROID_LATEST_VERSION_CODE": "plain_text",
+      "ANDROID_LATEST_VERSION_NAME": "plain_text",
+      "ANDROID_MINIMUM_VERSION_CODE": "plain_text",
+      "ANDROID_RELEASE_BUILD": "plain_text",
+      "ANDROID_RELEASE_DATE": "plain_text",
+      "ANDROID_RELEASE_NOTES": "plain_text",
+      "AZURE_SPEECH_REGION": "plain_text",
+      "CLOUD_DEEP_HEALTH_CHECKS": "true",
+      "CLOUD_FOUNDATION_ENABLED": "true",
+      "CLOUD_READS_ENABLED": "true",
+      "CLOUD_STATUS_MODE": "cloud",
+      "CLOUD_WRITES_ENABLED": "true",
+      "D1_RATE_LIMIT_ENABLED": "plain_text",
+      "EMAIL_CLOUDFLARE_ACCOUNT_ID": "plain_text",
+      "EMAIL_SENDING_ENABLED": "false",
+      "EMAIL_SUPPORT_SENDER_AUTHORIZED": "plain_text",
+      "EMAIL_TEST_RECIPIENTS": "plain_text",
+      "LEGACY_API_FALLBACK_ENABLED": "false",
+      "TASK11_CLOUD_READS_ENABLED": "true",
+      "TASK11_CLOUD_WRITES_ENABLED": "true",
+      "TASK11_IMPORT_ENABLED": "plain_text",
+      "TASK12_CLOUD_ACCOUNTS_ENABLED": "true",
+      "TASK12_IMPORT_ENABLED": "plain_text",
+      "TASK13_CLOUD_READS_ENABLED": "true",
+      "TASK13_CLOUD_WRITES_ENABLED": "true",
+      "TASK13_IMPORT_ENABLED": "plain_text",
+      "TASK13_PAYMENT_PRIMARY_ENABLED": "plain_text",
+      "TASK13_PRODUCTION_IMPORT_ENABLED": "plain_text",
+      "TASK14_CLOUD_READS_ENABLED": "true",
+      "TASK14_CLOUD_WRITES_ENABLED": "true",
+      "TASK14_IMPORT_ENABLED": "plain_text",
+      "TASK14_LEGACY_WRITES_FROZEN": "plain_text",
+      "TASK14_TEMPORARY_PRIMARY_ENABLED": "plain_text",
+      "TASK15_CLOUD_ONLY_ENABLED": "true",
+      "TASK15_IMPORT_ENABLED": "plain_text",
+      "TASK16_CLOUD_READS_ENABLED": "true",
+      "TASK16_CLOUD_WRITES_ENABLED": "true",
+      "TASK16_IMPORT_ENABLED": "plain_text",
+      "TASK16_PRODUCTION_IMPORT_ENABLED": "plain_text",
+      "TASK18_ADMIN_MESSAGES_ENABLED": "plain_text",
+      "TASK20_ANDROID_APP_ENABLED": "plain_text",
+      "TASK21_NOTIFICATION_READS_ENABLED": "plain_text",
+      "TASK21_NOTIFICATION_WRITES_ENABLED": "plain_text",
+      "TASK22_TRANSFER_READS_ENABLED": "plain_text",
+      "TASK22_TRANSFER_WRITES_ENABLED": "plain_text",
+      "TASK25_FEATURE_FLAGS_ENABLED": "plain_text",
+      "TASK26_ADAPTIVE_LEARNING_ENABLED": "plain_text",
+      "TASK27_SECURITY_ENABLED": "plain_text",
+      "TASK29_BACKUP_ENABLED": "plain_text",
+      "TASK30_PRIVACY_ENABLED": "plain_text",
+      "TTS_MODE": "plain_text",
+      "WORKERS_AI_ENABLED": "false",
+      "WYJ_ENVIRONMENT": "preview",
+      "WYJ_TASK12_PASSWORD_PEPPER": "secret_text",
+      "WYJ_TASK14_TEMPORARY_SECRET": "secret_text",
+      "WYJ_TASK20_DEVICE_SESSION_SECRET": "secret_text"
+    }
+  },
+  "preview": {
+    "d1": {
+      "WYJ_DB": {
+        "id": "9e76a190-42db-4ff1-b0b7-476e4b312792"
+      }
+    },
+    "r2": [],
+    "ai": [],
+    "service": [],
+    "compatibilityDate": "2026-08-06",
+    "compatibilityFlags": [],
+    "failOpen": true,
+    "vars": {
+      "ANDROID_APK_FILE_NAME": "plain_text",
+      "ANDROID_APK_KEY": "plain_text",
+      "ANDROID_APK_SHA256": "plain_text",
+      "ANDROID_APK_SIZE_BYTES": "plain_text",
+      "ANDROID_DOWNLOAD_URL": "plain_text",
+      "ANDROID_LATEST_VERSION_CODE": "plain_text",
+      "ANDROID_LATEST_VERSION_NAME": "plain_text",
+      "ANDROID_MINIMUM_VERSION_CODE": "plain_text",
+      "ANDROID_RELEASE_BUILD": "plain_text",
+      "ANDROID_RELEASE_DATE": "plain_text",
+      "ANDROID_RELEASE_NOTES": "plain_text",
+      "AZURE_SPEECH_REGION": "plain_text",
+      "CLOUD_DEEP_HEALTH_CHECKS": "true",
+      "CLOUD_FOUNDATION_ENABLED": "true",
+      "CLOUD_READS_ENABLED": "true",
+      "CLOUD_STATUS_MODE": "cloud",
+      "CLOUD_WRITES_ENABLED": "true",
+      "D1_RATE_LIMIT_ENABLED": "plain_text",
+      "EMAIL_CLOUDFLARE_ACCOUNT_ID": "plain_text",
+      "EMAIL_SENDING_ENABLED": "false",
+      "EMAIL_SUPPORT_SENDER_AUTHORIZED": "plain_text",
+      "EMAIL_TEST_RECIPIENTS": "plain_text",
+      "LEGACY_API_FALLBACK_ENABLED": "false",
+      "TASK11_CLOUD_READS_ENABLED": "true",
+      "TASK11_CLOUD_WRITES_ENABLED": "true",
+      "TASK11_IMPORT_ENABLED": "plain_text",
+      "TASK12_CLOUD_ACCOUNTS_ENABLED": "true",
+      "TASK12_IMPORT_ENABLED": "plain_text",
+      "TASK13_CLOUD_READS_ENABLED": "true",
+      "TASK13_CLOUD_WRITES_ENABLED": "true",
+      "TASK13_IMPORT_ENABLED": "plain_text",
+      "TASK13_PAYMENT_PRIMARY_ENABLED": "plain_text",
+      "TASK13_PRODUCTION_IMPORT_ENABLED": "plain_text",
+      "TASK14_CLOUD_READS_ENABLED": "true",
+      "TASK14_CLOUD_WRITES_ENABLED": "true",
+      "TASK14_IMPORT_ENABLED": "plain_text",
+      "TASK14_LEGACY_WRITES_FROZEN": "plain_text",
+      "TASK14_TEMPORARY_PRIMARY_ENABLED": "plain_text",
+      "TASK15_CLOUD_ONLY_ENABLED": "true",
+      "TASK15_IMPORT_ENABLED": "plain_text",
+      "TASK16_CLOUD_READS_ENABLED": "true",
+      "TASK16_CLOUD_WRITES_ENABLED": "true",
+      "TASK16_IMPORT_ENABLED": "plain_text",
+      "TASK16_PRODUCTION_IMPORT_ENABLED": "plain_text",
+      "TASK18_ADMIN_MESSAGES_ENABLED": "plain_text",
+      "TASK20_ANDROID_APP_ENABLED": "plain_text",
+      "TASK21_NOTIFICATION_READS_ENABLED": "plain_text",
+      "TASK21_NOTIFICATION_WRITES_ENABLED": "plain_text",
+      "TASK22_TRANSFER_READS_ENABLED": "plain_text",
+      "TASK22_TRANSFER_WRITES_ENABLED": "plain_text",
+      "TASK25_FEATURE_FLAGS_ENABLED": "plain_text",
+      "TASK26_ADAPTIVE_LEARNING_ENABLED": "plain_text",
+      "TASK27_SECURITY_ENABLED": "plain_text",
+      "TASK29_BACKUP_ENABLED": "plain_text",
+      "TASK30_PRIVACY_ENABLED": "plain_text",
+      "TTS_MODE": "plain_text",
+      "WORKERS_AI_ENABLED": "false",
+      "WYJ_ENVIRONMENT": "preview",
+      "WYJ_TASK12_PASSWORD_PEPPER": "secret_text",
+      "WYJ_TASK14_TEMPORARY_SECRET": "secret_text",
+      "WYJ_TASK20_DEVICE_SESSION_SECRET": "secret_text"
+    }
+  },
+  "ledger": {
+    "count": 40,
+    "last": {
+      "id": 40,
+      "name": "0040_task30_privacy_retention_erasure.sql"
+    }
+  },
+  "foreignKeyViolations": 0,
+  "existingTestAccountRoles": [
+    {
+      "role": "super_admin",
+      "n": 1
+    },
+    {
+      "role": "user",
+      "n": 1
+    }
+  ],
+  "p07Enabled": 1,
+  "status": {
+    "https": 200,
+    "environment": "preview",
+    "ok": true
+  },
+  "health": {
+    "https": 401,
+    "code": "authentication_required"
+  },
+  "features": {
+    "https": 200,
+    "publicUi": true
+  },
+  "build": {
+    "https": 200,
+    "source": "e4e781f2ad5e4cc791f70a2880952d683c041368",
+    "artifactSha256": "27b7c4f983f1ad44f2fde7c87fa87b9a4c119b8b791c378ad62df4c3fc98476a",
+    "fileCount": 208
+  }
+}

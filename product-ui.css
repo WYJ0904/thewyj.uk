@@ -150,7 +150,7 @@ textarea:focus-visible {
   box-shadow: var(--ds-focus-ring, 0 0 0 3px rgba(37, 99, 235, 0.24));
 }
 
-input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(.visually-hidden):not(.sr-only):not(.ds-sr-only),
 select,
 textarea,
 .login-form input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
@@ -168,7 +168,7 @@ textarea,
   box-shadow: none;
 }
 
-input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(.visually-hidden):not(.sr-only):not(.ds-sr-only),
 select {
   min-height: 44px;
   padding: 0 12px;

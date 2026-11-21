@@ -1,0 +1,36 @@
+{
+  "utc": "2026-11-21T16:00:41.958Z",
+  "sourceCommit": "b1c866a4c12febd96dd884d1e715cd6b35441fc0",
+  "gitTree": "754938fe5c0d46ed3789efb571d7f478f6f7b447",
+  "deploymentId": "cdee886e-2b92-4bb9-b135-c9381ba61661",
+  "artifactSha256": "8ef69b82555cbf0c4cd2e1331f8f7a9677b2683873be039926901b589730b42d",
+  "project": "thewyj-i05-preview",
+  "branch": "i05-workspace-density",
+  "database": "9e76a190-42db-4ff1-b0b7-476e4b312792",
+  "scope": "Isolated I05 Hosted Preview",
+  "results": {
+    "B02 restored screenshot": {
+      "status": "PASS",
+      "restored": {
+        "channel": "stable",
+        "revision": 2,
+        "status": 200
+      }
+    }
+  },
+  "errors": [],
+  "screenshots": [
+    {
+      "name": "hosted-1440-account-channel-restored.png",
+      "width": 881,
+      "height": 248,
+      "sha256": "9b9e31837810d5a8fff7f3e3675e7d49d13dfba498d402ad1d883524154705e7"
+    }
+  ],
+  "axes": [],
+  "dbRecheck": {
+    "foreignKeyViolations": 0,
+    "existingUiFlagEnabled": true
+  },
+  "status": "PASS"
+}

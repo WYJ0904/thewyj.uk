@@ -1,0 +1,389 @@
+{
+  "scope": "Isolated local Miniflare D1/R2 + headless Chrome CDP (I05)",
+  "gitSha": "b1c866a4c12febd96dd884d1e715cd6b35441fc0",
+  "gitBranch": "hydrogen/i05-workspace-admin-density",
+  "worktreeDirty": true,
+  "dirtyFiles": [
+    "M qa/i05/browser-acceptance.mjs",
+    "M qa/i05/verify-preview.mjs",
+    "?? qa/i05/browser-proofs.mjs"
+  ],
+  "browserVersion": "Chrome/158.0.8127.36",
+  "scenarios": [
+    {
+      "name": "wrapped_admin_tabs_keyboard_and_single_visible_marker",
+      "status": "PASS",
+      "detail": {
+        "active": "adminRechargeTab",
+        "focused": true,
+        "activePanel": true,
+        "markerDisplay": "none",
+        "borderColor": "rgb(17, 17, 19)",
+        "borderWidth": "2px",
+        "activeTabIndex": 0
+      }
+    }
+  ],
+  "viewportMatrix": [
+    {
+      "width": 1024,
+      "kind": "users",
+      "labels": [
+        "用户与状态",
+        "会员与权益",
+        "安全与登录",
+        "操作"
+      ],
+      "visible": true,
+      "rootOverflow": -15,
+      "listOverflow": 0,
+      "rows": [
+        {
+          "drift": 0,
+          "overflow": 0,
+          "cellOverflow": 0,
+          "tracksMatch": true,
+          "buttons": 1,
+          "lastLogin": {
+            "columnWidths": "172.141px",
+            "width": 172,
+            "lines": 2
+          }
+        },
+        {
+          "drift": 0,
+          "overflow": 0,
+          "cellOverflow": 0,
+          "tracksMatch": true,
+          "buttons": 1,
+          "lastLogin": {
+            "columnWidths": "172.141px",
+            "width": 172,
+            "lines": 1
+          }
+        }
+      ]
+    },
+    {
+      "width": 1024,
+      "kind": "recharge",
+      "labels": [
+        "申请人与订单",
+        "套餐与金额",
+        "审核状态",
+        "操作"
+      ],
+      "visible": true,
+      "rootOverflow": -15,
+      "listOverflow": 0,
+      "rows": [
+        {
+          "drift": 0,
+          "overflow": 0,
+          "cellOverflow": 0,
+          "tracksMatch": true,
+          "buttons": 2,
+          "lastLogin": null
+        },
+        {
+          "drift": 0,
+          "overflow": 0,
+          "cellOverflow": 0,
+          "tracksMatch": true,
+          "buttons": 0,
+          "lastLogin": null
+        }
+      ]
+    },
+    {
+      "width": 1024,
+      "kind": "audit",
+      "labels": [
+        "动作与时间",
+        "操作者与对象",
+        "结果与摘要"
+      ],
+      "visible": true,
+      "rootOverflow": -15,
+      "listOverflow": 0,
+      "rows": [
+        {
+          "drift": 0,
+          "overflow": 0,
+          "cellOverflow": 0,
+          "tracksMatch": true,
+          "buttons": 0,
+          "lastLogin": null
+        }
+      ]
+    },
+    {
+      "width": 1024,
+      "kind": "login",
+      "labels": [
+        "账号与结果",
+        "位置、IP 与来源",
+        "设备与环境"
+      ],
+      "visible": true,
+      "rootOverflow": -15,
+      "listOverflow": 0,
+      "rows": [
+        {
+          "drift": 0,
+          "overflow": 0,
+          "cellOverflow": 0,
+          "tracksMatch": true,
+          "buttons": 0,
+          "lastLogin": null
+        }
+      ]
+    },
+    {
+      "width": 1024,
+      "kind": "tools",
+      "labels": [
+        "工具标识",
+        "累计调用与人数",
+        "最近使用时间"
+      ],
+      "visible": true,
+      "rootOverflow": -15,
+      "listOverflow": 0,
+      "rows": [
+        {
+          "drift": 0,
+          "overflow": 0,
+          "cellOverflow": 0,
+          "tracksMatch": true,
+          "buttons": 0,
+          "lastLogin": null
+        }
+      ]
+    },
+    {
+      "width": 375,
+      "theme": "light",
+      "rootOverflow": 0,
+      "toolbar": {
+        "x": 14,
+        "y": 421.05853271484375,
+        "right": 361,
+        "bottom": 578.6522827148438,
+        "width": 347,
+        "height": 157.59375,
+        "overflow": 0
+      },
+      "select": {
+        "x": 29,
+        "y": 467.65228271484375,
+        "right": 346,
+        "bottom": 511.65228271484375,
+        "width": 317,
+        "height": 44,
+        "overflow": 0
+      },
+      "controls": [
+        {
+          "id": "newFeatureFlagBtn",
+          "label": "新建功能",
+          "lines": 1,
+          "textFits": true,
+          "hit": true,
+          "x": 29,
+          "y": 521.6522827148438,
+          "right": 182.5,
+          "bottom": 565.6522827148438,
+          "width": 153.5,
+          "height": 44,
+          "overflow": 0
+        },
+        {
+          "id": "refreshFeatureFlagsBtn",
+          "label": "刷新配置",
+          "lines": 1,
+          "textFits": true,
+          "hit": true,
+          "x": 192.5,
+          "y": 521.6522827148438,
+          "right": 346,
+          "bottom": 565.6522827148438,
+          "width": 153.5,
+          "height": 44,
+          "overflow": 0
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "rootOverflow": 0,
+      "toolbar": {
+        "x": 14,
+        "y": 421.515625,
+        "right": 376,
+        "bottom": 579.109375,
+        "width": 362,
+        "height": 157.59375,
+        "overflow": 0
+      },
+      "select": {
+        "x": 29,
+        "y": 468.109375,
+        "right": 361,
+        "bottom": 512.109375,
+        "width": 332,
+        "height": 44,
+        "overflow": 0
+      },
+      "controls": [
+        {
+          "id": "newFeatureFlagBtn",
+          "label": "新建功能",
+          "lines": 1,
+          "textFits": true,
+          "hit": true,
+          "x": 29,
+          "y": 522.109375,
+          "right": 190,
+          "bottom": 566.109375,
+          "width": 161,
+          "height": 44,
+          "overflow": 0
+        },
+        {
+          "id": "refreshFeatureFlagsBtn",
+          "label": "刷新配置",
+          "lines": 1,
+          "textFits": true,
+          "hit": true,
+          "x": 200,
+          "y": 522.109375,
+          "right": 361,
+          "bottom": 566.109375,
+          "width": 161,
+          "height": 44,
+          "overflow": 0
+        }
+      ]
+    },
+    {
+      "width": 375,
+      "theme": "dark",
+      "rootOverflow": 0,
+      "toolbar": {
+        "x": 14,
+        "y": 420.90625,
+        "right": 361,
+        "bottom": 578.5,
+        "width": 347,
+        "height": 157.59375,
+        "overflow": 0
+      },
+      "select": {
+        "x": 29,
+        "y": 467.5,
+        "right": 346,
+        "bottom": 511.5,
+        "width": 317,
+        "height": 44,
+        "overflow": 0
+      },
+      "controls": [
+        {
+          "id": "newFeatureFlagBtn",
+          "label": "新建功能",
+          "lines": 1,
+          "textFits": true,
+          "hit": true,
+          "x": 29,
+          "y": 521.5,
+          "right": 182.5,
+          "bottom": 565.5,
+          "width": 153.5,
+          "height": 44,
+          "overflow": 0
+        },
+        {
+          "id": "refreshFeatureFlagsBtn",
+          "label": "刷新配置",
+          "lines": 1,
+          "textFits": true,
+          "hit": true,
+          "x": 192.5,
+          "y": 521.5,
+          "right": 346,
+          "bottom": 565.5,
+          "width": 153.5,
+          "height": 44,
+          "overflow": 0
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "rootOverflow": 0,
+      "toolbar": {
+        "x": 14,
+        "y": 421.515625,
+        "right": 376,
+        "bottom": 579.109375,
+        "width": 362,
+        "height": 157.59375,
+        "overflow": 0
+      },
+      "select": {
+        "x": 29,
+        "y": 468.109375,
+        "right": 361,
+        "bottom": 512.109375,
+        "width": 332,
+        "height": 44,
+        "overflow": 0
+      },
+      "controls": [
+        {
+          "id": "newFeatureFlagBtn",
+          "label": "新建功能",
+          "lines": 1,
+          "textFits": true,
+          "hit": true,
+          "x": 29,
+          "y": 522.109375,
+          "right": 190,
+          "bottom": 566.109375,
+          "width": 161,
+          "height": 44,
+          "overflow": 0
+        },
+        {
+          "id": "refreshFeatureFlagsBtn",
+          "label": "刷新配置",
+          "lines": 1,
+          "textFits": true,
+          "hit": true,
+          "x": 200,
+          "y": 522.109375,
+          "right": 361,
+          "bottom": 566.109375,
+          "width": 161,
+          "height": 44,
+          "overflow": 0
+        }
+      ]
+    }
+  ],
+  "axeScans": [],
+  "screenshots": [
+    "i05-admin-focused-1024-users.png",
+    "i05-admin-focused-375-flags-light.png",
+    "i05-admin-focused-390-flags-light.png",
+    "i05-admin-focused-375-flags-dark.png",
+    "i05-admin-focused-390-flags-dark.png"
+  ],
+  "apiErrors": [],
+  "runtimeErrors": [],
+  "android_physical_device": "NOT_TESTED",
+  "production_release": "NOT_TOUCHED"
+}
