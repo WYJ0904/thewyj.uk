@@ -59,6 +59,7 @@
 
   /* Runtime-updated layout & viewport metrics (with safe static fallbacks) */
   --site-nav-height: 64px;
+  --owner-preview-banner-height: 0px;
   --ds-overlay-top: 0px;
   --ds-overlay-height: 100dvh;
   --ds-menu-height: calc(100dvh - 84px);
@@ -788,7 +789,7 @@ textarea:focus-visible,
   box-shadow: var(--ds-focus-ring);
 }
 
-input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(.visually-hidden):not(.sr-only):not(.ds-sr-only),
 select,
 textarea {
   min-width: 0;
@@ -804,7 +805,7 @@ textarea {
     background-color var(--ds-duration-fast) var(--ds-ease-standard);
 }
 
-input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(.visually-hidden):not(.sr-only):not(.ds-sr-only),
 select {
   min-height: var(--ds-touch-min);
   padding: 0 var(--ds-space-3);
@@ -1732,13 +1733,22 @@ html[data-p07-ui="enabled"] .achievement-toast {
 }
 
 /* I07 Shared Toast Queue Region (max 2 visible pills, safe area, non-blocking) */
+input.visually-hidden,
+input.sr-only,
+input.ds-sr-only,
+.visually-hidden,
+.sr-only,
 .ds-sr-only {
   position: absolute;
+  inset: 0 auto auto 0;
   width: 1px;
   height: 1px;
+  min-width: 0;
+  min-height: 0;
   padding: 0;
   margin: -1px;
   overflow: hidden;
+  clip: rect(0, 0, 0, 0);
   clip-path: inset(50%);
   white-space: nowrap;
   border: 0;

@@ -92,6 +92,7 @@ const report = {
   apiStatus: { ok: apiStatus.ok, environment: apiStatus.environment },
   apiHealthOk: Boolean(apiHealth?.ok ?? true),
   uiFeaturesPublicEnabled: Boolean(uiFeatures.public_ui?.enabled),
+  verifiedSourceCommit: buildJson.source_commit || "",
   buildJson,
   routesChecked: [],
   adminChecks: {},
@@ -184,15 +185,17 @@ try {
     { nav: "home", expectedRoute: "home", container: "#authWorkspaceSection" },
     { nav: "language", expectedRoute: "language", container: "#projectPicker", altContainer: "#languagePanel" },
     { nav: "tools", expectedRoute: "tools", container: "#toolsPanel" },
+    { nav: "workflows", expectedRoute: "tools", container: "#workflowWorkspace" },
     { nav: "finance", expectedRoute: "finance", container: "#financePage" },
     { nav: "transfer", expectedRoute: "transfer", container: "#transferPage" },
+    { nav: "recharge", expectedRoute: "recharge", container: "#membershipModal" },
     { nav: "account", expectedRoute: "account", container: "#accountModal" },
     { nav: "admin", expectedRoute: "admin", container: "#adminPanel" },
   ];
   for (const spec of routeSpecs) {
     await pointerClick(`#v3Sidebar [data-v3-nav="${spec.nav}"]`);
     await page.waitFor(
-      `document.body.dataset.workspaceRoute === ${JSON.stringify(spec.expectedRoute)}`,
+      `document.body.dataset.workspaceRoute === ${JSON.stringify(spec.expectedRoute)} && !document.querySelector(${JSON.stringify(spec.container)})?.classList.contains('hidden')`,
       15_000,
       `preview route ${spec.nav}`,
     );
@@ -204,13 +207,85 @@ try {
     report.routesChecked.push({ route: spec.nav, crumb, overflow });
   }
 
-  // /account save release channel check
+  // /tools/workflows 1440 & 375 checks (A02)
+  await pointerClick('#v3Sidebar [data-v3-nav="workflows"]');
+  await page.waitFor("document.body.dataset.workspaceRoute === 'tools' && !document.querySelector('#workflowWorkspace')?.classList.contains('hidden')", 15_000);
+  await settle();
+  const wfDesktop = await page.evaluate(`(() => {
+    const sb = document.querySelector('.workflow-sidebar');
+    const imp = document.getElementById('workflowImportInput');
+    const ir = imp ? imp.getBoundingClientRect() : null;
+    return {
+      overflow: document.documentElement.scrollWidth - window.innerWidth,
+      sidebarCrop: sb ? sb.scrollWidth - sb.clientWidth : 0,
+      importBox: ir ? [ir.width, ir.height] : [0, 0],
+    };
+  })()`);
+  assert.ok(wfDesktop.overflow <= 1 && wfDesktop.sidebarCrop <= 1, `Preview 1440 workflows crop: ${JSON.stringify(wfDesktop)}`);
+  assert.ok(wfDesktop.importBox[0] <= 2 && wfDesktop.importBox[1] <= 2, `Preview #workflowImportInput oversized: ${JSON.stringify(wfDesktop)}`);
+  await shot("preview-1440-workflows.png");
+  await page.send("Emulation.setDeviceMetricsOverride", { width: 375, height: 812, deviceScaleFactor: 1, mobile: true });
+  await page.send("Emulation.setTouchEmulationEnabled", { enabled: true });
+  await settle();
+  const wf375Overflow = await page.evaluate("document.documentElement.scrollWidth - window.innerWidth");
+  assert.ok(wf375Overflow <= 1, `Preview 375 /tools/workflows overflow: ${wf375Overflow}`);
+  await shot("preview-375-workflows.png");
+  await page.send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
+  await page.send("Emulation.setTouchEmulationEnabled", { enabled: false });
+  await settle();
+  report.workflowChecks = { wfDesktop, wf375Overflow };
+
+  // /recharge 1440 & 390 checks (A01)
+  await pointerClick('#v3Sidebar [data-v3-nav="recharge"]');
+  await page.waitFor("document.body.dataset.workspaceRoute === 'recharge' && !document.querySelector('#membershipModal')?.classList.contains('hidden') && Boolean(document.querySelector('#membershipGoalList button'))", 15_000);
+  await settle();
+  const recharge1440 = await page.evaluate(`(() => {
+    const mr = document.getElementById('membershipModal').getBoundingClientRect();
+    const br = document.querySelector('#workspaceBreadcrumb ol').getBoundingClientRect();
+    return { x: mr.left, width: mr.width, breadcrumbOlX: br.left, overflow: document.documentElement.scrollWidth - window.innerWidth };
+  })()`);
+  assert.ok(recharge1440.x >= 220 && Math.abs(recharge1440.x - recharge1440.breadcrumbOlX) <= 2 && recharge1440.overflow <= 1, `Preview 1440 /recharge margin mismatch: ${JSON.stringify(recharge1440)}`);
+  await shot("preview-1440-recharge.png");
+  await page.send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+  await page.send("Emulation.setTouchEmulationEnabled", { enabled: true });
+  await settle();
+  const recharge390 = await page.evaluate(`(() => {
+    const mr = document.getElementById('membershipModal').getBoundingClientRect();
+    const br = document.querySelector('#workspaceBreadcrumb ol').getBoundingClientRect();
+    return { x: mr.left, width: mr.width, breadcrumbOlX: br.left, overflow: document.documentElement.scrollWidth - window.innerWidth };
+  })()`);
+  assert.ok(recharge390.x >= 12 && Math.abs(recharge390.x - recharge390.breadcrumbOlX) <= 2 && recharge390.overflow <= 1, `Preview 390 /recharge margin mismatch: ${JSON.stringify(recharge390)}`);
+  await shot("preview-390-recharge.png");
+  await page.send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
+  await page.send("Emulation.setTouchEmulationEnabled", { enabled: false });
+  await settle();
+  report.rechargeChecks = { recharge1440, recharge390 };
+
+  // /account B02 release channel persistence check (change -> save -> reload -> restore)
   await pointerClick('#v3Sidebar [data-v3-nav="account"]');
-  await page.waitFor("document.body.dataset.workspaceRoute === 'account' && !document.querySelector('#accountModal')?.classList.contains('hidden')", 15_000);
+  await page.waitFor("document.body.dataset.workspaceRoute === 'account' && !document.querySelector('#accountModal')?.classList.contains('hidden') && !document.querySelector('#releaseChannelSelect')?.disabled", 15_000);
+  const initialChannel = await page.evaluate("document.getElementById('releaseChannelSelect').value");
+  const nextChannel = initialChannel === "beta" ? "experimental" : "beta";
+  await page.evaluate(`(() => {
+    const sel = document.getElementById('releaseChannelSelect');
+    sel.value = ${JSON.stringify(nextChannel)};
+    sel.dispatchEvent(new Event('change', { bubbles: true }));
+  })()`);
   await pointerClick("#saveReleaseChannelBtn");
-  await page.waitFor("document.querySelector('#releaseChannelStatus')?.textContent?.includes('体验通道已保存')", 15_000, "preview release channel saved");
+  await page.waitFor("document.querySelector('#releaseChannelStatus')?.textContent?.includes('体验通道已保存') && !document.querySelector('#saveReleaseChannelBtn')?.disabled", 15_000, "preview release channel saved");
+  await page.navigate("/account");
+  await page.waitFor("document.documentElement.dataset.bootState === 'ready' && document.body.dataset.workspaceRoute === 'account' && !document.querySelector('#releaseChannelSelect')?.disabled && !document.querySelector('#releaseChannelStatus')?.textContent?.includes('正在读取')", 20_000, "preview reloaded account");
+  const reloadedChannel = await page.evaluate("document.getElementById('releaseChannelSelect').value");
+  assert.equal(reloadedChannel, nextChannel, `Preview release channel did not persist across reload: ${reloadedChannel} !== ${nextChannel}`);
+  await page.evaluate(`(() => {
+    const sel = document.getElementById('releaseChannelSelect');
+    sel.value = ${JSON.stringify(initialChannel)};
+    sel.dispatchEvent(new Event('change', { bubbles: true }));
+  })()`);
+  await pointerClick("#saveReleaseChannelBtn");
+  await page.waitFor("document.querySelector('#releaseChannelStatus')?.textContent?.includes('体验通道已保存') && !document.querySelector('#saveReleaseChannelBtn')?.disabled", 15_000, "preview release channel restored");
   const releaseChannelStatus = await page.evaluate("document.querySelector('#releaseChannelStatus')?.textContent?.trim() || ''");
-  report.accountChecks = { releaseChannelStatus };
+  report.accountChecks = { initialChannel, nextChannel, reloadedChannel, restoredChannel: initialChannel, releaseChannelStatus };
   await shot("preview-1440-account.png");
   await runAxe("preview-1440-account");
 
@@ -220,10 +295,11 @@ try {
   await delay(250);
   await runAxe("preview-1440-finance");
 
-  // /admin KPIs, tabs, and Feature Flag creation + step-up
+  // /admin KPIs, sticky breadcrumb (A04), aligned headers (A05/A06), Feature Flag save, and 390px toolbar (A03)
   await page.evaluate("const s = document.getElementById('featureConsoleStatus'); if (s) s.textContent = '';");
   await pointerClick('#v3Sidebar [data-v3-nav="admin"]');
   await page.waitFor("document.body.dataset.workspaceRoute === 'admin' && Boolean(document.querySelector('#adminUserList')?.textContent?.trim())", 20_000, "preview admin users");
+  await shot("preview-1440-admin-users.png");
   const kpiCheck = await page.evaluate(`(async () => {
     const kpiText = document.querySelector('#adminKpiUsers')?.textContent?.trim() || '';
     const token = localStorage.getItem('wyjAccountSession') || '';
@@ -236,6 +312,39 @@ try {
   })()`);
   assert.equal(kpiCheck.status, 200);
   assert.equal(Number(kpiCheck.kpiText), kpiCheck.apiTotal);
+
+  await page.evaluate("window.scrollTo(0, 360)");
+  await settle();
+  const stickyCheck = await page.evaluate(`(() => {
+    const bc = document.getElementById('workspaceBreadcrumb');
+    const bar = document.getElementById('accountBar');
+    return {
+      position: getComputedStyle(bc).position,
+      bcTop: bc.getBoundingClientRect().top,
+      barBottom: bar.getBoundingClientRect().bottom,
+    };
+  })()`);
+  assert.equal(stickyCheck.position, "sticky");
+  assert.ok(stickyCheck.bcTop >= stickyCheck.barBottom - 2 && stickyCheck.bcTop <= stickyCheck.barBottom + 4, `Preview breadcrumb sticky failed: ${JSON.stringify(stickyCheck)}`);
+  await page.evaluate("window.scrollTo(0, 0)");
+  await settle();
+
+  const usersAlign = await page.evaluate(`(() => {
+    const head = document.querySelector('#adminUsersView .admin-list-head[data-admin-cols="users"]');
+    const row = document.querySelector('#adminUserList > .admin-user-card');
+    const drifts = [...head.children].map((sp, i) => Math.abs(sp.getBoundingClientRect().left - row.children[i].getBoundingClientRect().left));
+    return { drifts, maxDrift: Math.max(...drifts, 0) };
+  })()`);
+  assert.ok(usersAlign.maxDrift <= 1.5, `Preview Users header-row drift > 1.5px: ${JSON.stringify(usersAlign)}`);
+  await pointerClick("#adminLoginTab");
+  await page.waitFor("document.querySelectorAll('#adminLoginList .admin-login-card').length > 0", 15_000, "preview login rows ready");
+  const loginAlign = await page.evaluate(`(() => {
+    const head = document.querySelector('#adminLoginView .admin-list-head[data-admin-cols="login"]');
+    const row = document.querySelector('#adminLoginList > .admin-login-card');
+    const drifts = [...head.children].map((sp, i) => Math.abs(sp.getBoundingClientRect().left - row.children[i].getBoundingClientRect().left));
+    return { drifts, maxDrift: Math.max(...drifts, 0) };
+  })()`);
+  assert.ok(loginAlign.maxDrift <= 1.5, `Preview Login header-row drift > 1.5px: ${JSON.stringify(loginAlign)}`);
 
   await pointerClick("#adminFeatureFlagsTab");
   await page.waitFor(
@@ -272,14 +381,22 @@ try {
   assert.equal(auditHasKey, true);
   await shot("preview-1440-admin-flags.png");
   await runAxe("preview-1440-admin");
-  report.adminChecks = { kpiCheck, flagKey, auditHasKey };
+  report.adminChecks = { kpiCheck, stickyCheck, usersAlign, loginAlign, flagKey, auditHasKey };
 
-  // Mobile 390 check & screenshots
+  // Mobile 390 check & screenshots (including A03 #newFeatureFlagBtn wrap check)
   await page.send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
   await page.send("Emulation.setTouchEmulationEnabled", { enabled: true });
   await settle();
   const mobileAdminOverflow = await page.evaluate("document.documentElement.scrollWidth - window.innerWidth");
+  const mobileFlagBtns = await page.evaluate(`(() => {
+    const nb = document.getElementById('newFeatureFlagBtn').getBoundingClientRect();
+    const rb = document.getElementById('refreshFeatureFlagsBtn').getBoundingClientRect();
+    return { newBox: [nb.width, nb.height], refreshBox: [rb.width, rb.height] };
+  })()`);
   assert.ok(mobileAdminOverflow <= 1, `Preview 390 /admin overflow: ${mobileAdminOverflow}`);
+  assert.ok(mobileFlagBtns.newBox[0] >= 76 && mobileFlagBtns.newBox[1] <= 52, `Preview 390 #newFeatureFlagBtn vertical wrap regression: ${JSON.stringify(mobileFlagBtns)}`);
+  assert.ok(mobileFlagBtns.refreshBox[0] >= 76 && mobileFlagBtns.refreshBox[1] <= 52, `Preview 390 #refreshFeatureFlagsBtn vertical wrap regression: ${JSON.stringify(mobileFlagBtns)}`);
+  report.adminChecks.mobileFlagBtns = mobileFlagBtns;
   await shot("preview-390-admin.png");
   await runAxe("preview-390-admin");
   await page.navigate("/select");

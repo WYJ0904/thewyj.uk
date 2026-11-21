@@ -1361,16 +1361,17 @@
             <label class="admin-search-mode" for="adminUserMatch"><span>匹配方式</span><select id="adminUserMatch"><option value="partial">模糊匹配</option><option value="exact">精确匹配</option></select></label>
             <p id="adminUserCount" aria-live="polite">用户尚未加载</p>
           </div>
-          <div class="admin-list-head" aria-hidden="true"><span>用户</span><span>会员与权益</span><span>安全</span><span>操作</span></div>
+          <div class="admin-list-head" data-admin-cols="users" aria-hidden="true"><span>用户与状态</span><span>会员与权益</span><span>安全与登录</span><span>操作</span></div>
           <div class="admin-user-list" id="adminUserList"></div>
           <div class="admin-pagination"><button class="button-secondary hidden" id="adminUserLoadMoreBtn" type="button">加载更多用户</button></div>
         </section>
         <section class="admin-view" id="adminRechargeView" role="tabpanel" aria-labelledby="adminRechargeTab">
+          <div class="admin-list-head" data-admin-cols="recharge" aria-hidden="true"><span>申请人与订单</span><span>套餐与金额</span><span>审核状态</span><span>操作</span></div>
           <div class="admin-user-list" id="adminRechargeList"></div>
         </section>
-        <section class="admin-view" id="adminAuditView" role="tabpanel" aria-labelledby="adminAuditTab"><div class="admin-user-list" id="adminAuditList"></div></section>
-        <section class="admin-view" id="adminLoginView" role="tabpanel" aria-labelledby="adminLoginTab"><div class="admin-user-list" id="adminLoginList"></div></section>
-        <section class="admin-view" id="adminToolStatsView" role="tabpanel" aria-labelledby="adminToolStatsTab"><div class="admin-user-list" id="adminToolStatsList"></div></section>
+        <section class="admin-view" id="adminAuditView" role="tabpanel" aria-labelledby="adminAuditTab"><div class="admin-list-head" data-admin-cols="audit" aria-hidden="true"><span>动作与时间</span><span>操作者与对象</span><span>结果与摘要</span></div><div class="admin-user-list" id="adminAuditList"></div></section>
+        <section class="admin-view" id="adminLoginView" role="tabpanel" aria-labelledby="adminLoginTab"><div class="admin-list-head" data-admin-cols="login" aria-hidden="true"><span>账号与结果</span><span>位置、IP 与来源</span><span>设备与环境</span></div><div class="admin-user-list" id="adminLoginList"></div></section>
+        <section class="admin-view" id="adminToolStatsView" role="tabpanel" aria-labelledby="adminToolStatsTab"><div class="admin-list-head" data-admin-cols="tools" aria-hidden="true"><span>工具标识</span><span>累计调用与人数</span><span>最近使用时间</span></div><div class="admin-user-list" id="adminToolStatsList"></div></section>
         <section class="admin-view" id="adminFeedbackView" role="tabpanel" aria-labelledby="adminFeedbackTab">
           <div class="admin-toolbar admin-feedback-toolbar">
             <label class="admin-search" for="adminFeedbackSearch"><span>搜索反馈</span><input id="adminFeedbackSearch" type="search" maxlength="80" autocomplete="off" placeholder="标题、用户名或反馈 ID" /></label>
@@ -1458,8 +1459,11 @@
           <legend>3. 选择支付方式</legend>
           <div class="payment-method-list" id="paymentMethodList" aria-live="polite"></div>
         </fieldset>
-        <div class="purchase-summary" id="purchaseSummary">请先选择需要的功能</div>
-        <p class="membership-warning">套餐按模块独立授权：双语言包月和 70 CNY 双语言双项永久会员包含英语、日语测试，不包含在线工具箱或财务；工具箱包月仅包含在线工具箱；财务会员仅包含财务账本；通知保存仅供 Android 使用。全功能套餐自动包含这些模块，无需重复购买。</p>
+        <div class="membership-checkout-bar">
+          <div class="purchase-summary" id="purchaseSummary">请先选择需要的功能</div>
+          <div class="action-row"><button class="primary" id="submitRechargeBtn" type="button" disabled>确认订单并显示二维码</button><button class="hidden" id="confirmPaymentBtn" type="button">我已付款</button><button class="hidden" id="cancelPaymentOrderBtn" type="button">取消并更换</button></div>
+          <p class="meta-line" id="rechargeMessage" aria-live="polite"></p>
+        </div>
         <div class="payment-order hidden" id="paymentOrderBox">
           <div class="payment-order-dual-grid">
             <div class="payment-order-info-card">
@@ -1476,10 +1480,11 @@
             </div>
           </div>
         </div>
-        <p>确认套餐和支付方式后才会生成并显示对应二维码。付款时请核对金额并填写订单备注；点击“我已付款”只会通知管理员，不会自动开通。</p>
-        <p class="payment-review-note">付款后不会立即自动开通会员。管理员将在 24 小时内核对付款并确认订单；管理员确认到账后，会员权益才会生效。未付款订单 24 小时后自动失效。</p>
-        <div class="action-row"><button class="primary" id="submitRechargeBtn" type="button" disabled>确认订单并显示二维码</button><button class="hidden" id="confirmPaymentBtn" type="button">我已付款</button><button class="hidden" id="cancelPaymentOrderBtn" type="button">取消并更换</button></div>
-        <p class="meta-line" id="rechargeMessage" aria-live="polite"></p>
+        <aside class="membership-policy-notes" aria-label="开通与审核说明">
+          <p class="membership-warning">套餐按模块独立授权：双语言包月和 70 CNY 双语言双项永久会员包含英语、日语测试，不包含在线工具箱或财务；工具箱包月仅包含在线工具箱；财务会员仅包含财务账本；通知保存仅供 Android 使用。全功能套餐自动包含这些模块，无需重复购买。</p>
+          <p>确认套餐和支付方式后才会生成并显示对应二维码。付款时请核对金额并填写订单备注；点击“我已付款”只会通知管理员，不会自动开通。</p>
+          <p class="payment-review-note">付款后不会立即自动开通会员。管理员将在 24 小时内核对付款并确认订单；管理员确认到账后，会员权益才会生效。未付款订单 24 小时后自动失效。</p>
+        </aside>
       </div>
         </section>
 

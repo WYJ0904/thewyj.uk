@@ -154,12 +154,31 @@ test("I05 CSS layer, HTML markers, and PWA shell invariants are preserved", () =
     'id="adminKpiRecharge"',
     'id="adminKpiAudit"',
     'id="adminKpiLoginFailed"',
-    'class="admin-list-head"',
+    'data-admin-cols="users"',
+    'data-admin-cols="recharge"',
+    'data-admin-cols="audit"',
+    'data-admin-cols="login"',
+    'data-admin-cols="tools"',
+    'membership-checkout-bar',
+    'membership-policy-notes',
     'account-settings-list',
     'v3-sidebar-group-title',
   ]) {
     assert.ok(html.includes(marker), `Missing I05 HTML marker: ${marker}`);
   }
+
+  assert.match(
+    i05Layer,
+    /\.workspace-breadcrumb:not\(\[hidden\]\)\s*\{[^}]*position:\s*sticky;/s,
+    ".workspace-breadcrumb:not([hidden]) must declare position: sticky",
+  );
+
+  const designSystem = fs.readFileSync(path.join(ROOT, "design-system.css"), "utf8");
+  assert.match(
+    designSystem,
+    /:not\(\.visually-hidden\):not\(\.sr-only\):not\(\.ds-sr-only\)/,
+    "design-system.css full-width input rules must exclude visually-hidden inputs",
+  );
 
   const swSource = fs.readFileSync(path.join(ROOT, "sw.js"), "utf8");
   const context = {

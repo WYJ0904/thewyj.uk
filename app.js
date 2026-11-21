@@ -2752,7 +2752,7 @@ function renderAdminRecharge(requests) {
     <div class="admin-request-status"><div class="admin-request-status-heading"><span>状态</span><strong class="admin-request-badge" data-tone="${statusTone}">${escapeHtml(rechargeStatusLabel(request.status))}</strong></div>${request.user_confirmed_at ? `<div class="admin-request-confirmed"><span>用户确认时间</span><time datetime="${escapeHtml(request.user_confirmed_at)}">${escapeHtml(formatLocalDateTime(request.user_confirmed_at))}</time></div>` : ""}</div>
     <div class="action-row compact admin-user-actions">${request.status === "user_paid" ? '<button data-recharge-approve type="button">确认付款并开通</button><button data-recharge-reject type="button">拒绝</button>' : ""}</div>
   </article>`;
-  }).join("") || "<p>暂无充值申请</p>";
+  }).join("") || '<p class="admin-empty-state">暂无充值申请</p>';
   list.querySelectorAll("[data-recharge-approve], [data-recharge-reject]").forEach((button) => button.addEventListener("click", () => {
     const requestId = button.closest("[data-request-id]").dataset.requestId;
     const action = button.hasAttribute("data-recharge-approve") ? "approve" : "reject";
@@ -2784,13 +2784,12 @@ function renderAdminAudit(logs) {
     const success = log.success !== false && Number(log.success ?? 1) !== 0;
     const target = log.target_username || log.target_label || log.target_id || "-";
     const detail = log.note || log.error_code || (log.after && Object.keys(log.after).length ? JSON.stringify(log.after) : "无备注");
-    return `<article class="admin-log-card">
-      <div><strong>${escapeHtml(log.action)}</strong><time>${escapeHtml(formatLocalDateTime(log.created_at))}</time></div>
-      <p>管理员：${escapeHtml(log.actor_username || "-")} · 角色：${escapeHtml(log.actor_role === "super_admin" ? "站点所有者" : log.actor_role === "admin" ? "管理员" : "-")} · 对象：${escapeHtml(target)}</p>
-      <p><span class="status-badge" data-tone="${success ? "success" : "error"}">${success ? "成功" : "失败"}</span> ${escapeHtml(detail)}</p>
-      ${log.request_id ? `<p class="meta-line">请求 ID：${escapeHtml(log.request_id)}</p>` : ""}
+    return `<article class="admin-log-card admin-audit-card">
+      <div class="admin-log-col-primary"><strong>${escapeHtml(log.action)}</strong><time>${escapeHtml(formatLocalDateTime(log.created_at))}</time></div>
+      <div class="admin-log-col-actor"><p>管理员：${escapeHtml(log.actor_username || "-")} · 角色：${escapeHtml(log.actor_role === "super_admin" ? "站点所有者" : log.actor_role === "admin" ? "管理员" : "-")}</p><p class="meta-line">对象：${escapeHtml(target)}</p></div>
+      <div class="admin-log-col-detail"><p><span class="status-badge" data-tone="${success ? "success" : "error"}">${success ? "成功" : "失败"}</span> ${escapeHtml(detail)}</p>${log.request_id ? `<p class="meta-line">请求 ID：${escapeHtml(log.request_id)}</p>` : ""}</div>
     </article>`;
-  }).join("") || "<p>暂无审计记录</p>";
+  }).join("") || '<p class="admin-empty-state">暂无审计记录</p>';
 }
 
 function renderAdminLoginLogs(logs) {
@@ -2811,7 +2810,7 @@ function renderAdminLoginLogs(logs) {
 
 function renderAdminToolStats(tools) {
   const list = $("adminToolStatsList");
-  list.innerHTML = (tools || []).map((item) => `<article class="admin-log-card"><div><strong>${escapeHtml(item.tool_id)}</strong><span>${escapeHtml(item.uses || 0)} 次 · ${escapeHtml(item.users || 0)} 人</span></div><p>最近使用：${escapeHtml(formatLocalDateTime(item.last_used_at, "无"))}</p></article>`).join("") || "<p>暂无工具使用记录</p>";
+  list.innerHTML = (tools || []).map((item) => `<article class="admin-log-card admin-tool-stat-card"><div class="admin-log-col-primary"><strong>${escapeHtml(item.tool_id)}</strong></div><div class="admin-log-col-metrics"><span>${escapeHtml(item.uses || 0)} 次 · ${escapeHtml(item.users || 0)} 人</span></div><p class="admin-log-col-time">最近使用：${escapeHtml(formatLocalDateTime(item.last_used_at, "无"))}</p></article>`).join("") || '<p class="admin-empty-state">暂无工具使用记录</p>';
 }
 
 function siteMessageTypeLabel(type) {
@@ -3175,7 +3174,7 @@ async function showAdminPanel(pushHistory = true) {
   $("adminPanel").setAttribute("aria-hidden", "false");
   renderAccountUi();
   if ($("adminRoleContext")) {
-    $("adminRoleContext").textContent = `当前身份：${isSuperAdmin() ? "站点所有者" : "管理员"} · 后台变更由服务端校验权限并记录审计`;
+    $("adminRoleContext").textContent = `当前身份：${isSuperAdmin() ? "站点所有者" : "管理员"}`;
   }
   await loadAdminData();
   await featureConsole?.load();

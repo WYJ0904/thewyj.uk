@@ -46,7 +46,7 @@
  * ========================================================================== */
 html[data-p07-ui="enabled"] body[data-experience] .site-nav {
   position: sticky;
-  top: 0;
+  top: var(--owner-preview-banner-height, 0px);
   z-index: var(--ds-z-nav, 620);
   min-height: calc(60px + env(safe-area-inset-top));
   padding-inline: max(20px, env(safe-area-inset-left)) max(20px, env(safe-area-inset-right));
@@ -166,9 +166,9 @@ html[data-p07-ui="enabled"] .account-menu-popover {
     flex-direction: column;
     justify-content: space-between;
     position: sticky;
-    top: 60px;
+    top: calc(var(--owner-preview-banner-height, 0px) + var(--site-nav-height, 60px));
     z-index: var(--ds-z-sidebar, 500);
-    height: calc(100dvh - 60px);
+    height: calc(100dvh - var(--owner-preview-banner-height, 0px) - var(--site-nav-height, 60px));
     padding: 16px 10px;
     background: var(--ds-surface);
     border-right: 1px solid var(--ds-border);
@@ -2745,8 +2745,8 @@ html[data-p07-ui="enabled"] .finance-chart-empty-hint {
 /* ==========================================================================
  * Aeris V6.2 P07-E Membership & Account V3 Workspaces
  * ========================================================================== */
-html[data-p07-ui="enabled"] #membershipModal.modal-layer,
-html[data-p07-ui="enabled"] #accountModal.modal-layer {
+html[data-p07-ui="enabled"] #membershipModal:is(.modal-layer, .v3-workspace),
+html[data-p07-ui="enabled"] #accountModal:is(.modal-layer, .v3-workspace) {
   position: static;
   inset: auto;
   width: 100%;
@@ -2764,8 +2764,8 @@ html[data-p07-ui="enabled"] #accountModal.modal-layer {
   animation: none;
 }
 
-html[data-p07-ui="enabled"] #membershipModal.modal-layer.hidden,
-html[data-p07-ui="enabled"] #accountModal.modal-layer.hidden {
+html[data-p07-ui="enabled"] #membershipModal:is(.modal-layer, .v3-workspace).hidden,
+html[data-p07-ui="enabled"] #accountModal:is(.modal-layer, .v3-workspace).hidden {
   display: none;
 }
 
@@ -4477,13 +4477,25 @@ html[data-p07-ui="enabled"] body[data-workspace-route]:not([data-workspace-route
   --ds-shadow-card: 0 0 0 0 transparent;
 }
 
-/* Breadcrumb */
+html[data-p07-ui="enabled"]:has(#workspaceBreadcrumb:not([hidden])) {
+  scroll-padding-block-start: calc(var(--owner-preview-banner-height, 0px) + var(--site-nav-height, 64px) + 48px);
+}
+
+/* Sticky Breadcrumb */
 html[data-p07-ui="enabled"] .workspace-breadcrumb:not([hidden]) {
+  position: sticky;
+  top: calc(var(--owner-preview-banner-height, 0px) + var(--site-nav-height, 60px));
+  z-index: calc(var(--ds-z-nav, 620) - 20);
   display: flex;
   align-items: center;
-  min-height: 40px;
-  width: min(calc(100% - 48px), var(--ds-container-console));
-  margin: 12px auto 0;
+  min-height: 36px;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding-block: 6px;
+  padding-inline: max(24px, calc((100% - var(--ds-container-console)) / 2));
+  background: var(--ds-surface);
+  border-bottom: 1px solid var(--ds-border);
   color: var(--ds-text-muted);
   font-size: 0.8125rem;
 }
@@ -4509,11 +4521,12 @@ html[data-p07-ui="enabled"] .workspace-breadcrumb [aria-current="page"] {
   font-weight: 600;
 }
 
-/* Content Width & Spacing */
-html[data-p07-ui="enabled"] body[data-workspace-route] :is(#toolsPanel, #financePage, #transferPage, #adminPanel) {
+/* Content Width & Spacing (All 7 Routes + Subroutes Including /recharge & /tools/workflows) */
+html[data-p07-ui="enabled"] body[data-workspace-route] :is(#toolsPanel, #financePage, #transferPage, #adminPanel, #membershipModal) {
   width: min(calc(100% - 48px), var(--ds-container-console));
   max-width: none;
   margin: 16px auto 48px;
+  padding: 0;
   padding-block: 0;
 }
 
@@ -4527,6 +4540,48 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal {
   max-width: none;
   margin: 16px auto 48px;
   padding: 0;
+}
+
+/* Workflow Subroute Inner Containment */
+html[data-p07-ui="enabled"] body[data-workspace-route] #workflowWorkspace {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] .workflow-layout > *,
+html[data-p07-ui="enabled"] body[data-workspace-route] .workflow-list,
+html[data-p07-ui="enabled"] body[data-workspace-route] #workflowTemplateList,
+html[data-p07-ui="enabled"] body[data-workspace-route] .workflow-template-box,
+html[data-p07-ui="enabled"] body[data-workspace-route] .workflow-sidebar-heading {
+  min-width: 0;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] .workflow-import-row {
+  position: relative;
+  overflow: hidden;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] .workflow-sidebar {
+  top: calc(var(--owner-preview-banner-height, 0px) + var(--site-nav-height, 62px) + 48px);
+  max-height: calc(100dvh - var(--owner-preview-banner-height, 0px) - var(--site-nav-height, 62px) - 64px);
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+@media (max-width: 900px) {
+  html[data-p07-ui="enabled"] body[data-workspace-route] .workflow-sidebar {
+    max-height: none;
+    overflow-y: visible;
+  }
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] :is(.workflow-list button, #workflowTemplateList button) {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 /* Unified Page Headers */
@@ -4550,29 +4605,197 @@ html[data-p07-ui="enabled"] body[data-workspace-route] :is(.finance-header, .tra
   line-height: 1.3;
 }
 
-html[data-p07-ui="enabled"] body[data-workspace-route] :is(.finance-header, .transfer-header, .tools-header, .admin-header, .workflow-header, #projectPicker .project-brand) p:not(.section-kicker) {
+html[data-p07-ui="enabled"] body[data-workspace-route] :is(.finance-header, .transfer-header, .tools-header, .admin-header, .workflow-header, #projectPicker .project-brand) p:not(.section-kicker):not(.admin-role-context) {
   font-size: 0.875rem;
   color: var(--ds-text-secondary);
 }
 
-html[data-p07-ui="enabled"] body[data-workspace-route] :is(.finance-header, .transfer-header, .tools-header, .admin-header, .workflow-header, #projectPicker .project-brand, #accountModal) .section-kicker {
+html[data-p07-ui="enabled"] body[data-workspace-route] :is(.finance-header, .transfer-header, .tools-header, .admin-header, .workflow-header, #projectPicker .project-brand, #accountModal, #membershipModal) .section-kicker {
   font-size: 0.75rem;
   color: var(--ds-text-muted);
   font-weight: 600;
   text-transform: none;
+  margin: 0;
 }
 
-html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal #accountTitle {
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal #accountTitle,
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal #membershipTitle {
   font-size: 1.375rem;
   font-weight: 650;
   letter-spacing: -0.02em;
   line-height: 1.3;
-  margin: 2px 0 16px;
+  margin: 2px 0 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--ds-border);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] .admin-header {
+  align-items: center;
+  margin: 0 0 10px;
+  padding: 0 0 10px;
 }
 
 html[data-p07-ui="enabled"] body[data-workspace-route] .admin-role-context {
+  display: inline-flex;
+  align-items: center;
   margin: 4px 0 0;
+  padding: 2px 8px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-surface-subtle);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ds-text-secondary);
+}
+
+/* Recharge Console Density & Hierarchy (#membershipModal) */
+html[data-p07-ui="enabled"] body[data-workspace-route] .membership-v3-stepper {
+  padding: 8px 12px;
+  margin: 0 0 14px;
+  background: var(--ds-surface-subtle);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  gap: 8px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] .v3-step-item {
+  padding: 4px 8px;
+  border: 0;
+  border-radius: var(--ds-radius-sm);
+  background: transparent;
+  font-size: 0.75rem;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] .v3-step-item.active {
+  background: var(--ds-surface);
+  color: var(--ds-text);
+  border: 1px solid var(--ds-border);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal :is(#membershipGoalField, #membershipPlanStep, #paymentMethodField) {
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  padding: 14px 16px;
+  margin: 0 0 12px;
+  box-shadow: none;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-goal-field legend,
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .payment-method-field legend,
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-step-title {
+  font-size: 0.9375rem;
+  font-weight: 650;
+  color: var(--ds-text);
+  margin: 0 0 10px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-goal-list {
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-goal-option {
+  min-height: 56px;
+  padding: 10px 12px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  box-shadow: none;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-goal-option:hover {
+  transform: none;
+  background: var(--ds-surface-subtle);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-goal-hint {
+  margin: 8px 0 0;
+  font-size: 0.75rem;
+  color: var(--ds-text-muted);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-grid {
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-option {
+  min-height: 112px;
+  padding: 14px 16px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  box-shadow: none;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-option:hover {
+  transform: none;
+  background: var(--ds-surface-subtle);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-option span {
+  font-size: 1.25rem;
+  font-variant-numeric: tabular-nums;
+  margin: 6px 0 4px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] .membership-checkout-bar {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--ds-border-strong);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] .membership-checkout-bar #purchaseSummary {
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--ds-divider);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-surface-subtle);
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] .membership-checkout-bar #rechargeMessage {
+  margin: 0;
   font-size: 0.8125rem;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .payment-order {
+  padding: 16px;
+  margin: 0 0 12px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+  box-shadow: none;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] .membership-policy-notes {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0 0;
+  padding: 10px 14px;
+  border: 1px solid var(--ds-divider);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface-subtle);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--ds-text-muted);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] .membership-policy-notes p,
+html[data-p07-ui="enabled"] body[data-workspace-route] .membership-policy-notes .membership-warning,
+html[data-p07-ui="enabled"] body[data-workspace-route] .membership-policy-notes .payment-review-note {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-size: inherit;
+  line-height: inherit;
   color: var(--ds-text-muted);
 }
 
@@ -4581,7 +4804,7 @@ html[data-p07-ui="enabled"] body[data-workspace-route] :is(.admin-kpi-strip, .fi
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 0;
-  margin: 0 0 16px;
+  margin: 0 0 12px;
   border: 1px solid var(--ds-border);
   border-radius: var(--ds-radius-md);
   background: var(--ds-surface);
@@ -4595,7 +4818,7 @@ html[data-p07-ui="enabled"] body[data-workspace-route] :is(.admin-kpi-strip, .fi
   min-width: 0;
   min-height: 0;
   margin: 0;
-  padding: 12px 16px;
+  padding: 10px 14px;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -4627,6 +4850,10 @@ html[data-p07-ui="enabled"] body[data-workspace-route] :is(.admin-kpi-strip, .fi
 
 html[data-p07-ui="enabled"] body[data-workspace-route] :is(.study-metrics, .achievement-overview, #workspace .stats-grid) > * > span {
   order: -1;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] .admin-kpi-strip dd[data-state="pending"] {
+  color: var(--ds-text-muted);
 }
 
 html[data-p07-ui="enabled"] body[data-workspace-route] .admin-kpi-strip dd[data-state="error"] {
@@ -4756,7 +4983,7 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #workspace .tabs button {
 html[data-p07-ui="enabled"] body[data-workspace-route] .admin-tabs {
   gap: 0;
   padding: 0;
-  margin: 0 0 16px;
+  margin: 0 0 12px;
   border: 0;
   border-bottom: 1px solid var(--ds-border);
   border-radius: 0;
@@ -4789,6 +5016,31 @@ html[data-p07-ui="enabled"] body[data-workspace-route] .admin-tabs .ds-tab-indic
   background: var(--ds-action-primary);
 }
 
+html[data-p07-ui="enabled"] body[data-workspace-route] .feature-console-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface-subtle);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] .feature-console-toolbar > label {
+  flex: 1 1 240px;
+  min-width: 200px;
+  margin: 0;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] .feature-console-toolbar > button {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  min-height: 44px;
+  padding-inline: 16px;
+}
+
 html[data-p07-ui="enabled"] body[data-workspace-route] :is(#adminUserList, #adminRechargeList, #adminAuditList, #adminLoginList, #adminToolStatsList, #adminMessageList, #adminRoleList, #adminRoleAuditList, #adminFeedbackList) {
   display: grid;
   gap: 0;
@@ -4813,12 +5065,41 @@ html[data-p07-ui="enabled"] body[data-workspace-route] :is(.admin-user-card, .ad
   border-bottom: 0;
 }
 
+html[data-p07-ui="enabled"] body[data-workspace-route] .admin-user-list > :is(.admin-empty-state, p) {
+  grid-column: 1 / -1;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] :is(.admin-user-card .admin-user-facts, .admin-user-card .admin-user-security) {
+  display: grid;
+  gap: 4px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] :is(.admin-user-card .admin-user-facts p, .admin-user-card .admin-user-security > p) {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 8px;
+  align-items: baseline;
+  margin: 0;
+  font-size: 0.8125rem;
+}
+
 html[data-p07-ui="enabled"] body[data-workspace-route] .admin-log-card > div:first-child {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
   align-items: baseline;
   gap: 4px 12px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] :is(#adminLoginList > .admin-login-card > div:first-child, .admin-audit-card > .admin-log-col-primary, .admin-tool-stat-card > .admin-log-col-primary) {
+  display: grid;
+  gap: 4px;
+  align-items: start;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] :is(.admin-audit-card p, .admin-login-card p, .admin-tool-stat-card p) {
+  margin: 0;
+  font-size: 0.8125rem;
 }
 
 html[data-p07-ui="enabled"] body[data-workspace-route] :is(.admin-log-card time, .admin-user-id, .admin-last-login) {
@@ -4849,8 +5130,7 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #adminFeatureFlagsView h2
 @media (min-width: 981px) {
   html[data-p07-ui="enabled"] body[data-workspace-route] .admin-list-head {
     display: grid;
-    grid-template-columns: minmax(130px, 0.8fr) minmax(220px, 1.4fr) minmax(150px, 1fr) auto;
-    gap: 12px;
+    gap: 16px;
     padding: 8px 16px;
     margin-top: 12px;
     border: 1px solid var(--ds-border);
@@ -4860,11 +5140,76 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #adminFeatureFlagsView h2
     color: var(--ds-text-muted);
     font-size: 0.75rem;
     font-weight: 600;
+    box-sizing: border-box;
+    align-items: center;
   }
 
-  html[data-p07-ui="enabled"] body[data-workspace-route] .admin-list-head + #adminUserList {
+  html[data-p07-ui="enabled"] body[data-workspace-route] .admin-list-head > span {
+    min-width: 0;
+  }
+
+  html[data-p07-ui="enabled"] body[data-workspace-route] .admin-list-head + .admin-user-list {
     border-top-left-radius: 0;
     border-top-right-radius: 0;
+  }
+
+  html[data-p07-ui="enabled"] body[data-workspace-route] .admin-list-head[data-admin-cols="users"],
+  html[data-p07-ui="enabled"] body[data-workspace-route] #adminUserList > .admin-user-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.55fr) minmax(0, 1.1fr) 92px;
+    gap: 16px;
+    align-items: center;
+  }
+
+  html[data-p07-ui="enabled"] body[data-workspace-route] .admin-list-head[data-admin-cols="recharge"],
+  html[data-p07-ui="enabled"] body[data-workspace-route] #adminRechargeList > .admin-recharge-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.45fr) minmax(0, 0.95fr) 200px;
+    gap: 16px;
+    align-items: center;
+  }
+
+  html[data-p07-ui="enabled"] body[data-workspace-route] .admin-list-head[data-admin-cols="audit"],
+  html[data-p07-ui="enabled"] body[data-workspace-route] #adminAuditList > .admin-audit-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.15fr) minmax(0, 1.4fr);
+    gap: 16px;
+    align-items: start;
+  }
+
+  html[data-p07-ui="enabled"] body[data-workspace-route] .admin-list-head[data-admin-cols="login"],
+  html[data-p07-ui="enabled"] body[data-workspace-route] #adminLoginList > .admin-login-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.25fr) minmax(0, 1.3fr);
+    gap: 16px;
+    align-items: start;
+  }
+
+  html[data-p07-ui="enabled"] body[data-workspace-route] .admin-list-head[data-admin-cols="tools"],
+  html[data-p07-ui="enabled"] body[data-workspace-route] #adminToolStatsList > .admin-tool-stat-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr) minmax(0, 1fr);
+    gap: 16px;
+    align-items: center;
+  }
+
+  html[data-p07-ui="enabled"] body[data-workspace-route] :is(#adminUserList, #adminRechargeList) .admin-user-actions {
+    justify-content: flex-end;
+    justify-self: end;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+}
+
+@media (max-width: 980px) {
+  html[data-p07-ui="enabled"] body[data-workspace-route] :is(.admin-user-card, .admin-recharge-card, .admin-audit-card, .admin-login-card, .admin-tool-stat-card) {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  html[data-p07-ui="enabled"] body[data-workspace-route] :is(#adminUserList, #adminRechargeList) .admin-user-actions {
+    justify-content: flex-start;
+    justify-self: start;
   }
 }
 
@@ -4970,13 +5315,21 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal #releaseCha
 
 @media (max-width: 760px) {
   html[data-p07-ui="enabled"] .workspace-breadcrumb:not([hidden]) {
-    width: calc(100% - 28px);
-    margin-top: 8px;
+    width: 100%;
+    margin: 0;
+    padding-inline: 14px;
   }
 
-  html[data-p07-ui="enabled"] body[data-workspace-route] :is(#toolsPanel, #financePage, #transferPage, #adminPanel, #accountModal, #projectPicker, #projectApp) {
+  html[data-p07-ui="enabled"] body[data-workspace-route] :is(#toolsPanel, #financePage, #transferPage, #adminPanel, #accountModal, #membershipModal, #projectPicker, #projectApp) {
     width: calc(100% - 28px);
     margin: 12px auto 32px;
+    padding: 0;
+  }
+
+  html[data-p07-ui="enabled"] body[data-workspace-route] #workspace > .tabs {
+    position: relative;
+    top: auto;
+    z-index: auto;
   }
 
   html[data-p07-ui="enabled"] body[data-workspace-route] .admin-tabs {
@@ -4992,8 +5345,29 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal #releaseCha
   }
 }
 
+@media (max-width: 640px) {
+  html[data-p07-ui="enabled"] body[data-workspace-route] .feature-console-toolbar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  html[data-p07-ui="enabled"] body[data-workspace-route] .feature-console-toolbar > label {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+
+  html[data-p07-ui="enabled"] body[data-workspace-route] .feature-console-toolbar > button {
+    width: 100%;
+    justify-content: center;
+    white-space: nowrap;
+  }
+}
+
 @media (max-width: 600px) {
-  html[data-p07-ui="enabled"] body[data-workspace-route] #projectPicker .project-grid {
+  html[data-p07-ui="enabled"] body[data-workspace-route] #projectPicker .project-grid,
+  html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-grid {
     grid-template-columns: 1fr;
   }
 }

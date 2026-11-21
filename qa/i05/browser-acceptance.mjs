@@ -16,6 +16,12 @@ const evidenceDir = path.join(root, "docs", "ui-rebuild", "i05", "evidence");
 await mkdir(evidenceDir, { recursive: true });
 
 const gitSha = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
+const gitBranch = execFileSync("git", ["branch", "--show-current"], { cwd: root, encoding: "utf8" }).trim();
+const dirtyFiles = execFileSync("git", ["status", "--porcelain"], { cwd: root, encoding: "utf8" })
+  .split(/\r?\n/)
+  .map((line) => line.trim())
+  .filter((line) => line && !line.includes("docs/ui-rebuild/i05/evidence/"));
+const worktreeDirty = dirtyFiles.length > 0;
 const config = JSON.parse(await readFile(path.join(root, "wrangler.jsonc"), "utf8"));
 const mfPersist = await mkdtemp(path.join(os.tmpdir(), "aeris-i05-mf-"));
 const mf = new Miniflare({
@@ -356,6 +362,9 @@ const axeSource = await readFile(path.join(root, "qa", "p07-f", "vendor", "axe.m
 const report = {
   scope: "Isolated local Miniflare D1/R2 + headless Chrome CDP (I05)",
   gitSha,
+  gitBranch,
+  worktreeDirty,
+  dirtyFiles,
   browserVersion: "",
   scenarios: [],
   viewportMatrix: [],
@@ -491,6 +500,18 @@ try {
     { nav: "admin", path: "/admin", expectedRoute: "admin", container: "#adminPanel", heading: "#adminPanel h1", panel: "#adminPanel" },
   ];
 
+  const expandedRouteSpecs = [
+    routeSpecs[0],
+    routeSpecs[1],
+    routeSpecs[2],
+    { nav: "workflows", path: "/tools/workflows", expectedRoute: "tools", container: "#workflowWorkspace", heading: "#workflowTitle", panel: "#workflowWorkspace" },
+    routeSpecs[3],
+    routeSpecs[4],
+    { nav: "recharge", path: "/recharge", expectedRoute: "recharge", container: "#membershipModal", heading: "#membershipTitle", panel: "#membershipModal" },
+    routeSpecs[5],
+    routeSpecs[6],
+  ];
+
   const openSidebarRoute = async (spec, targetPage = page) => {
     await pointerClick(`#v3Sidebar [data-v3-nav="${spec.nav}"]`, targetPage);
     await targetPage.waitFor(
@@ -613,7 +634,47 @@ try {
       input.value = '';
       input.dispatchEvent(new Event('input', { bubbles: true }));
     })()`);
-    return { searchState, opened };
+
+    // A02: /tools/workflows sidebar inner overflow + visually-hidden file input check at 1440px and 375px
+    await openSidebarRoute(expandedRouteSpecs[3]); // workflows
+    await page.waitFor("!document.querySelector('#workflowWorkspace')?.classList.contains('hidden')", 15_000, "workflow workspace open");
+    await delay(120);
+    await settle();
+    const wfDesktop = await page.evaluate(`(() => {
+      const sb = document.querySelector('.workflow-sidebar');
+      const imp = document.getElementById('workflowImportInput');
+      const ir = imp ? imp.getBoundingClientRect() : null;
+      return {
+        overflow: document.documentElement.scrollWidth - window.innerWidth,
+        sidebarClient: sb ? sb.clientWidth : 0,
+        sidebarScroll: sb ? sb.scrollWidth : 0,
+        importBox: ir ? [ir.width, ir.height, ir.right] : null,
+      };
+    })()`);
+    assert.ok(wfDesktop.overflow <= 1, `1440 /tools/workflows overflow: ${JSON.stringify(wfDesktop)}`);
+    assert.ok(wfDesktop.sidebarScroll - wfDesktop.sidebarClient <= 1, `1440 workflow sidebar cropped horizontally: ${JSON.stringify(wfDesktop)}`);
+    assert.ok(wfDesktop.importBox && wfDesktop.importBox[0] <= 2 && wfDesktop.importBox[1] <= 2, `1440 #workflowImportInput size invalid: ${JSON.stringify(wfDesktop)}`);
+    await shot("1440-route-workflows.png");
+
+    await setViewport(375, 812);
+    const wfMobile = await page.evaluate(`(() => {
+      const sb = document.querySelector('.workflow-sidebar');
+      const imp = document.getElementById('workflowImportInput');
+      const ir = imp ? imp.getBoundingClientRect() : null;
+      return {
+        overflow: document.documentElement.scrollWidth - window.innerWidth,
+        sidebarClient: sb ? sb.clientWidth : 0,
+        sidebarScroll: sb ? sb.scrollWidth : 0,
+        importBox: ir ? [ir.width, ir.height, ir.right] : null,
+      };
+    })()`);
+    assert.ok(wfMobile.overflow <= 1, `375 /tools/workflows root overflow: ${JSON.stringify(wfMobile)}`);
+    assert.ok(wfMobile.sidebarScroll - wfMobile.sidebarClient <= 1, `375 workflow sidebar overflow: ${JSON.stringify(wfMobile)}`);
+    assert.ok(wfMobile.importBox && wfMobile.importBox[0] <= 2 && wfMobile.importBox[1] <= 2 && wfMobile.importBox[2] <= 376, `375 #workflowImportInput leaked outside 375px: ${JSON.stringify(wfMobile)}`);
+    await shot("375-workflows-light.png");
+    await setViewport(1440, 900);
+
+    return { searchState, opened, wfDesktop, wfMobile };
   });
 
   // Scenario d: /finance currency, month, modal cancel focus restore, tabular-nums, 390px
@@ -672,7 +733,7 @@ try {
     return { mobileOverflow, queueHasFile: queueText.includes("i05-long-filename") };
   });
 
-  // Scenario f: /account security modal + #saveReleaseChannelBtn hit-test & real pointer click
+  // Scenario f: /account security modal + B02 release channel persistence + A01 /recharge alignment
   await recordScenario("f_account_security_and_release_channel", async () => {
     await openSidebarRoute(routeSpecs[5]); // account
     await pointerClick("#openSecurityCenterBtn");
@@ -680,10 +741,75 @@ try {
     await page.waitFor("Boolean(document.querySelector('#task27Security .task27-security-summary'))", 15_000, "security summary rendered");
     await pointerClick("#task27Security [data-task27-close]");
     await page.waitFor("document.querySelector('#task27Security')?.classList.contains('hidden')", 10_000, "security modal closed");
+
+    await page.waitFor("!document.querySelector('#releaseChannelSection')?.classList.contains('hidden') && !document.querySelector('#releaseChannelSelect')?.disabled", 15_000, "release channel controls ready");
+    const initialChannel = await page.evaluate("document.getElementById('releaseChannelSelect').value");
+    const targetChannel = initialChannel === "beta" ? "experimental" : "beta";
+    await page.evaluate(`(() => {
+      const sel = document.getElementById('releaseChannelSelect');
+      sel.value = ${JSON.stringify(targetChannel)};
+      sel.dispatchEvent(new Event('change', { bubbles: true }));
+    })()`);
     const saveHit = await pointerClick("#saveReleaseChannelBtn");
-    await page.waitFor("document.querySelector('#releaseChannelStatus')?.textContent?.includes('体验通道已保存')", 15_000, "release channel saved status");
+    await page.waitFor("document.querySelector('#releaseChannelStatus')?.textContent?.includes('体验通道已保存') && !document.querySelector('#saveReleaseChannelBtn')?.disabled", 15_000, "release channel saved status");
     const statusText = await page.evaluate("document.querySelector('#releaseChannelStatus')?.textContent?.trim() || ''");
-    return { saveHit, statusText };
+
+    // B02: Reload /account and verify persisted value from DB, then restore initial value
+    await page.navigate("/account");
+    await page.waitFor("document.documentElement.dataset.bootState === 'ready' && !document.querySelector('#accountModal')?.classList.contains('hidden') && !document.querySelector('#releaseChannelSelect')?.disabled && !document.querySelector('#releaseChannelStatus')?.textContent?.includes('正在读取')", 20_000, "reloaded account release channel");
+    const reloadedChannel = await page.evaluate("document.getElementById('releaseChannelSelect').value");
+    assert.equal(reloadedChannel, targetChannel, `Release channel did not persist across reload: expected ${targetChannel}, got ${reloadedChannel}`);
+
+    await page.evaluate(`(() => {
+      const sel = document.getElementById('releaseChannelSelect');
+      sel.value = ${JSON.stringify(initialChannel)};
+      sel.dispatchEvent(new Event('change', { bubbles: true }));
+    })()`);
+    await pointerClick("#saveReleaseChannelBtn");
+    await page.waitFor("document.querySelector('#releaseChannelStatus')?.textContent?.includes('体验通道已保存') && !document.querySelector('#saveReleaseChannelBtn')?.disabled", 15_000, "release channel restored status");
+    const restoredChannel = await page.evaluate("document.getElementById('releaseChannelSelect').value");
+    assert.equal(restoredChannel, initialChannel);
+
+    // A01: /recharge container geometry & margins at 1440px and 390px
+    await openSidebarRoute(expandedRouteSpecs[6]); // recharge
+    await page.waitFor("Boolean(document.querySelector('#membershipGoalList button'))", 15_000, "/recharge goals ready");
+    const rechargeDesktop = await page.evaluate(`(() => {
+      const mod = document.getElementById('membershipModal');
+      const bcOl = document.querySelector('#workspaceBreadcrumb ol');
+      const mr = mod ? mod.getBoundingClientRect() : null;
+      const br = bcOl ? bcOl.getBoundingClientRect() : null;
+      const cs = mod ? getComputedStyle(mod) : null;
+      return {
+        x: mr ? mr.left : -1,
+        width: mr ? mr.width : 0,
+        breadcrumbOlX: br ? br.left : -1,
+        paddingLeft: cs ? cs.paddingLeft : '',
+        overflow: document.documentElement.scrollWidth - window.innerWidth,
+      };
+    })()`);
+    assert.ok(rechargeDesktop.x >= 220 && Math.abs(rechargeDesktop.x - rechargeDesktop.breadcrumbOlX) <= 2, `/recharge 1440 container left mismatch: ${JSON.stringify(rechargeDesktop)}`);
+    assert.ok(rechargeDesktop.overflow <= 1, `/recharge 1440 overflow: ${JSON.stringify(rechargeDesktop)}`);
+    await shot("1440-route-recharge.png");
+
+    await setViewport(390, 844);
+    const rechargeMobile = await page.evaluate(`(() => {
+      const mod = document.getElementById('membershipModal');
+      const bcOl = document.querySelector('#workspaceBreadcrumb ol');
+      const mr = mod ? mod.getBoundingClientRect() : null;
+      const br = bcOl ? bcOl.getBoundingClientRect() : null;
+      return {
+        x: mr ? mr.left : -1,
+        width: mr ? mr.width : 0,
+        breadcrumbOlX: br ? br.left : -1,
+        overflow: document.documentElement.scrollWidth - window.innerWidth,
+      };
+    })()`);
+    assert.ok(rechargeMobile.x >= 12 && Math.abs(rechargeMobile.x - rechargeMobile.breadcrumbOlX) <= 2, `/recharge 390 container left mismatch: ${JSON.stringify(rechargeMobile)}`);
+    assert.ok(rechargeMobile.overflow <= 1, `/recharge 390 overflow: ${JSON.stringify(rechargeMobile)}`);
+    await shot("390-recharge-light.png");
+    await setViewport(1440, 900);
+
+    return { saveHit, statusText, initialChannel, targetChannel, reloadedChannel, restoredChannel, rechargeDesktop, rechargeMobile };
   });
 
   // Scenario g: /admin KPIs, tabs, Feature Flags DOM identity, step-up, offline error
@@ -702,6 +828,59 @@ try {
     })()`);
     assert.equal(kpiCheck.status, 200, `Unexpected /api/admin/users status: ${JSON.stringify(kpiCheck)}`);
     assert.equal(Number(kpiCheck.kpiText), kpiCheck.apiTotal, `KPI mismatch: ${JSON.stringify(kpiCheck)}`);
+
+    // A04: Sticky breadcrumb behavior across scroll
+    await page.evaluate("window.scrollTo(0, 360)");
+    await settle();
+    const stickyCheck = await page.evaluate(`(() => {
+      const bc = document.getElementById('workspaceBreadcrumb');
+      const bar = document.getElementById('accountBar');
+      const bcr = bc.getBoundingClientRect();
+      const br = bar.getBoundingClientRect();
+      return {
+        scrollY: window.scrollY,
+        position: getComputedStyle(bc).position,
+        bcTop: bcr.top,
+        barBottom: br.bottom,
+      };
+    })()`);
+    assert.equal(stickyCheck.position, "sticky", `Expected #workspaceBreadcrumb position: sticky, got ${stickyCheck.position}`);
+    assert.ok(stickyCheck.bcTop >= stickyCheck.barBottom - 2 && stickyCheck.bcTop <= stickyCheck.barBottom + 4, `Breadcrumb not docked below topbar during scroll: ${JSON.stringify(stickyCheck)}`);
+    await page.evaluate("window.scrollTo(0, 0)");
+    await settle();
+
+    // A05 & A06: Header presence across 5 admin list tabs & column start alignment on Users and Login rows
+    const headAlignment = await page.evaluate(`(() => {
+      const checkView = (viewSel, headColsAttr, rowSel) => {
+        const view = document.querySelector(viewSel);
+        const head = view?.querySelector('.admin-list-head[data-admin-cols="' + headColsAttr + '"]');
+        const row = view?.querySelector(rowSel);
+        if (!head || !row) return { present: Boolean(head), hasRow: Boolean(row), maxDrift: 0 };
+        const hSpans = [...head.children];
+        const rCols = [...row.children];
+        const drifts = hSpans.slice(0, Math.min(hSpans.length, rCols.length)).map((sp, i) =>
+          Math.abs(sp.getBoundingClientRect().left - rCols[i].getBoundingClientRect().left)
+        );
+        return { present: true, hasRow: true, cols: drifts.length, drifts, maxDrift: Math.max(...drifts, 0) };
+      };
+      return {
+        users: checkView('#adminUsersView', 'users', '#adminUserList > .admin-user-card'),
+        hasHeads: ['users', 'recharge', 'audit', 'login', 'tools'].every((k) => Boolean(document.querySelector('.admin-list-head[data-admin-cols="' + k + '"]'))),
+      };
+    })()`);
+    assert.equal(headAlignment.hasHeads, true, "Missing data-admin-cols structural headers");
+    assert.ok(headAlignment.users.hasRow && headAlignment.users.maxDrift <= 1.5, `Users column alignment drift > 1.5px: ${JSON.stringify(headAlignment.users)}`);
+
+    await pointerClick("#adminLoginTab");
+    await page.waitFor("document.querySelectorAll('#adminLoginList .admin-login-card').length > 0", 10_000, "admin login rows loaded");
+    const loginAlignment = await page.evaluate(`(() => {
+      const head = document.querySelector('#adminLoginView .admin-list-head[data-admin-cols="login"]');
+      const row = document.querySelector('#adminLoginList > .admin-login-card');
+      const drifts = [...head.children].map((sp, i) => Math.abs(sp.getBoundingClientRect().left - row.children[i].getBoundingClientRect().left));
+      return { drifts, maxDrift: Math.max(...drifts, 0) };
+    })()`);
+    assert.ok(loginAlignment.maxDrift <= 1.5, `Login column alignment drift > 1.5px: ${JSON.stringify(loginAlignment)}`);
+    await pointerClick("#adminUsersTab");
 
     const tabTrail = [];
     for (const tabId of ["adminRechargeTab", "adminAuditTab", "adminLoginTab", "adminToolStatsTab", "adminFeedbackTab", "adminMessagesTab", "adminEmailTab", "adminRolesTab", "adminUsersTab", "adminFeatureFlagsTab"]) {
@@ -746,7 +925,7 @@ try {
       "#featureFlagPercentage": "0",
     });
     await pointerClick("#saveFeatureFlagBtn");
-    await page.waitFor("!document.querySelector('#task27Prompt')?.classList.contains('hidden')", 15_000, "task27 step-up modal");
+    await page.waitFor("Boolean(document.querySelector('#task27Prompt:not(.hidden) input[name=\"password\"]'))", 15_000, "task27 step-up modal");
     await page.setFields({ "#task27Prompt input[name='password']": password });
     await pointerClick("#task27Prompt button[type='submit']");
     await page.waitFor("document.querySelector('#featureConsoleStatus')?.textContent?.includes('设置已保存')", 15_000, "feature flag saved status");
@@ -766,23 +945,51 @@ try {
     assert.equal(domIntegrity.auditHasKey, true, `New flag ${flagKey} missing from #featureFlagAudit`);
     await shot("1440-admin-flags-after.png");
 
-    // Offline / 503 failure must NOT show "设置已保存"
+    // B01: Offline / 503 failure -> true final error state -> button re-enabled -> draft retained -> retry recovery -> persisted reload
     await page.intercept([{ match: "/api/admin/feature-flags", respond: () => ({ status: 503, body: { error: "simulated offline" } }) }]);
     await page.setFields({ "#featureFlagDescription": "Should fail offline save" });
     await page.evaluate("document.getElementById('featureConsoleStatus').textContent = ''");
     await pointerClick("#saveFeatureFlagBtn");
-    // Step-up prompt if required
     try {
-      await page.waitFor("!document.querySelector('#task27Prompt')?.classList.contains('hidden')", 2_000, "optional step-up");
+      await page.waitFor("Boolean(document.querySelector('#task27Prompt:not(.hidden) input[name=\"password\"]'))", 2_000, "optional step-up");
       await page.setFields({ "#task27Prompt input[name='password']": password });
       await pointerClick("#task27Prompt button[type='submit']");
     } catch (_) {}
-    await page.waitFor("Boolean(document.querySelector('#featureConsoleStatus')?.textContent?.trim())", 10_000, "offline failure status");
-    const offlineStatus = await page.evaluate("document.querySelector('#featureConsoleStatus')?.textContent?.trim() || ''");
-    assert.ok(!offlineStatus.includes("设置已保存"), `Offline save falsely claimed success: ${offlineStatus}`);
-    await page.intercept([]);
+    await page.waitFor(
+      "Boolean(document.querySelector('#featureConsoleStatus')?.textContent?.trim()) && !document.querySelector('#featureConsoleStatus')?.textContent?.includes('正在保存') && !document.querySelector('#saveFeatureFlagBtn')?.disabled",
+      15_000,
+      "offline failure final state",
+    );
+    const offlineState = await page.evaluate(`({
+      status: document.querySelector('#featureConsoleStatus')?.textContent?.trim() || '',
+      btnDisabled: Boolean(document.querySelector('#saveFeatureFlagBtn')?.disabled),
+      draftDesc: document.getElementById('featureFlagDescription')?.value || '',
+    })`);
+    assert.ok(offlineState.status.length > 0 && !offlineState.status.includes("正在保存") && !offlineState.status.includes("设置已保存"), `Invalid final error state: ${JSON.stringify(offlineState)}`);
+    assert.equal(offlineState.btnDisabled, false, "Save button must unlock after failed save");
+    assert.equal(offlineState.draftDesc, "Should fail offline save", "Unsaved draft must be preserved on error");
 
-    return { kpiCheck, tabCount: tabTrail.length, cbSizes, flagKey, domIntegrity, offlineStatus };
+    await page.intercept([]);
+    await pointerClick("#saveFeatureFlagBtn");
+    try {
+      await page.waitFor("Boolean(document.querySelector('#task27Prompt:not(.hidden) input[name=\"password\"]'))", 4_000, "retry step-up");
+      await page.setFields({ "#task27Prompt input[name='password']": password });
+      await pointerClick("#task27Prompt button[type='submit']");
+    } catch (_) {}
+    await page.waitFor("document.querySelector('#featureConsoleStatus')?.textContent?.includes('设置已保存') && !document.querySelector('#saveFeatureFlagBtn')?.disabled", 15_000, "retry flag saved");
+    await page.navigate("/admin");
+    await page.waitFor("document.body.dataset.workspaceRoute === 'admin' && !document.querySelector('#adminPanel')?.classList.contains('hidden')", 15_000);
+    await pointerClick("#adminFeatureFlagsTab");
+    await page.waitFor("document.querySelector('#adminFeatureFlagsView')?.classList.contains('active') && document.querySelector('#featureConsoleStatus')?.textContent?.includes('已读取最新配置')", 15_000);
+    await page.evaluate(`(() => {
+      const sel = document.getElementById('featureFlagSelect');
+      sel.value = ${JSON.stringify(flagKey)};
+      sel.dispatchEvent(new Event('change', { bubbles: true }));
+    })()`);
+    const persistedDesc = await page.evaluate("document.getElementById('featureFlagDescription')?.value || ''");
+    assert.equal(persistedDesc, "Should fail offline save", `Retried save did not persist on reload: ${persistedDesc}`);
+
+    return { kpiCheck, stickyCheck, headAlignment, loginAlignment, tabCount: tabTrail.length, cbSizes, flagKey, domIntegrity, offlineState, persistedDesc };
   });
 
   // Scenario h: Non-admin i05user isolation
@@ -808,13 +1015,14 @@ try {
     return { adminHidden, apiStatus, postState };
   });
 
-  // Scenario i: Viewport x Theme x 7-Route Matrix
+  // Scenario i: Viewport x Theme x 9-Route Matrix (7 primary routes + /tools/workflows + /recharge)
   await recordScenario("i_responsive_theme_matrix", async () => {
     const viewports = [[1440, 900], [1024, 768], [768, 1024], [390, 844], [375, 812]];
     const themes = ["light", "dark"];
     const namedShots = new Map([
       ["1440:light:home", "1440-select-light.png"],
       ["1440:light:admin", "1440-admin-flags-light.png"],
+      ["375:light:admin", "375-admin-flags-light.png"],
       ["390:light:home", "390-select-light.png"],
       ["390:dark:finance", "390-finance-dark.png"],
       ["390:light:account", "390-account-light.png"],
@@ -826,7 +1034,7 @@ try {
     for (const theme of themes) {
       await setViewport(1440, 900);
       await setTheme(theme);
-      for (const spec of routeSpecs) {
+      for (const spec of expandedRouteSpecs) {
         await setViewport(1440, 900);
         await openSidebarRoute(spec);
         if (spec.nav === "admin") {
@@ -844,15 +1052,46 @@ try {
             const bc = document.getElementById('workspaceBreadcrumb');
             const bcr = bc ? bc.getBoundingClientRect() : null;
             const bcs = bc ? getComputedStyle(bc) : null;
+            const extra = {};
+            if (${JSON.stringify(spec.nav)} === 'workflows') {
+              const ws = document.querySelector('.workflow-sidebar');
+              const wi = document.getElementById('workflowImportInput');
+              const wir = wi ? wi.getBoundingClientRect() : null;
+              extra.wfSidebarOverflow = ws ? ws.scrollWidth - ws.clientWidth : 0;
+              extra.wfImportRight = wir ? wir.right : 0;
+              extra.wfImportWidth = wir ? wir.width : 0;
+            }
+            if (${JSON.stringify(spec.nav)} === 'recharge') {
+              const mr = document.getElementById('membershipModal')?.getBoundingClientRect();
+              extra.rechargeLeft = mr ? mr.left : -1;
+            }
+            if (${JSON.stringify(spec.nav)} === 'admin') {
+              const nb = document.getElementById('newFeatureFlagBtn')?.getBoundingClientRect();
+              const rb = document.getElementById('refreshFeatureFlagsBtn')?.getBoundingClientRect();
+              extra.newFlagBtnBox = nb ? [nb.width, nb.height] : [0, 0];
+              extra.refreshFlagBtnBox = rb ? [rb.width, rb.height] : [0, 0];
+            }
             return {
               overflow: document.documentElement.scrollWidth - window.innerWidth,
               sidebarVisible: Boolean(sbr && sbr.width > 0 && sbs?.display !== 'none'),
               breadcrumbVisible: Boolean(bcr && bcr.height > 0 && bcs?.display !== 'none'),
+              extra,
             };
           })()`);
           assert.ok(cell.overflow <= 1, `Overflow at ${w}x${h} ${theme} ${spec.nav}: ${cell.overflow}`);
           assert.equal(cell.sidebarVisible, w >= 981, `Sidebar visibility mismatch at ${w}x${h} ${theme} ${spec.nav}: ${JSON.stringify(cell)}`);
           assert.equal(cell.breadcrumbVisible, true, `Breadcrumb hidden at ${w}x${h} ${theme} ${spec.nav}`);
+          if (spec.nav === "workflows") {
+            assert.ok(cell.extra.wfSidebarOverflow <= 1, `Workflow sidebar inner overflow at ${key}: ${JSON.stringify(cell.extra)}`);
+            assert.ok(cell.extra.wfImportWidth <= 2 && cell.extra.wfImportRight <= w + 1, `Workflow hidden input overflow at ${key}: ${JSON.stringify(cell.extra)}`);
+          }
+          if (spec.nav === "recharge") {
+            assert.ok(cell.extra.rechargeLeft >= (w >= 981 ? 220 : 12), `/recharge margin collapsed at ${key}: ${JSON.stringify(cell.extra)}`);
+          }
+          if (spec.nav === "admin") {
+            assert.ok(cell.extra.newFlagBtnBox[0] >= 76 && cell.extra.newFlagBtnBox[1] <= 52, `New flag button wrap regression at ${key}: ${JSON.stringify(cell.extra)}`);
+            assert.ok(cell.extra.refreshFlagBtnBox[0] >= 76 && cell.extra.refreshFlagBtnBox[1] <= 52, `Refresh flag button wrap regression at ${key}: ${JSON.stringify(cell.extra)}`);
+          }
           report.viewportMatrix.push({ width: w, height: h, theme, route: spec.nav, ...cell });
 
           if (namedShots.has(key)) {
@@ -933,7 +1172,7 @@ try {
     }
   });
 
-  // Scenario m: axe-core scan across all 7 routes + zero runtimeErrors / apiErrors
+  // Scenario m: axe-core scan across all 9 routes + zero runtimeErrors / apiErrors
   await recordScenario("m_axe_a11y_and_runtime_clean", async () => {
     await waitForApiIdle();
     await setViewport(1440, 900);
@@ -941,7 +1180,7 @@ try {
     await page.waitFor(`document.documentElement.dataset.bootState === 'ready' && document.documentElement.dataset.p07Ui === 'enabled' && ${isVisibleExpr("#authWorkspaceSection")} && (document.querySelector('#v3Sidebar')?.getBoundingClientRect()?.width || 0) > 0`, 20_000, "P07 ON reload");
     await setTheme("light");
     const routeResults = [];
-    for (const spec of routeSpecs) {
+    for (const spec of expandedRouteSpecs) {
       await openSidebarRoute(spec);
       await waitForApiIdle();
       await delay(220);
