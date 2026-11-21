@@ -1,4 +1,4 @@
--- Dedicated DS merge journal. Task 13/16/21 data remains in the owning ledgers.
+/* Dedicated DS merge journal. Task 13/16/21 data remains in the owning ledgers. */
 CREATE TABLE aeris_ds_merge_sandbox (
   sandbox_id TEXT PRIMARY KEY CHECK (length(sandbox_id)=43)
 ) STRICT;
@@ -52,8 +52,8 @@ CREATE TABLE aeris_ds_merge_receipts (
   PRIMARY KEY (merge_id,kind,subject,original_id)
 ) STRICT;
 
--- Only a trusted provider adapter may issue a fact. This synthetic deployment
--- seeds facts through its isolated fixture. No browser or backchannel setter.
+/* Only a trusted provider adapter may issue a fact. This synthetic deployment
+   seeds facts through its isolated fixture. No browser or backchannel setter. */
 CREATE TABLE aeris_ds_merge_finance_facts (
   transaction_id TEXT NOT NULL REFERENCES task16_finance_transactions(id),
   revision INTEGER NOT NULL CHECK (revision>=1),
