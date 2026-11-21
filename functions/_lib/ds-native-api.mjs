@@ -1,4 +1,7 @@
 import { handleTask12Request } from './task12-api.mjs';
+import { handleDsOwnership, ownershipOperations } from './ds-ownership.mjs';
+import { handleMergePreview, mergePreviewOperation } from './ds-merge-preview.mjs';
+import { handleOwnershipReviewStaff, reviewerRoute } from './ds-ownership-review-staff.mjs';
 import { resolveTask12Account } from './task12-auth.mjs';
 import { createSessionToken } from './task12-crypto.mjs';
 import { Task12Error } from './task12-model.mjs';
@@ -41,22 +44,62 @@ const object = value => value && typeof value === 'object' && !Array.isArray(val
 const select = (input, fields = []) => Object.fromEntries(fields.flatMap(key =>
   Object.hasOwn(input, key) ? [[key, input[key]]] : []));
 
+function previewOrigin(url, project) {
+  const [branch, projectLabel, ...suffix] = url.hostname.split('.');
+  return url.protocol === 'https:' && !url.port && /^[a-z0-9-]+$/.test(branch)
+    && projectLabel === project && suffix.join('.') === 'pages.dev';
+}
+
 function registration(env, url) {
   const { AERIS_DS_SSO_ENABLED: enabled, AERIS_DS_SSO_CLIENT_ID: clientId, AERIS_DS_SSO_CLIENT_SECRET: secret,
-    AERIS_DS_SSO_ISSUER: issuer, AERIS_DS_SSO_ORIGIN: origin } = env;
-  if (enabled !== 'true' || issuer !== url.origin || !task27EnrollmentEnabled(env)
+    AERIS_DS_SSO_ISSUER: issuer, AERIS_DS_SSO_ORIGIN: primaryOrigin } = env;
+  if (enabled !== 'true' || !task27EnrollmentEnabled(env)
     || !/^[A-Za-z0-9._-]{1,64}$/.test(clientId || '') || !/^[A-Za-z0-9_-]{43,128}$/.test(secret || '')) return null;
+
+  const preview = env.WYJ_ENVIRONMENT === 'preview';
+  const ownershipFlag = env.AERIS_DS_OWNERSHIP_ENABLED === 'true';
+  const alternate = preview && ownershipFlag && issuer !== url.origin
+    && env.AERIS_DS_OWNERSHIP_PREVIEW_HOST === url.origin;
+  if (!alternate && issuer !== url.origin) return null;
+  const origin = alternate ? env.AERIS_DS_OWNERSHIP_DS_ORIGIN : primaryOrigin;
+  if (alternate && origin === primaryOrigin) return null;
   let ds;
-  try { ds = new URL(origin); } catch { return null; }
-  if (ds.origin !== origin || origin === issuer) return null;
-  if (env.WYJ_ENVIRONMENT === 'preview') {
-    if (url.protocol !== 'https:' || ds.protocol !== 'https:' || url.port || ds.port
-      || !/^[a-z0-9-]+\.thewyj-uk\.pages\.dev$/.test(url.hostname)
-      || !/^[a-z0-9-]+\.ds-thewyj-uk\.pages\.dev$/.test(ds.hostname)) return null;
+  let identity;
+  try {
+    ds = new URL(origin);
+    identity = new URL(issuer);
+  } catch { return null; }
+  if (ds.origin !== origin || identity.origin !== issuer || origin === issuer) return null;
+  if (preview) {
+    if (![url, identity].every(host => previewOrigin(host, 'thewyj-uk')) || !previewOrigin(ds, 'ds-thewyj-uk')) return null;
   } else if (env.WYJ_ENVIRONMENT === 'development') {
     if (![url, ds].every(x => ['localhost', '127.0.0.1'].includes(x.hostname) && ['http:', 'https:'].includes(x.protocol))) return null;
   } else return null;
-  return { clientId, secret, issuer, origin };
+
+  return {
+    clientId, secret, issuer, origin, ownershipEnabled: ownershipFlag && (alternate || !preview),
+    mergePreviewEnabled: !preview && ownershipFlag && env.AERIS_DS_MERGE_PREVIEW_ENABLED === 'true',
+  };
+}
+
+function registeredOrigins(env, primary) {
+  if (env.WYJ_ENVIRONMENT !== 'preview' || !primary.ownershipEnabled || env.AERIS_DS_MERGE_PREVIEW_ENABLED !== 'true') {
+    return [primary];
+  }
+  const origin = env.AERIS_DS_MERGE_PREVIEW_DS_ORIGIN;
+  let candidate;
+  try { candidate = new URL(origin); } catch { return [primary]; }
+  if (origin !== candidate.origin || origin === primary.origin || origin === env.AERIS_DS_SSO_ORIGIN
+    || !previewOrigin(candidate, 'ds-thewyj-uk')) return [primary];
+  return [primary, { ...primary, origin, mergePreviewEnabled: true }];
+}
+
+async function authenticateOrigin(request, registrations, raw) {
+  for (const client of registrations) {
+    const nonce = await verifyBackchannel(request, client, raw);
+    if (nonce) return { client, nonce };
+  }
+  return null;
 }
 
 async function boundedBody(request) {
@@ -184,17 +227,19 @@ async function accountOperation(context, client, cipher, definition, action, inp
 export async function handleDsNativeRequest(context) {
   const { request, env } = context;
   const url = new URL(request.url);
+  if (url.pathname===reviewerRoute) return handleOwnershipReviewStaff(context, registration(env,url), boundedBody);
   if (url.pathname.startsWith('/api/sso/ds/')) return json({ error: 'not_found' }, 404);
   if (url.pathname !== route) return null;
-  const client = registration(env, url);
-  if (!client) return json({ error: 'not_found' }, 404);
+  const primary = registration(env, url);
+  if (!primary) return json({ error: 'not_found' }, 404);
   if (request.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
   if (url.search) return json({ error: 'invalid_request' }, 400);
   let auditOperation = 'invalid';
   try {
     const raw = await boundedBody(request);
-    const nonce = await verifyBackchannel(request, client, raw);
-    if (!nonce) return json({ error: 'invalid_client' }, 401);
+    const signed = await authenticateOrigin(request, registeredOrigins(env, primary), raw);
+    if (!signed) return json({ error: 'invalid_client' }, 401);
+    const { client, nonce } = signed;
     const db = env.WYJ_DB;
     if (!opaque(env.AERIS_DS_NATIVE_SEAL_KEY) || !await hasTask27(db) || !await nativeSchemaReady(db)) {
       return json({ error: 'operation_unavailable' }, 503);
@@ -216,6 +261,10 @@ export async function handleDsNativeRequest(context) {
     if (op === 'policies') {
       return json({ versions: POLICY_VERSIONS, documents: Object.values(POLICY_CONTENT).map(x => ({ title: x.title, body: x.body })) });
     }
+    if (op === mergePreviewOperation) {
+      auditOperation = op;
+      return json(await handleMergePreview(context, client, input, grant));
+    }
     await securityRate(context, 'ds-native-operate', ip || client.clientId, 90, 60);
     if (op === 'register') {
       auditOperation = op;
@@ -223,6 +272,10 @@ export async function handleDsNativeRequest(context) {
       return json({ stage: 'signin_required' }, 201);
     }
     const cipher = await envelopeCipher(env.AERIS_DS_NATIVE_SEAL_KEY);
+    if (ownershipOperations.has(op)) {
+      auditOperation = op;
+      return json(await handleDsOwnership(context, client, cipher, op, input, grant, binding, ip));
+    }
     if (loginActions.has(op)) {
       auditOperation = op;
       return json(await unauthenticated(context, client, cipher, op, input, binding, ip));
