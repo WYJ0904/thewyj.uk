@@ -298,7 +298,7 @@ try {
   // /admin KPIs, sticky breadcrumb (A04), aligned headers (A05/A06), Feature Flag save, and 390px toolbar (A03)
   await page.evaluate("const s = document.getElementById('featureConsoleStatus'); if (s) s.textContent = '';");
   await pointerClick('#v3Sidebar [data-v3-nav="admin"]');
-  await page.waitFor("document.body.dataset.workspaceRoute === 'admin' && Boolean(document.querySelector('#adminUserList')?.textContent?.trim())", 20_000, "preview admin users");
+  await page.waitFor("document.body.dataset.workspaceRoute === 'admin' && Boolean(document.querySelector('#adminUserList .admin-user-card')) && document.querySelector('#adminKpiUsers')?.dataset?.state === 'ready'", 20_000, "preview admin users");
   await shot("preview-1440-admin-users.png");
   const kpiCheck = await page.evaluate(`(async () => {
     const kpiText = document.querySelector('#adminKpiUsers')?.textContent?.trim() || '';

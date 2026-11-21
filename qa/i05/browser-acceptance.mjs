@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { execFileSync, spawn } from "node:child_process";
+import { spawn } from "node:child_process";
 import { createServer } from "node:http";
 import { mkdir, mkdtemp, readFile, readdir, rm, unlink, writeFile } from "node:fs/promises";
 import os from "node:os";
@@ -10,18 +10,17 @@ import { onRequest } from "../../functions/api/[[path]].js";
 import { onRequest as status } from "../../functions/api/status.js";
 import { isAllowedPagesFile } from "../../scripts/stage_pages_deploy.mjs";
 import { hashSecret } from "../../functions/_lib/task12-crypto.mjs";
+import { assertViewport, captureSource, exerciseReleaseChannel, pngProof, viewportProof } from "./browser-proofs.mjs";
 
 const root = path.resolve(import.meta.dirname, "../..");
-const evidenceDir = path.join(root, "docs", "ui-rebuild", "i05", "evidence");
-await mkdir(evidenceDir, { recursive: true });
-
-const gitSha = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
-const gitBranch = execFileSync("git", ["branch", "--show-current"], { cwd: root, encoding: "utf8" }).trim();
-const dirtyFiles = execFileSync("git", ["status", "--porcelain"], { cwd: root, encoding: "utf8" })
-  .split(/\r?\n/)
-  .map((line) => line.trim())
-  .filter((line) => line && !line.includes("docs/ui-rebuild/i05/evidence/"));
-const worktreeDirty = dirtyFiles.length > 0;
+const evidenceRoot = path.join(root, ".wrangler", "i05-local-runs");
+await mkdir(evidenceRoot, { recursive: true });
+const evidenceDir = await mkdtemp(path.join(evidenceRoot, "run-"));
+const source = await captureSource(root);
+if (process.env.I05_EXPECTED_SOURCE_COMMIT) {
+  assert.equal(source.commit, process.env.I05_EXPECTED_SOURCE_COMMIT, "I05 source commit does not match requested run");
+  assert.equal(source.sourceMatchesCommit, true, "Pinned I05 source run requires committed build and test inputs");
+}
 const config = JSON.parse(await readFile(path.join(root, "wrangler.jsonc"), "utf8"));
 const mfPersist = await mkdtemp(path.join(os.tmpdir(), "aeris-i05-mf-"));
 const mf = new Miniflare({
@@ -361,22 +360,25 @@ async function waitForCdpUrl(userDataDir, timeoutMs = 15_000) {
 const axeSource = await readFile(path.join(root, "qa", "p07-f", "vendor", "axe.min.js"), "utf8");
 const report = {
   scope: "Isolated local Miniflare D1/R2 + headless Chrome CDP (I05)",
-  gitSha,
-  gitBranch,
-  worktreeDirty,
-  dirtyFiles,
+  gitSha: source.commit,
+  gitBranch: source.branch,
+  worktreeDirty: !source.sourceMatchesCommit,
+  dirtyFiles: source.changedInputs.map(({ file }) => file),
+  source,
+  checkedAt: new Date().toISOString(),
   browserVersion: "",
   scenarios: [],
   viewportMatrix: [],
   axeScans: [],
   screenshots: [],
+  screenshotProvenance: [],
   apiErrors: [],
   runtimeErrors: [],
   android_physical_device: "NOT_TESTED",
   production_release: "NOT_TOUCHED",
 };
 
-const tempUploadFile = path.join(os.tmpdir(), "i05-long-filename-acceptance-fixture-0123456789abcdefghijklmnopqrstuvwxyz.txt");
+const tempUploadFile = path.join(mfPersist, "i05-long-filename-acceptance-fixture-0123456789abcdefghijklmnopqrstuvwxyz.txt");
 await writeFile(tempUploadFile, "I05 synthetic transfer fixture payload\n", "utf8");
 
 let page;
@@ -423,9 +425,15 @@ try {
 
   const shot = async (name, targetPage = page) => {
     await settle(targetPage);
+    const observed = await viewportProof(targetPage);
     const data = await targetPage.send("Page.captureScreenshot", { format: "png", captureBeyondViewport: false });
-    await writeFile(path.join(evidenceDir, name), Buffer.from(data.data, "base64"));
+    const png = Buffer.from(data.data, "base64");
+    const pixels = pngProof(png);
+    assert.deepEqual([pixels.width, pixels.height], [observed.width, observed.height], `Screenshot viewport mismatch for ${name}`);
+    await writeFile(path.join(evidenceDir, name), png, { flag: "wx" });
     report.screenshots.push(name);
+    report.screenshotProvenance.push({ name, ...pixels, viewport: observed,
+      pathname: await targetPage.evaluate("location.pathname") });
     return name;
   };
 
@@ -524,10 +532,15 @@ try {
 
   const recordScenario = async (name, fn) => {
     const started = Date.now();
-    const detail = await fn();
-    const ms = Date.now() - started;
-    report.scenarios.push({ name, status: "PASS", ms, detail });
-    console.log(`PASS scenario: ${name} (${ms}ms)`);
+    try {
+      const detail = await fn();
+      const ms = Date.now() - started;
+      report.scenarios.push({ name, status: "PASS", ms, detail });
+      console.log(`PASS scenario: ${name} (${ms}ms)`);
+    } catch (error) {
+      report.scenarios.push({ name, status: "FAIL", ms: Date.now() - started, error: error.message });
+      throw error;
+    }
   };
 
   await signIn(page, "i05admin");
@@ -742,33 +755,7 @@ try {
     await pointerClick("#task27Security [data-task27-close]");
     await page.waitFor("document.querySelector('#task27Security')?.classList.contains('hidden')", 10_000, "security modal closed");
 
-    await page.waitFor("!document.querySelector('#releaseChannelSection')?.classList.contains('hidden') && !document.querySelector('#releaseChannelSelect')?.disabled", 15_000, "release channel controls ready");
-    const initialChannel = await page.evaluate("document.getElementById('releaseChannelSelect').value");
-    const targetChannel = initialChannel === "beta" ? "experimental" : "beta";
-    await page.evaluate(`(() => {
-      const sel = document.getElementById('releaseChannelSelect');
-      sel.value = ${JSON.stringify(targetChannel)};
-      sel.dispatchEvent(new Event('change', { bubbles: true }));
-    })()`);
-    const saveHit = await pointerClick("#saveReleaseChannelBtn");
-    await page.waitFor("document.querySelector('#releaseChannelStatus')?.textContent?.includes('体验通道已保存') && !document.querySelector('#saveReleaseChannelBtn')?.disabled", 15_000, "release channel saved status");
-    const statusText = await page.evaluate("document.querySelector('#releaseChannelStatus')?.textContent?.trim() || ''");
-
-    // B02: Reload /account and verify persisted value from DB, then restore initial value
-    await page.navigate("/account");
-    await page.waitFor("document.documentElement.dataset.bootState === 'ready' && !document.querySelector('#accountModal')?.classList.contains('hidden') && !document.querySelector('#releaseChannelSelect')?.disabled && !document.querySelector('#releaseChannelStatus')?.textContent?.includes('正在读取')", 20_000, "reloaded account release channel");
-    const reloadedChannel = await page.evaluate("document.getElementById('releaseChannelSelect').value");
-    assert.equal(reloadedChannel, targetChannel, `Release channel did not persist across reload: expected ${targetChannel}, got ${reloadedChannel}`);
-
-    await page.evaluate(`(() => {
-      const sel = document.getElementById('releaseChannelSelect');
-      sel.value = ${JSON.stringify(initialChannel)};
-      sel.dispatchEvent(new Event('change', { bubbles: true }));
-    })()`);
-    await pointerClick("#saveReleaseChannelBtn");
-    await page.waitFor("document.querySelector('#releaseChannelStatus')?.textContent?.includes('体验通道已保存') && !document.querySelector('#saveReleaseChannelBtn')?.disabled", 15_000, "release channel restored status");
-    const restoredChannel = await page.evaluate("document.getElementById('releaseChannelSelect').value");
-    assert.equal(restoredChannel, initialChannel);
+    const channel = await exerciseReleaseChannel(page, pointerClick);
 
     // A01: /recharge container geometry & margins at 1440px and 390px
     await openSidebarRoute(expandedRouteSpecs[6]); // recharge
@@ -809,13 +796,13 @@ try {
     await shot("390-recharge-light.png");
     await setViewport(1440, 900);
 
-    return { saveHit, statusText, initialChannel, targetChannel, reloadedChannel, restoredChannel, rechargeDesktop, rechargeMobile };
+    return { channel, rechargeDesktop, rechargeMobile };
   });
 
   // Scenario g: /admin KPIs, tabs, Feature Flags DOM identity, step-up, offline error
   await recordScenario("g_admin_kpis_flags_dom_identity_and_offline", async () => {
     await openSidebarRoute(routeSpecs[6]); // admin
-    await page.waitFor("Boolean(document.querySelector('#adminUserList')?.textContent?.trim())", 15_000, "admin users loaded");
+    await page.waitFor("Boolean(document.querySelector('#adminUserList .admin-user-card')) && document.querySelector('#adminKpiUsers')?.dataset?.state === 'ready'", 15_000, "admin users loaded");
     const kpiCheck = await page.evaluate(`(async () => {
       const kpiText = document.querySelector('#adminKpiUsers')?.textContent?.trim() || '';
       const token = localStorage.getItem('wyjAccountSession') || '';
@@ -945,38 +932,65 @@ try {
     assert.equal(domIntegrity.auditHasKey, true, `New flag ${flagKey} missing from #featureFlagAudit`);
     await shot("1440-admin-flags-after.png");
 
-    // B01: Offline / 503 failure -> true final error state -> button re-enabled -> draft retained -> retry recovery -> persisted reload
-    await page.intercept([{ match: "/api/admin/feature-flags", respond: () => ({ status: 503, body: { error: "simulated offline" } }) }]);
-    await page.setFields({ "#featureFlagDescription": "Should fail offline save" });
-    await page.evaluate("document.getElementById('featureConsoleStatus').textContent = ''");
-    await pointerClick("#saveFeatureFlagBtn");
+    // B01: A deterministic failed POST blocks only this synthetic flag mutation.
+    const dbFlag = () => db.prepare("SELECT description,revision FROM task25_feature_flags WHERE flag_key=?1").bind(flagKey).first();
+    const persistedBeforeError = await dbFlag();
+    assert.ok(persistedBeforeError, "Prepare an existing flag before testing failed update");
+    const draft = "I05 retry after a rejected save";
+    const failureMessage = "验收模拟：功能配置保存暂不可用";
+    let interceptedPosts = 0;
+    let completeFailure;
+    const pendingFailure = new Promise(resolve => { completeFailure = resolve; });
+    await page.setFields({ "#featureFlagDescription": draft });
+    await page.intercept([{ match: "/api/admin/feature-flags", respond: async ({ url, method, postData }) => {
+      if (method !== "POST" || new URL(url).pathname !== "/api/admin/feature-flags" ||
+        JSON.parse(postData).flag_key !== flagKey) return { continue: true };
+      interceptedPosts += 1;
+      await pendingFailure;
+      return { status: 503, body: { ok: false, code: "synthetic_i05_save_unavailable", error: failureMessage } };
+    } }]);
     try {
-      await page.waitFor("Boolean(document.querySelector('#task27Prompt:not(.hidden) input[name=\"password\"]'))", 2_000, "optional step-up");
-      await page.setFields({ "#task27Prompt input[name='password']": password });
-      await pointerClick("#task27Prompt button[type='submit']");
-    } catch (_) {}
-    await page.waitFor(
-      "Boolean(document.querySelector('#featureConsoleStatus')?.textContent?.trim()) && !document.querySelector('#featureConsoleStatus')?.textContent?.includes('正在保存') && !document.querySelector('#saveFeatureFlagBtn')?.disabled",
-      15_000,
-      "offline failure final state",
-    );
+      await pointerClick("#saveFeatureFlagBtn");
+      await page.waitFor(
+        "document.querySelector('#featureConsoleStatus')?.textContent === '正在保存…' && " +
+        "document.querySelector('#saveFeatureFlagBtn:disabled') !== null",
+        5_000, "failed save remains pending and locked until the response",
+      );
+      completeFailure();
+      await page.waitFor(
+        `document.querySelector('#featureConsoleStatus')?.textContent === ${JSON.stringify(failureMessage)} && ` +
+        "document.querySelector('#saveFeatureFlagBtn:not(:disabled)') !== null",
+        15_000, "503 save error reached the final, unlocked UI state",
+      );
+    } finally {
+      completeFailure();
+      await page.intercept([]);
+    }
+    assert.equal(interceptedPosts, 1, "One intended POST must be denied before retry");
     const offlineState = await page.evaluate(`({
       status: document.querySelector('#featureConsoleStatus')?.textContent?.trim() || '',
       btnDisabled: Boolean(document.querySelector('#saveFeatureFlagBtn')?.disabled),
       draftDesc: document.getElementById('featureFlagDescription')?.value || '',
     })`);
-    assert.ok(offlineState.status.length > 0 && !offlineState.status.includes("正在保存") && !offlineState.status.includes("设置已保存"), `Invalid final error state: ${JSON.stringify(offlineState)}`);
+    assert.equal(offlineState.status, failureMessage);
     assert.equal(offlineState.btnDisabled, false, "Save button must unlock after failed save");
-    assert.equal(offlineState.draftDesc, "Should fail offline save", "Unsaved draft must be preserved on error");
+    assert.equal(offlineState.draftDesc, draft, "Unsaved draft must be preserved on error");
+    const persistedAfterError = await dbFlag();
+    assert.deepEqual(persistedAfterError, persistedBeforeError, "A failed save must not change the stored flag");
 
-    await page.intercept([]);
     await pointerClick("#saveFeatureFlagBtn");
-    try {
-      await page.waitFor("Boolean(document.querySelector('#task27Prompt:not(.hidden) input[name=\"password\"]'))", 4_000, "retry step-up");
+    const stepUp = "Boolean(document.querySelector('#task27Prompt:not(.hidden) input[name=password]'))";
+    const saved = "document.querySelector('#featureConsoleStatus')?.textContent === '设置已保存' && " +
+      "document.querySelector('#saveFeatureFlagBtn:not(:disabled)') !== null";
+    await page.waitFor(`(${stepUp}) || (${saved})`, 15_000, "retry succeeded or requested step-up");
+    if (await page.evaluate(stepUp)) {
       await page.setFields({ "#task27Prompt input[name='password']": password });
       await pointerClick("#task27Prompt button[type='submit']");
-    } catch (_) {}
-    await page.waitFor("document.querySelector('#featureConsoleStatus')?.textContent?.includes('设置已保存') && !document.querySelector('#saveFeatureFlagBtn')?.disabled", 15_000, "retry flag saved");
+    }
+    await page.waitFor(saved, 15_000, "retry flag saved and unlocked");
+    const persistedAfterRetry = await dbFlag();
+    assert.deepEqual(persistedAfterRetry, { description: draft, revision: persistedBeforeError.revision + 1 },
+      "Retry must save the preserved draft exactly once");
     await page.navigate("/admin");
     await page.waitFor("document.body.dataset.workspaceRoute === 'admin' && !document.querySelector('#adminPanel')?.classList.contains('hidden')", 15_000);
     await pointerClick("#adminFeatureFlagsTab");
@@ -987,9 +1001,10 @@ try {
       sel.dispatchEvent(new Event('change', { bubbles: true }));
     })()`);
     const persistedDesc = await page.evaluate("document.getElementById('featureFlagDescription')?.value || ''");
-    assert.equal(persistedDesc, "Should fail offline save", `Retried save did not persist on reload: ${persistedDesc}`);
+    assert.equal(persistedDesc, draft, "Retried save did not persist on reload");
 
-    return { kpiCheck, stickyCheck, headAlignment, loginAlignment, tabCount: tabTrail.length, cbSizes, flagKey, domIntegrity, offlineState, persistedDesc };
+    return { kpiCheck, stickyCheck, headAlignment, loginAlignment, tabCount: tabTrail.length, cbSizes, flagKey, domIntegrity,
+      offlineState, persistedDesc, recovery: { interceptedPosts, forcedHttpStatus: 503, persistedBeforeError, persistedAfterError, persistedAfterRetry } };
   });
 
   // Scenario h: Non-admin i05user isolation
@@ -1045,6 +1060,7 @@ try {
         for (const [w, h] of viewports) {
           const key = `${w}:${theme}:${spec.nav}`;
           await setViewport(w, h, page, !namedShots.has(key));
+        const observedViewport = await assertViewport(page, w, h);
           const cell = await page.evaluate(`(() => {
             const sb = document.getElementById('v3Sidebar');
             const sbr = sb ? sb.getBoundingClientRect() : null;
@@ -1058,41 +1074,63 @@ try {
               const wi = document.getElementById('workflowImportInput');
               const wir = wi ? wi.getBoundingClientRect() : null;
               extra.wfSidebarOverflow = ws ? ws.scrollWidth - ws.clientWidth : 0;
+              extra.wfSidebarWidth = ws?.clientWidth || 0;
               extra.wfImportRight = wir ? wir.right : 0;
               extra.wfImportWidth = wir ? wir.width : 0;
+              extra.wfImportHeight = wir ? wir.height : 0;
             }
             if (${JSON.stringify(spec.nav)} === 'recharge') {
               const mr = document.getElementById('membershipModal')?.getBoundingClientRect();
               extra.rechargeLeft = mr ? mr.left : -1;
+              extra.rechargeRight = mr ? mr.right : -1;
+              extra.rechargeWidth = mr ? mr.width : 0;
+              extra.rechargeBreadcrumbLeft = bc?.querySelector('ol')?.getBoundingClientRect().left ?? -1;
             }
             if (${JSON.stringify(spec.nav)} === 'admin') {
-              const nb = document.getElementById('newFeatureFlagBtn')?.getBoundingClientRect();
-              const rb = document.getElementById('refreshFeatureFlagsBtn')?.getBoundingClientRect();
-              extra.newFlagBtnBox = nb ? [nb.width, nb.height] : [0, 0];
-              extra.refreshFlagBtnBox = rb ? [rb.width, rb.height] : [0, 0];
+              const button = id => {
+                const node = document.getElementById(id);
+                const rect = node?.getBoundingClientRect();
+                if (!rect) return { width: 0, height: 0, lines: 0 };
+                const range = document.createRange();
+                range.selectNodeContents(node);
+                const lines = new Set([...range.getClientRects()].filter(line => line.width > 0).map(line => Math.round(line.top)));
+                return { width: rect.width, height: rect.height, lines: lines.size };
+              };
+              extra.newFlagButton = button('newFeatureFlagBtn');
+              extra.refreshFlagButton = button('refreshFeatureFlagsBtn');
             }
             return {
               overflow: document.documentElement.scrollWidth - window.innerWidth,
+              pathname: location.pathname,
+              theme: document.documentElement.dataset.themePreference,
               sidebarVisible: Boolean(sbr && sbr.width > 0 && sbs?.display !== 'none'),
               breadcrumbVisible: Boolean(bcr && bcr.height > 0 && bcs?.display !== 'none'),
               extra,
             };
           })()`);
+          assert.equal(cell.pathname, spec.path, `Unexpected path in ${key}`);
+          assert.equal(cell.theme, theme, `Unexpected theme in ${key}`);
           assert.ok(cell.overflow <= 1, `Overflow at ${w}x${h} ${theme} ${spec.nav}: ${cell.overflow}`);
           assert.equal(cell.sidebarVisible, w >= 981, `Sidebar visibility mismatch at ${w}x${h} ${theme} ${spec.nav}: ${JSON.stringify(cell)}`);
           assert.equal(cell.breadcrumbVisible, true, `Breadcrumb hidden at ${w}x${h} ${theme} ${spec.nav}`);
           if (spec.nav === "workflows") {
-            assert.ok(cell.extra.wfSidebarOverflow <= 1, `Workflow sidebar inner overflow at ${key}: ${JSON.stringify(cell.extra)}`);
-            assert.ok(cell.extra.wfImportWidth <= 2 && cell.extra.wfImportRight <= w + 1, `Workflow hidden input overflow at ${key}: ${JSON.stringify(cell.extra)}`);
+            assert.ok(cell.extra.wfSidebarWidth > 0 && cell.extra.wfSidebarOverflow <= 1, `Workflow sidebar inner overflow at ${key}: ${JSON.stringify(cell.extra)}`);
+            assert.ok(cell.extra.wfImportWidth <= 2 && cell.extra.wfImportHeight <= 2 && cell.extra.wfImportRight <= w + 1,
+              `Workflow hidden input overflow at ${key}: ${JSON.stringify(cell.extra)}`);
           }
           if (spec.nav === "recharge") {
-            assert.ok(cell.extra.rechargeLeft >= (w >= 981 ? 220 : 12), `/recharge margin collapsed at ${key}: ${JSON.stringify(cell.extra)}`);
+            const { rechargeLeft, rechargeRight, rechargeWidth, rechargeBreadcrumbLeft } = cell.extra;
+            assert.ok(rechargeWidth > 0 && rechargeLeft >= (w >= 981 ? 220 : 12) &&
+              rechargeRight <= w - 12 && Math.abs(rechargeLeft - rechargeBreadcrumbLeft) <= 2,
+            `/recharge margin or breadcrumb alignment mismatch at ${key}: ${JSON.stringify(cell.extra)}`);
           }
           if (spec.nav === "admin") {
-            assert.ok(cell.extra.newFlagBtnBox[0] >= 76 && cell.extra.newFlagBtnBox[1] <= 52, `New flag button wrap regression at ${key}: ${JSON.stringify(cell.extra)}`);
-            assert.ok(cell.extra.refreshFlagBtnBox[0] >= 76 && cell.extra.refreshFlagBtnBox[1] <= 52, `Refresh flag button wrap regression at ${key}: ${JSON.stringify(cell.extra)}`);
+            for (const button of [cell.extra.newFlagButton, cell.extra.refreshFlagButton]) {
+              assert.ok(button.width >= 76 && button.height >= 24 && button.height <= 52 && button.lines === 1,
+                `Flag action label wrap or target regression at ${key}: ${JSON.stringify(cell.extra)}`);
+            }
           }
-          report.viewportMatrix.push({ width: w, height: h, theme, route: spec.nav, ...cell });
+          report.viewportMatrix.push({ width: w, height: h, route: spec.nav, viewport: observedViewport, ...cell });
 
           if (namedShots.has(key)) {
             await shot(namedShots.get(key));
@@ -1202,9 +1240,20 @@ try {
     return { routes: routeResults };
   });
 
-  await writeFile(path.join(evidenceDir, "i05-acceptance-report.json"), JSON.stringify(report, null, 2));
+  assert.equal(report.viewportMatrix.length, 90, "All I05 viewport/theme/route cells must run");
+  const endSource = await captureSource(root);
+  assert.equal(endSource.commit, source.commit, "HEAD changed during I05 evidence capture");
+  assert.equal(endSource.inputsSha256, source.inputsSha256, "Build/test inputs changed during I05 evidence capture");
+  report.sourceVerifiedAtEnd = true;
+  report.status = "PASS";
   console.log(`ALL 13 I05 SCENARIOS PASSED (${report.viewportMatrix.length} viewport/theme cells, ${report.screenshots.length} screenshots)`);
+} catch (error) {
+  report.status = "FAIL";
+  report.error = error.message;
+  throw error;
 } finally {
+  await writeFile(path.join(evidenceDir, "i05-acceptance-report.json"), `${JSON.stringify(report, null, 2)}\n`);
+  console.log(`I05 evidence: ${evidenceDir}`);
   if (userPage) await userPage.close().catch(() => {});
   if (page) await page.close().catch(() => {});
   child.kill("SIGKILL");
