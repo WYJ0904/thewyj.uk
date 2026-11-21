@@ -1,0 +1,11 @@
+# DS Task 10 provider contract
+
+`eligibility10_verify_merge` is a read-only operation on the versioned native identity backchannel. Send exactly `{ id, version }` and the keeper’s live DS client Grant. A successful response contains `id`, `version`, `issuer`, `keepSubject`, `members` and `digest`. Each member has `subject`, `sessionVersion` and `securityVersion`. The digest is the committed Task 09 snapshot digest. DS compares all returned evidence to its own audited merge and identity mappings before evaluating its business rules.
+
+The primary Aeris D1 read checks the exact merge version, client origin, issuer and synthetic sandbox, the keeper’s live Grant, the committed audit and absence of compensation. It checks all original member mappings and current Aeris session and security versions, account standing, required policy and open ownership reviews. Native administrator involvement, a recovery hold, or invalid finance or membership evidence blocks verification. Task 09 ownership approval receipts can expire with their short-lived proof, so a recovery hold needs an independently auditable resolution before it can support this eligibility contract.
+
+The consent records must have been valid at commit and must have no explicit withdrawal. Prior source login sessions can expire or be revoked after commit. A reviewed financial conflict requires the committed review evidence and current independent, non-revoked Aeris reviewer authority. The verifier returns no financial or membership detail. DS owns its separate roles and source-session cleanup. The provider has no role succession, reassignment or native privilege mutation in this contract.
+
+The hosted operation is limited to a matched `aeris-task10-*.pages.dev` and `ds-task10-*.pages.dev` synthetic Preview registration. Local tests use the sandbox on loopback. Standard Aeris or DS shared Preview registrations retain their existing operations. No additional Aeris migration is needed beyond Task 09 `0045_ds_account_merge_bridge.sql`. Production integration requires a separate release.
+
+Run `npm run test:ds-sso` for the compiled Pages provider and isolated D1 regressions, including old registration preservation, keeper and member validation, consent and review authority, revocation and compensation.

@@ -8,11 +8,13 @@ import { ensureTask13Schema } from './task13-service.mjs';
 import { ensureTask16Schema } from './task16-service.mjs';
 import { Task12Error, accountRole } from './task12-model.mjs';
 import { securityRate } from './task27-auth.mjs';
+import { POLICY_VERSIONS } from './task27-policy.mjs';
 import { first, rows, stmt } from './task27-store.mjs';
 
 export const mergeOperations = new Set([
   'merge09_inspect','merge09_register','merge09_scope','merge09_consent','merge09_withdraw','merge09_status',
   'merge09_stage','merge09_commit','merge09_undo','merge09_review_list','merge09_review',
+  'eligibility10_verify_merge',
 ]);
 const purpose = 'ds_finance_reconciliation_v1';
 const error = (code,status=409) => new Task12Error('Account merge operation rejected',status,code);
@@ -296,13 +298,120 @@ async function review(db,client,job,actor,grant,input,now,writing) {
   return { conflicts:conflicts.map(({lines,...item})=>({...item,evidence:JSON.parse(lines)})) };
 }
 
+async function verifyCommittedMerge(db, client, sandbox, grant, input, now) {
+  const { id, version } = input;
+  if (!exact(input, 'id', 'version') || !opaque(id) || !opaque(version) || !opaque(grant)) {
+    throw error('invalid_request', 400);
+  }
+  const keeper = liveNativeGrants(client, now, {
+    condition: 'g.grant_id=?',
+    args: [grant],
+    projection: 'g.user_id',
+  });
+  // Check the committed journal and current identity/review state in one primary D1 read.
+  const job = await first(db, `WITH scope AS (
+    SELECT j.* FROM aeris_ds_merges j
+    WHERE j.id=? AND j.version=? AND j.issuer=? AND j.client_origin=? AND j.sandbox_id=?
+      AND j.state='COMMITTED' AND j.keep_id IN (${keeper.sql})
+  ), members AS (
+    SELECT j.id, json_extract(m.value,'$.subject') AS subject,
+      json_extract(m.value,'$.sessionVersion') AS session_version,
+      json_extract(m.value,'$.securityVersion') AS security_version
+    FROM scope j CROSS JOIN json_each(j.members_json) m
+  )
+  SELECT j.id,j.version,j.issuer,j.keep_id,j.members_json,j.snapshot_digest FROM scope j
+  WHERE NOT EXISTS (SELECT 1 FROM aeris_ds_merge_aborts a WHERE a.id=j.id)
+    AND (SELECT count(*) FROM aeris_ds_merge_events e
+      WHERE e.merge_id=j.id AND e.kind='COMMITTED' AND e.detail=j.snapshot_digest AND e.occurred_at=j.changed_at)=1
+    AND NOT EXISTS (SELECT 1 FROM aeris_ds_merge_events e WHERE e.merge_id=j.id AND e.kind='COMPENSATED')
+    AND (SELECT count(DISTINCT subject) FROM members)=json_array_length(j.members_json)
+    AND (SELECT count(DISTINCT subject) FROM members WHERE subject IN (j.keep_id,j.actor_id,j.config_id))=
+      (SELECT count(DISTINCT value) FROM json_each(json_array(j.keep_id,j.actor_id,j.config_id)))
+    AND NOT EXISTS (
+      SELECT 1 FROM members m
+      LEFT JOIN task12_users u ON u.id=m.subject
+      LEFT JOIN task27_security sec ON sec.user_id=u.id
+      LEFT JOIN aeris_ds_merge_test_accounts sandbox_account
+        ON sandbox_account.subject=u.id AND sandbox_account.sandbox_id=j.sandbox_id
+      LEFT JOIN aeris_ds_merge_consents c
+        ON c.merge_id=j.id AND c.subject=u.id AND c.version=j.version AND c.purpose=?
+        AND c.created_at<=j.changed_at AND c.expires_at>j.changed_at AND c.revoked_at IS NULL
+      WHERE sandbox_account.subject IS NULL OR sec.user_id IS NULL OR c.subject IS NULL
+        OR u.deleted OR u.banned OR sec.must_change_password OR sec.verified_email='' OR sec.email_verified_at=''
+        OR u.role IN ('admin','super_admin') OR EXISTS (
+          SELECT 1 FROM task18_admin_roles ar WHERE ar.user_id=u.id AND ar.role='admin'
+        )
+        OR u.session_version IS NOT m.session_version OR sec.version IS NOT m.security_version
+        OR EXISTS (SELECT 1 FROM aeris_ds_ownership_recovery_holds h WHERE h.user_id=u.id)
+        OR (
+          EXISTS (SELECT 1 FROM task12_metadata WHERE key='task27_require_policy_reaccept' AND value='1')
+          AND NOT EXISTS (
+            SELECT 1 FROM task27_policy_consents policy WHERE policy.user_id=u.id
+              AND policy.terms_version=? AND policy.privacy_version=? AND policy.security_version=?
+          )
+        )
+    )
+    AND NOT EXISTS (
+      SELECT 1 FROM aeris_ds_ownership_review_cases r
+      WHERE r.expires_at>unixepoch() AND r.state IN ('UNDER_REVIEW','MORE_EVIDENCE_REQUIRED')
+        AND (r.actor_id IN (SELECT subject FROM members) OR r.target_id IN (SELECT subject FROM members))
+    )
+    AND json_type(j.summary_json,'$.finance.originals')='integer'
+    AND json_type(j.summary_json,'$.membership.originalGrants')='integer'
+    AND json_extract(j.summary_json,'$.membership.needsReview')=0
+    AND json_extract(j.summary_json,'$.finance.originals')=(
+      SELECT count(*) FROM aeris_ds_merge_receipts r WHERE r.merge_id=j.id AND r.kind='FINANCE'
+    )
+    AND json_extract(j.summary_json,'$.membership.originalGrants')=(
+      SELECT count(*) FROM aeris_ds_merge_receipts r WHERE r.merge_id=j.id AND r.kind='MEMBERSHIP'
+    )
+    AND NOT EXISTS (
+      SELECT 1 FROM aeris_ds_merge_receipts r WHERE r.merge_id=j.id
+        AND (r.subject NOT IN (SELECT subject FROM members)
+          OR (r.kind='MEMBERSHIP' AND r.payload_json->>'$.state'='NEEDS_REVIEW'))
+    )
+    AND NOT EXISTS (
+      SELECT 1 FROM aeris_ds_merge_conflicts c
+      WHERE c.merge_id=j.id AND c.blocking=1 AND (
+        c.state<>'REVIEWED' OR c.decision<>'KEEP_DISTINCT' OR c.reviewed_at>j.changed_at
+        OR c.reviewer_id IN (SELECT subject FROM members)
+        OR NOT EXISTS (
+          SELECT 1 FROM aeris_ds_merge_reviewers r
+          JOIN task12_users u ON u.id=r.reviewer_id AND u.deleted=0 AND u.banned=0
+          JOIN task27_security sec ON sec.user_id=u.id AND sec.mfa_method='totp' AND sec.must_change_password=0
+          WHERE r.merge_id=j.id AND r.reviewer_id=c.reviewer_id AND r.revoked_at IS NULL
+            AND r.assigned_at<=c.reviewed_at AND (u.role IN ('admin','super_admin') OR EXISTS (
+              SELECT 1 FROM task18_admin_roles ar
+              WHERE ar.user_id=u.id AND ar.role='admin' AND unixepoch(ar.granted_at)<=c.reviewed_at
+            ))
+        )
+        OR NOT EXISTS (
+          SELECT 1 FROM aeris_ds_merge_events e WHERE e.merge_id=j.id AND e.kind='CONFLICT_REVIEWED'
+            AND e.actor_id=c.reviewer_id AND e.detail=c.id AND e.occurred_at=c.reviewed_at
+        )
+      )
+    )`, [id, version, client.issuer, client.origin, sandbox, ...keeper.args, purpose,
+    POLICY_VERSIONS.terms, POLICY_VERSIONS.privacy, POLICY_VERSIONS.security]);
+  if (!job || !/^[0-9a-f]{64}$/.test(job.snapshot_digest)) throw error('eligibility10_merge_invalid');
+  return {
+    id: job.id,
+    version: job.version,
+    issuer: job.issuer,
+    keepSubject: job.keep_id,
+    members: JSON.parse(job.members_json).map(versions),
+    digest: job.snapshot_digest,
+  };
+}
+
 export async function handleAccountMerge(context,client,op,input,grant) {
   const { WYJ_DB:db,AERIS_DS_MERGE_SANDBOX:sandbox } = context.env;
+  if (op==='eligibility10_verify_merge' && !client.mergeEligibility) throw error('merge09_unavailable',503);
   if (!client.mergeExecution || !opaque(sandbox) || !await first(db,
     'SELECT 1 AS ok FROM aeris_ds_merge_sandbox WHERE sandbox_id=?',[sandbox])) throw error('merge09_unavailable',503);
   if (!featureFlags(context.env).task12CloudAccounts) throw error('merge09_unavailable',503);
   const now = unixTime();
   await securityRate(context,'ds-native-execution',opaque(grant) ? grant : client.clientId,75,60);
+  if (op==='eligibility10_verify_merge') return verifyCommittedMerge(db,client,sandbox,grant,input,now);
   if (op==='merge09_inspect') {
     if (!exact(input,'refs')) throw error('invalid_request',400);
     const { actor,sources } = await authority(context,client,sandbox,grant,input.refs,now);

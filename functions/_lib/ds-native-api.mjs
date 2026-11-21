@@ -51,6 +51,12 @@ function previewOrigin(url, project) {
     && projectLabel === project && suffix.join('.') === 'pages.dev';
 }
 
+function syntheticMergePreviewTask(issuer, origin) {
+  const provider = /^https:\/\/(?:[a-z0-9-]+\.)?aeris-(task09|task10)-[a-z0-9-]+\.pages\.dev$/.exec(issuer);
+  const client = /^https:\/\/(?:[a-z0-9-]+\.)?ds-(task09|task10)-[a-z0-9-]+\.pages\.dev$/.exec(origin);
+  return provider && provider[1] === client?.[1] ? provider[1] : null;
+}
+
 function registration(env, url) {
   const { AERIS_DS_SSO_ENABLED: enabled, AERIS_DS_SSO_CLIENT_ID: clientId, AERIS_DS_SSO_CLIENT_SECRET: secret,
     AERIS_DS_SSO_ISSUER: issuer, AERIS_DS_SSO_ORIGIN: primaryOrigin } = env;
@@ -73,9 +79,10 @@ function registration(env, url) {
   if (ds.origin !== origin || identity.origin !== issuer || origin === issuer) return null;
   const synthetic = opaque(env.AERIS_DS_MERGE_SANDBOX) && ownershipFlag && !alternate
     && env.AERIS_DS_MERGE_PREVIEW_ENABLED === 'true';
-  if (preview && synthetic && /^https:\/\/(?:[a-z0-9-]+\.)?aeris-task09-[a-z0-9-]+\.pages\.dev$/.test(url.origin)
-    && /^https:\/\/(?:[a-z0-9-]+\.)?ds-task09-[a-z0-9-]+\.pages\.dev$/.test(origin)) {
-    return { clientId, secret, issuer, origin, ownershipEnabled:true, mergePreviewEnabled:true, mergeExecution:true };
+  const mergePreviewTask = preview && synthetic && syntheticMergePreviewTask(url.origin, origin);
+  if (mergePreviewTask) {
+    return { clientId, secret, issuer, origin, ownershipEnabled:true, mergePreviewEnabled:true, mergeExecution:true,
+      mergeEligibility:mergePreviewTask==='task10' };
   }
   if (preview) {
     if (![url, identity].every(host => previewOrigin(host, 'thewyj-uk')) || !previewOrigin(ds, 'ds-thewyj-uk')) return null;
@@ -87,6 +94,7 @@ function registration(env, url) {
     clientId, secret, issuer, origin, ownershipEnabled: ownershipFlag && (alternate || !preview),
     mergePreviewEnabled: !preview && ownershipFlag && env.AERIS_DS_MERGE_PREVIEW_ENABLED === 'true',
     mergeExecution: !preview && synthetic,
+    mergeEligibility: !preview && synthetic,
   };
 }
 
