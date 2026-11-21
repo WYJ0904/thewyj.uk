@@ -729,6 +729,9 @@ test('review needs password and enrolled MFA, scopes staff decisions, records ev
   assert.equal(await fx.status(id),'CLOSED');
   assert.equal((await fx.fresh(id,token())).status,403);
   assert.deepEqual((await ownershipStatus(fx.actor,receipt.proof_id)).body,{active:[receipt.proof_id]});
+  const projection=await identity('merge_preview_accounts',{refs:[receipt.proof_id]},fx.actor);
+  assert.equal(projection.status,200,JSON.stringify(projection.body));
+  assert.equal(projection.body.sources[0].subject,fx.target);
   assert.equal((await first('SELECT count(*) AS n FROM aeris_ds_ownership_review_events WHERE case_id=? AND reviewer_id=? AND kind=?',
     id,fx.staff,'approve')).n,1);
   const audit=await first('SELECT reason_code,evidence_digest FROM aeris_ds_ownership_review_events WHERE case_id=? AND kind=?',id,'approve');
@@ -794,4 +797,102 @@ test('expiry, recovery generation changes, account security changes, and other g
   assert.equal((await fx.fresh(changed,token())).status,403);
   assert.equal((await identity('revoke',{},fx.actor)).status,200);
   assert.equal((await fx.applicant('ownership_review_status')).status,401);
+});
+
+test('merge preview reads only the live actor and proved sources without mutating Task13 state', async () => {
+  const actorId = await register('merge-view-actor');
+  const source = await register('merge-view-source');
+  const hidden = await register('merge-view-unproved');
+  const actor = await login('merge-view-actor');
+  const other = await login('merge-view-unproved');
+  const stamp = new Date().toISOString();
+  const expires = new Date(Date.now() + 86400000).toISOString();
+  const expired = new Date(Date.now() - 86400000).toISOString();
+  const oldMembership = crypto.randomUUID();
+  const activeMembership = crypto.randomUUID();
+  const insertMembership = (id,subject,ends) => update(`INSERT INTO task13_user_memberships(id,user_id,plan_code,starts_at,
+    expires_at,created_at,updated_at,status) VALUES (?,?,'tools_monthly',?,?,?,?,'active')`,id,subject,stamp,ends,stamp,stamp);
+  await insertMembership(oldMembership,actorId,expired);
+  await insertMembership(activeMembership,source,expires);
+  await insertMembership(crypto.randomUUID(),hidden,expires);
+  const actorBefore = await first('SELECT * FROM task12_users WHERE id=?',actorId);
+  const membershipBefore = await first('SELECT * FROM task13_user_memberships WHERE id=?',oldMembership);
+  const merge = (input,owner=actor) => identity('merge_preview_accounts',input,{grant:owner.grant});
+  const alone = await merge({ refs:[] });
+  assert.equal(alone.status,200,JSON.stringify(alone.body));
+  assert.deepEqual(alone.body.sources,[]);
+  assert.equal(alone.body.actor.subject,actorId);
+  assert.equal(alone.body.actor.membership.state,'VERIFIED');
+  assert.equal(alone.body.actor.membership.label,'普通注册用户');
+  assert.deepEqual(await first('SELECT * FROM task13_user_memberships WHERE id=?',oldMembership),membershipBefore);
+  assert.equal((await merge({refs:[],user_id:hidden})).status,400);
+  assert.equal((await merge({refs:[source]})).status,400);
+  const receipt = (await startOwnership(actor,'merge-view-source')).body.proof;
+  assert.equal(receipt.sub,source);
+  const scoped = await merge({refs:[receipt.proof_id,token()]});
+  assert.equal(scoped.status,200);
+  assert.equal(scoped.body.sources.length,1);
+  assert.deepEqual(Object.keys(scoped.body.sources[0]).sort(),
+    ['membership','proofId','registeredAt','role','securityEmailVerified','subject','username']);
+  assert.deepEqual(scoped.body.sources[0].membership,{
+    state:'VERIFIED', label:'工具箱包月会员', expiresAt:expires,
+    entitlements:['save_tool_config','temporary_share_access','tools_access','tools_batch_access'],
+  });
+  assert.equal(scoped.body.sources[0].securityEmailVerified,false);
+  assert.equal(JSON.stringify(scoped.body).includes(hidden),false);
+  assert.deepEqual((await merge({refs:[receipt.proof_id]},other)).body.sources,[]);
+
+  await update("UPDATE task12_users SET role='super_admin' WHERE id=?",source);
+  const privileged = await merge({refs:[receipt.proof_id]});
+  assert.equal(privileged.body.sources[0].role,'super_admin');
+  assert.equal(privileged.body.sources[0].membership.label,'超级管理员');
+
+  await update('UPDATE task27_security SET version=version+1 WHERE user_id=?',source);
+  assert.deepEqual((await merge({refs:[receipt.proof_id]})).body.sources,[]);
+  assert.deepEqual(await first('SELECT * FROM task12_users WHERE id=?',actorId),actorBefore);
+  assert.equal((await first('SELECT count(*) AS n FROM task13_payment_orders WHERE user_id IN (?,?)',actorId,source)).n,0);
+  assert.equal((await first('SELECT status FROM task13_user_memberships WHERE id=?',oldMembership)).status,'active');
+  assert.equal((await first('SELECT status FROM task13_user_memberships WHERE id=?',activeMembership)).status,'active');
+});
+
+test('merge projection is bound to its separately signed Preview origin and falls back without membership authority', async () => {
+  await register('merge-preview-host-actor');
+  const previewIssuer = 'https://canonical-identity.thewyj-uk.pages.dev';
+  const primaryOrigin = 'https://primary-ds.ds-thewyj-uk.pages.dev';
+  const transport = 'https://isolated-ownership.thewyj-uk.pages.dev';
+  const ownershipOrigin = 'https://isolated-ownership.ds-thewyj-uk.pages.dev';
+  const mergeOrigin = 'https://isolated-merge.ds-thewyj-uk.pages.dev';
+  const preview = {
+    ...bindings, WYJ_ENVIRONMENT:'preview', WYJ_DB:db,
+    AERIS_DS_SSO_ISSUER:previewIssuer, AERIS_DS_SSO_ORIGIN:primaryOrigin,
+    AERIS_DS_OWNERSHIP_PREVIEW_HOST:transport, AERIS_DS_OWNERSHIP_DS_ORIGIN:ownershipOrigin,
+    AERIS_DS_MERGE_PREVIEW_ENABLED:'true', AERIS_DS_MERGE_PREVIEW_DS_ORIGIN:mergeOrigin,
+  };
+  async function call(ds,op,input,binding={},env=preview) {
+    const req = new Request(transport+path,signed(op,input,binding,{issuer:previewIssuer,origin:ds,ip:'198.51.100.80'}));
+    req.headers.set('Origin',mergeOrigin);
+    const jobs=[];
+    const response=await onRequest({env,data:{},request:req,waitUntil(job){ jobs.push(job); }});
+    await Promise.all(jobs);
+    return payload(response);
+  }
+
+  const loginInput = { username:'merge-preview-host-actor',secret:password };
+  const left = await call(ownershipOrigin,'login',loginInput,{binding:token()});
+  const right = await call(mergeOrigin,'login',loginInput,{binding:token()});
+  const oldGrant = left.body.claims.grant_id;
+  const grant = right.body.claims.grant_id;
+  assert.equal(right.body.claims.iss,previewIssuer);
+  assert.equal(right.body.claims.sub,left.body.claims.sub);
+  assert.equal((await call(ownershipOrigin,'merge_preview_accounts',{refs:[]},{grant:oldGrant})).status,503);
+  assert.equal((await call(mergeOrigin,'merge_preview_accounts',{refs:[]},{grant:oldGrant})).status,401);
+  assert.equal((await call(mergeOrigin,'merge_preview_accounts',{refs:[]},{grant})).status,200);
+  const disabled=(await call(mergeOrigin,'merge_preview_accounts',{refs:[]},{grant},
+    {...preview,TASK13_CLOUD_READS_ENABLED:'false'}));
+  assert.equal(disabled.status,200);
+  assert.deepEqual(disabled.body.actor.membership,{state:'NEEDS_REVIEW',label:null,expiresAt:null,entitlements:[]});
+  assert.deepEqual((await call(ownershipOrigin,'introspect',{},{grant})).body,{active:false});
+  assert.equal((await call(primaryOrigin,'merge_preview_accounts',{refs:[]},{grant})).status,401);
+  assert.equal((await call(mergeOrigin,'merge_preview_accounts',{refs:[]},{grant},
+    {...preview,AERIS_DS_MERGE_PREVIEW_ENABLED:'false'})).status,401);
 });

@@ -176,17 +176,19 @@ async function expireMemberships(db, userId = "", now = isoNow()) {
   await run(db, sql, userId ? [now, String(userId)] : [now]);
 }
 
-async function activeMembershipRows(db, userId) {
-  await expireMemberships(db, userId);
+async function activeMembershipRows(db, userId, readOnly) {
+  const now = isoNow();
+  if (!readOnly) await expireMemberships(db, userId, now);
   return await all(db, `SELECT membership.*, plan.name AS plan_name, plan.priority,
       GROUP_CONCAT(entitlement.entitlement_code, ',') AS entitlements_csv
     FROM task13_user_memberships AS membership
     JOIN task13_membership_plans AS plan ON plan.code = membership.plan_code
     LEFT JOIN task13_membership_entitlements AS entitlement ON entitlement.plan_code = membership.plan_code
     WHERE membership.user_id = ?1 AND membership.status = 'active'
+      AND (membership.is_lifetime = 1 OR membership.expires_at > ?2)
     GROUP BY membership.id
     ORDER BY plan.priority DESC, membership.is_lifetime DESC,
-      membership.expires_at DESC, membership.created_at DESC`, [String(userId)]);
+      membership.expires_at DESC, membership.created_at DESC`, [String(userId), now]);
 }
 
 function membershipFromRow(row) {
@@ -228,7 +230,7 @@ export function publicPaymentMethods() {
   return PAYMENT_METHODS.map((item) => ({ ...item }));
 }
 
-export async function accountMembershipState(db, account) {
+export async function accountMembershipState(db, account, { readOnly = false } = {}) {
   if (!account) return null;
   if (account.is_super_admin) {
     const entitlements = [...ALL_ACCESS_ENTITLEMENTS].sort();
@@ -239,7 +241,7 @@ export async function accountMembershipState(db, account) {
     };
   }
   const [rows, overrides] = await Promise.all([
-    activeMembershipRows(db, account.id), entitlementOverrides(db, account.id),
+    activeMembershipRows(db, account.id, readOnly), entitlementOverrides(db, account.id),
   ]);
   const memberships = rows.map(membershipFromRow);
   const entitlementSet = new Set(memberships.flatMap((item) => item.entitlements));

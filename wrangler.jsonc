@@ -70,6 +70,8 @@
         "AERIS_DS_OWNERSHIP_REVIEW_ENABLED": "true",
         "AERIS_DS_OWNERSHIP_PREVIEW_HOST": "https://codex-aeris-ds-task07-owners.thewyj-uk.pages.dev",
         "AERIS_DS_OWNERSHIP_DS_ORIGIN": "https://codex-ds-task07-ownership-ve.ds-thewyj-uk.pages.dev",
+        "AERIS_DS_MERGE_PREVIEW_ENABLED": "true",
+        "AERIS_DS_MERGE_PREVIEW_DS_ORIGIN": "https://codex-ds-task08-merge-choice.ds-thewyj-uk.pages.dev",
         "CLOUD_FOUNDATION_ENABLED": "true",
         "CLOUD_STATUS_MODE": "cloud",
         "CLOUD_READS_ENABLED": "true",

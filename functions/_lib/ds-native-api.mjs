@@ -1,5 +1,6 @@
 import { handleTask12Request } from './task12-api.mjs';
 import { handleDsOwnership, ownershipOperations } from './ds-ownership.mjs';
+import { handleMergePreview, mergePreviewOperation } from './ds-merge-preview.mjs';
 import { handleOwnershipReviewStaff, reviewerRoute } from './ds-ownership-review-staff.mjs';
 import { resolveTask12Account } from './task12-auth.mjs';
 import { createSessionToken } from './task12-crypto.mjs';
@@ -75,7 +76,30 @@ function registration(env, url) {
     if (![url, ds].every(x => ['localhost', '127.0.0.1'].includes(x.hostname) && ['http:', 'https:'].includes(x.protocol))) return null;
   } else return null;
 
-  return { clientId, secret, issuer, origin, ownershipEnabled: ownershipFlag && (alternate || !preview) };
+  return {
+    clientId, secret, issuer, origin, ownershipEnabled: ownershipFlag && (alternate || !preview),
+    mergePreviewEnabled: !preview && ownershipFlag && env.AERIS_DS_MERGE_PREVIEW_ENABLED === 'true',
+  };
+}
+
+function registeredOrigins(env, primary) {
+  if (env.WYJ_ENVIRONMENT !== 'preview' || !primary.ownershipEnabled || env.AERIS_DS_MERGE_PREVIEW_ENABLED !== 'true') {
+    return [primary];
+  }
+  const origin = env.AERIS_DS_MERGE_PREVIEW_DS_ORIGIN;
+  let candidate;
+  try { candidate = new URL(origin); } catch { return [primary]; }
+  if (origin !== candidate.origin || origin === primary.origin || origin === env.AERIS_DS_SSO_ORIGIN
+    || !previewOrigin(candidate, 'ds-thewyj-uk')) return [primary];
+  return [primary, { ...primary, origin, mergePreviewEnabled: true }];
+}
+
+async function authenticateOrigin(request, registrations, raw) {
+  for (const client of registrations) {
+    const nonce = await verifyBackchannel(request, client, raw);
+    if (nonce) return { client, nonce };
+  }
+  return null;
 }
 
 async function boundedBody(request) {
@@ -206,15 +230,16 @@ export async function handleDsNativeRequest(context) {
   if (url.pathname===reviewerRoute) return handleOwnershipReviewStaff(context, registration(env,url), boundedBody);
   if (url.pathname.startsWith('/api/sso/ds/')) return json({ error: 'not_found' }, 404);
   if (url.pathname !== route) return null;
-  const client = registration(env, url);
-  if (!client) return json({ error: 'not_found' }, 404);
+  const primary = registration(env, url);
+  if (!primary) return json({ error: 'not_found' }, 404);
   if (request.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
   if (url.search) return json({ error: 'invalid_request' }, 400);
   let auditOperation = 'invalid';
   try {
     const raw = await boundedBody(request);
-    const nonce = await verifyBackchannel(request, client, raw);
-    if (!nonce) return json({ error: 'invalid_client' }, 401);
+    const signed = await authenticateOrigin(request, registeredOrigins(env, primary), raw);
+    if (!signed) return json({ error: 'invalid_client' }, 401);
+    const { client, nonce } = signed;
     const db = env.WYJ_DB;
     if (!opaque(env.AERIS_DS_NATIVE_SEAL_KEY) || !await hasTask27(db) || !await nativeSchemaReady(db)) {
       return json({ error: 'operation_unavailable' }, 503);
@@ -235,6 +260,10 @@ export async function handleDsNativeRequest(context) {
     }
     if (op === 'policies') {
       return json({ versions: POLICY_VERSIONS, documents: Object.values(POLICY_CONTENT).map(x => ({ title: x.title, body: x.body })) });
+    }
+    if (op === mergePreviewOperation) {
+      auditOperation = op;
+      return json(await handleMergePreview(context, client, input, grant));
     }
     await securityRate(context, 'ds-native-operate', ip || client.clientId, 90, 60);
     if (op === 'register') {
