@@ -343,8 +343,8 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
   function renderConfigControls(toolId) {
     const configs = configsFor(toolId);
     return `<section class="tool-config-box">
-      <div><input id="toolConfigName" maxlength="80" placeholder="配置名称" /><button id="saveToolConfigBtn" type="button">保存当前参数</button></div>
-      <div class="saved-config-list" id="savedToolConfigList">${configs.map((item) => `<span><button type="button" data-load-config="${item.id}">${escapeHtml(item.name)}</button><button type="button" data-delete-config="${item.id}" aria-label="删除配置">${iconSvg("delete")}</button></span>`).join("") || "<small>暂无已保存配置</small>"}</div>
+      <div><input id="toolConfigName" maxlength="80" placeholder="配置名称" /><button class="button-secondary" id="saveToolConfigBtn" type="button">保存当前参数</button></div>
+      <div class="saved-config-list" id="savedToolConfigList">${configs.map((item) => `<span><button class="button-ghost" type="button" data-load-config="${item.id}">${escapeHtml(item.name)}</button><button class="button-ghost danger-text" type="button" data-delete-config="${item.id}" aria-label="删除配置">${iconSvg("delete")}</button></span>`).join("") || "<small>暂无已保存配置</small>"}</div>
     </section>`;
   }
 
@@ -420,10 +420,16 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
   function renderTextTool(tool) {
     const { optionHtml, parameterHtml, secondaryHtml } = textToolFields(tool.id);
     byId("toolWorkbenchBody").innerHTML = `<div class="tool-form text-tool-form">
-      <label class="tool-wide"><span>输入文本</span><textarea id="textToolInput" spellcheck="false"></textarea></label>
-      ${secondaryHtml}<div class="tool-options">${parameterHtml}${optionHtml}</div>
-      <div class="tool-command-row"><button class="primary" id="runTextToolBtn" type="button">处理</button><button id="copyTextToolBtn" type="button">复制结果</button><button id="downloadTextToolBtn" type="button">下载 TXT</button></div>
-      <label class="tool-wide"><span>结果</span><textarea id="textToolOutput" readonly></textarea></label>
+      <div class="tool-split-pane">
+        <div class="tool-pane-input">
+          <label class="tool-wide"><span>输入文本</span><textarea id="textToolInput" spellcheck="false"></textarea></label>
+          ${secondaryHtml}<div class="tool-options">${parameterHtml}${optionHtml}</div>
+          <div class="tool-command-row"><button class="primary" id="runTextToolBtn" type="button">处理</button><button class="button-secondary" id="copyTextToolBtn" type="button">复制结果</button><button class="button-ghost" id="downloadTextToolBtn" type="button">下载 TXT</button></div>
+        </div>
+        <div class="tool-pane-output">
+          <label class="tool-wide"><span>结果</span><textarea id="textToolOutput" readonly></textarea></label>
+        </div>
+      </div>
       ${renderConfigControls(tool.id)}
     </div>`;
     byId("runTextToolBtn").addEventListener("click", async (event) => {
@@ -465,7 +471,7 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
         ${tool.id === "random-date" ? '<label><span>开始日期</span><input data-config="startDate" id="randomStartDate" type="date" value="2000-01-01" /></label><label><span>结束日期</span><input data-config="endDate" id="randomEndDate" type="date" /></label>' : ""}
       </div>
       ${needsEntries ? `<label class="tool-wide"><span>${tool.id === "weighted-wheel" ? "选项（每行：名称|权重）" : "选项（每行一个）"}</span><textarea data-config="entries" id="randomEntries"></textarea></label>` : ""}
-      <div class="tool-command-row"><button class="primary" id="runRandomToolBtn" type="button">生成</button><button id="copyRandomResultBtn" type="button">复制结果</button></div>
+      <div class="tool-command-row"><button class="primary" id="runRandomToolBtn" type="button">生成</button><button class="button-secondary" id="copyRandomResultBtn" type="button">复制结果</button></div>
       <output class="random-result" id="randomResult">等待生成</output>
       ${renderConfigControls(tool.id)}
     </div>`;
@@ -807,7 +813,7 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
         ${["text-split", "csv-split", "rename-preview"].includes(tool.id) ? `<label><span>${parameterLabel}</span><input id="fileToolParameter" data-config="parameter" value="${tool.id === "rename-preview" ? "file" : "1000"}" /></label>` : '<input id="fileToolParameter" type="hidden" />'}
         ${["csv-json", "json-csv", "text-encoding", "text-split", "csv-split", "txt-merge", "csv-merge", "json-array-merge"].includes(tool.id) ? '<label><span>源文本编码</span><select id="fileToolEncoding" data-config="encoding"><option value="utf-8">UTF-8</option><option value="gbk">GBK</option><option value="big5">Big5</option><option value="shift_jis">Shift-JIS</option></select></label>' : '<select id="fileToolEncoding" class="hidden"><option value="utf-8"></option></select>'}
       </div>
-      <div class="tool-command-row"><button class="primary" id="runFileToolBtn" type="button">开始处理</button><button id="downloadFileToolBtn" type="button" disabled>下载结果</button><button id="copyFileToolBtn" type="button">复制文本结果</button></div>
+      <div class="tool-command-row"><button class="primary" id="runFileToolBtn" type="button">开始处理</button><button class="button-secondary" id="downloadFileToolBtn" type="button" disabled>下载结果</button><button class="button-ghost" id="copyFileToolBtn" type="button">复制文本结果</button></div>
       <pre class="file-result" id="fileToolResult">等待处理</pre>
       ${renderConfigControls(tool.id)}
     </div>`;
@@ -1048,7 +1054,7 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
       ${tool.id === "image-watermark" ? '<label class="file-drop"><span>选择水印图片</span><input id="imageOverlayInput" type="file" accept="image/*" /></label>' : ""}
       <p class="local-processing-note">图片在本地浏览器中处理。批量操作最多 20 张、总计 50 MB。</p>
       <div class="tool-options">${imageFields(tool.id)}</div>
-      <div class="tool-command-row"><button class="primary" id="runImageToolBtn" type="button">开始处理</button><button id="downloadImageToolBtn" type="button" disabled>下载结果</button><button id="copyImageTextBtn" type="button">复制结果信息</button></div>
+      <div class="tool-command-row"><button class="primary" id="runImageToolBtn" type="button">开始处理</button><button class="button-secondary" id="downloadImageToolBtn" type="button" disabled>下载结果</button><button class="button-ghost" id="copyImageTextBtn" type="button">复制结果信息</button></div>
       <pre class="file-result" id="imageToolResult">等待处理</pre><div class="image-preview" id="imageToolPreview"></div>
       ${renderConfigControls(tool.id)}
     </div>`;
