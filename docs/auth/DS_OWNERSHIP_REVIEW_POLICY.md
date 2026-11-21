@@ -1,6 +1,6 @@
 # Aeris → DS Task07/08｜邮箱语义与恢复后人工复核接口决议
 
-> 2026-11-21：PRODUCT_DECISION_APPROVED / REVIEW_API_NOT_YET_IMPLEMENTED。
+> 2026-11-21：PRODUCT_DECISION_APPROVED。运行时接口见文件末尾。
 > 决议正文与 DS `docs/task07/EMAIL_RECOVERY_DECISIONS.md` 对应。
 > 此提交仅冻结数据合同与安全验收；**不**表明恢复审核接口、后台审核 UI、Production 已上线。
 
@@ -32,3 +32,23 @@
 DS Task08 只能读取经 Aeris backchannel 实时复核、且仍属于当前 DS 会话的所有权证明；若 case 未通过或未重认证，用户只能看到通用阻断/申诉状态，不能读取另一个账户的资料、财务、会员或业务权益。Task08 是选择与预览，**无任何合并写入权**。
 
 保留 I04/I05 的 Task27 原账户/安全接口及设备会话语义。所有实现使用独立开发分支，Preview 与 Production 严格隔离，已有迁移不可改写。CI、本地、Hosted 验收分别记录，NOT_TESTED 不得称 PASS。
+
+
+## 已实现运行时合同
+
+申请由 DS 同源账户中心向签名 Provider 提交。四种申请人状态操作和两段独立确权均要求当前 Aeris Grant、DS 用户 ID 和绑定当前 DS 会话与邮箱版本的用途摘要。首次输入目标账户密码，并验证该账户当前启用的 MFA 后，Aeris 创建审查案件。签名返回的候选判断只供 DS 后端。申请人的队列只返回案件号、状态及时间。
+
+| 签名操作 | 主要输入 | 结果 |
+| --- | --- | --- |
+| `ownership_review_start` / `ownership_review_verify` | 目标凭据、独立尝试绑定、DS 账户及会话范围 | `mfa_required` 或 `review_created` |
+| `ownership_review_status` | DS 账户及会话范围 | 限当前范围的案件状态 |
+| `ownership_review_evidence` / `ownership_review_cancel` | 当前范围、案件号，补件时提供既有工单引用 | 补件或撤销 |
+| `ownership_reauth_start` / `ownership_reauth_verify` | 当前范围、案件号、全新的目标凭据与尝试绑定 | 与原 Task 07 一致的短期证明 |
+
+审核者接口为 `POST /api/admin/ds-ownership-review/v1`。使用 Aeris 原生有效会话、精确同源 Origin 和 `X-Aeris-Review: 1`。有明确审核授权的账号先通过 `challenge`、`authenticate` 完成其本人密码和当前 TOTP，获得与该 Aeris 会话和安全代际绑定的短期审核凭据。随后可调用 `queue` 或 `decide`。队列只显示经授权且无显式当事人冲突的案件。审核角色授权表为空时，所有审核操作均被拒绝，已提交案件可保持 `UNDER_REVIEW`。普通管理员也需要另行获得明确复核授权。
+
+`decide` 接收案件号、审核凭据、决定、限定的理由代码和审核者已经核验的工单引用。引用格式为 `SUP-` 加 16 至 64 位大写十六进制字符。Aeris 仅保存摘要。支持 `more_evidence`、`deny`、`approve` 和 `revoke`。涉及管理员、超级管理员或与 Aeris 财务交易、有财务设备关联的案件须由两个不同的有效审核者独立确认。审查只读取账号角色和财务关联是否存在，不接触金额或交易内容。
+
+批准最多保留五分钟，并绑定原复核案件。签发真实 Task 07 证明时，在一个 D1 批次内原子消费批准。批准期间和证明读取时查询当前权限、恢复事件和安全代际，相关撤销和版本变化使资格失效。原有永久恢复 hold 和 Task 27 恢复事件继续保留。退出或切换 DS 账户后的会话不再有权使用原申请。
+
+迁移 `0044_ds_ownership_recovery_review.sql` 增量建立复核状态、事件与显式审核授权。已授权的隔离 Preview 使用受限人员与案件编号绑定。没有正式审核权限配置时仍按照失败关闭处理。

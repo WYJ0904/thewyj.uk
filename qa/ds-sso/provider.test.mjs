@@ -568,3 +568,230 @@ test('ownership Preview host preserves the canonical issuer and scopes grants to
     { active: [started.body.proof.proof_id] });
   assert.equal((await call(transport, ownershipOrigin, 'ownership_status', { refs: [...refs, token()] }, { grant })).status, 400);
 });
+
+const reviewMigration = '0044_ds_ownership_recovery_review.sql';
+const staffRoute = '/api/admin/ds-ownership-review/v1';
+const qaTotp = 'JBSWY3DPEHPK3PXP';
+const evidence = 'SUP-FDA7FF5869862C38';
+let workflowIP = 31;
+
+async function staffRequest(session, input, originValue = issuer) {
+  return payload(await worker.dispatchFetch(issuer + staffRoute, {
+    method:'POST',body:JSON.stringify(input),headers:{
+      'Content-Type':'application/json', Origin:originValue,'X-Aeris-Review':'1','X-Session-Token':session,
+    },
+  }));
+}
+
+const currentCode = () => totpAt(qaTotp,Math.floor(Date.now()/30000));
+const resetSyntheticTotpStep = id => update("UPDATE task27_security SET totp_last_step=-1 WHERE user_id=?",id);
+async function enrollFixtureTotp(id) {
+  await update("UPDATE task27_security SET mfa_method='totp',totp_ciphertext=? WHERE user_id=?",
+    await encryptTotp(bindings,id,qaTotp),id);
+}
+
+async function reviewFixture(suffix) {
+  const names = ['actor','target','reviewer','second','unauthorized'].map(role => 'own-review-' + suffix + '-' + role);
+  const [actorId,target,staff,second,unauthorized] = await Promise.all(names.map(register));
+  const tasks = await Promise.all([login(names[0]), ...names.map(name=>aeris('/api/login',{username:name,secret:password}))]);
+  for (const response of tasks.slice(1)) assert.equal(response.status,200,JSON.stringify(response.body));
+  const [selfSession,targetSession,staffSession,secondSession,untrustedSession] = tasks.slice(1).map(response=>response.body.session);
+  assert.ok(selfSession && targetSession);
+  await Promise.all([actorId,target,staff,second,unauthorized].map(enrollFixtureTotp));
+  await recoveryEvent(target);
+  const scope = { actor_user_id:crypto.randomUUID(),session_digest:token() };
+  const actor = tasks[0];
+  const client = { ip:'198.51.100.' + workflowIP++ };
+  const applicant = (op,input={},attempt,overrides={}) =>
+    identity(op,{...scope,...input},attempt ? {grant:actor.grant,binding:attempt,...overrides}:{grant:actor.grant,...overrides},client);
+  const start = (attempt, overrides={}) => applicant('ownership_review_start',
+    {username:names[1],secret:password,contact,...overrides},attempt);
+  const finish = (attempt,code,overrides={}) => applicant('ownership_review_verify',{code,contact,...overrides},attempt);
+  const create = async () => {
+    const attempt = token();
+    const challenge = await start(attempt);
+    assert.equal(challenge.status,200,JSON.stringify(challenge.body));
+    assert.equal(challenge.body.method,'totp');
+    await resetSyntheticTotpStep(target);
+    const result = await finish(attempt,await currentCode());
+    assert.equal(result.status,200,JSON.stringify(result.body));
+    assert.deepEqual(Object.keys(result.body.review).sort(),['approvalExpiresAt','expiresAt','id','requestedAt','state']);
+    assert.equal(result.body.review.state,'UNDER_REVIEW');
+    assert.equal(result.body.target_subject,target);
+    return result.body.review.id;
+  };
+  const authorize = (who,review) => update(
+    'INSERT INTO aeris_ds_ownership_reviewers(id,reviewer_id,case_scope,granted_at) VALUES(?,?,?,unixepoch())',
+    crypto.randomUUID(),who,review);
+  const staffToken = async (session,who) => {
+    const challenge = await staffRequest(session,{op:'challenge',password});
+    assert.equal(challenge.status,200,JSON.stringify(challenge.body));
+    assert.equal(challenge.body.stage,'mfa_required');
+    await resetSyntheticTotpStep(who);
+    const verified = await staffRequest(session,{op:'authenticate',challenge:challenge.body.challenge,code:await currentCode()});
+    assert.equal(verified.status,200,JSON.stringify(verified.body));
+    assert.match(verified.body.reviewer_token,/^[A-Za-z0-9_-]{43}$/);
+    return verified.body.reviewer_token;
+  };
+  const decision = (session,reviewerToken,reviewId,decision='approve') => staffRequest(session,{
+    op:'decide',reviewer_token:reviewerToken,review_id:reviewId,decision,evidence_ref:evidence,
+    reason_code:{approve:'independent_evidence_verified',deny:'insufficient_evidence',
+      more_evidence:'additional_evidence_needed',revoke:'authority_or_evidence_changed'}[decision],
+  });
+  const status = async (id) => {
+    const result = await applicant('ownership_review_status');
+    assert.equal(result.status,200,JSON.stringify(result.body));
+    return result.body.reviews.find(review=>review.id===id)?.state;
+  };
+  const fresh = (reviewId,attempt,extras={}) => applicant('ownership_reauth_start',
+    {username:names[1],secret:password,contact,review_id:reviewId,...extras},attempt);
+  const complete = (reviewId,attempt,code,extras={}) => applicant('ownership_reauth_verify',
+    {code,contact,review_id:reviewId,...extras},attempt);
+  return {actor,actorId,target,staff,second,unauthorized,selfSession,staffSession,secondSession,untrustedSession,scope,applicant,
+    start,finish,create,authorize,staffToken,decision,status,fresh,complete};
+}
+
+function recoveryEvent(target) {
+  return update("INSERT INTO task27_events(id,user_id,actor_user_id,event_type,created_at) VALUES(?,?,?,'password_recovered',?)",
+    crypto.randomUUID(),target,target,new Date().toISOString());
+}
+
+test('0044 is additive and retains both Aeris verified email UNIQUE constraints and account registration without email', async () => {
+  const previous = await first('SELECT count(*) AS n FROM aeris_ds_ownership_recovery_holds');
+  await migrate(reviewMigration);
+  await migrate(reviewMigration);
+  assert.deepEqual(await first('SELECT count(*) AS n FROM aeris_ds_ownership_recovery_holds'),previous);
+  assert.ok((await first('SELECT count(*) AS n FROM aeris_ds_ownership_recovery_versions')).n>=1);
+  const one=await register('review-uniqueness-one');
+  const two=await register('review-uniqueness-two');
+  const initial=await first('SELECT verified_email FROM task27_security WHERE user_id=?',one);
+  assert.equal(initial.verified_email,'');
+  await update('UPDATE task27_security SET verified_email=?,email_verified_at=? WHERE user_id=?','review@example.test','2026-11-21',one);
+  await assert.rejects(update('UPDATE task27_security SET verified_email=?,email_verified_at=? WHERE user_id=?',
+    'REVIEW@example.test','2026-11-21',two),/UNIQUE constraint failed/);
+  await update('INSERT INTO email_center_bindings(user_id,email,verified,updated_at) VALUES(?,?,1,?)',one,'review@example.test','2026-11-21');
+  await assert.rejects(update('INSERT INTO email_center_bindings(user_id,email,verified,updated_at) VALUES(?,?,1,?)',
+    two,'REVIEW@example.test','2026-11-21'),/UNIQUE constraint failed/);
+  assert.equal(await first('PRAGMA foreign_key_check'),null);
+});
+
+test('review needs password and enrolled MFA, scopes staff decisions, records evidence and requires fresh credentials', async () => {
+  const fx = await reviewFixture('flow');
+  await update(`INSERT INTO task18_admin_roles(user_id,role,granted_by_user_id,granted_by_username,granted_at,updated_at)
+    VALUES(?,'admin',?,'synthetic-role-grant','2026-11-21','2026-11-21')`,fx.unauthorized,fx.actorId);
+  assert.equal((await staffRequest(fx.untrustedSession,{op:'challenge',password})).status,403);
+  assert.equal((await fx.start(token(),{secret:'Incorrect-password!'})).status,403);
+  const attempt=token();
+  assert.equal((await fx.start(attempt)).body.stage,'mfa_required');
+  assert.equal((await fx.finish(token(),await currentCode())).status,409);
+  assert.deepEqual((await fx.applicant('ownership_review_status')).body,{reviews:[]});
+  await resetSyntheticTotpStep(fx.target);
+  const caseRace=await Promise.all([fx.finish(attempt,await currentCode()),fx.finish(attempt,await currentCode())]);
+  assert.deepEqual(caseRace.map(r=>r.status).sort(),[200,409]);
+  const id=caseRace.find(r=>r.status===200).body.review.id;
+  assert.equal(await fx.status(id),'UNDER_REVIEW');
+  assert.equal((await fx.fresh(id,token())).status,403);
+  assert.equal((await fx.applicant('ownership_review_status',{session_digest:token()})).body.reviews.length,0);
+
+  await fx.authorize(fx.actorId,id);
+  const subjectCap=await fx.staffToken(fx.selfSession,fx.actorId);
+  assert.deepEqual((await staffRequest(fx.selfSession,{op:'queue',reviewer_token:subjectCap})).body,{reviews:[]});
+  assert.equal((await fx.decision(fx.selfSession,subjectCap,id)).status,409);
+  await fx.authorize(fx.staff,id);
+  const staffCap=await fx.staffToken(fx.staffSession,fx.staff);
+  assert.equal((await staffRequest(fx.staffSession,{op:'queue',reviewer_token:staffCap},origin)).status,403);
+  assert.equal((await staffRequest(fx.staffSession,{op:'queue',reviewer_token:subjectCap})).status,403);
+  const queue=await staffRequest(fx.staffSession,{op:'queue',reviewer_token:staffCap});
+  assert.equal(queue.status,200);
+  assert.deepEqual(Object.keys(queue.body.reviews[0]).sort(),
+    ['approvalExpiresAt','evidenceCount','evidenceDigests','expiresAt','id','requestedAt','requiredReviewers','state']);
+  assert.equal((await fx.decision(fx.staffSession,staffCap,id,'more_evidence')).body.review.state,'MORE_EVIDENCE_REQUIRED');
+  assert.equal((await fx.applicant('ownership_review_evidence',{review_id:id,evidence_ref:'raw-secret@example.test'})).status,400);
+  assert.equal((await fx.applicant('ownership_review_evidence',{review_id:id,evidence_ref:evidence})).status,200);
+  assert.equal(await fx.status(id),'UNDER_REVIEW');
+  const decisions=await Promise.all([fx.decision(fx.staffSession,staffCap,id),fx.decision(fx.staffSession,staffCap,id)]);
+  assert.deepEqual(decisions.map(r=>r.status).sort(),[200,409]);
+  assert.equal(await fx.status(id),'APPROVED_FOR_REAUTH');
+  assert.deepEqual(await first('SELECT count(*) AS n FROM aeris_ds_ownership_proofs WHERE target_id=?',fx.target),{n:0});
+  assert.equal((await fx.fresh(id,token(),{session_digest:token()})).status,403);
+  assert.equal((await fx.fresh(id,token(),{actor_user_id:crypto.randomUUID()})).status,403);
+  const reauth=token();
+  assert.equal((await fx.fresh(id,reauth)).body.stage,'mfa_required');
+  assert.equal(await fx.status(id),'APPROVED_FOR_REAUTH');
+  await resetSyntheticTotpStep(fx.target);
+  const code=await currentCode();
+  const consumed=await Promise.all([fx.complete(id,reauth,code),fx.complete(id,reauth,code)]);
+  assert.deepEqual(consumed.map(r=>r.status).sort(),[200,409]);
+  const receipt=consumed.find(r=>r.status===200).body.proof;
+  assert.equal(receipt.sub,fx.target);
+  assert.equal(receipt.method,'totp');
+  assert.ok(receipt.exp-receipt.iat<=600);
+  assert.equal(await fx.status(id),'CLOSED');
+  assert.equal((await fx.fresh(id,token())).status,403);
+  assert.deepEqual((await ownershipStatus(fx.actor,receipt.proof_id)).body,{active:[receipt.proof_id]});
+  assert.equal((await first('SELECT count(*) AS n FROM aeris_ds_ownership_review_events WHERE case_id=? AND reviewer_id=? AND kind=?',
+    id,fx.staff,'approve')).n,1);
+  const audit=await first('SELECT reason_code,evidence_digest FROM aeris_ds_ownership_review_events WHERE case_id=? AND kind=?',id,'approve');
+  assert.equal(audit.reason_code,'independent_evidence_verified');
+  assert.equal(audit.evidence_digest,await sessionStorageKey(evidence));
+  await update('UPDATE aeris_ds_ownership_reviewers SET revoked_at=unixepoch() WHERE reviewer_id=? AND case_scope=?',fx.staff,id);
+  assert.deepEqual((await ownershipStatus(fx.actor,receipt.proof_id)).body,{active:[]});
+  assert.equal((await staffRequest(fx.staffSession,{op:'queue',reviewer_token:staffCap})).status,403);
+  assert.ok(await first('SELECT 1 FROM aeris_ds_ownership_recovery_holds WHERE user_id=?',fx.target));
+  assert.ok(await first("SELECT 1 FROM task27_events WHERE user_id=? AND event_type='password_recovered'",fx.target));
+});
+
+test('high-risk reviews need two independent staff, and cancellation and denial close authorization', async () => {
+  const fx=await reviewFixture('risk');
+  await update("INSERT INTO task16_finance_devices(user_id,device_id,platform,created_at,updated_at) VALUES(?,?,'web',?,?)",
+    fx.target,'risk-fixture-device','2026-11-21','2026-11-21');
+  const firstId=await fx.create();
+  await fx.authorize(fx.staff,firstId);
+  await fx.authorize(fx.second,firstId);
+  const [a,b]=await Promise.all([fx.staffToken(fx.staffSession,fx.staff),fx.staffToken(fx.secondSession,fx.second)]);
+  assert.equal((await fx.decision(fx.staffSession,a,firstId)).body.review.state,'UNDER_REVIEW');
+  assert.equal((await fx.decision(fx.staffSession,a,firstId)).status,409);
+  assert.equal((await fx.decision(fx.secondSession,b,firstId)).body.review.state,'APPROVED_FOR_REAUTH');
+  assert.equal((await fx.applicant('ownership_review_cancel',{review_id:firstId})).status,200);
+  assert.equal(await fx.status(firstId),'REVOKED');
+  assert.equal((await fx.fresh(firstId,token())).status,403);
+  const deniedId=await fx.create();
+  await fx.authorize(fx.staff,deniedId);
+  assert.equal((await fx.decision(fx.staffSession,a,deniedId,'deny')).body.review.state,'DENIED');
+  assert.equal((await fx.fresh(deniedId,token())).status,403);
+  assert.equal((await fx.decision(fx.secondSession,b,deniedId)).status,409);
+});
+
+test('expiry, recovery generation changes, account security changes, and other grants cannot reuse approval', async () => {
+  const fx=await reviewFixture('expiry');
+  const other=await login('native-register');
+  const id=await fx.create();
+  await fx.authorize(fx.staff,id);
+  const staffCap=await fx.staffToken(fx.staffSession,fx.staff);
+  assert.equal((await fx.decision(fx.staffSession,staffCap,id)).body.review.state,'APPROVED_FOR_REAUTH');
+  const cross=await fx.applicant('ownership_review_status',{},null,{grant:other.grant});
+  assert.deepEqual(cross.body,{reviews:[]});
+  assert.equal((await fx.applicant('ownership_review_cancel',{review_id:id},null,{grant:other.grant})).status,409);
+  await update('UPDATE aeris_ds_ownership_review_cases SET approval_expires_at=1 WHERE id=?',id);
+  assert.equal(await fx.status(id),'EXPIRED');
+  assert.equal((await fx.fresh(id,token())).status,403);
+
+  const newer=await fx.create();
+  await fx.authorize(fx.staff,newer);
+  assert.equal((await fx.decision(fx.staffSession,staffCap,newer)).body.review.state,'APPROVED_FOR_REAUTH');
+  const pending=token();
+  assert.equal((await fx.fresh(newer,pending)).body.stage,'mfa_required');
+  await recoveryEvent(fx.target);
+  await resetSyntheticTotpStep(fx.target);
+  assert.equal((await fx.complete(newer,pending,await currentCode())).status,403);
+  assert.equal(await fx.status(newer),'REVOKED');
+
+  const changed=await fx.create();
+  await fx.authorize(fx.staff,changed);
+  assert.equal((await fx.decision(fx.staffSession,staffCap,changed)).body.review.state,'APPROVED_FOR_REAUTH');
+  await update('UPDATE task27_security SET version=version+1 WHERE user_id=?',fx.target);
+  assert.equal(await fx.status(changed),'REVOKED');
+  assert.equal((await fx.fresh(changed,token())).status,403);
+  assert.equal((await identity('revoke',{},fx.actor)).status,200);
+  assert.equal((await fx.applicant('ownership_review_status')).status,401);
+});

@@ -1,5 +1,6 @@
 import { handleTask12Request } from './task12-api.mjs';
 import { handleDsOwnership, ownershipOperations } from './ds-ownership.mjs';
+import { handleOwnershipReviewStaff, reviewerRoute } from './ds-ownership-review-staff.mjs';
 import { resolveTask12Account } from './task12-auth.mjs';
 import { createSessionToken } from './task12-crypto.mjs';
 import { Task12Error } from './task12-model.mjs';
@@ -202,6 +203,7 @@ async function accountOperation(context, client, cipher, definition, action, inp
 export async function handleDsNativeRequest(context) {
   const { request, env } = context;
   const url = new URL(request.url);
+  if (url.pathname===reviewerRoute) return handleOwnershipReviewStaff(context, registration(env,url), boundedBody);
   if (url.pathname.startsWith('/api/sso/ds/')) return json({ error: 'not_found' }, 404);
   if (url.pathname !== route) return null;
   const client = registration(env, url);

@@ -16,7 +16,7 @@ Receipts expire no later than 10 minutes after issue and no later than the actor
 
 ## Password recovery
 
-A mailbox password reset can create a new password for the same mailbox holder. `0043_ds_account_ownership.sql` places accounts with retained or future canonical password-recovery events into manual review for Task 07. The existing events do not distinguish the factor used to recover. This conservative rule also holds accounts recovered using a stronger factor. An ordinary password change invalidates prior receipts through the session/security generations and allows fresh verification. Task 12/27 login, recovery and account management continue to behave as before. The Provider offers no review override.
+A mailbox password reset can create a new password for the same mailbox holder. `0043_ds_account_ownership.sql` places accounts with retained or future canonical password-recovery events into manual review for Task 07. The existing events do not distinguish the factor used to recover. This conservative rule also holds accounts recovered using a stronger factor. An ordinary password change invalidates prior receipts through the session/security generations and allows fresh verification. Task 12/27 login, recovery and account management continue to behave as before. The review workflow can issue a short, single-use eligibility to reauthenticate. The target password and its current enrolled factor must be verified again before any receipt is issued. [Recovery review runtime contract](DS_OWNERSHIP_REVIEW_POLICY.md)
 
 ## Preview and compatibility
 

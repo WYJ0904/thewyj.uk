@@ -9,8 +9,16 @@ import { POLICY_VERSIONS } from './task27-policy.mjs';
 import { first, nowIso, rows, run, securityState, stmt } from './task27-store.mjs';
 import { opaque, unixTime } from './ds-native-crypto.mjs';
 import { liveNativeGrant, nativeGrantStatus, readEnvelope, saveEnvelope } from './ds-native-store.mjs';
+import {
+  applicantReviews, approvedTarget, cancelReview, createReview, evidenceReference, recoveryTarget, reviewConfigured,
+  reviewError, reviewedProof, reviewReady, reviewPurpose, submitReviewEvidence,
+} from './ds-ownership-review-store.mjs';
 
-export const ownershipOperations = new Set(['ownership_start', 'ownership_verify', 'ownership_status']);
+export const ownershipOperations = new Set([
+  'ownership_start','ownership_verify','ownership_status',
+  'ownership_review_start','ownership_review_verify','ownership_review_status','ownership_review_cancel','ownership_review_evidence',
+  'ownership_reauth_start','ownership_reauth_verify',
+]);
 const purpose = 'ds_account_ownership_v1';
 const policy = [POLICY_VERSIONS.terms, POLICY_VERSIONS.privacy, POLICY_VERSIONS.security];
 const error = (code, status) => new Task12Error('Ownership verification unavailable', status, code);
@@ -18,7 +26,6 @@ const denied = () => error('ownership_denied', 403);
 
 const targetState = `
   u.deleted = 0 AND u.banned = 0 AND sec.must_change_password = 0
-  AND NOT EXISTS (SELECT 1 FROM aeris_ds_ownership_recovery_holds h WHERE h.user_id = u.id)
   AND (
     NOT EXISTS (SELECT 1 FROM task12_metadata WHERE key = 'task27_require_policy_reaccept' AND value = '1')
     OR EXISTS (
@@ -39,6 +46,25 @@ function exact(input, fields) {
 
 function version(user, state) {
   return [user.id, user.session_version, state.version, user.password_hash, state.mfa_method];
+}
+
+const noRecovery = 'NOT EXISTS (SELECT 1 FROM aeris_ds_ownership_recovery_holds h WHERE h.user_id=u.id)';
+
+function targetPermission(actor, flow, input, now) {
+  if (flow==='reauth') return approvedTarget(actor,input,now);
+  return { sql: flow==='review' ? recoveryTarget : noRecovery, args:[] };
+}
+
+function envelopeKind(flow) {
+  return flow === 'ordinary' ? 'ownership_mfa' : 'ownership_mfa_' + flow;
+}
+
+function challengeScope(flow) {
+  return flow==='ordinary' ? purpose : reviewPurpose + '_' + flow;
+}
+
+function contextBinding(flow,input) {
+  return flow==='ordinary' ? '' : JSON.stringify([input.actor_user_id,input.session_digest,input.review_id ?? null]);
 }
 
 function targetParams(snapshot, actor) {
@@ -64,13 +90,25 @@ async function password(context, username, secret, ip) {
   }
 }
 
-async function issue(db, client, actor, binding, snapshot, contact) {
+async function complete(db, client, actor, binding, snapshot, input, flow) {
+  const permission = targetPermission(actor,flow,input,unixTime());
+  if (flow==='review') {
+    return createReview(db,client,actor,binding,input,targetVersion + ' AND ' + permission.sql,
+      [...targetParams(snapshot,actor),...permission.args]);
+  }
+  return issue(db,client,actor,binding,snapshot,input,flow);
+}
+
+async function issue(db, client, actor, binding, snapshot, input, flow) {
   const now = unixTime();
   const expiry = Math.min(actor.exp, now + 600);
   if (expiry <= now) throw denied();
   const id = createSessionToken();
   const attempt = await sessionStorageKey(binding);
   const live = liveNativeGrant(client, actor.grant_id, now);
+  const permission = targetPermission(actor,flow,input,now);
+  const link = flow==='reauth' ? [stmt(db, `INSERT INTO aeris_ds_ownership_review_receipts(case_id,proof_id)
+    SELECT ?,proof_id FROM aeris_ds_ownership_proofs WHERE proof_id=?`,[input.review_id,id])] : [];
   const result = await db.batch([
     stmt(db, `DELETE FROM aeris_ds_ownership_proofs WHERE proof_id IN (
       SELECT proof_id FROM aeris_ds_ownership_proofs WHERE expires_at <= ? ORDER BY expires_at LIMIT 100
@@ -80,13 +118,15 @@ async function issue(db, client, actor, binding, snapshot, contact) {
       target_security_version, method, terms_version, privacy_version, security_policy_version, issued_at, expires_at
     ) SELECT ?, ?, ?, u.id, u.session_version, sec.version, sec.mfa_method, ?, ?, ?, ?, ?
       FROM task12_users u JOIN task27_security sec ON sec.user_id = u.id
-      WHERE ${targetVersion} AND EXISTS (${live.sql})
+      WHERE ${targetVersion} AND ${permission.sql} AND EXISTS (${live.sql})
+        AND NOT EXISTS (SELECT 1 FROM aeris_ds_ownership_recovery_holds h WHERE h.user_id=?)
       ON CONFLICT DO NOTHING
       RETURNING target_id, target_session_version, target_security_version, method,
         (SELECT username FROM task12_users WHERE id = target_id) AS label,
         (SELECT email_verified_at != '' AND lower(trim(verified_email)) = ?
           FROM task27_security WHERE user_id = target_id) AS contact_matches`,
-    [id, attempt, actor.grant_id, ...policy, now, expiry, ...targetParams(snapshot, actor), ...live.args, contact]),
+    [id, attempt, actor.grant_id, ...policy, now, expiry, ...targetParams(snapshot, actor), ...permission.args, ...live.args, actor.sub, input.contact]),
+    ...link,
   ]);
   const proof = result[1].results[0];
   if (!proof) throw denied();
@@ -102,34 +142,41 @@ async function issue(db, client, actor, binding, snapshot, contact) {
   };
 }
 
-async function status(db, client, actor, refs) {
+// The projection is provided by server code that owns the selected columns.
+export async function activeOwnershipRows(context, client, actor, refs, projection='p.proof_id') {
+  if (!refs.length) return [];
+  const db = context.env.WYJ_DB;
+  const underHold = reviewConfigured(context.env) && await reviewReady(db)
+    ? '(' + noRecovery + ' OR ' + reviewedProof + ')' : noRecovery;
   const now = unixTime();
   const live = liveNativeGrant(client, actor.grant_id, now);
-  return { active: (await rows(db, `SELECT p.proof_id FROM aeris_ds_ownership_proofs p
+  return rows(db, `SELECT ${projection} FROM aeris_ds_ownership_proofs p
     JOIN task12_users u ON u.id = p.target_id
     JOIN task27_security sec ON sec.user_id = u.id
     WHERE p.actor_grant = ? AND p.expires_at > ?
       AND p.target_session_version = u.session_version AND p.target_security_version = sec.version
       AND p.method = sec.mfa_method
       AND p.terms_version = ? AND p.privacy_version = ? AND p.security_policy_version = ?
-      AND ${targetState} AND EXISTS (${live.sql})
+      AND ${targetState} AND ${underHold} AND EXISTS (${live.sql})
       AND p.proof_id IN (${refs.map(() => '?').join(', ')})`,
-  [actor.grant_id, now, ...policy, ...policy, ...live.args, ...refs])).map(row => row.proof_id) };
+  [actor.grant_id, now, ...policy, ...policy, ...live.args, ...refs]);
 }
 
-async function begin(context, client, cipher, actor, binding, input, ip) {
-  if (!exact(input, ['username', 'secret', 'contact']) || typeof input.username !== 'string'
+async function begin(context, client, cipher, actor, binding, input, ip, flow) {
+  if (typeof input.username !== 'string'
     || !input.username.trim() || input.username.length > 40 || typeof input.secret !== 'string'
     || !input.secret || input.secret.length > 256) throw error('invalid_request', 400);
   const db = context.env.WYJ_DB;
   const user = await password(context, input.username, input.secret, ip);
   const state = await securityState(db, user.id);
   const snapshot = version(user, state);
-  if (state.mfa_method === 'none') return issue(db, client, actor, binding, snapshot, input.contact);
+  if (state.mfa_method === 'none') return complete(db,client,actor,binding,snapshot,input,flow);
 
-  const live = liveNativeGrant(client, actor.grant_id, unixTime());
+  const now = unixTime();
+  const live = liveNativeGrant(client, actor.grant_id, now);
+  const permission = targetPermission(actor,flow,input,now);
   if (!await first(db, `SELECT 1 FROM task12_users u JOIN task27_security sec ON sec.user_id = u.id
-    WHERE ${targetVersion} AND EXISTS (${live.sql})`, [...targetParams(snapshot, actor), ...live.args])) throw denied();
+    WHERE ${targetVersion} AND ${permission.sql} AND EXISTS (${live.sql})`, [...targetParams(snapshot, actor), ...permission.args, ...live.args])) throw denied();
 
   // The canonical verifier accepts only the enrolled factor for this independent purpose.
   const method = state.mfa_method;
@@ -137,11 +184,11 @@ async function begin(context, client, cipher, actor, binding, input, ip) {
   const code = method === 'email' ? randomDigits() : '';
   const challenge = await createChallenge(db, {
     user, state, kind: 'stepup', method, sessionDigest: await sessionStorageKey(binding),
-    scope: purpose, code, env: context.env,
+    scope: challengeScope(flow), data: { binding:contextBinding(flow,input) }, code, env: context.env,
   });
   try {
     const expiry = Math.min(actor.exp, Math.floor(Date.parse(challenge.expires_at) / 1000));
-    if (!await saveEnvelope(db, cipher, 'ownership_mfa', binding, actor.grant_id, challenge.token, expiry, false)) {
+    if (!await saveEnvelope(db, cipher, envelopeKind(flow), binding, actor.grant_id, challenge.token, expiry, false)) {
       throw denied();
     }
     if (method === 'email') {
@@ -156,18 +203,19 @@ async function begin(context, client, cipher, actor, binding, input, ip) {
   }
 }
 
-async function confirm(context, client, cipher, actor, binding, input) {
-  if (!exact(input, ['code', 'contact']) || typeof input.code !== 'string' || !/^\d{6}$/.test(input.code)) {
+async function confirm(context, client, cipher, actor, binding, input, flow) {
+  if (typeof input.code !== 'string' || !/^\d{6}$/.test(input.code)) {
     throw error('invalid_request', 400);
   }
   const db = context.env.WYJ_DB;
   const digest = await sessionStorageKey(binding);
-  const token = await readEnvelope(db, cipher, 'ownership_mfa', binding, actor.grant_id);
+  const token = await readEnvelope(db, cipher, envelopeKind(flow), binding, actor.grant_id);
   if (!token) throw error('ownership_challenge_closed', 409);
   let snapshot;
   try {
     const challenge = await challengeRow(db, token, 'stepup', digest);
-    if (challenge.scope !== purpose || !['totp', 'email'].includes(challenge.method)) throw denied();
+    if (challenge.scope !== challengeScope(flow) || !['totp', 'email'].includes(challenge.method)
+      || (JSON.parse(challenge.context_json).binding ?? '') !== contextBinding(flow,input)) throw denied();
     const { row, user } = await verifyChallenge(db, context.env, token, 'stepup', input.code, { sessionDigest: digest });
     // Use the generations verified by the atomic challenge consumption.
     snapshot = [user.id, row.session_version, row.security_version, user.password_hash, row.method];
@@ -182,7 +230,7 @@ async function confirm(context, client, cipher, actor, binding, input) {
     }
     throw error('ownership_mfa_failed', 400);
   }
-  return issue(db, client, actor, binding, snapshot, input.contact);
+  return complete(db,client,actor,binding,snapshot,input,flow);
 }
 
 export async function handleDsOwnership(context, client, cipher, op, input, grant, binding, ip) {
@@ -199,13 +247,35 @@ export async function handleDsOwnership(context, client, cipher, op, input, gran
     const { refs } = input;
     if (!exact(input, ['refs']) || !Array.isArray(refs) || refs.length < 1 || refs.length > 16
       || !refs.every(opaque) || new Set(refs).size !== refs.length) throw error('invalid_request', 400);
-    return status(db, client, actor, refs);
+    return { active: (await activeOwnershipRows(context,client,actor,refs)).map(row=>row.proof_id) };
   }
-  if (!opaque(binding) || typeof input.contact !== 'string' || input.contact.length > 254
+  const flow = op.startsWith('ownership_review_') ? 'review' : op.startsWith('ownership_reauth_') ? 'reauth' : 'ordinary';
+  const scopeFields = ['actor_user_id','session_digest'];
+  if (flow!=='ordinary') {
+    if (!reviewConfigured(env) || !await reviewReady(db)) throw reviewError('ownership_review_unavailable',503);
+    if (!opaque(input.session_digest) || typeof input.actor_user_id!=='string' || !/^[A-Za-z0-9._:-]{1,128}$/.test(input.actor_user_id)) {
+      throw error('invalid_request',400);
+    }
+    if (op==='ownership_review_status' && exact(input,scopeFields)) return applicantReviews(db,actor,input);
+    if (op==='ownership_review_cancel' && exact(input,[...scopeFields,'review_id']) && opaque(input.review_id)) {
+      return cancelReview(db,actor,input);
+    }
+    if (op==='ownership_review_evidence' && exact(input,[...scopeFields,'review_id','evidence_ref'])
+      && opaque(input.review_id) && evidenceReference(input.evidence_ref)) return submitReviewEvidence(db,client,actor,input);
+    if (!op.endsWith('_start') && !op.endsWith('_verify')) throw error('invalid_request',400);
+  }
+  const start = op.endsWith('_start');
+  const fields = start ? ['username','secret','contact'] : ['code','contact'];
+  if (flow!=='ordinary') fields.push(...scopeFields);
+  if (flow==='reauth') {
+    if (!opaque(input.review_id)) throw error('invalid_request',400);
+    fields.push('review_id');
+  }
+  if (!exact(input,fields) || !opaque(binding) || typeof input.contact !== 'string' || input.contact.length > 254
     || !/^[!-~]+@[!-~]+$/.test(input.contact) || input.contact !== input.contact.toLowerCase()) {
     throw error('invalid_request', 400);
   }
   if (await first(db, 'SELECT 1 FROM aeris_ds_ownership_recovery_holds WHERE user_id = ?', [actor.sub])) throw denied();
-  if (op === 'ownership_start') return begin(context, client, cipher, actor, binding, input, ip);
-  return confirm(context, client, cipher, actor, binding, input);
+  if (start) return begin(context,client,cipher,actor,binding,input,ip,flow);
+  return confirm(context,client,cipher,actor,binding,input,flow);
 }
