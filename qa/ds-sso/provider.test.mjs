@@ -261,11 +261,13 @@ test('security changes revoke the grant and cannot resurrect it after policy or 
 
 const ownershipMigration = '0043_ds_account_ownership.sql';
 const contact = 'ownership-test@example.test';
+// Keep independent fixture workflows in distinct source-IP rate buckets.
+const ownershipClient = { ip: '198.51.100.7' };
 const startOwnership = (actor, username, binding = token(), secret = password, email = contact) =>
-  identity('ownership_start', { username, secret, contact: email }, { grant: actor.grant, binding });
+  identity('ownership_start', { username, secret, contact: email }, { grant: actor.grant, binding }, ownershipClient);
 const confirmOwnership = (actor, binding, code, email = contact) =>
-  identity('ownership_verify', { code, contact: email }, { grant: actor.grant, binding });
-const ownershipStatus = (actor, ...refs) => identity('ownership_status', { refs }, { grant: actor.grant });
+  identity('ownership_verify', { code, contact: email }, { grant: actor.grant, binding }, ownershipClient);
+const ownershipStatus = (actor, ...refs) => identity('ownership_status', { refs }, { grant: actor.grant }, ownershipClient);
 const update = (sql, ...args) => db.prepare(sql).bind(...args).run();
 
 test('ownership rollout requires additive 0043; recovery hold backfill and trigger preserve native authentication', async () => {
@@ -468,7 +470,7 @@ test('Aeris email MFA requires its own delivered code; an email password reset e
   const emailIdentity = async (op, input, binding) => {
     const tasks = [];
     const response = await onRequest({
-      env, data: { requestId: crypto.randomUUID() }, request: new Request(issuer + path, signed(op, input, binding)),
+      env, data: { requestId: crypto.randomUUID() }, request: new Request(issuer + path, signed(op, input, binding, { ip: '198.51.100.14' })),
       waitUntil(work) { tasks.push(work); },
     });
     await Promise.all(tasks);
@@ -533,7 +535,7 @@ test('ownership Preview host preserves the canonical issuer and scopes grants to
   async function call(host, ds, op, input, binding = {}, env = preview, canonical = previewIssuer) {
     const tasks = [];
     const response = await onRequest({
-      env, data: {}, request: new Request(host + path, signed(op, input, binding, { issuer: canonical, origin: ds })),
+      env, data: {}, request: new Request(host + path, signed(op, input, binding, { issuer: canonical, origin: ds, ip: '198.51.100.15' })),
       waitUntil(work) { tasks.push(work); },
     });
     await Promise.all(tasks);
