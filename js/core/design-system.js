@@ -313,6 +313,46 @@ export function setExperienceMode(mode) {
   navigationController?.close();
 }
 
+export function workspaceRouteMeta(pathname, { authenticated = false, toolTitle = "", adminSection = "" } = {}) {
+  if (!authenticated) return null;
+  const path = String(pathname || "/").replace(/\/+$/, "") || "/";
+  if (path === "/" || path === "/select") return { id: "home", trail: ["个人工作台"] };
+  if (path === "/language") return { id: "language", trail: ["语言学习"] };
+  if (path === "/language/english") return { id: "language", trail: ["语言学习", "英语"] };
+  if (path === "/language/japanese") return { id: "language", trail: ["语言学习", "日语"] };
+  if (path === "/tools") return { id: "tools", trail: ["工具箱"] };
+  if (path === "/tools/workflows") return { id: "tools", trail: ["工具箱", "工作流"] };
+  if (path.startsWith("/tools/")) return { id: "tools", trail: ["工具箱", toolTitle || "工具"] };
+  if (path === "/finance") return { id: "finance", trail: ["财务账本"] };
+  if (path === "/transfer") return { id: "transfer", trail: ["文件传输"] };
+  if (path === "/account") return { id: "account", trail: ["账户与安全"] };
+  if (path === "/admin") return { id: "admin", trail: ["管理后台", adminSection].filter(Boolean) };
+  if (path === "/recharge") return { id: "recharge", trail: ["会员与充值"] };
+  return null;
+}
+
+export function syncWorkspaceShell(doc, meta) {
+  if (meta) doc.body.dataset.workspaceRoute = meta.id;
+  else delete doc.body.dataset.workspaceRoute;
+  const nav = doc.getElementById("workspaceBreadcrumb");
+  if (!nav) return;
+  nav.hidden = !meta;
+  const list = nav.querySelector("ol");
+  if (!list) return;
+  const items = meta ? ["Aeris", ...meta.trail] : ["Aeris"];
+  items.forEach((text, i) => {
+    let li = list.children[i];
+    if (!li) {
+      li = doc.createElement("li");
+      list.append(li);
+    }
+    if (li.textContent !== text) li.textContent = text;
+    if (i === items.length - 1 && meta) li.setAttribute("aria-current", "page");
+    else li.removeAttribute("aria-current");
+  });
+  while (list.children.length > items.length) list.lastElementChild.remove();
+}
+
 export function initDesignSystem() {
   setupOverlayViewport();
   setupTheme();

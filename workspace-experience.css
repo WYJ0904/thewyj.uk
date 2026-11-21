@@ -1432,7 +1432,7 @@ html[data-p07-ui="enabled"][data-large-text="true"] :is(.admin-tabs, .workspace 
   position: relative;
   isolation: isolate;
   z-index: 2;
-  width: min(calc(100% - 40px), 1320px);
+  width: min(calc(100% - 40px), var(--ds-container-console));
   margin: 14px auto 12px;
   padding: 16px 18px 18px;
   border: 1px solid var(--ds-border);

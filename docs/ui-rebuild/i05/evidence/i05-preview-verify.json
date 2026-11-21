@@ -1,0 +1,143 @@
+{
+  "previewUrl": "https://i05-workspace-density.thewyj-i05-preview.pages.dev",
+  "checkedAt": "2026-11-21T13:52:15.119Z",
+  "apiStatus": {
+    "ok": true,
+    "environment": "preview"
+  },
+  "apiHealthOk": false,
+  "uiFeaturesPublicEnabled": true,
+  "buildJson": {
+    "schema_version": 1,
+    "environment": "isolated-preview",
+    "stage": "I05-workspace-admin-density",
+    "source_commit": "e4e781f2ad5e4cc791f70a2880952d683c041368",
+    "project_name": "thewyj-i05-preview",
+    "branch": "i05-workspace-density",
+    "remote_check": {
+      "verified": true,
+      "project": "thewyj-i05-preview",
+      "branch": "i05-workspace-density",
+      "productionBranch": "release-held",
+      "targetD1Id": "9e76a190-42db-4ff1-b0b7-476e4b312792",
+      "targetD1Name": "aeris-i05-preview",
+      "priorPreviewD1Id": "9e76a190-42db-4ff1-b0b7-476e4b312792",
+      "priorPreviewR2": [],
+      "targetR2Count": 0,
+      "targetAiCount": 0,
+      "bindingConsistent": true
+    },
+    "file_count": 208,
+    "artifact_tree_sha256": "27b7c4f983f1ad44f2fde7c87fa87b9a4c119b8b791c378ad62df4c3fc98476a"
+  },
+  "routesChecked": [
+    {
+      "route": "home",
+      "crumb": "个人工作台",
+      "overflow": -15
+    },
+    {
+      "route": "language",
+      "crumb": "语言学习",
+      "overflow": -15
+    },
+    {
+      "route": "tools",
+      "crumb": "工具箱",
+      "overflow": -15
+    },
+    {
+      "route": "finance",
+      "crumb": "财务账本",
+      "overflow": -15
+    },
+    {
+      "route": "transfer",
+      "crumb": "文件传输",
+      "overflow": -15
+    },
+    {
+      "route": "account",
+      "crumb": "账户与安全",
+      "overflow": -15
+    },
+    {
+      "route": "admin",
+      "crumb": "用户",
+      "overflow": -15
+    }
+  ],
+  "adminChecks": {
+    "kpiCheck": {
+      "kpiText": "2",
+      "status": 200,
+      "apiTotal": 2
+    },
+    "flagKey": "i05_preview_qgwke8",
+    "auditHasKey": true
+  },
+  "accountChecks": {
+    "releaseChannelStatus": "体验通道已保存"
+  },
+  "nonAdminIsolation": {
+    "adminLinkHidden": true,
+    "nonAdminApiStatus": 403,
+    "redirectedToRoot": true
+  },
+  "p07ToggleChecks": {
+    "off": {
+      "p07Ui": "disabled",
+      "sidebarDisplay": "none",
+      "breadcrumbDisplay": "none",
+      "kpiDisplay": "none"
+    },
+    "restoredOn": true
+  },
+  "axeScans": [
+    {
+      "label": "preview-1440-select",
+      "violationCount": 0,
+      "passes": 45,
+      "violations": []
+    },
+    {
+      "label": "preview-1440-account",
+      "violationCount": 0,
+      "passes": 45,
+      "violations": []
+    },
+    {
+      "label": "preview-1440-finance",
+      "violationCount": 0,
+      "passes": 45,
+      "violations": []
+    },
+    {
+      "label": "preview-1440-admin",
+      "violationCount": 0,
+      "passes": 49,
+      "violations": []
+    },
+    {
+      "label": "preview-390-admin",
+      "violationCount": 0,
+      "passes": 49,
+      "violations": []
+    },
+    {
+      "label": "preview-390-select",
+      "violationCount": 0,
+      "passes": 45,
+      "violations": []
+    }
+  ],
+  "screenshots": [
+    "preview-1440-select.png",
+    "preview-1440-account.png",
+    "preview-1440-admin-flags.png",
+    "preview-390-admin.png",
+    "preview-390-select.png"
+  ],
+  "runtimeErrors": [],
+  "production_release": "NOT_TOUCHED"
+}

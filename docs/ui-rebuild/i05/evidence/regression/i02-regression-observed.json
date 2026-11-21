@@ -1,0 +1,22 @@
+{
+  "suite": "qa/i02/browser-acceptance.mjs",
+  "exit_code": 1,
+  "passed_scenarios": [
+    "theme-switch-public-and-login",
+    "buttons-and-link-primary-parity",
+    "forms-input-validation-and-login",
+    "selection-controls-numerals-and-workbench",
+    "modal-focus-trap-and-account-theme",
+    "routing-and-history-back"
+  ],
+  "observed_failure": {
+    "assertion": "Touch targets < 44px at 1440px light",
+    "element": {
+      "id": "publicLearningReset",
+      "class": "button-ghost",
+      "measured_height_px": 43.323974609375
+    },
+    "root_cause": "Pre-existing interaction on `/` public homepage where `.scroll-preview-wrap` applies scroll-driven `scale(var(--ds-scroll-scale, 1))` (~0.985 at scrollY=0), scaling the 44px min-height button rect to 43.32px. Public homepage/motion CSS were untouched by I05."
+  },
+  "static_contract_suite": "local-backend/test_i02_css_contracts.mjs => 6/6 PASS"
+}

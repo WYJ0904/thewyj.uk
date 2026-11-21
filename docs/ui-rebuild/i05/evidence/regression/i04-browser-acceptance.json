@@ -1,0 +1,322 @@
+{
+  "gitSha": "b5ebd1dadb523e442166be6dde7518f19ef9e5ef",
+  "startedAt": "2026-11-21T13:31:16.021Z",
+  "scenarios": {
+    "entryAndSelect": {
+      "path": "/select",
+      "greeting": "i04userA",
+      "p07": "enabled",
+      "cards": [
+        {
+          "id": "learning",
+          "value": "暂无记录",
+          "status": "学习记录"
+        },
+        {
+          "id": "finance",
+          "value": "尚未读取",
+          "status": "打开账本读取"
+        },
+        {
+          "id": "tools",
+          "value": "暂无最近工具",
+          "status": "工具箱"
+        },
+        {
+          "id": "transfer",
+          "value": "0 个文件",
+          "status": "账户传输配额"
+        },
+        {
+          "id": "activity",
+          "value": "暂无近期活动",
+          "status": "动态与通知"
+        },
+        {
+          "id": "account",
+          "value": "普通注册用户",
+          "status": "在线"
+        }
+      ],
+      "summaryVisible": true
+    },
+    "bidirectionalFlip": {
+      "down": {
+        "order": [
+          "learning",
+          "tools",
+          "finance",
+          "transfer",
+          "activity",
+          "account"
+        ],
+        "identityPreserved": true,
+        "flipsCount": 2,
+        "downFlips": [
+          {
+            "id": "tools",
+            "keyframes": [
+              {
+                "transform": "translate3d(-575.50px, 236.92px, 0)"
+              },
+              {
+                "transform": "translate3d(0, 0, 0)"
+              }
+            ],
+            "duration": 300
+          },
+          {
+            "id": "finance",
+            "keyframes": [
+              {
+                "transform": "translate3d(575.50px, -236.92px, 0)"
+              },
+              {
+                "transform": "translate3d(0, 0, 0)"
+              }
+            ],
+            "duration": 300
+          }
+        ],
+        "focusCard": "finance"
+      },
+      "up": {
+        "order": [
+          "learning",
+          "finance",
+          "tools",
+          "transfer",
+          "activity",
+          "account"
+        ],
+        "identityPreserved": true,
+        "flipsCount": 2,
+        "focusCard": "finance"
+      }
+    },
+    "keyboardSort": {
+      "order": [
+        "finance",
+        "learning",
+        "tools",
+        "transfer",
+        "activity",
+        "account"
+      ],
+      "activeIsHandle": true,
+      "liveText": "语言学习已移动到第 2 位"
+    },
+    "dragAndEscape": {
+      "afterEscapeCancel": {
+        "order": [
+          "finance",
+          "learning",
+          "tools",
+          "transfer",
+          "activity",
+          "account"
+        ],
+        "residualTransforms": 0
+      },
+      "afterPointerDrag": {
+        "order": [
+          "learning",
+          "tools",
+          "finance",
+          "transfer",
+          "activity",
+          "account"
+        ],
+        "identityPreserved": true,
+        "residualTransforms": 0,
+        "saveState": "dirty"
+      }
+    },
+    "densityToggle": {
+      "comfortableGeom": {
+        "cols": 2,
+        "avgH": 226
+      },
+      "compactGeom": {
+        "density": "compact",
+        "cols": 1,
+        "avgH": 120
+      }
+    },
+    "hideEmptyResetUndo": {
+      "allHiddenVisible": true,
+      "text": "\n            当前工作台模块已全部隐藏\n            已保存的顺序偏好与业务数据均未删除，可点击下方按钮恢复显示。\n            恢复语言学习恢复本月账本恢复实用工具箱恢复文件传输恢复最近活动恢复会员与数据服务\n            \n              恢复全部模块\n              重置默认布局\n            \n          ",
+      "gridHidden": true,
+      "toolbarVisible": true,
+      "hiddenBarVisible": true
+    },
+    "controlledFailure": {
+      "saveState": "failed",
+      "statusText": "保存失败：浏览器存储受限，已保留上次已保存布局"
+    },
+    "desktopModal": {
+      "sheetMode": "modal",
+      "bgScale": "1",
+      "panelWidth": 540,
+      "centered": true,
+      "title": "学习进度与错题复习"
+    },
+    "accountIsolation": {
+      "bState": {
+        "density": "comfortable",
+        "order": [
+          "learning",
+          "finance",
+          "tools",
+          "transfer",
+          "activity",
+          "account"
+        ],
+        "greeting": "i04userB"
+      }
+    },
+    "mobileDrawer": {
+      "drawerOpen": {
+        "sheetMode": "drawer",
+        "width": 390,
+        "bottom": 844,
+        "innerHeight": 844,
+        "dockedBottom": true
+      },
+      "dismissedOnThreshold": true
+    },
+    "p07Off": {
+      "p07": "disabled",
+      "density": "compact",
+      "order": [
+        "learning",
+        "finance",
+        "tools",
+        "transfer",
+        "activity",
+        "account"
+      ],
+      "overflow": -15
+    }
+  },
+  "viewports": [
+    {
+      "width": 1440,
+      "theme": "light",
+      "overflow": -15,
+      "cardsVisible": 6,
+      "rectOk": true
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "overflow": -15,
+      "cardsVisible": 6,
+      "rectOk": true
+    },
+    {
+      "width": 1024,
+      "theme": "light",
+      "overflow": -15,
+      "cardsVisible": 6,
+      "rectOk": true
+    },
+    {
+      "width": 1024,
+      "theme": "dark",
+      "overflow": -15,
+      "cardsVisible": 6,
+      "rectOk": true
+    },
+    {
+      "width": 768,
+      "theme": "light",
+      "overflow": -15,
+      "cardsVisible": 6,
+      "rectOk": true
+    },
+    {
+      "width": 768,
+      "theme": "dark",
+      "overflow": -15,
+      "cardsVisible": 6,
+      "rectOk": true
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "overflow": 0,
+      "cardsVisible": 6,
+      "rectOk": true
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "overflow": 0,
+      "cardsVisible": 6,
+      "rectOk": true
+    },
+    {
+      "width": 375,
+      "theme": "light",
+      "overflow": 0,
+      "cardsVisible": 6,
+      "rectOk": true
+    },
+    {
+      "width": 375,
+      "theme": "dark",
+      "overflow": 0,
+      "cardsVisible": 6,
+      "rectOk": true
+    }
+  ],
+  "axeScans": [
+    {
+      "label": "desktop-authenticated-modal-light",
+      "violationCount": 0,
+      "passes": 33,
+      "violations": []
+    },
+    {
+      "label": "workspace-1440-light",
+      "violationCount": 0,
+      "passes": 45,
+      "violations": []
+    },
+    {
+      "label": "workspace-1440-dark",
+      "violationCount": 0,
+      "passes": 45,
+      "violations": []
+    },
+    {
+      "label": "workspace-768-light",
+      "violationCount": 0,
+      "passes": 44,
+      "violations": []
+    },
+    {
+      "label": "workspace-768-dark",
+      "violationCount": 0,
+      "passes": 44,
+      "violations": []
+    },
+    {
+      "label": "workspace-375-light",
+      "violationCount": 0,
+      "passes": 44,
+      "violations": []
+    },
+    {
+      "label": "workspace-375-dark",
+      "violationCount": 0,
+      "passes": 44,
+      "violations": []
+    }
+  ],
+  "consoleErrors": [],
+  "pageErrors": [],
+  "apiErrors": [],
+  "browserVersion": "Chrome/158.0.8127.36"
+}

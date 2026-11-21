@@ -1,0 +1,3852 @@
+{
+  "scope": "Isolated local Miniflare D1/R2 + headless Chrome CDP (I05)",
+  "gitSha": "4ee17f18dc546409770fedade66eaaf37582d569",
+  "gitBranch": "fiery_signal_warps_01h58",
+  "worktreeDirty": false,
+  "dirtyFiles": [],
+  "source": {
+    "commit": "4ee17f18dc546409770fedade66eaaf37582d569",
+    "tree": "dfd09c77747fbb62fb8379931a2e3ae29a771a99",
+    "branch": "fiery_signal_warps_01h58",
+    "sourceMatchesCommit": true,
+    "changedInputs": [],
+    "inputsSha256": "a367b15db90f92ee1cb5de10176e4b7427aca9188acc2330e46c025b38ec0a75",
+    "inputs": [
+      {
+        "file": "THIRD_PARTY_NOTICES.md",
+        "sha256": "5f101926f59fd420c9cd49888a80612d2a0cec8746a46e6635de094f0d480dde"
+      },
+      {
+        "file": "_headers",
+        "sha256": "039cf5e93ae83c3d863d5f0f8d8b51b8aa840ecedfb24af956e709a1d6294166"
+      },
+      {
+        "file": "app.js",
+        "sha256": "f93e1b18e950befcbb7abc872dfbad689158c3d1ca103247a1a25fb95186d00d"
+      },
+      {
+        "file": "assets/brand/aeris-lockup.png",
+        "sha256": "afdc3e7b323731e060d10000b2d8f0a17ae278432ac65502aba93b188964d2bd"
+      },
+      {
+        "file": "assets/brand/aeris-maskable-512.png",
+        "sha256": "1166a8f14c85eecc3d034b38de019b2d1d1ab2de5eb0c9c94d5fef58132f1c1f"
+      },
+      {
+        "file": "assets/brand/aeris-monogram.png",
+        "sha256": "1800dc22bfa779989419eca151c012a42a6ab374362af693c451a6ed6fc47b60"
+      },
+      {
+        "file": "assets/brand/aeris-og.png",
+        "sha256": "941b3831e2dbb76b4d02a6b1c78b48a90ec8520fe25a1d44877163b09e7ade5d"
+      },
+      {
+        "file": "assets/brand/apple-touch-icon.png",
+        "sha256": "d2a360b4f07008be6b1009eb4443e5f9d45a203b795a556cc5b53d8c8ccfd485"
+      },
+      {
+        "file": "assets/brand/asset-manifest.json",
+        "sha256": "0a31205fe508e5692cb20a29c68ea91ecf8536333c48e7e0e5b79fd298ba440f"
+      },
+      {
+        "file": "assets/brand/favicon-32.png",
+        "sha256": "d0d30ca5a338432d9581ea5f1e33571988f5d75c76e2875b4db42d8d3a6d6f66"
+      },
+      {
+        "file": "assets/brand/favicon-64.png",
+        "sha256": "e7e4c3018c84799e1c489d24c35e7f5dd618115bb37681debd8f20fe767dc60d"
+      },
+      {
+        "file": "assets/brand/source-original.png",
+        "sha256": "dbf8197b90853499b1adc3b070f9220515e7a2096a533bbe4006699d1f9b5f5f"
+      },
+      {
+        "file": "assets/logo.png",
+        "sha256": "afdc3e7b323731e060d10000b2d8f0a17ae278432ac65502aba93b188964d2bd"
+      },
+      {
+        "file": "assets/splash-screen.png",
+        "sha256": "6418402ea9da4619bcf83986a4bb725e91b9dcf41b24463efb95cd86c0c05aa6"
+      },
+      {
+        "file": "changelog.js",
+        "sha256": "c0916ad1134ae39ad815f6544e18835fb41ed4fa8de8666180567c41e4fd9d39"
+      },
+      {
+        "file": "cloudflare/migrations/0001_foundation.sql",
+        "sha256": "eec0c941e951b6f847bc6102a36a8c004e4d59eaac7d817f90adbf81ff3f0f7e"
+      },
+      {
+        "file": "cloudflare/migrations/0002_low_risk_cloud_services.sql",
+        "sha256": "9659909adc267b31f31b3dc50795de0f734182965c5ae94c8a68fb5232763ee3"
+      },
+      {
+        "file": "cloudflare/migrations/0003_accounts_sessions.sql",
+        "sha256": "65da1ecabdfafc912897979a6aa596b16f9c58d5443dd77c35103937d921ac75"
+      },
+      {
+        "file": "cloudflare/migrations/0004_session_limit_trigger.sql",
+        "sha256": "0ed6ba0089ca7628410582145a295167db49941b013249d736acd5b5db1eea6e"
+      },
+      {
+        "file": "cloudflare/migrations/0005_session_limit_ordering.sql",
+        "sha256": "09dfc6eb809be1aa7c26f549ed4de38f5b5b9942afc07e401323d52da386f073"
+      },
+      {
+        "file": "cloudflare/migrations/0006_memberships_payments.sql",
+        "sha256": "583ae6e6387ecc75c040f08701dc03ce6e98360a3a8154b7df28a3f7a05b545c"
+      },
+      {
+        "file": "cloudflare/migrations/0007_temporary_sharing.sql",
+        "sha256": "d0da469c0e575da68a79365720b2a4cbf8e43c56abf3ba123bfd72834a21c19d"
+      },
+      {
+        "file": "cloudflare/migrations/0008_task14_user_storage_trigger.sql",
+        "sha256": "d5d228be27f2272a788c4a556efd1c8b0890b35f8e179557bcb5320e8fbc4af2"
+      },
+      {
+        "file": "cloudflare/migrations/0009_task14_global_storage_trigger.sql",
+        "sha256": "64f8eb8f8230e516fb6e29e739fb764c1d8be08d18f97084c9e6fa59c09f744c"
+      },
+      {
+        "file": "cloudflare/migrations/0010_task15_cloud_only.sql",
+        "sha256": "ba8753127bfca2f5b95c1ca496745894487ec71fcbe5bc08e00ce67d4fb95f96"
+      },
+      {
+        "file": "cloudflare/migrations/0011_task15_import_trigger_order.sql",
+        "sha256": "dfda1328cde2327bd6d7fe0046624609d744d1cbab9c4c237efb4ff1ad4068e6"
+      },
+      {
+        "file": "cloudflare/migrations/0012_finance_core.sql",
+        "sha256": "d73ccc402d8e86fd248a732de4a97fae9844d5ffb3f514c70ddc66230fc8634a"
+      },
+      {
+        "file": "cloudflare/migrations/0013_finance_web_membership.sql",
+        "sha256": "22370727f8b2e39b230b0d8a3cd00dcb0d008c39c62df63b3515e9a4e763cc1c"
+      },
+      {
+        "file": "cloudflare/migrations/0014_admin_roles_messages.sql",
+        "sha256": "40ddefa7d5b4a453e89fa4dc5c3de399d09c2efa99e1500e6aa5a27bdf3e31cf"
+      },
+      {
+        "file": "cloudflare/migrations/0015_android_device_sessions.sql",
+        "sha256": "aaf73e0e44f657201126121a94c5565a816a21b53ecc67bf2cb1685cc157a281"
+      },
+      {
+        "file": "cloudflare/migrations/0016_notification_archive_payment.sql",
+        "sha256": "a607349434b339a0c81c4fdb5b03d4f2143985b5635eb93cb9c00f86cdf4de5e"
+      },
+      {
+        "file": "cloudflare/migrations/0017_notification_archive.sql",
+        "sha256": "dc2124ba2e17cad6d345cb2f4ec8b7b6d0e2dc4f2d3ab85bc66cfdaa66e5bbeb"
+      },
+      {
+        "file": "cloudflare/migrations/0018_file_transfer_2.sql",
+        "sha256": "3afe7f64127b255e4fa88724ccc229f986642103f4014368237492a83b2e8f4b"
+      },
+      {
+        "file": "cloudflare/migrations/0019_transfer_single_object.sql",
+        "sha256": "76aeeddc433ce1c40b680377e10766cd728c70dfa82d65e3d5a1237eb9d0aaef"
+      },
+      {
+        "file": "cloudflare/migrations/0020_notification_event_identity.sql",
+        "sha256": "6a1d20fada80d78e4865e05d98fc9920d48e858353d0b396aedf8b24889b4e41"
+      },
+      {
+        "file": "cloudflare/migrations/0021_notification_pending_hints.sql",
+        "sha256": "3306f67c0deda3316e4d704b05e42197ba78adb54f876abd5d4adbba00296485"
+      },
+      {
+        "file": "cloudflare/migrations/0022_notification_review_aliases.sql",
+        "sha256": "899761167061ca665d0806a32f5b2d1cb87e288041fe26524d710696f65d814d"
+      },
+      {
+        "file": "cloudflare/migrations/0023_transfer_session_cleanup.sql",
+        "sha256": "223576c7f97c5db76757f25982c190f9adc9204ed75805073c73e635f8ca7fd8"
+      },
+      {
+        "file": "cloudflare/migrations/0024_feature_flags_release_channels.sql",
+        "sha256": "4accef118c26c10bb657acd2b968f3f16d8d2f9cc6301cf1cd14da4e9726bafa"
+      },
+      {
+        "file": "cloudflare/migrations/0025_adaptive_learning_mastery.sql",
+        "sha256": "4664bbc91a8d1b6158ee58532186b38c870cb677c17c289e072e1cb4afd4adef"
+      },
+      {
+        "file": "cloudflare/migrations/0026_wrong_book_review.sql",
+        "sha256": "4794bff0e6535b6d3012d5b60d7b548245755289028492dfd8f9e5cf73a20c15"
+      },
+      {
+        "file": "cloudflare/migrations/0027_payment_identity_lifecycle.sql",
+        "sha256": "9c830831fa397210f921fcac17fbdf8e48aab2e1cf5f8d757b479665410f911a"
+      },
+      {
+        "file": "cloudflare/migrations/0028_payment_lifecycle_accounting.sql",
+        "sha256": "eca2c4f66671e48a14d975d9d821ea29efb978e8c5f5efa6152c62a4edc4d432"
+      },
+      {
+        "file": "cloudflare/migrations/0029_payment_reconciliation.sql",
+        "sha256": "9b18c95cb3886f03ac8149af672b5a8e15c48f6c9b3ee7f8f13d015579f2e640"
+      },
+      {
+        "file": "cloudflare/migrations/0030_payment_supersession.sql",
+        "sha256": "f1c15b09e9e5eaf5f540132b935634401a999af1eb05a48f80cd6550570a53aa"
+      },
+      {
+        "file": "cloudflare/migrations/0031_finance_currency_fx.sql",
+        "sha256": "1e49cfd146968ed92914bcf224fe07aaf1385ff9027a7f3c3c006b131e3ed1c2"
+      },
+      {
+        "file": "cloudflare/migrations/0032_notification_currency_units.sql",
+        "sha256": "d88b70dd65b293bb31b4b0ae78c38796196816b8a6d83896317d6333b97d35a1"
+      },
+      {
+        "file": "cloudflare/migrations/0033_currency_default_review.sql",
+        "sha256": "3f80ef80fcd49d116292a6caa3499c52e397dfc663480e71d4a7ec09c1561d3f"
+      },
+      {
+        "file": "cloudflare/migrations/0034_finance_ai_assistance.sql",
+        "sha256": "c477c64e432dc028cc92aa78a99e325cd1365fd47b22645609543ea9b7ae19c3"
+      },
+      {
+        "file": "cloudflare/migrations/0035_task27_security_center.sql",
+        "sha256": "c0eed1d9940ee93c24d15a2efeb82dc05d9f913ac51eab681c14506dbe9cc172"
+      },
+      {
+        "file": "cloudflare/migrations/0036_task27_email_center.sql",
+        "sha256": "db0f1c6455c298ca82eec8791f93e219f42de41377bb18a8f4c765ecf275373d"
+      },
+      {
+        "file": "cloudflare/migrations/0037_task27_email_template_newlines.sql",
+        "sha256": "0f6751b57ba512c9330fb8dba8f40baad8ab0deb89f24db761203b1347338488"
+      },
+      {
+        "file": "cloudflare/migrations/0038_task28_secure_files.sql",
+        "sha256": "33080f47fe7830e1349949118e13f981a3b2f0ecadff795a43b7eb579c26ad36"
+      },
+      {
+        "file": "cloudflare/migrations/0039_task29_encrypted_backup_restore.sql",
+        "sha256": "e77c7f762aaf5ba22301c84c726f92ef2c048297d85d755ef2f568a5f90cfd1c"
+      },
+      {
+        "file": "cloudflare/migrations/0040_task30_privacy_retention_erasure.sql",
+        "sha256": "04bf4b797eb856453b27f3b0dddafd2c238e9d900b25780ecfd44bcb314826df"
+      },
+      {
+        "file": "design-system.css",
+        "sha256": "046b22f534b29c676bede99c63813bf5e1bb1333ce39f962461537d943ae8bf6"
+      },
+      {
+        "file": "favicon.ico",
+        "sha256": "e8ea76143ae28d384616811bbcc405c41e5afa972623e90943cb3e3c6c74ece9"
+      },
+      {
+        "file": "functions/_lib/cloudflare-foundation.mjs",
+        "sha256": "1f2430e1119f38501f2b3499908e578755b5ea5844a003392e35b3e22e4c0ca3"
+      },
+      {
+        "file": "functions/_lib/email-api.mjs",
+        "sha256": "09b813083ec2f315ed069f35b6e691987e214332f3272d00e433cf59ad61e375"
+      },
+      {
+        "file": "functions/_lib/email-inbound.mjs",
+        "sha256": "9d218a93198a257fcb63fe6ecf77776af0245a59848c67df7702a1513062bb23"
+      },
+      {
+        "file": "functions/_lib/email-service.mjs",
+        "sha256": "f92a8f51ec906e733e154bbaa0c364f1e4a7e2ff91388aefad6c2e56c4de7f5c"
+      },
+      {
+        "file": "functions/_lib/finance-ai-provider.mjs",
+        "sha256": "bedf9701ad283806ee99b0248637dfa5f35b7eab69f48f72e81a614079e86be7"
+      },
+      {
+        "file": "functions/_lib/finance-ai.mjs",
+        "sha256": "09737fad0ac013cb21b37a3baedf0baedaca9bc8821bce5372bb3f8f1f67c0b9"
+      },
+      {
+        "file": "functions/_lib/finance-amount-admission.mjs",
+        "sha256": "58adde8760747b3daf68f951f037d8c1587d1fcac0ed58b107cc7e0bcae6f2a4"
+      },
+      {
+        "file": "functions/_lib/finance-client-capability.mjs",
+        "sha256": "506e268baae51c2c8518421a3b90d2bcd4895030449d071908814671f142607b"
+      },
+      {
+        "file": "functions/_lib/finance-fx.mjs",
+        "sha256": "aeac6f2bcd81f80baa11112af3fd47b07bd089946f7fe4f130924dd7301b3680"
+      },
+      {
+        "file": "functions/_lib/finance-money-units.mjs",
+        "sha256": "c6e9fb4d9787bd18b9c54a375d97723daaa9b9b2e2d215de1fb93c47ee35f053"
+      },
+      {
+        "file": "functions/_lib/finance-raw-currency.mjs",
+        "sha256": "2cd8cc3fcbd1256855c902e0911253f8bf9f173777cde9deb9d27808750907ec"
+      },
+      {
+        "file": "functions/_lib/finance-review-currency.mjs",
+        "sha256": "bd6853811324848899667576fed768a0dd90e63cbb7af3a66ec89f7e59ecc4b4"
+      },
+      {
+        "file": "functions/_lib/finance-source-units.mjs",
+        "sha256": "3f4e3e79546a95e1db40393f5ce52ce488ceade25375022a425be4bcdc3fd17b"
+      },
+      {
+        "file": "functions/_lib/legacy-api.mjs",
+        "sha256": "76c88dee587b812bdc12e48ce36f503e42ae4f1867636b08f8b11869443be835"
+      },
+      {
+        "file": "functions/_lib/notification-cash-evidence.mjs",
+        "sha256": "cd93603c95ff529ba549d16223187ff1d76e59558d934ec58b5704b5635561d2"
+      },
+      {
+        "file": "functions/_lib/p07-ui-api.mjs",
+        "sha256": "153b6376449eaed71070a56da8eec8873c307f40f268820181233f24e783987b"
+      },
+      {
+        "file": "functions/_lib/payment-currency-evidence.mjs",
+        "sha256": "2914c49d25653405f9ec64786f404caa674ba3d35893a37bc4a3a21f94adde86"
+      },
+      {
+        "file": "functions/_lib/secure-file-api.mjs",
+        "sha256": "9fc6c3683a6c5c6508619c3e86f297255afbbcf806a21a53faa7fe7482bd6a1c"
+      },
+      {
+        "file": "functions/_lib/secure-file-cleanup.mjs",
+        "sha256": "f1d7f50a0040bcb1dc7e7b94e1308fbf3ac5b4a88b899eca59dcd573e8695926"
+      },
+      {
+        "file": "functions/_lib/secure-file-maintenance.mjs",
+        "sha256": "07695155bb0758fd3840c776e6240877486985bacc24fdd371355f8b7638ba9c"
+      },
+      {
+        "file": "functions/_lib/secure-file-policy.mjs",
+        "sha256": "1b69e4dfd02c1e23ace707ffa3f7720cfd33d57bccaa1b5fcc76f38e4bf092d2"
+      },
+      {
+        "file": "functions/_lib/secure-file-service.mjs",
+        "sha256": "ac68c75f171806ff00f0eb1b088a549ebdfde89454d3feb2d3489187cd3f23a8"
+      },
+      {
+        "file": "functions/_lib/task11-api.mjs",
+        "sha256": "def8847da7d531ab429e4754068a96b6de16d1f5ecf1769219ac80896699637c"
+      },
+      {
+        "file": "functions/_lib/task11-import.mjs",
+        "sha256": "3b054de2e1e40e71356699db0349ab75e184cd4e61f062454f13375072d68a0f"
+      },
+      {
+        "file": "functions/_lib/task11-model.mjs",
+        "sha256": "335ce1692e3ad217e3146c44a1392914dd03784847b889d111f047f11858e30c"
+      },
+      {
+        "file": "functions/_lib/task11-service.mjs",
+        "sha256": "86c3eb1da33ed383d788059d8cb5a79f47ec4ed27e6ee4ebadf23c11daf26875"
+      },
+      {
+        "file": "functions/_lib/task12-api.mjs",
+        "sha256": "dd69a2ac38cefe1fc8c3f259f6f9dd3157fe79297bf451a42b4cb5dc0bcfd6c2"
+      },
+      {
+        "file": "functions/_lib/task12-auth.mjs",
+        "sha256": "b310be5619c96a3bae84a9a212a711b896635db18724befd700c2ebb8c230da4"
+      },
+      {
+        "file": "functions/_lib/task12-bridge.mjs",
+        "sha256": "b59836a903d52b6991bdbc1a51cb33972cd67a4c3878ebcaca354b9ae1ee4cb3"
+      },
+      {
+        "file": "functions/_lib/task12-crypto.mjs",
+        "sha256": "df0b4728cd7e90d84fec878cbb1656f8afec31ae9fd79071004d6e49390d6b84"
+      },
+      {
+        "file": "functions/_lib/task12-import.mjs",
+        "sha256": "466f642b8c1afd7805ea5340e2f1fa38b8cd165f110ab4d2d32a4b60615d7dbf"
+      },
+      {
+        "file": "functions/_lib/task12-model.mjs",
+        "sha256": "cc3b6d035ad36e963ea810a32d0e19a0b3e6a3ffc80ce5b0ca34f236fc46700e"
+      },
+      {
+        "file": "functions/_lib/task12-service.mjs",
+        "sha256": "e73adee5e3aaa51fa635db046d83f59ff5ccb9ce883ebee0bb6047df16892e90"
+      },
+      {
+        "file": "functions/_lib/task13-api.mjs",
+        "sha256": "5dc62059e3e2f9d4e1723c0492b46a0ed5e60e50de74cf8f0a5df61e57dcab21"
+      },
+      {
+        "file": "functions/_lib/task13-import.mjs",
+        "sha256": "034964ae4beb07a9ce55fe12f5031482ee9ec351cbab9093e4c95a64bbf6bb3d"
+      },
+      {
+        "file": "functions/_lib/task13-model.mjs",
+        "sha256": "937ed8c5a77a94d9685c81f9b1f0d86e04d0fa0829ed60aa29fc846b9db8ec2b"
+      },
+      {
+        "file": "functions/_lib/task13-service.mjs",
+        "sha256": "ff8070913f691070ea48a9a14e4a32975a99dc26b9e239768a104ffb3a8c8bd5"
+      },
+      {
+        "file": "functions/_lib/task14-api.mjs",
+        "sha256": "226d5fa94e9dc8beebeb215814914d4bac5e9b58c9692ed33cdac4573840ee28"
+      },
+      {
+        "file": "functions/_lib/task14-crypto.mjs",
+        "sha256": "2cacdab0033c0b90bb482c60cd3bc57e4e47a2d94d509962b1f2158d2fe07710"
+      },
+      {
+        "file": "functions/_lib/task14-import.mjs",
+        "sha256": "ec6e4d953869af5a263eeddb813490981788ebbf0a27245e0e607150ebcbd65e"
+      },
+      {
+        "file": "functions/_lib/task14-model.mjs",
+        "sha256": "1e1834b8385f281543ed7017696b14444438fb298f364ddfe825f7bf61d86237"
+      },
+      {
+        "file": "functions/_lib/task14-service.mjs",
+        "sha256": "443652121540bd10eb6cafcb7154dbe569a133a0b208dc830636806f37d472fc"
+      },
+      {
+        "file": "functions/_lib/task15-ai.mjs",
+        "sha256": "92780d5efeabfe11c41665d0bff09e718add3e8540534c795d1007b8da47eec7"
+      },
+      {
+        "file": "functions/_lib/task15-api.mjs",
+        "sha256": "f223d8f9e1077ac0e0c49a545c845f1a83ba861dc6481d833d0b75fd75071c9e"
+      },
+      {
+        "file": "functions/_lib/task15-model.mjs",
+        "sha256": "6f1ac8eafb7da682c6e34967cfb568e63a6faa868a41b018b91d4c8feed9621a"
+      },
+      {
+        "file": "functions/_lib/task15-service.mjs",
+        "sha256": "1cee90cfb17c4c14a015071f781be67ccd2d802fc6ee7a4bd1c14384169a7dc4"
+      },
+      {
+        "file": "functions/_lib/task15-tools.mjs",
+        "sha256": "388ad753e05f2e9c823d957277b13b4d2392ffeaf81fff572498de42b413bece"
+      },
+      {
+        "file": "functions/_lib/task15-vocabulary.mjs",
+        "sha256": "fa07225cd5d7ed974aa0e9550f853c7790f2101a071230af848839eeb3ebc1cc"
+      },
+      {
+        "file": "functions/_lib/task16-api.mjs",
+        "sha256": "e6fb11cf45f331bf3b4d8d9b0dadae2a0be0c1a81818ffe0736257f2800043ea"
+      },
+      {
+        "file": "functions/_lib/task16-import.mjs",
+        "sha256": "0d3488bbaf8d7f34fd4c77fc542cfe8a1e5609258dcdb2f780ae110f0bd69d43"
+      },
+      {
+        "file": "functions/_lib/task16-model.mjs",
+        "sha256": "184d81414279de00d903eb4c568490f518cde92146419cd23d4c2a3045a01cf5"
+      },
+      {
+        "file": "functions/_lib/task16-service.mjs",
+        "sha256": "bbfd4e7e5c1a697a0908d64ad4cfea68612b9a317d25a248a79a2ff28ce51bb7"
+      },
+      {
+        "file": "functions/_lib/task18-api.mjs",
+        "sha256": "dad2d39a64d112676fbc2487e79413d836b946faa55510a708cd0552e136e442"
+      },
+      {
+        "file": "functions/_lib/task18-model.mjs",
+        "sha256": "fc79b6dcbedcd9471b7220a79de080c36a29ae6bd2e1b57983842f1a97416ec0"
+      },
+      {
+        "file": "functions/_lib/task18-service.mjs",
+        "sha256": "9edb71dab286081aca52e654f32d98b159ebccaa1859c41a4bbf7fac93bed588"
+      },
+      {
+        "file": "functions/_lib/task20-api.mjs",
+        "sha256": "23105f06ded34e47653c3eff27df09090e0590836554be90e8911b3789c3a28e"
+      },
+      {
+        "file": "functions/_lib/task20-crypto.mjs",
+        "sha256": "9cb8c554860f7cb204194c7a8b2fe2130699388e75023988b0e4c964754eaa41"
+      },
+      {
+        "file": "functions/_lib/task20-model.mjs",
+        "sha256": "2800f07966b4cbb681312cdb89315e52a091a6e8806217b54453385aa2d8f69a"
+      },
+      {
+        "file": "functions/_lib/task20-service.mjs",
+        "sha256": "a920a13ae200313b0b8b13fba74a6b7bdc6b5d31df3adcb2c16b9aae4b58603c"
+      },
+      {
+        "file": "functions/_lib/task21-api.mjs",
+        "sha256": "66ef34e1dccc9aea2e2abdaea09bc387a1305daf0d2987c7248dc60d9f75d85d"
+      },
+      {
+        "file": "functions/_lib/task21-event-safety.mjs",
+        "sha256": "da4318e05c5ada48c007991c6a02a6fdb5ec06327c11ad18ab975589a467ed02"
+      },
+      {
+        "file": "functions/_lib/task21-hints.mjs",
+        "sha256": "42d689df496b9d6b705a52e34b14e2102084e11dcbe064f8e249778ae3255ec8"
+      },
+      {
+        "file": "functions/_lib/task21-lifecycle.mjs",
+        "sha256": "9235cdcbb879ad292761bfec9ff84dc2cbdf9e67b160de39ff0b30cacf80a38e"
+      },
+      {
+        "file": "functions/_lib/task21-model.mjs",
+        "sha256": "dde97791ae10c1140778303e051745ecce1c3a0346013b98db0bfb49f3ff934f"
+      },
+      {
+        "file": "functions/_lib/task21-provider-evidence.mjs",
+        "sha256": "38b8c5b6bfea5557fb05eb6eee6780341dfb43858d4d6ad9a15cc507af0c79fb"
+      },
+      {
+        "file": "functions/_lib/task21-reconciliation.mjs",
+        "sha256": "53f36c9a1aa3a3b757024d42a9754462ce2688530b773237305a17d011c843ec"
+      },
+      {
+        "file": "functions/_lib/task21-service.mjs",
+        "sha256": "de42df82c45d75ed159c990fb2c877af444730208d6df5c8b74a54e1eb780253"
+      },
+      {
+        "file": "functions/_lib/task22-api.mjs",
+        "sha256": "be67f5eabae2b0520ac258f72a6d0a43a089d435bd372dde094248c045581034"
+      },
+      {
+        "file": "functions/_lib/task22-model.mjs",
+        "sha256": "54534872420969d566d9fad661e63defa362809dea32a00361b2351b29284cb9"
+      },
+      {
+        "file": "functions/_lib/task22-service.mjs",
+        "sha256": "a933388333c23337d25305db89a7747b7194149fb9e3418aa6f194c6cea6c5c8"
+      },
+      {
+        "file": "functions/_lib/task25-api.mjs",
+        "sha256": "c17a0714981f065299873e43ea76e8586b58eb89c302718682b3d9b1e6ca7dee"
+      },
+      {
+        "file": "functions/_lib/task25-model.mjs",
+        "sha256": "6da008e4a1ef87e1fa52a6f6a0b4f35537808ac6b726d4e74e0a395b2a33bf96"
+      },
+      {
+        "file": "functions/_lib/task25-service.mjs",
+        "sha256": "e9ecf534af6a7936e4057c645f2b7e93ee231f2cd1ce97a2f621837b00bcf6a9"
+      },
+      {
+        "file": "functions/_lib/task26-api.mjs",
+        "sha256": "5e18b5c098d5967f188b9e0a93bd338f72efeb136b23a656fca45bbba1d7e4c1"
+      },
+      {
+        "file": "functions/_lib/task26-catalog.mjs",
+        "sha256": "0a5222d0d3d2eb14cd35bd976a9cae28f9f1f7256b0fb5f498f65f0f47a28f8e"
+      },
+      {
+        "file": "functions/_lib/task26-mastery.mjs",
+        "sha256": "aad72f91f477347930dbdee9ff70ef1d1594c4892d6d57d168f5ea530decdf05"
+      },
+      {
+        "file": "functions/_lib/task26-service.mjs",
+        "sha256": "d5228cb5d9aa76bc6f7df912c44cda49026d55f0a51a47a874c551f35e95aec9"
+      },
+      {
+        "file": "functions/_lib/task26-wrong-review.mjs",
+        "sha256": "8ec1b20438c40b22b9be5712fa043f823af871d3b878dcea0554731d7fdb3a79"
+      },
+      {
+        "file": "functions/_lib/task27-api.mjs",
+        "sha256": "5239034ba0b036ccc8999c744886aac2b875dcfb0b50aba0e237503f5c954c9a"
+      },
+      {
+        "file": "functions/_lib/task27-auth.mjs",
+        "sha256": "46bd85327af8c535550fa50d81ecd57918ce33c7c06e502a99f427d2b8854a9c"
+      },
+      {
+        "file": "functions/_lib/task27-crypto.mjs",
+        "sha256": "eb9d108ea15c2c319778da70d6f4a132b06a2b9e68e0871fe2a313aac3ed507f"
+      },
+      {
+        "file": "functions/_lib/task27-email-adapter.mjs",
+        "sha256": "9c7b2c4c01c535488a58cb838950b4457e25064703635dbc6dcda5c557a8198c"
+      },
+      {
+        "file": "functions/_lib/task27-email-gateway.mjs",
+        "sha256": "0986ad5ec59765d5837f8a5bbdd6fc0ce66cec3b9ada8ac85e60ca81526fa5e7"
+      },
+      {
+        "file": "functions/_lib/task27-login-guard.mjs",
+        "sha256": "bb5b8d1ce9c5c72a2a6192e4484655f6488a54e5d63528d22a8f1b6cc367ebda"
+      },
+      {
+        "file": "functions/_lib/task27-mail.mjs",
+        "sha256": "583b39590bf03aba7a097a68aee89ca78efe522c7383ec320596675e1e0550a5"
+      },
+      {
+        "file": "functions/_lib/task27-notifications.mjs",
+        "sha256": "e419c2c1a7df4a935d235a9c413eb28d3dbaadbeac5eb68de11e5a24484883de"
+      },
+      {
+        "file": "functions/_lib/task27-policy-archive.mjs",
+        "sha256": "e9e0a61fd968618dca84680e92d8bc9ca25c15aecd09a985675a462448c7566f"
+      },
+      {
+        "file": "functions/_lib/task27-policy-content.mjs",
+        "sha256": "41a327f591ea75a3daee80f836c598c2f8e4987b762efc1946255721c1c7d0c4"
+      },
+      {
+        "file": "functions/_lib/task27-policy.mjs",
+        "sha256": "9b8fc003aa393cebd08dae81679673eacb1dba759137af088f6b980e37ae7c8b"
+      },
+      {
+        "file": "functions/_lib/task27-security.mjs",
+        "sha256": "fb7335b1fdb60460869979c0ba54f5d72544c5302afb84480736ab3a4756490a"
+      },
+      {
+        "file": "functions/_lib/task27-store.mjs",
+        "sha256": "eb73b8a8b449112b389bb70eda822c8a70a366cf88930a1c661018af5950115a"
+      },
+      {
+        "file": "functions/_lib/task29-backup-api.mjs",
+        "sha256": "edc0d29653fb36c7e687f1d180e32ea853759a20c72f48e0b851c7dee25e0a8f"
+      },
+      {
+        "file": "functions/_lib/task29-backup-crypto.mjs",
+        "sha256": "6be220ee7b2221d7f0c954ea312c5f7d1b129c5457146b40a853f2240ac3d6f5"
+      },
+      {
+        "file": "functions/_lib/task29-backup-model.mjs",
+        "sha256": "617a2a13b9efffe295cbead7ac254841ab9ef83831d3e3b7caee0096e74bb392"
+      },
+      {
+        "file": "functions/_lib/task29-backup-service.mjs",
+        "sha256": "6892b73869df10098bbf9e902a253eff5a5235256d8fdb89affe05ea149cd7c1"
+      },
+      {
+        "file": "functions/_lib/task30-privacy-api.mjs",
+        "sha256": "ccd4be192ac1cf763792e79a417455fb3d69f73b7ed9169ff6e37799ae79fd8d"
+      },
+      {
+        "file": "functions/_lib/task30-privacy-catalog.mjs",
+        "sha256": "020ba11c25a63481b9b69de5e03dc125eea4b7399843bee85a154b48931231de"
+      },
+      {
+        "file": "functions/_lib/task30-privacy-service.mjs",
+        "sha256": "5eed1b46d8648272c4604f4bffe3c970cf3ee1c78733061a04095e1389fb6de5"
+      },
+      {
+        "file": "functions/_lib/tts-api.mjs",
+        "sha256": "d6c1b9c14299964487020669803f939ec008b25d961f047db05ad4e9a458aa48"
+      },
+      {
+        "file": "functions/_middleware.js",
+        "sha256": "2b51df7cec46f32cea01eca4d8c56fa4586ad0a9d4601272303dcae19a7b5f1f"
+      },
+      {
+        "file": "functions/api/[[path]].js",
+        "sha256": "c1312907ebe37ee2b67c9634808c28689d4e2243a5f7e010db0f0d9cd2d03d61"
+      },
+      {
+        "file": "functions/api/status.js",
+        "sha256": "ce8ac471bed4b94c74a6fea8dee2bccbcb68fef51645d68f2080f23e7ec9cf4a"
+      },
+      {
+        "file": "functions/privacy.js",
+        "sha256": "7046e7c0dbab2cc80e6080e35859d3e5477a9516626e5f9401c7be5850df50cf"
+      },
+      {
+        "file": "functions/security-privacy.js",
+        "sha256": "8097fa7c1773a2276e687ede0b85f1e3af1aac03b130123f966f90cb7f87130e"
+      },
+      {
+        "file": "functions/terms.js",
+        "sha256": "f935e1ff828c77cea4a7068119b00ac790ff49737a942483ca0d9e90ad9cae03"
+      },
+      {
+        "file": "icon-192.png",
+        "sha256": "455cc55b9335fa03e2167fea7361242241136f47a7cc56f0cfb7fcf8f065c696"
+      },
+      {
+        "file": "icon-512.png",
+        "sha256": "942fef5531e439f0d8879b7bf8e160bb2977d3e1dfb12eca1fab4e68cd56c2da"
+      },
+      {
+        "file": "index.html",
+        "sha256": "4dcea782cea29a5b7fc64d2a6eb326d7d1ad15487c6ad630b17dd286946b7522"
+      },
+      {
+        "file": "js/account/password-fields.js",
+        "sha256": "eb75b4766a01ee1b34f868b8cd4558f1a585d67e208420c85091620e218f2831"
+      },
+      {
+        "file": "js/account/password-policy.js",
+        "sha256": "eb9615a8dc61bd227486cb74ba35dd446bd9ac011ce2f77516ccd457c59b191a"
+      },
+      {
+        "file": "js/account/policy-page.js",
+        "sha256": "b8b64b00f19d38528dfcb5caa7fbc7ca3851dda41de4081264b577fc49837dd9"
+      },
+      {
+        "file": "js/account/policy-version.js",
+        "sha256": "e5f77cdfda80c396c92f3f7dba00d6cf9481b48a11d772f7fa08737ca3db5ac3"
+      },
+      {
+        "file": "js/account/security-center.js",
+        "sha256": "529b8bd3928d7e658de2fc64748ccabe2917361a37e4302958c749a9735fc871"
+      },
+      {
+        "file": "js/admin/formatters.js",
+        "sha256": "fd919c6c600b8a9ccc3c1c1d45d36e71c36a4974425dd8ae2c7c01550da24ed2"
+      },
+      {
+        "file": "js/core/api.js",
+        "sha256": "69744e2e3e45c7685822d35a190a7d318531292fab23fc94a208cd00775a8e27"
+      },
+      {
+        "file": "js/core/capabilities.js",
+        "sha256": "109750dd5ee64aa42c28d620d14f0b41d3b645e8a33a0950c467266922cf5a02"
+      },
+      {
+        "file": "js/core/changelog.js",
+        "sha256": "e8d84396edff5f8d67f83acf66725e40f4896ccc8b14e8ee2bb9efefb32c2474"
+      },
+      {
+        "file": "js/core/config.js",
+        "sha256": "d9b0efa37431a3a5c7d120b7c7e9919cfc3c439bfd884af281b0dd6805c4a27a"
+      },
+      {
+        "file": "js/core/dashboard.js",
+        "sha256": "e0bc036d75af33d8bbb6bd7b415d8ad5f5be2f507c73a34d4f42b0998f57f6ff"
+      },
+      {
+        "file": "js/core/design-system.js",
+        "sha256": "4760d24ec060a817e15ab365f90cbb93343b2b6b66600946bb6d4a06f8db7c3e"
+      },
+      {
+        "file": "js/core/download.js",
+        "sha256": "eb1da3e7b0a082efd2267dcffe5c5af272c6a05d1147e7e84f9446c7f3acdc88"
+      },
+      {
+        "file": "js/core/feature-console.js",
+        "sha256": "bea67dabbaf2b53ced91069695188cdb2d3e353e5e494835d9261b1a7c92d6b2"
+      },
+      {
+        "file": "js/core/feature-flags.js",
+        "sha256": "54daf30238a5a8b8fd057c8c95212acde542c8bf2e4b3bebed500ed4b4b5757e"
+      },
+      {
+        "file": "js/core/home-widget-data.js",
+        "sha256": "f14f58a7ca0faa7c2aadb4908350ca50379f46e2d3bb16814d0b286736984643"
+      },
+      {
+        "file": "js/core/home-widget-layout.js",
+        "sha256": "a92246277c9c94ad8304b5807a7623f3404d208b234028015d507f8befb4413d"
+      },
+      {
+        "file": "js/core/home-widgets.js",
+        "sha256": "8dc428941c061306c4ab77d1a3b6d6f6b1d1e1048d465cb339e0d2b5a1f51341"
+      },
+      {
+        "file": "js/core/keyed-list.js",
+        "sha256": "618df9152745b45e8ab3976b227174debe758b3d6f11040ce5251af50c4051fa"
+      },
+      {
+        "file": "js/core/lazy-controller.js",
+        "sha256": "f0f56c36becfdf90c24517ee2fb91d4c3ff56d4c49d26b67adceb2c1a33d688a"
+      },
+      {
+        "file": "js/core/motion.js",
+        "sha256": "a4de9ed5c3740116a24f19540bfea9866de4f51115e1b7ef64edf1ca1e72d231"
+      },
+      {
+        "file": "js/core/parked-rows.js",
+        "sha256": "7f6033b9be4ac1fbbe4b9e85dee6a9cfcc6bfb09ca05ed1b552f7320e04edf4a"
+      },
+      {
+        "file": "js/core/perf.js",
+        "sha256": "f6b7e261f607fc0c89ff5d6c50be58eee7a45be93823bbfd73b17bfcd5e7b4e8"
+      },
+      {
+        "file": "js/core/public-experience.js",
+        "sha256": "e946161fb1a9cde38735a5a1cf1ee3c64a30dea2bfe62079fa874411e59d08b4"
+      },
+      {
+        "file": "js/core/public-ui-policy.js",
+        "sha256": "b6a8f4db01663ceafc618d1f04ca1c398e687fa621327d107758fc59d2cbd6ea"
+      },
+      {
+        "file": "js/core/router.js",
+        "sha256": "e5a01e7d8a1eaa43044736b487a33194f1a9081e7b48a09368259ae850df55a1"
+      },
+      {
+        "file": "js/core/session.js",
+        "sha256": "c3536771d69a06a75a25b415516943d51dbf6eed2e92bfe6032f740f443d9a0a"
+      },
+      {
+        "file": "js/core/startup.js",
+        "sha256": "046318c5f3217535b0e998b85ac3a649a6474edba610c66fdacf194bf6a8617c"
+      },
+      {
+        "file": "js/core/storage.js",
+        "sha256": "6607ff745713d3af1701464882f91953eb5d2061517fd2ec9f7268f3014ffadc"
+      },
+      {
+        "file": "js/core/ui.js",
+        "sha256": "3dfb06770a24bf571355858239902441a974f540c4ce9871a802eb0c8362310b"
+      },
+      {
+        "file": "js/finance/ai-assistance.js",
+        "sha256": "87656fce6a7189b1fb24644982a233a7c47d2f1ce45c4e3eb49e7eaff2425be7"
+      },
+      {
+        "file": "js/finance/app.js",
+        "sha256": "fef16e479e2c761e01956a5c545f4a35f83995a5fda5261a50f849d4710f0339"
+      },
+      {
+        "file": "js/finance/candidates.js",
+        "sha256": "49936b5b66fb64cf361b2f067eae351e4c62a1b9fa13bdecd2548b6b158e1b63"
+      },
+      {
+        "file": "js/finance/disclosure.js",
+        "sha256": "e495e052d69c20a030d268e33879f32cb293de41c261cbe8de5cd4d7f214eae7"
+      },
+      {
+        "file": "js/finance/format.js",
+        "sha256": "eec03af7a4ca9c20ced2950066c4b401dfff80bb13bd0d0989d42c213393bed9"
+      },
+      {
+        "file": "js/finance/money.js",
+        "sha256": "8110b8a11a9a1ca7e79e070bae84727f25a9fb3cdda6ba7bd06b7d842b3725d4"
+      },
+      {
+        "file": "js/finance/notification-ledger.js",
+        "sha256": "862bb5998b3e62eb8e0b1e62d37b3bf1d4ac04f58f175a4ec12836752719e7f0"
+      },
+      {
+        "file": "js/language/achievements.js",
+        "sha256": "f6d44c99a6a039a11603228c6ca178572b7298878fdae79ca463e735b3b4368d"
+      },
+      {
+        "file": "js/language/history.js",
+        "sha256": "c42ac05d28939d8fdb7489066a6df7145d1750cc0c30f879de767ee90673c810"
+      },
+      {
+        "file": "js/language/mastery-journal.js",
+        "sha256": "01bdd2b4f63cdeadf8a7c105ee1fcf1f78578bc026064e028a24716c6915d655"
+      },
+      {
+        "file": "js/language/mastery-state.js",
+        "sha256": "a4168fd24c051b56c24ae95a56f96b85b14858305c78803fdee23755a35715fb"
+      },
+      {
+        "file": "js/language/mastery.js",
+        "sha256": "dfd234c139a8b433d166468e8a86de5bc3b1d785036152da5abac0c520410d30"
+      },
+      {
+        "file": "js/language/pdf.js",
+        "sha256": "3e17ed96d0f30e5179e3e36c5efa305a8144f940a919331b3452e4cbf42a34da"
+      },
+      {
+        "file": "js/language/quiz.js",
+        "sha256": "02a9ef2f23866c8622673e023100c9be59b4b5b9e709f49a119903ae9b7ce1b6"
+      },
+      {
+        "file": "js/language/speech-rate.js",
+        "sha256": "cf1c3fb8b93671580f2345dca496623fe056f0feea2a9bc2b07dd087861b4549"
+      },
+      {
+        "file": "js/language/speech.js",
+        "sha256": "a2da9adce40ea9ec5289558482ab74992884937f4e739a87a14a2b7aaad15125"
+      },
+      {
+        "file": "js/language/sync-adapter.js",
+        "sha256": "8280a7f682bc2ff9f81bf7eff6054a3f86886885601ee9725a8dea7af8035bac"
+      },
+      {
+        "file": "js/language/wrong-book.js",
+        "sha256": "0e0974023ab58a8177e432b2af5315bcd66ea61cec4343b4c7c1e31e1b448221"
+      },
+      {
+        "file": "js/language/wrong-review-sync.js",
+        "sha256": "b8a5a8069c25dc4f990eb42951b9db6fb0f32153d2e78a7edf395e2d0ecae11e"
+      },
+      {
+        "file": "js/language/wrong-review.js",
+        "sha256": "fb5ce4c0f93a5db7d5d38016bc51f705d4e38f65d0324c38f4035262be5f478f"
+      },
+      {
+        "file": "js/membership/account.js",
+        "sha256": "bee87d382312fd8d0004655283cebe7e8a6d33eefd9f7415ee4eefa14061452f"
+      },
+      {
+        "file": "js/membership/plans.js",
+        "sha256": "236ff69e50753263d3108476be2823372c8625502c47ddb4e8f5acd4f64f6e17"
+      },
+      {
+        "file": "js/membership/recharge.js",
+        "sha256": "9bfdf2743652ed12d164c9a3706b1748ae653a657a5e30f4d845b76e51b1fb51"
+      },
+      {
+        "file": "js/tools/catalog.js",
+        "sha256": "816685130517892a2173ddf4243c55c8c7e8c94fc3eb3e3c7fd8bbc870e9dc32"
+      },
+      {
+        "file": "js/tools/digest-worker.js",
+        "sha256": "08a2f288cb613b2a72ed25ef85dcbbf1dd8181c68525bf133d6f6e394e2a5f08"
+      },
+      {
+        "file": "js/tools/file.js",
+        "sha256": "9279390f807f457a9debf2a2b410cbfaefa49ce1a940f03346ebc108c25cb294"
+      },
+      {
+        "file": "js/tools/image.js",
+        "sha256": "a2fe40676d1d0f282c4616e48dcb7d1488519d0125691429eac92f06fe74dc99"
+      },
+      {
+        "file": "js/tools/random.js",
+        "sha256": "9e23806312551ce4843eb3fc53697b13adcf31bea9029a360184e4f0209ef8e5"
+      },
+      {
+        "file": "js/tools/runner.js",
+        "sha256": "d5527c4ed9e85e7a11504a27d322c4fc215e5c0c2c67005213cc152be0c0ac09"
+      },
+      {
+        "file": "js/tools/temporary.js",
+        "sha256": "f4b6bc168d97e9e4159143ed50ee22f2ad4d3d96a553ad9cc20d5b6cf71aa187"
+      },
+      {
+        "file": "js/tools/text.js",
+        "sha256": "b2e40ada155758ceca4f0819fd0c1de9548b85c3bed8b68ca6674853d7c8cf08"
+      },
+      {
+        "file": "js/transfer/app.js",
+        "sha256": "ba0ee345aada8f69310855c4db1dd9f9f8279818190f0b7b1ccb3cefe8a2ddf1"
+      },
+      {
+        "file": "js/transfer/updates.js",
+        "sha256": "7e0ad15fba651ec063ccbffd447b57681f789b435a0408332a5dbeab9f63f540"
+      },
+      {
+        "file": "js/transfer/upload-part.js",
+        "sha256": "0b9f1d16c3fd821329efd1a6bec17a758eadddc4de5334286262ae12ba49707c"
+      },
+      {
+        "file": "learning-sync.js",
+        "sha256": "782eed23916fc1145b87ea9f7d38cb8131d429d2485f5da9eef0bbb24e0163e0"
+      },
+      {
+        "file": "local-backend/browser_harness.mjs",
+        "sha256": "c4d1a4464b3a8139bc6bde3a5c89a1c888bcaf54f48d461be67eb160d0ffb4eb"
+      },
+      {
+        "file": "manifest.webmanifest",
+        "sha256": "d323d090784c7ffa3ecf614046b974a4388f66fd2410837db508e197e135064c"
+      },
+      {
+        "file": "package-lock.json",
+        "sha256": "75f023a2e4a47d248d3246e1b3c7e4a86ab7e5739b105b37ca8320021a1fdeb3"
+      },
+      {
+        "file": "package.json",
+        "sha256": "bc84b89bc0bd9fe88ed4b85f2422d334bcf6e9f0d65255408562193158d0f3b6"
+      },
+      {
+        "file": "product-ui.css",
+        "sha256": "47dc311abcccdfe93a38a0c27b712a0dfd8ee7d861aae3f6607abc548f5db099"
+      },
+      {
+        "file": "public-experience.css",
+        "sha256": "ff5671f904022bc73fef05ae4a518772529f9dd6871ec5a1923a4e1e5919271f"
+      },
+      {
+        "file": "qa/i05/browser-acceptance.mjs",
+        "sha256": "22654dbbf568cb0656aa0cefb5e565fc7cabb96c0e0c9d5eb98a8e4028808bce"
+      },
+      {
+        "file": "qa/i05/browser-proofs.mjs",
+        "sha256": "0d8927d091a38db655446cf2f738096e335b63da7b306e0d7df84e3bcfc9ab09"
+      },
+      {
+        "file": "qa/p07-f/vendor/axe.min.js",
+        "sha256": "41ea1db4a81c9d8e1cd1dc5ab02ec3c9d487ef8d0eb8541c4821bfd54fe20b4f"
+      },
+      {
+        "file": "scripts/stage_pages_deploy.mjs",
+        "sha256": "0e45e2ef979bc8a4c13b177c6be5e158ea6f69bbf66ae196994bc167f8da044e"
+      },
+      {
+        "file": "spatial-experience.css",
+        "sha256": "8ec1bc9a17399f2a5f1c2169d0832999a506e5f4156b802d7500d9ce0c09d3de"
+      },
+      {
+        "file": "styles.css",
+        "sha256": "e2c64239d5a9683ce935172bf482b0f2ceb6a8beec4e271d8c3880f9005e1af6"
+      },
+      {
+        "file": "sw.js",
+        "sha256": "bbf803c00319e3759db7fd265ca435c594592f1ed84719abbd81d9f041a8b64f"
+      },
+      {
+        "file": "tools.js",
+        "sha256": "cf6dd7fe7b26063c1e42c9cfe0020fb475da166c7d403d476e20be7de98e2b65"
+      },
+      {
+        "file": "vendor/opencc-LICENSE.txt",
+        "sha256": "fb531487f666909d487239da6130e2256d8c86f26ec2674ce6aa5763bc7f8c56"
+      },
+      {
+        "file": "vendor/opencc-st-characters.txt",
+        "sha256": "81c27e6364fd164181276197b9215cf95f7f12a050aa207375248a5badf8d6fc"
+      },
+      {
+        "file": "vendor/opencc-ts-characters.txt",
+        "sha256": "737c21c66f55a419dd6956cb3089476cdefc5a36877452631617696df1e5d925"
+      },
+      {
+        "file": "vendor/qrcode.js",
+        "sha256": "55427af126a7fd46b83b7a9557b7ad6a48850b31f2b4a1b32e2289e376dc80b4"
+      },
+      {
+        "file": "workflows.js",
+        "sha256": "f7b50ce835a2c983211ed77fbc847831307e237b6966acc7cd1774ea975c894a"
+      },
+      {
+        "file": "workspace-experience.css",
+        "sha256": "fd73f551b3b01a63556db4a433e801757b60c577f52bc430df2a09f3103ccf10"
+      },
+      {
+        "file": "wrangler.jsonc",
+        "sha256": "c80e6dc2813df135581d7e13a0b743d1aa85c3bc71c1781982609aecd312abce"
+      }
+    ]
+  },
+  "checkedAt": "2026-11-21T18:33:37.009Z",
+  "selectedScenarios": "all",
+  "browserVersion": "Chrome/158.0.8127.36",
+  "scenarios": [
+    {
+      "name": "a_seven_route_sidebar_shell",
+      "status": "PASS",
+      "ms": 16842,
+      "detail": {
+        "selectCrumb": "个人工作台",
+        "routes": [
+          {
+            "route": "home",
+            "pathname": "/",
+            "crumbText": "个人工作台",
+            "crumbVisible": true,
+            "overflow": -15,
+            "headingOk": true,
+            "headingTag": "H2",
+            "maxRadius": 8
+          },
+          {
+            "route": "language",
+            "pathname": "/language",
+            "crumbText": "语言学习",
+            "crumbVisible": true,
+            "overflow": -15,
+            "headingOk": true,
+            "headingTag": "H1",
+            "maxRadius": 0
+          },
+          {
+            "route": "tools",
+            "pathname": "/tools",
+            "crumbText": "工具箱",
+            "crumbVisible": true,
+            "overflow": -15,
+            "headingOk": true,
+            "headingTag": "H1",
+            "maxRadius": 0
+          },
+          {
+            "route": "finance",
+            "pathname": "/finance",
+            "crumbText": "财务账本",
+            "crumbVisible": true,
+            "overflow": -15,
+            "headingOk": true,
+            "headingTag": "H1",
+            "maxRadius": 0
+          },
+          {
+            "route": "transfer",
+            "pathname": "/transfer",
+            "crumbText": "文件传输",
+            "crumbVisible": true,
+            "overflow": -15,
+            "headingOk": true,
+            "headingTag": "H1",
+            "maxRadius": 0
+          },
+          {
+            "route": "account",
+            "pathname": "/account",
+            "crumbText": "账户与安全",
+            "crumbVisible": true,
+            "overflow": -15,
+            "headingOk": true,
+            "headingTag": "H1",
+            "maxRadius": 0
+          },
+          {
+            "route": "admin",
+            "pathname": "/admin",
+            "crumbText": "用户",
+            "crumbVisible": true,
+            "overflow": -15,
+            "headingOk": true,
+            "headingTag": "H1",
+            "maxRadius": 0
+          }
+        ]
+      }
+    },
+    {
+      "name": "b_history_back_forward",
+      "status": "PASS",
+      "ms": 3637,
+      "detail": {
+        "back1Crumb": "工具箱",
+        "back2Crumb": "语言学习",
+        "fwdCrumb": "工具箱"
+      }
+    },
+    {
+      "name": "c_tools_search_and_workbench",
+      "status": "PASS",
+      "ms": 5047,
+      "detail": {
+        "searchState": {
+          "focusedId": "toolSearchInput",
+          "value": "json",
+          "count": 6
+        },
+        "opened": {
+          "pathname": "/tools/json-format",
+          "title": "JSON 格式化",
+          "crumb": "JSON 格式化"
+        },
+        "wfDesktop": {
+          "overflow": -15,
+          "sidebarClient": 318,
+          "sidebarScroll": 318,
+          "importBox": [
+            1,
+            1,
+            249
+          ]
+        },
+        "wfMobile": {
+          "overflow": 0,
+          "sidebarClient": 345,
+          "sidebarScroll": 345,
+          "importBox": [
+            1,
+            1,
+            31
+          ]
+        }
+      }
+    },
+    {
+      "name": "d_finance_filters_modal_tabular_mobile",
+      "status": "PASS",
+      "ms": 6713,
+      "detail": {
+        "tabular": "tabular-nums",
+        "restoredFocusId": "financeAddTransactionBtn",
+        "mobileOverflow": 0
+      }
+    },
+    {
+      "name": "e_transfer_queue_and_mobile",
+      "status": "PASS",
+      "ms": 9770,
+      "detail": {
+        "mobileOverflow": 0,
+        "queueHasFile": true
+      }
+    },
+    {
+      "name": "f_account_security_and_release_channel",
+      "status": "PASS",
+      "ms": 18366,
+      "detail": {
+        "channel": {
+          "original": {
+            "status": 200,
+            "channel": "stable",
+            "revision": 0
+          },
+          "targetChannel": "beta",
+          "saveHit": {
+            "ok": true,
+            "cx": 602.5,
+            "cy": 534.75,
+            "width": 418,
+            "height": 44,
+            "hitTag": "BUTTON",
+            "hitId": "saveReleaseChannelBtn",
+            "hitClass": ""
+          },
+          "saved": {
+            "status": 200,
+            "channel": "beta",
+            "revision": 1
+          },
+          "reloadedChannel": "beta",
+          "restored": {
+            "status": 200,
+            "channel": "stable",
+            "revision": 2
+          },
+          "restoredAfterReload": "stable"
+        },
+        "rechargeDesktop": {
+          "x": 232,
+          "width": 1169,
+          "breadcrumbOlX": 232,
+          "paddingLeft": "0px",
+          "overflow": -15
+        },
+        "rechargeMobile": {
+          "x": 14,
+          "width": 362,
+          "breadcrumbOlX": 14,
+          "overflow": 0
+        }
+      }
+    },
+    {
+      "name": "g_admin_kpis_flags_dom_identity_and_offline",
+      "status": "PASS",
+      "ms": 33424,
+      "detail": {
+        "kpiCheck": {
+          "kpiText": "2",
+          "status": 200,
+          "apiTotal": 2
+        },
+        "stickyCheck": {
+          "scrollY": 248,
+          "position": "sticky",
+          "bcTop": 61,
+          "barBottom": 61
+        },
+        "headAlignment": {
+          "hasHeads": true,
+          "users": {
+            "dataColumns": 3,
+            "totalColumns": 4,
+            "headTracks": [
+              282.359,
+              416.828,
+              295.812,
+              92
+            ],
+            "rows": [
+              {
+                "dataDrifts": [
+                  0,
+                  0,
+                  0
+                ],
+                "trackDrifts": [
+                  0,
+                  0,
+                  0,
+                  0
+                ],
+                "action": {
+                  "trackLeft": 1292,
+                  "trackRight": 1384,
+                  "actionsLeft": 1318,
+                  "actionsRight": 1384
+                }
+              },
+              {
+                "dataDrifts": [
+                  0,
+                  0,
+                  0
+                ],
+                "trackDrifts": [
+                  0,
+                  0,
+                  0,
+                  0
+                ],
+                "action": {
+                  "trackLeft": 1292,
+                  "trackRight": 1384,
+                  "actionsLeft": 1318,
+                  "actionsRight": 1384
+                }
+              }
+            ]
+          }
+        },
+        "loginAlignment": {
+          "dataColumns": 3,
+          "totalColumns": 3,
+          "headTracks": [
+            321.703,
+            382.984,
+            398.297
+          ],
+          "rows": [
+            {
+              "dataDrifts": [
+                0,
+                0,
+                0
+              ],
+              "trackDrifts": [
+                0,
+                0,
+                0
+              ],
+              "action": null
+            }
+          ]
+        },
+        "tabCount": 10,
+        "cbSizes": {
+          "enabledBox": [
+            20,
+            20
+          ],
+          "killBox": [
+            20,
+            20
+          ]
+        },
+        "flagKey": "i05_fixture_qqzlbo",
+        "domIntegrity": {
+          "sameForm": true,
+          "sameCb": true,
+          "removedCount": 0,
+          "auditHasKey": true
+        },
+        "persistedDesc": "I05 retry after a rejected save",
+        "recovery": {
+          "interceptedPosts": 1,
+          "forcedHttpStatus": 503,
+          "offlineState": {
+            "status": "验收模拟：功能配置保存暂不可用",
+            "btnDisabled": false,
+            "draftDesc": "I05 retry after a rejected save"
+          },
+          "persistedBeforeError": {
+            "description": "I05 acceptance flag",
+            "revision": 1
+          },
+          "persistedAfterError": {
+            "description": "I05 acceptance flag",
+            "revision": 1
+          },
+          "persistedAfterRetry": {
+            "description": "I05 retry after a rejected save",
+            "revision": 2
+          },
+          "reloaded": true
+        }
+      }
+    },
+    {
+      "name": "h_non_admin_isolation",
+      "status": "PASS",
+      "ms": 14262,
+      "detail": {
+        "adminHidden": true,
+        "apiStatus": 403,
+        "postState": {
+          "pathname": "/",
+          "adminHidden": true
+        }
+      }
+    },
+    {
+      "name": "i_responsive_theme_matrix",
+      "status": "PASS",
+      "ms": 50916,
+      "detail": {
+        "totalChecks": 90
+      }
+    },
+    {
+      "name": "j_reduced_motion",
+      "status": "PASS",
+      "ms": 6063,
+      "detail": {
+        "reducedMotionOperable": true
+      }
+    },
+    {
+      "name": "k_p07_off_fallback",
+      "status": "PASS",
+      "ms": 16645,
+      "detail": {
+        "p07Ui": "disabled",
+        "breadcrumbDisplay": "none",
+        "kpiDisplay": "none",
+        "sidebarDisplay": "none",
+        "usersVisible": true
+      }
+    },
+    {
+      "name": "l_css_failure_fallback",
+      "status": "PASS",
+      "ms": 15262,
+      "detail": {
+        "barHeight": 103.390625,
+        "tabHit": {
+          "ok": true,
+          "cx": 91.9453125,
+          "cy": 562.1887817382812,
+          "width": 133.890625,
+          "height": 44,
+          "hitTag": "BUTTON",
+          "hitId": "adminUsersTab",
+          "hitClass": "active"
+        }
+      }
+    },
+    {
+      "name": "m_axe_a11y_and_runtime_clean",
+      "status": "PASS",
+      "ms": 30654,
+      "detail": {
+        "routes": [
+          {
+            "route": "home",
+            "passes": 45,
+            "minorOrMod": 0
+          },
+          {
+            "route": "language",
+            "passes": 42,
+            "minorOrMod": 0
+          },
+          {
+            "route": "tools",
+            "passes": 46,
+            "minorOrMod": 0
+          },
+          {
+            "route": "workflows",
+            "passes": 45,
+            "minorOrMod": 0
+          },
+          {
+            "route": "finance",
+            "passes": 46,
+            "minorOrMod": 0
+          },
+          {
+            "route": "transfer",
+            "passes": 47,
+            "minorOrMod": 0
+          },
+          {
+            "route": "recharge",
+            "passes": 41,
+            "minorOrMod": 0
+          },
+          {
+            "route": "account",
+            "passes": 46,
+            "minorOrMod": 0
+          },
+          {
+            "route": "admin",
+            "passes": 51,
+            "minorOrMod": 0
+          }
+        ]
+      }
+    }
+  ],
+  "viewportMatrix": [
+    {
+      "width": 1440,
+      "height": 900,
+      "route": "home",
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "visualWidth": 1425,
+        "visualHeight": 900,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/select",
+      "theme": "light",
+      "sidebarVisible": true,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "route": "home",
+      "viewport": {
+        "width": 1024,
+        "height": 768,
+        "visualWidth": 1009,
+        "visualHeight": 768,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/select",
+      "theme": "light",
+      "sidebarVisible": true,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "route": "home",
+      "viewport": {
+        "width": 768,
+        "height": 1024,
+        "visualWidth": 753,
+        "visualHeight": 1024,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/select",
+      "theme": "light",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "route": "home",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "visualWidth": 390,
+        "visualHeight": 844,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": 0,
+      "pathname": "/select",
+      "theme": "light",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 375,
+      "height": 812,
+      "route": "home",
+      "viewport": {
+        "width": 375,
+        "height": 812,
+        "visualWidth": 375,
+        "visualHeight": 812,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": 0,
+      "pathname": "/select",
+      "theme": "light",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "route": "language",
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "visualWidth": 1425,
+        "visualHeight": 900,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/language",
+      "theme": "light",
+      "sidebarVisible": true,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "route": "language",
+      "viewport": {
+        "width": 1024,
+        "height": 768,
+        "visualWidth": 1009,
+        "visualHeight": 768,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/language",
+      "theme": "light",
+      "sidebarVisible": true,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "route": "language",
+      "viewport": {
+        "width": 768,
+        "height": 1024,
+        "visualWidth": 753,
+        "visualHeight": 1024,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/language",
+      "theme": "light",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "route": "language",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "visualWidth": 390,
+        "visualHeight": 844,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": 0,
+      "pathname": "/language",
+      "theme": "light",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 375,
+      "height": 812,
+      "route": "language",
+      "viewport": {
+        "width": 375,
+        "height": 812,
+        "visualWidth": 375,
+        "visualHeight": 812,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": 0,
+      "pathname": "/language",
+      "theme": "light",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "route": "tools",
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "visualWidth": 1425,
+        "visualHeight": 900,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/tools",
+      "theme": "light",
+      "sidebarVisible": true,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "route": "tools",
+      "viewport": {
+        "width": 1024,
+        "height": 768,
+        "visualWidth": 1009,
+        "visualHeight": 768,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/tools",
+      "theme": "light",
+      "sidebarVisible": true,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "route": "tools",
+      "viewport": {
+        "width": 768,
+        "height": 1024,
+        "visualWidth": 753,
+        "visualHeight": 1024,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/tools",
+      "theme": "light",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "route": "tools",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "visualWidth": 390,
+        "visualHeight": 844,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": 0,
+      "pathname": "/tools",
+      "theme": "light",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 375,
+      "height": 812,
+      "route": "tools",
+      "viewport": {
+        "width": 375,
+        "height": 812,
+        "visualWidth": 375,
+        "visualHeight": 812,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": 0,
+      "pathname": "/tools",
+      "theme": "light",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "route": "workflows",
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "visualWidth": 1425,
+        "visualHeight": 900,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/tools/workflows",
+      "theme": "light",
+      "sidebarVisible": true,
+      "breadcrumbVisible": true,
+      "extra": {
+        "wfSidebarOverflow": 0,
+        "wfSidebarWidth": 318,
+        "wfImportRight": 249,
+        "wfImportWidth": 1,
+        "wfImportHeight": 1
+      }
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "route": "workflows",
+      "viewport": {
+        "width": 1024,
+        "height": 768,
+        "visualWidth": 1009,
+        "visualHeight": 768,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/tools/workflows",
+      "theme": "light",
+      "sidebarVisible": true,
+      "breadcrumbVisible": true,
+      "extra": {
+        "wfSidebarOverflow": 0,
+        "wfSidebarWidth": 318,
+        "wfImportRight": 249,
+        "wfImportWidth": 1,
+        "wfImportHeight": 1
+      }
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "route": "workflows",
+      "viewport": {
+        "width": 768,
+        "height": 1024,
+        "visualWidth": 753,
+        "visualHeight": 1024,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/tools/workflows",
+      "theme": "light",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {
+        "wfSidebarOverflow": 0,
+        "wfSidebarWidth": 703,
+        "wfImportRight": 41,
+        "wfImportWidth": 1,
+        "wfImportHeight": 1
+      }
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "route": "workflows",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "visualWidth": 390,
+        "visualHeight": 844,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": 0,
+      "pathname": "/tools/workflows",
+      "theme": "light",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {
+        "wfSidebarOverflow": 0,
+        "wfSidebarWidth": 360,
+        "wfImportRight": 31,
+        "wfImportWidth": 1,
+        "wfImportHeight": 1
+      }
+    },
+    {
+      "width": 375,
+      "height": 812,
+      "route": "workflows",
+      "viewport": {
+        "width": 375,
+        "height": 812,
+        "visualWidth": 375,
+        "visualHeight": 812,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": 0,
+      "pathname": "/tools/workflows",
+      "theme": "light",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {
+        "wfSidebarOverflow": 0,
+        "wfSidebarWidth": 345,
+        "wfImportRight": 31,
+        "wfImportWidth": 1,
+        "wfImportHeight": 1
+      }
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "route": "finance",
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "visualWidth": 1425,
+        "visualHeight": 900,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/finance",
+      "theme": "light",
+      "sidebarVisible": true,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "route": "finance",
+      "viewport": {
+        "width": 1024,
+        "height": 768,
+        "visualWidth": 1009,
+        "visualHeight": 768,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/finance",
+      "theme": "light",
+      "sidebarVisible": true,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "route": "finance",
+      "viewport": {
+        "width": 768,
+        "height": 1024,
+        "visualWidth": 753,
+        "visualHeight": 1024,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/finance",
+      "theme": "light",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "route": "finance",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "visualWidth": 390,
+        "visualHeight": 844,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": 0,
+      "pathname": "/finance",
+      "theme": "light",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 375,
+      "height": 812,
+      "route": "finance",
+      "viewport": {
+        "width": 375,
+        "height": 812,
+        "visualWidth": 375,
+        "visualHeight": 812,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": 0,
+      "pathname": "/finance",
+      "theme": "light",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "route": "transfer",
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "visualWidth": 1425,
+        "visualHeight": 900,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/transfer",
+      "theme": "light",
+      "sidebarVisible": true,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "route": "transfer",
+      "viewport": {
+        "width": 1024,
+        "height": 768,
+        "visualWidth": 1009,
+        "visualHeight": 768,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/transfer",
+      "theme": "light",
+      "sidebarVisible": true,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "route": "transfer",
+      "viewport": {
+        "width": 768,
+        "height": 1024,
+        "visualWidth": 753,
+        "visualHeight": 1024,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/transfer",
+      "theme": "light",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "route": "transfer",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "visualWidth": 390,
+        "visualHeight": 844,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": 0,
+      "pathname": "/transfer",
+      "theme": "light",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 375,
+      "height": 812,
+      "route": "transfer",
+      "viewport": {
+        "width": 375,
+        "height": 812,
+        "visualWidth": 375,
+        "visualHeight": 812,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": 0,
+      "pathname": "/transfer",
+      "theme": "light",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "route": "recharge",
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "visualWidth": 1425,
+        "visualHeight": 900,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/recharge",
+      "theme": "light",
+      "sidebarVisible": true,
+      "breadcrumbVisible": true,
+      "extra": {
+        "rechargeLeft": 232,
+        "rechargeRight": 1401,
+        "rechargeWidth": 1169,
+        "rechargeBreadcrumbLeft": 232
+      }
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "route": "recharge",
+      "viewport": {
+        "width": 1024,
+        "height": 768,
+        "visualWidth": 1009,
+        "visualHeight": 768,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/recharge",
+      "theme": "light",
+      "sidebarVisible": true,
+      "breadcrumbVisible": true,
+      "extra": {
+        "rechargeLeft": 232,
+        "rechargeRight": 985,
+        "rechargeWidth": 753,
+        "rechargeBreadcrumbLeft": 232
+      }
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "route": "recharge",
+      "viewport": {
+        "width": 768,
+        "height": 1024,
+        "visualWidth": 753,
+        "visualHeight": 1024,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/recharge",
+      "theme": "light",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {
+        "rechargeLeft": 24,
+        "rechargeRight": 729,
+        "rechargeWidth": 705,
+        "rechargeBreadcrumbLeft": 24
+      }
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "route": "recharge",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "visualWidth": 390,
+        "visualHeight": 844,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": 0,
+      "pathname": "/recharge",
+      "theme": "light",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {
+        "rechargeLeft": 14,
+        "rechargeRight": 376,
+        "rechargeWidth": 362,
+        "rechargeBreadcrumbLeft": 14
+      }
+    },
+    {
+      "width": 375,
+      "height": 812,
+      "route": "recharge",
+      "viewport": {
+        "width": 375,
+        "height": 812,
+        "visualWidth": 375,
+        "visualHeight": 812,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": 0,
+      "pathname": "/recharge",
+      "theme": "light",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {
+        "rechargeLeft": 14,
+        "rechargeRight": 361,
+        "rechargeWidth": 347,
+        "rechargeBreadcrumbLeft": 14
+      }
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "route": "account",
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "visualWidth": 1425,
+        "visualHeight": 900,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/account",
+      "theme": "light",
+      "sidebarVisible": true,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "route": "account",
+      "viewport": {
+        "width": 1024,
+        "height": 768,
+        "visualWidth": 1009,
+        "visualHeight": 768,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/account",
+      "theme": "light",
+      "sidebarVisible": true,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "route": "account",
+      "viewport": {
+        "width": 768,
+        "height": 1024,
+        "visualWidth": 753,
+        "visualHeight": 1024,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/account",
+      "theme": "light",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "route": "account",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "visualWidth": 390,
+        "visualHeight": 844,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": 0,
+      "pathname": "/account",
+      "theme": "light",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 375,
+      "height": 812,
+      "route": "account",
+      "viewport": {
+        "width": 375,
+        "height": 812,
+        "visualWidth": 375,
+        "visualHeight": 812,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": 0,
+      "pathname": "/account",
+      "theme": "light",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "route": "admin",
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "visualWidth": 1425,
+        "visualHeight": 900,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/admin",
+      "theme": "light",
+      "sidebarVisible": true,
+      "breadcrumbVisible": true,
+      "extra": {
+        "newFlagButton": {
+          "width": 98,
+          "height": 44,
+          "lines": 1
+        },
+        "refreshFlagButton": {
+          "width": 98,
+          "height": 44,
+          "lines": 1
+        }
+      }
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "route": "admin",
+      "viewport": {
+        "width": 1024,
+        "height": 768,
+        "visualWidth": 1009,
+        "visualHeight": 768,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/admin",
+      "theme": "light",
+      "sidebarVisible": true,
+      "breadcrumbVisible": true,
+      "extra": {
+        "newFlagButton": {
+          "width": 98,
+          "height": 44,
+          "lines": 1
+        },
+        "refreshFlagButton": {
+          "width": 98,
+          "height": 44,
+          "lines": 1
+        }
+      }
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "route": "admin",
+      "viewport": {
+        "width": 768,
+        "height": 1024,
+        "visualWidth": 753,
+        "visualHeight": 1024,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/admin",
+      "theme": "light",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {
+        "newFlagButton": {
+          "width": 98,
+          "height": 44,
+          "lines": 1
+        },
+        "refreshFlagButton": {
+          "width": 98,
+          "height": 44,
+          "lines": 1
+        }
+      }
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "route": "admin",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "visualWidth": 390,
+        "visualHeight": 844,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": 0,
+      "pathname": "/admin",
+      "theme": "light",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {
+        "newFlagButton": {
+          "width": 161,
+          "height": 44,
+          "lines": 1
+        },
+        "refreshFlagButton": {
+          "width": 161,
+          "height": 44,
+          "lines": 1
+        }
+      }
+    },
+    {
+      "width": 375,
+      "height": 812,
+      "route": "admin",
+      "viewport": {
+        "width": 375,
+        "height": 812,
+        "visualWidth": 375,
+        "visualHeight": 812,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": 0,
+      "pathname": "/admin",
+      "theme": "light",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {
+        "newFlagButton": {
+          "width": 153.5,
+          "height": 44,
+          "lines": 1
+        },
+        "refreshFlagButton": {
+          "width": 153.5,
+          "height": 44,
+          "lines": 1
+        }
+      }
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "route": "home",
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "visualWidth": 1425,
+        "visualHeight": 900,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/select",
+      "theme": "dark",
+      "sidebarVisible": true,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "route": "home",
+      "viewport": {
+        "width": 1024,
+        "height": 768,
+        "visualWidth": 1009,
+        "visualHeight": 768,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/select",
+      "theme": "dark",
+      "sidebarVisible": true,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "route": "home",
+      "viewport": {
+        "width": 768,
+        "height": 1024,
+        "visualWidth": 753,
+        "visualHeight": 1024,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/select",
+      "theme": "dark",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "route": "home",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "visualWidth": 390,
+        "visualHeight": 844,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": 0,
+      "pathname": "/select",
+      "theme": "dark",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 375,
+      "height": 812,
+      "route": "home",
+      "viewport": {
+        "width": 375,
+        "height": 812,
+        "visualWidth": 375,
+        "visualHeight": 812,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": 0,
+      "pathname": "/select",
+      "theme": "dark",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "route": "language",
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "visualWidth": 1425,
+        "visualHeight": 900,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/language",
+      "theme": "dark",
+      "sidebarVisible": true,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "route": "language",
+      "viewport": {
+        "width": 1024,
+        "height": 768,
+        "visualWidth": 1009,
+        "visualHeight": 768,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/language",
+      "theme": "dark",
+      "sidebarVisible": true,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "route": "language",
+      "viewport": {
+        "width": 768,
+        "height": 1024,
+        "visualWidth": 753,
+        "visualHeight": 1024,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/language",
+      "theme": "dark",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "route": "language",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "visualWidth": 390,
+        "visualHeight": 844,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": 0,
+      "pathname": "/language",
+      "theme": "dark",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 375,
+      "height": 812,
+      "route": "language",
+      "viewport": {
+        "width": 375,
+        "height": 812,
+        "visualWidth": 375,
+        "visualHeight": 812,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": 0,
+      "pathname": "/language",
+      "theme": "dark",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "route": "tools",
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "visualWidth": 1425,
+        "visualHeight": 900,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/tools",
+      "theme": "dark",
+      "sidebarVisible": true,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "route": "tools",
+      "viewport": {
+        "width": 1024,
+        "height": 768,
+        "visualWidth": 1009,
+        "visualHeight": 768,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/tools",
+      "theme": "dark",
+      "sidebarVisible": true,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "route": "tools",
+      "viewport": {
+        "width": 768,
+        "height": 1024,
+        "visualWidth": 753,
+        "visualHeight": 1024,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/tools",
+      "theme": "dark",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "route": "tools",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "visualWidth": 390,
+        "visualHeight": 844,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": 0,
+      "pathname": "/tools",
+      "theme": "dark",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 375,
+      "height": 812,
+      "route": "tools",
+      "viewport": {
+        "width": 375,
+        "height": 812,
+        "visualWidth": 375,
+        "visualHeight": 812,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": 0,
+      "pathname": "/tools",
+      "theme": "dark",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "route": "workflows",
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "visualWidth": 1425,
+        "visualHeight": 900,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/tools/workflows",
+      "theme": "dark",
+      "sidebarVisible": true,
+      "breadcrumbVisible": true,
+      "extra": {
+        "wfSidebarOverflow": 0,
+        "wfSidebarWidth": 318,
+        "wfImportRight": 249,
+        "wfImportWidth": 1,
+        "wfImportHeight": 1
+      }
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "route": "workflows",
+      "viewport": {
+        "width": 1024,
+        "height": 768,
+        "visualWidth": 1009,
+        "visualHeight": 768,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/tools/workflows",
+      "theme": "dark",
+      "sidebarVisible": true,
+      "breadcrumbVisible": true,
+      "extra": {
+        "wfSidebarOverflow": 0,
+        "wfSidebarWidth": 318,
+        "wfImportRight": 249,
+        "wfImportWidth": 1,
+        "wfImportHeight": 1
+      }
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "route": "workflows",
+      "viewport": {
+        "width": 768,
+        "height": 1024,
+        "visualWidth": 753,
+        "visualHeight": 1024,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/tools/workflows",
+      "theme": "dark",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {
+        "wfSidebarOverflow": 0,
+        "wfSidebarWidth": 703,
+        "wfImportRight": 41,
+        "wfImportWidth": 1,
+        "wfImportHeight": 1
+      }
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "route": "workflows",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "visualWidth": 390,
+        "visualHeight": 844,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": 0,
+      "pathname": "/tools/workflows",
+      "theme": "dark",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {
+        "wfSidebarOverflow": 0,
+        "wfSidebarWidth": 360,
+        "wfImportRight": 31,
+        "wfImportWidth": 1,
+        "wfImportHeight": 1
+      }
+    },
+    {
+      "width": 375,
+      "height": 812,
+      "route": "workflows",
+      "viewport": {
+        "width": 375,
+        "height": 812,
+        "visualWidth": 375,
+        "visualHeight": 812,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": 0,
+      "pathname": "/tools/workflows",
+      "theme": "dark",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {
+        "wfSidebarOverflow": 0,
+        "wfSidebarWidth": 345,
+        "wfImportRight": 31,
+        "wfImportWidth": 1,
+        "wfImportHeight": 1
+      }
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "route": "finance",
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "visualWidth": 1425,
+        "visualHeight": 900,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/finance",
+      "theme": "dark",
+      "sidebarVisible": true,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "route": "finance",
+      "viewport": {
+        "width": 1024,
+        "height": 768,
+        "visualWidth": 1009,
+        "visualHeight": 768,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/finance",
+      "theme": "dark",
+      "sidebarVisible": true,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "route": "finance",
+      "viewport": {
+        "width": 768,
+        "height": 1024,
+        "visualWidth": 753,
+        "visualHeight": 1024,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/finance",
+      "theme": "dark",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "route": "finance",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "visualWidth": 390,
+        "visualHeight": 844,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": 0,
+      "pathname": "/finance",
+      "theme": "dark",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 375,
+      "height": 812,
+      "route": "finance",
+      "viewport": {
+        "width": 375,
+        "height": 812,
+        "visualWidth": 375,
+        "visualHeight": 812,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": 0,
+      "pathname": "/finance",
+      "theme": "dark",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "route": "transfer",
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "visualWidth": 1425,
+        "visualHeight": 900,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/transfer",
+      "theme": "dark",
+      "sidebarVisible": true,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "route": "transfer",
+      "viewport": {
+        "width": 1024,
+        "height": 768,
+        "visualWidth": 1009,
+        "visualHeight": 768,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/transfer",
+      "theme": "dark",
+      "sidebarVisible": true,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "route": "transfer",
+      "viewport": {
+        "width": 768,
+        "height": 1024,
+        "visualWidth": 753,
+        "visualHeight": 1024,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/transfer",
+      "theme": "dark",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "route": "transfer",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "visualWidth": 390,
+        "visualHeight": 844,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": 0,
+      "pathname": "/transfer",
+      "theme": "dark",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 375,
+      "height": 812,
+      "route": "transfer",
+      "viewport": {
+        "width": 375,
+        "height": 812,
+        "visualWidth": 375,
+        "visualHeight": 812,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": 0,
+      "pathname": "/transfer",
+      "theme": "dark",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "route": "recharge",
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "visualWidth": 1425,
+        "visualHeight": 900,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/recharge",
+      "theme": "dark",
+      "sidebarVisible": true,
+      "breadcrumbVisible": true,
+      "extra": {
+        "rechargeLeft": 232,
+        "rechargeRight": 1401,
+        "rechargeWidth": 1169,
+        "rechargeBreadcrumbLeft": 232
+      }
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "route": "recharge",
+      "viewport": {
+        "width": 1024,
+        "height": 768,
+        "visualWidth": 1009,
+        "visualHeight": 768,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/recharge",
+      "theme": "dark",
+      "sidebarVisible": true,
+      "breadcrumbVisible": true,
+      "extra": {
+        "rechargeLeft": 232,
+        "rechargeRight": 985,
+        "rechargeWidth": 753,
+        "rechargeBreadcrumbLeft": 232
+      }
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "route": "recharge",
+      "viewport": {
+        "width": 768,
+        "height": 1024,
+        "visualWidth": 753,
+        "visualHeight": 1024,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/recharge",
+      "theme": "dark",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {
+        "rechargeLeft": 24,
+        "rechargeRight": 729,
+        "rechargeWidth": 705,
+        "rechargeBreadcrumbLeft": 24
+      }
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "route": "recharge",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "visualWidth": 390,
+        "visualHeight": 844,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": 0,
+      "pathname": "/recharge",
+      "theme": "dark",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {
+        "rechargeLeft": 14,
+        "rechargeRight": 376,
+        "rechargeWidth": 362,
+        "rechargeBreadcrumbLeft": 14
+      }
+    },
+    {
+      "width": 375,
+      "height": 812,
+      "route": "recharge",
+      "viewport": {
+        "width": 375,
+        "height": 812,
+        "visualWidth": 375,
+        "visualHeight": 812,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": 0,
+      "pathname": "/recharge",
+      "theme": "dark",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {
+        "rechargeLeft": 14,
+        "rechargeRight": 361,
+        "rechargeWidth": 347,
+        "rechargeBreadcrumbLeft": 14
+      }
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "route": "account",
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "visualWidth": 1425,
+        "visualHeight": 900,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/account",
+      "theme": "dark",
+      "sidebarVisible": true,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "route": "account",
+      "viewport": {
+        "width": 1024,
+        "height": 768,
+        "visualWidth": 1009,
+        "visualHeight": 768,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/account",
+      "theme": "dark",
+      "sidebarVisible": true,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "route": "account",
+      "viewport": {
+        "width": 768,
+        "height": 1024,
+        "visualWidth": 753,
+        "visualHeight": 1024,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/account",
+      "theme": "dark",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "route": "account",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "visualWidth": 390,
+        "visualHeight": 844,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": 0,
+      "pathname": "/account",
+      "theme": "dark",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 375,
+      "height": 812,
+      "route": "account",
+      "viewport": {
+        "width": 375,
+        "height": 812,
+        "visualWidth": 375,
+        "visualHeight": 812,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": 0,
+      "pathname": "/account",
+      "theme": "dark",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {}
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "route": "admin",
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "visualWidth": 1425,
+        "visualHeight": 900,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/admin",
+      "theme": "dark",
+      "sidebarVisible": true,
+      "breadcrumbVisible": true,
+      "extra": {
+        "newFlagButton": {
+          "width": 98,
+          "height": 44,
+          "lines": 1
+        },
+        "refreshFlagButton": {
+          "width": 98,
+          "height": 44,
+          "lines": 1
+        }
+      }
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "route": "admin",
+      "viewport": {
+        "width": 1024,
+        "height": 768,
+        "visualWidth": 1009,
+        "visualHeight": 768,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/admin",
+      "theme": "dark",
+      "sidebarVisible": true,
+      "breadcrumbVisible": true,
+      "extra": {
+        "newFlagButton": {
+          "width": 98,
+          "height": 44,
+          "lines": 1
+        },
+        "refreshFlagButton": {
+          "width": 98,
+          "height": 44,
+          "lines": 1
+        }
+      }
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "route": "admin",
+      "viewport": {
+        "width": 768,
+        "height": 1024,
+        "visualWidth": 753,
+        "visualHeight": 1024,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": -15,
+      "pathname": "/admin",
+      "theme": "dark",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {
+        "newFlagButton": {
+          "width": 98,
+          "height": 44,
+          "lines": 1
+        },
+        "refreshFlagButton": {
+          "width": 98,
+          "height": 44,
+          "lines": 1
+        }
+      }
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "route": "admin",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "visualWidth": 390,
+        "visualHeight": 844,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": 0,
+      "pathname": "/admin",
+      "theme": "dark",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {
+        "newFlagButton": {
+          "width": 161,
+          "height": 44,
+          "lines": 1
+        },
+        "refreshFlagButton": {
+          "width": 161,
+          "height": 44,
+          "lines": 1
+        }
+      }
+    },
+    {
+      "width": 375,
+      "height": 812,
+      "route": "admin",
+      "viewport": {
+        "width": 375,
+        "height": 812,
+        "visualWidth": 375,
+        "visualHeight": 812,
+        "scale": 1,
+        "dpr": 1
+      },
+      "overflow": 0,
+      "pathname": "/admin",
+      "theme": "dark",
+      "sidebarVisible": false,
+      "breadcrumbVisible": true,
+      "extra": {
+        "newFlagButton": {
+          "width": 153.5,
+          "height": 44,
+          "lines": 1
+        },
+        "refreshFlagButton": {
+          "width": 153.5,
+          "height": 44,
+          "lines": 1
+        }
+      }
+    }
+  ],
+  "axeScans": [
+    {
+      "route": "home",
+      "violationCount": 0,
+      "seriousOrCriticalCount": 0,
+      "passes": 45,
+      "violations": []
+    },
+    {
+      "route": "language",
+      "violationCount": 0,
+      "seriousOrCriticalCount": 0,
+      "passes": 42,
+      "violations": []
+    },
+    {
+      "route": "tools",
+      "violationCount": 0,
+      "seriousOrCriticalCount": 0,
+      "passes": 46,
+      "violations": []
+    },
+    {
+      "route": "workflows",
+      "violationCount": 0,
+      "seriousOrCriticalCount": 0,
+      "passes": 45,
+      "violations": []
+    },
+    {
+      "route": "finance",
+      "violationCount": 0,
+      "seriousOrCriticalCount": 0,
+      "passes": 46,
+      "violations": []
+    },
+    {
+      "route": "transfer",
+      "violationCount": 0,
+      "seriousOrCriticalCount": 0,
+      "passes": 47,
+      "violations": []
+    },
+    {
+      "route": "recharge",
+      "violationCount": 0,
+      "seriousOrCriticalCount": 0,
+      "passes": 41,
+      "violations": []
+    },
+    {
+      "route": "account",
+      "violationCount": 0,
+      "seriousOrCriticalCount": 0,
+      "passes": 46,
+      "violations": []
+    },
+    {
+      "route": "admin",
+      "violationCount": 0,
+      "seriousOrCriticalCount": 0,
+      "passes": 51,
+      "violations": []
+    }
+  ],
+  "screenshots": [
+    "1440-route-home.png",
+    "1440-route-language.png",
+    "1440-route-tools.png",
+    "1440-route-finance.png",
+    "1440-route-transfer.png",
+    "1440-route-account.png",
+    "1440-route-admin.png",
+    "1440-route-workflows.png",
+    "1440-workflow-editor-light.png",
+    "375-workflows-light.png",
+    "1440-route-recharge.png",
+    "390-recharge-light.png",
+    "1440-admin-flags-before.png",
+    "1440-admin-flags-after.png",
+    "1440-select-light.png",
+    "390-select-light.png",
+    "390-account-light.png",
+    "1440-admin-flags-light.png",
+    "375-admin-flags-light.png",
+    "390-finance-dark.png",
+    "390-admin-flags-dark.png",
+    "1440-admin-users-dark.png"
+  ],
+  "screenshotProvenance": [
+    {
+      "name": "1440-route-home.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "15d51f1b9d743edd7d35d062f9340bbf27e2cc22976ab8cac2e506b86395d88b",
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "visualWidth": 1425,
+        "visualHeight": 900,
+        "scale": 1,
+        "dpr": 1
+      },
+      "pathname": "/"
+    },
+    {
+      "name": "1440-route-language.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "312fcb0c09b5b70a905c335e6ffaf45deec67b17d0bb8d5649943c1b62ab9d93",
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "visualWidth": 1425,
+        "visualHeight": 900,
+        "scale": 1,
+        "dpr": 1
+      },
+      "pathname": "/language"
+    },
+    {
+      "name": "1440-route-tools.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "94a48b377dc1e1655f4710db7643f71d7ea80059388907f0472c298860f1bc74",
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "visualWidth": 1425,
+        "visualHeight": 900,
+        "scale": 1,
+        "dpr": 1
+      },
+      "pathname": "/tools"
+    },
+    {
+      "name": "1440-route-finance.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "243ddcb3abfe125d3530fef17fe85d5312e610b3b6de2757f9bf201be8fab33f",
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "visualWidth": 1425,
+        "visualHeight": 900,
+        "scale": 1,
+        "dpr": 1
+      },
+      "pathname": "/finance"
+    },
+    {
+      "name": "1440-route-transfer.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "98c4ee0cfbde11820737053aeb4e6bb94f93d7972fe3d0187d5d71c7ecf4d5ac",
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "visualWidth": 1425,
+        "visualHeight": 900,
+        "scale": 1,
+        "dpr": 1
+      },
+      "pathname": "/transfer"
+    },
+    {
+      "name": "1440-route-account.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "d9b17204a2658c0359278167c608c4f814a74b07a50b6f39156d8fb9f4f61f24",
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "visualWidth": 1425,
+        "visualHeight": 900,
+        "scale": 1,
+        "dpr": 1
+      },
+      "pathname": "/account"
+    },
+    {
+      "name": "1440-route-admin.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "18b4bb747939553a1b3dc441e648e434537ec2cac2b7b1934a29adc1943ba271",
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "visualWidth": 1425,
+        "visualHeight": 900,
+        "scale": 1,
+        "dpr": 1
+      },
+      "pathname": "/admin"
+    },
+    {
+      "name": "1440-route-workflows.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "aedabc9e67855c0dbeb028ef2f878bf483bacc7d6f1a1c278b9645b3227b64ac",
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "visualWidth": 1425,
+        "visualHeight": 900,
+        "scale": 1,
+        "dpr": 1
+      },
+      "pathname": "/tools/workflows"
+    },
+    {
+      "name": "1440-workflow-editor-light.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "2a2e7bd87bc61d7b3cfa7fb3877cd511272661d336c0c5aedfa79852ac954136",
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "visualWidth": 1425,
+        "visualHeight": 900,
+        "scale": 1,
+        "dpr": 1
+      },
+      "pathname": "/tools/workflows"
+    },
+    {
+      "name": "375-workflows-light.png",
+      "width": 375,
+      "height": 812,
+      "sha256": "13e82f1dc07c2e6bb40f40423252c329782c985c3e8a1b03f9cbbae48b7f2e7a",
+      "viewport": {
+        "width": 375,
+        "height": 812,
+        "visualWidth": 375,
+        "visualHeight": 812,
+        "scale": 1,
+        "dpr": 1
+      },
+      "pathname": "/tools/workflows"
+    },
+    {
+      "name": "1440-route-recharge.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "fd1d9b3a9c535bdd5aa1804b7aa052ad3d7629978122780e2193d0d7a53ba1cc",
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "visualWidth": 1425,
+        "visualHeight": 900,
+        "scale": 1,
+        "dpr": 1
+      },
+      "pathname": "/recharge"
+    },
+    {
+      "name": "390-recharge-light.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "ff072690e693402ce46893222f0e0dc892e977b8303f6ca3aa06e745fe70c75f",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "visualWidth": 390,
+        "visualHeight": 844,
+        "scale": 1,
+        "dpr": 1
+      },
+      "pathname": "/recharge"
+    },
+    {
+      "name": "1440-admin-flags-before.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "3effe13f7fff2a42346870b82139202e2eeb7155ee2edbf2bb66acd52460708e",
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "visualWidth": 1425,
+        "visualHeight": 900,
+        "scale": 1,
+        "dpr": 1
+      },
+      "pathname": "/admin"
+    },
+    {
+      "name": "1440-admin-flags-after.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "ed98ab1e4f6cfa8cf5e3ccc11812976f5bda59e36f93fb5e487e72e524096a46",
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "visualWidth": 1425,
+        "visualHeight": 900,
+        "scale": 1,
+        "dpr": 1
+      },
+      "pathname": "/admin"
+    },
+    {
+      "name": "1440-select-light.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "eaa331b27ca8da8984fda54778b33e2ed58ee5c5b82387786d1b13b127893033",
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "visualWidth": 1425,
+        "visualHeight": 900,
+        "scale": 1,
+        "dpr": 1
+      },
+      "pathname": "/select"
+    },
+    {
+      "name": "390-select-light.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "e433be2663809e909d84deb5e3edffd7bdedd59f97d0e4d5823e9b9904b8ef55",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "visualWidth": 390,
+        "visualHeight": 844,
+        "scale": 1,
+        "dpr": 1
+      },
+      "pathname": "/select"
+    },
+    {
+      "name": "390-account-light.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "22b2aeb3bd460a60c0049969c3129d136cb2e38a842fe6001b5700b1b4075839",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "visualWidth": 390,
+        "visualHeight": 844,
+        "scale": 1,
+        "dpr": 1
+      },
+      "pathname": "/account"
+    },
+    {
+      "name": "1440-admin-flags-light.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "27537fce7c494612fd70c35fc38a4cc066b319ca42a827df3086a4051099d2b5",
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "visualWidth": 1425,
+        "visualHeight": 900,
+        "scale": 1,
+        "dpr": 1
+      },
+      "pathname": "/admin"
+    },
+    {
+      "name": "375-admin-flags-light.png",
+      "width": 375,
+      "height": 812,
+      "sha256": "41171a0d357fca3b244eeb1c0ed6a020bcf844245ef93b543803395ba04124ee",
+      "viewport": {
+        "width": 375,
+        "height": 812,
+        "visualWidth": 375,
+        "visualHeight": 812,
+        "scale": 1,
+        "dpr": 1
+      },
+      "pathname": "/admin"
+    },
+    {
+      "name": "390-finance-dark.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "494a6366a836e35e8b1a958e039a7e1c480c49f2535aeda0d24896116c11ab95",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "visualWidth": 390,
+        "visualHeight": 844,
+        "scale": 1,
+        "dpr": 1
+      },
+      "pathname": "/finance"
+    },
+    {
+      "name": "390-admin-flags-dark.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "ea35dd1ffd49986e01f19a421eee57769e87afccb928d555296aaed074029add",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "visualWidth": 390,
+        "visualHeight": 844,
+        "scale": 1,
+        "dpr": 1
+      },
+      "pathname": "/admin"
+    },
+    {
+      "name": "1440-admin-users-dark.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "f3a9c54bf3de26eb25189dd1d8181233c0c61a96f355a553cfbe12994ffc7ed5",
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "visualWidth": 1425,
+        "visualHeight": 900,
+        "scale": 1,
+        "dpr": 1
+      },
+      "pathname": "/admin"
+    }
+  ],
+  "apiErrors": [],
+  "runtimeErrors": [],
+  "android_physical_device": "NOT_TESTED",
+  "production_release": "NOT_TOUCHED",
+  "flagRecovery": {
+    "interceptedPosts": 1,
+    "forcedHttpStatus": 503,
+    "offlineState": {
+      "status": "验收模拟：功能配置保存暂不可用",
+      "btnDisabled": false,
+      "draftDesc": "I05 retry after a rejected save"
+    },
+    "persistedBeforeError": {
+      "description": "I05 acceptance flag",
+      "revision": 1
+    },
+    "persistedAfterError": {
+      "description": "I05 acceptance flag",
+      "revision": 1
+    },
+    "persistedAfterRetry": {
+      "description": "I05 retry after a rejected save",
+      "revision": 2
+    },
+    "reloaded": true
+  },
+  "sourceVerifiedAtEnd": true,
+  "status": "PASS"
+}

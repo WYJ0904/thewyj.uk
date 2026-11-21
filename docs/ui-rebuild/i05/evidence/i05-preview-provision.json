@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "environment": "isolated-preview",
+  "project": "thewyj-i05-preview",
+  "branch": "i05-workspace-density",
+  "production_branch": "release-held",
+  "d1_name": "aeris-i05-preview",
+  "d1_id": "9e76a190-42db-4ff1-b0b7-476e4b312792",
+  "r2_buckets": [],
+  "ai_bindings": [],
+  "workers_ai_enabled": "false",
+  "email_sending_enabled": "false",
+  "legacy_api_fallback_enabled": "false",
+  "secret_names": [
+    "WYJ_TASK12_PASSWORD_PEPPER",
+    "WYJ_TASK14_TEMPORARY_SECRET",
+    "WYJ_TASK20_DEVICE_SESSION_SECRET"
+  ],
+  "migrated_and_seeded_p07": true,
+  "provisioned_at": "2026-11-21T13:38:36.136Z"
+}

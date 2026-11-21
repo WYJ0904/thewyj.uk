@@ -1,0 +1,365 @@
+{
+  "utc": "2026-11-21T16:02:47.197Z",
+  "sourceCommit": "b1c866a4c12febd96dd884d1e715cd6b35441fc0",
+  "gitTree": "754938fe5c0d46ed3789efb571d7f478f6f7b447",
+  "deploymentId": "cdee886e-2b92-4bb9-b135-c9381ba61661",
+  "artifactSha256": "8ef69b82555cbf0c4cd2e1331f8f7a9677b2683873be039926901b589730b42d",
+  "project": "thewyj-i05-preview",
+  "branch": "i05-workspace-density",
+  "database": "9e76a190-42db-4ff1-b0b7-476e4b312792",
+  "scope": "Isolated I05 Hosted Preview",
+  "results": {
+    "recharge-filter": {
+      "status": "PASS",
+      "distinctFilterResults": true,
+      "orderCreated": false
+    },
+    "A04-A06": {
+      "status": "PASS",
+      "sticky": {
+        "position": "sticky",
+        "top": 139.75,
+        "barBottom": 139.75,
+        "scrollY": 356,
+        "initial": {
+          "scrollY": 0,
+          "top": 139.75
+        }
+      },
+      "lists": [
+        {
+          "name": "users",
+          "visibleHeader": true,
+          "labels": [
+            "用户与状态",
+            "会员与权益",
+            "安全与登录",
+            "操作"
+          ],
+          "rows": 2,
+          "maxColumnDriftPx": 0,
+          "measurements": [
+            [
+              {
+                "column": "用户与状态",
+                "leftDelta": 0,
+                "rightDelta": 0
+              },
+              {
+                "column": "会员与权益",
+                "leftDelta": 0,
+                "rightDelta": 0
+              },
+              {
+                "column": "安全与登录",
+                "leftDelta": 0,
+                "rightDelta": 0
+              },
+              {
+                "column": "操作",
+                "leftDelta": 26,
+                "rightDelta": 0
+              }
+            ],
+            [
+              {
+                "column": "用户与状态",
+                "leftDelta": 0,
+                "rightDelta": 0
+              },
+              {
+                "column": "会员与权益",
+                "leftDelta": 0,
+                "rightDelta": 0
+              },
+              {
+                "column": "安全与登录",
+                "leftDelta": 0,
+                "rightDelta": 0
+              },
+              {
+                "column": "操作",
+                "leftDelta": 26,
+                "rightDelta": 0
+              }
+            ]
+          ]
+        },
+        {
+          "name": "recharge",
+          "visibleHeader": true,
+          "labels": [
+            "申请人与订单",
+            "套餐与金额",
+            "审核状态",
+            "操作"
+          ],
+          "rows": 0,
+          "maxColumnDriftPx": null,
+          "measurements": []
+        },
+        {
+          "name": "audit",
+          "visibleHeader": true,
+          "labels": [
+            "动作与时间",
+            "操作者与对象",
+            "结果与摘要"
+          ],
+          "rows": 0,
+          "maxColumnDriftPx": null,
+          "measurements": []
+        },
+        {
+          "name": "login",
+          "visibleHeader": true,
+          "labels": [
+            "账号与结果",
+            "位置、IP 与来源",
+            "设备与环境"
+          ],
+          "rows": 11,
+          "maxColumnDriftPx": 0,
+          "measurements": [
+            [
+              {
+                "column": "账号与结果",
+                "leftDelta": 0,
+                "rightDelta": 0
+              },
+              {
+                "column": "位置、IP 与来源",
+                "leftDelta": 0,
+                "rightDelta": 0
+              },
+              {
+                "column": "设备与环境",
+                "leftDelta": 0,
+                "rightDelta": 0
+              }
+            ],
+            [
+              {
+                "column": "账号与结果",
+                "leftDelta": 0,
+                "rightDelta": 0
+              },
+              {
+                "column": "位置、IP 与来源",
+                "leftDelta": 0,
+                "rightDelta": 0
+              },
+              {
+                "column": "设备与环境",
+                "leftDelta": 0,
+                "rightDelta": 0
+              }
+            ],
+            [
+              {
+                "column": "账号与结果",
+                "leftDelta": 0,
+                "rightDelta": 0
+              },
+              {
+                "column": "位置、IP 与来源",
+                "leftDelta": 0,
+                "rightDelta": 0
+              },
+              {
+                "column": "设备与环境",
+                "leftDelta": 0,
+                "rightDelta": 0
+              }
+            ],
+            [
+              {
+                "column": "账号与结果",
+                "leftDelta": 0,
+                "rightDelta": 0
+              },
+              {
+                "column": "位置、IP 与来源",
+                "leftDelta": 0,
+                "rightDelta": 0
+              },
+              {
+                "column": "设备与环境",
+                "leftDelta": 0,
+                "rightDelta": 0
+              }
+            ],
+            [
+              {
+                "column": "账号与结果",
+                "leftDelta": 0,
+                "rightDelta": 0
+              },
+              {
+                "column": "位置、IP 与来源",
+                "leftDelta": 0,
+                "rightDelta": 0
+              },
+              {
+                "column": "设备与环境",
+                "leftDelta": 0,
+                "rightDelta": 0
+              }
+            ],
+            [
+              {
+                "column": "账号与结果",
+                "leftDelta": 0,
+                "rightDelta": 0
+              },
+              {
+                "column": "位置、IP 与来源",
+                "leftDelta": 0,
+                "rightDelta": 0
+              },
+              {
+                "column": "设备与环境",
+                "leftDelta": 0,
+                "rightDelta": 0
+              }
+            ],
+            [
+              {
+                "column": "账号与结果",
+                "leftDelta": 0,
+                "rightDelta": 0
+              },
+              {
+                "column": "位置、IP 与来源",
+                "leftDelta": 0,
+                "rightDelta": 0
+              },
+              {
+                "column": "设备与环境",
+                "leftDelta": 0,
+                "rightDelta": 0
+              }
+            ],
+            [
+              {
+                "column": "账号与结果",
+                "leftDelta": 0,
+                "rightDelta": 0
+              },
+              {
+                "column": "位置、IP 与来源",
+                "leftDelta": 0,
+                "rightDelta": 0
+              },
+              {
+                "column": "设备与环境",
+                "leftDelta": 0,
+                "rightDelta": 0
+              }
+            ],
+            [
+              {
+                "column": "账号与结果",
+                "leftDelta": 0,
+                "rightDelta": 0
+              },
+              {
+                "column": "位置、IP 与来源",
+                "leftDelta": 0,
+                "rightDelta": 0
+              },
+              {
+                "column": "设备与环境",
+                "leftDelta": 0,
+                "rightDelta": 0
+              }
+            ],
+            [
+              {
+                "column": "账号与结果",
+                "leftDelta": 0,
+                "rightDelta": 0
+              },
+              {
+                "column": "位置、IP 与来源",
+                "leftDelta": 0,
+                "rightDelta": 0
+              },
+              {
+                "column": "设备与环境",
+                "leftDelta": 0,
+                "rightDelta": 0
+              }
+            ],
+            [
+              {
+                "column": "账号与结果",
+                "leftDelta": 0,
+                "rightDelta": 0
+              },
+              {
+                "column": "位置、IP 与来源",
+                "leftDelta": 0,
+                "rightDelta": 0
+              },
+              {
+                "column": "设备与环境",
+                "leftDelta": 0,
+                "rightDelta": 0
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    "admin-session-cleanup": {
+      "status": "PASS",
+      "httpStatus": 200
+    }
+  },
+  "errors": [],
+  "screenshots": [
+    {
+      "name": "hosted-1440-admin-sticky.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "3f6cdbe687f4a11ca34f460744f347d5fbc263df54815e869e8ae6866f878ffb"
+    },
+    {
+      "name": "hosted-1440-admin-users.png",
+      "width": 1169,
+      "height": 461,
+      "sha256": "39c5a1d0ef0e77746a8e33ff788bc9db350962b19c30e367161e0b8617d80d10"
+    },
+    {
+      "name": "hosted-1440-admin-toolbar-focus.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "a84c1c52bfa79bc436302c640898d5ccbc31891ec5f5c0d3aaa689c77e7d6713"
+    },
+    {
+      "name": "hosted-375-admin-toolbar-focus.png",
+      "width": 375,
+      "height": 812,
+      "sha256": "0b7d1b414a4a061610f877187f36e323ed078c308b84f40dddf5d10b32f8ccc2"
+    },
+    {
+      "name": "hosted-390-admin-toolbar-focus.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "9e1fecfcdc0729eb5df17476551ed979b70e654e01c41271d51974b818234211"
+    },
+    {
+      "name": "hosted-1440-recharge-filtered.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "27042b6043fd58f79381ce79123d0a1cce6e05cdf8945c58671f38ac369999d6"
+    }
+  ],
+  "axes": [],
+  "dbRecheck": {
+    "foreignKeyViolations": 0,
+    "existingUiFlagEnabled": true
+  },
+  "status": "PASS"
+}

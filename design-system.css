@@ -59,6 +59,7 @@
 
   /* Runtime-updated layout & viewport metrics (with safe static fallbacks) */
   --site-nav-height: 64px;
+  --owner-preview-banner-height: 0px;
   --ds-overlay-top: 0px;
   --ds-overlay-height: 100dvh;
   --ds-menu-height: calc(100dvh - 84px);
@@ -94,6 +95,7 @@
   /* Layout and touch */
   --ds-container-reading: 760px;
   --ds-container-default: 1200px;
+  --ds-container-console: 1320px;
   --ds-container-wide: 1440px;
   --ds-touch-min: 44px;
   --ds-skip-link-offset: var(--ds-space-3);
@@ -726,9 +728,16 @@ a.primary:active:not([aria-disabled="true"]),
 }
 
 .button-secondary {
-  border-color: var(--ds-border-strong);
+  border-color: transparent;
   color: var(--ds-text);
-  background: var(--ds-surface);
+  background: var(--ds-surface-muted);
+}
+
+.button-secondary:hover:not(:disabled),
+.button-secondary:hover:not([aria-disabled="true"]) {
+  border-color: transparent;
+  color: var(--ds-text);
+  background: var(--ds-surface-hover);
 }
 
 .button-ghost {
@@ -787,7 +796,7 @@ textarea:focus-visible,
   box-shadow: var(--ds-focus-ring);
 }
 
-input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(.visually-hidden):not(.sr-only):not(.ds-sr-only),
 select,
 textarea {
   min-width: 0;
@@ -803,7 +812,7 @@ textarea {
     background-color var(--ds-duration-fast) var(--ds-ease-standard);
 }
 
-input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(.visually-hidden):not(.sr-only):not(.ds-sr-only),
 select {
   min-height: var(--ds-touch-min);
   padding: 0 var(--ds-space-3);
@@ -1566,7 +1575,13 @@ html[data-p07-ui="enabled"] :is(button.primary, a.primary, .button-primary):hove
   box-shadow: none;
 }
 
-html[data-p07-ui="enabled"] :is(.button-secondary, button:not(.primary):not(.button-ghost):not(.danger-button)):hover:not(:disabled) {
+html[data-p07-ui="enabled"] .button-secondary:hover:not(:disabled),
+html[data-p07-ui="enabled"] .button-secondary:hover:not([aria-disabled="true"]) {
+  border-color: transparent;
+  background: var(--ds-surface-hover);
+}
+
+html[data-p07-ui="enabled"] button:not(.primary):not(.button-primary):not(.button-secondary):not(.button-ghost):not(.danger-button):hover:not(:disabled) {
   border-color: var(--ds-border-hover);
   background: var(--ds-surface-subtle);
 }
@@ -1618,7 +1633,20 @@ html[data-p07-ui="enabled"] .account-details :is(dd, code) { overflow-wrap: anyw
   .transfer-item-main > small,
   .admin-user-facts,
   .admin-request-confirmed time,
-  .changelog-entry time
+  .changelog-entry time,
+  #transferQuotaText,
+  .transfer-summary-line strong,
+  .study-metrics strong,
+  .achievement-overview strong,
+  .stats-grid strong,
+  .admin-kpi-strip dd,
+  .admin-log-card time,
+  .admin-user-id,
+  .admin-last-login,
+  .account-details dd,
+  .trend-month-card,
+  #adminUserCount,
+  #financeTransactionCount
 ) {
   font-variant-numeric: tabular-nums;
 }
@@ -1718,13 +1746,22 @@ html[data-p07-ui="enabled"] .achievement-toast {
 }
 
 /* I07 Shared Toast Queue Region (max 2 visible pills, safe area, non-blocking) */
+input.visually-hidden,
+input.sr-only,
+input.ds-sr-only,
+.visually-hidden,
+.sr-only,
 .ds-sr-only {
   position: absolute;
+  inset: 0 auto auto 0;
   width: 1px;
   height: 1px;
+  min-width: 0;
+  min-height: 0;
   padding: 0;
   margin: -1px;
   overflow: hidden;
+  clip: rect(0, 0, 0, 0);
   clip-path: inset(50%);
   white-space: nowrap;
   border: 0;
