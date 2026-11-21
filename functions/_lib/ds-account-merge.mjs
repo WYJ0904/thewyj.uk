@@ -341,6 +341,10 @@ async function verifyCommittedMerge(db, client, sandbox, grant, input, now) {
         OR u.role IN ('admin','super_admin') OR EXISTS (
           SELECT 1 FROM task18_admin_roles ar WHERE ar.user_id=u.id AND ar.role='admin'
         )
+        OR EXISTS (
+          SELECT 1 FROM task18_admin_role_audit audit WHERE audit.target_user_id=u.id
+            AND audit.success=1 AND unixepoch(audit.created_at)>=j.changed_at
+        )
         OR u.session_version IS NOT m.session_version OR sec.version IS NOT m.security_version
         OR EXISTS (SELECT 1 FROM aeris_ds_ownership_recovery_holds h WHERE h.user_id=u.id)
         OR (
@@ -388,6 +392,10 @@ async function verifyCommittedMerge(db, client, sandbox, grant, input, now) {
         OR NOT EXISTS (
           SELECT 1 FROM aeris_ds_merge_events e WHERE e.merge_id=j.id AND e.kind='CONFLICT_REVIEWED'
             AND e.actor_id=c.reviewer_id AND e.detail=c.id AND e.occurred_at=c.reviewed_at
+        )
+        OR EXISTS (
+          SELECT 1 FROM task18_admin_role_audit audit WHERE audit.target_user_id=c.reviewer_id
+            AND audit.action='admin_revoke' AND audit.success=1 AND unixepoch(audit.created_at)>=c.reviewed_at
         )
       )
     )`, [id, version, client.issuer, client.origin, sandbox, ...keeper.args, purpose,

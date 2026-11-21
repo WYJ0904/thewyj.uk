@@ -986,6 +986,26 @@ test('Task 10 keeper verifies live committed Aeris evidence and loses it on secu
   assert.equal((await call('revoke',{}, {grant:sourceGrant})).status,200);
   assert.deepEqual((await verify()).body,valid.body);
 
+  const roleHistory = async (target,success,epoch) => {
+    const entry = crypto.randomUUID();
+    await update(`INSERT INTO task18_admin_role_audit(id,actor_user_id,actor_username,actor_role,target_user_id,
+      target_username,action,before_role,after_role,success,created_at)
+      VALUES (?,?,'Synthetic authority','super_admin',?,'Synthetic target','admin_revoke','admin','user',?,?)`,
+    entry,reviewer,target,success,new Date(epoch*1000+500).toISOString());
+    return entry;
+  };
+  const {changed_at: committedAt} = await first('SELECT changed_at FROM aeris_ds_merges WHERE id=?',id);
+  await roleHistory(source,0,committedAt);
+  assert.deepEqual((await verify()).body,valid.body);
+  const sourceChange = await roleHistory(source,1,committedAt);
+  await rejected(verify());
+  await update('DELETE FROM task18_admin_role_audit WHERE id=?',sourceChange);
+  const {reviewed_at: reviewedAt} = await first('SELECT reviewed_at FROM aeris_ds_merge_conflicts WHERE id=?',receipt);
+  const reviewerChange = await roleHistory(reviewer,1,reviewedAt);
+  await rejected(verify());
+  await update('DELETE FROM task18_admin_role_audit WHERE id=?',reviewerChange);
+  assert.deepEqual((await verify()).body,valid.body);
+
   await update("UPDATE task27_security SET version=version+1 WHERE user_id=?",source);
   await rejected(verify());
   await update("UPDATE task27_security SET version=version-1 WHERE user_id=?",source);
