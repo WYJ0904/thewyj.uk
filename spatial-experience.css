@@ -4666,12 +4666,6 @@ html[data-p07-ui="enabled"] body[data-workspace-route] .v3-step-item {
   font-size: 0.75rem;
 }
 
-html[data-p07-ui="enabled"] body[data-workspace-route] .v3-step-item.active {
-  background: var(--ds-surface);
-  color: var(--ds-text);
-  border: 1px solid var(--ds-border);
-}
-
 html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal :is(#membershipGoalField, #membershipPlanStep, #paymentMethodField) {
   background: var(--ds-surface);
   border: 1px solid var(--ds-border);
@@ -4691,7 +4685,7 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .members
 }
 
 html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-goal-list {
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 145px), 1fr));
   gap: 8px;
 }
 
@@ -4701,6 +4695,8 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .members
   border: 1px solid var(--ds-border);
   border-radius: var(--ds-radius-md);
   box-shadow: none;
+  text-align: start;
+  justify-items: start;
 }
 
 html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-goal-option:hover {
@@ -4772,6 +4768,12 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .payment
   border-radius: var(--ds-radius-md);
   background: var(--ds-surface);
   box-shadow: none;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] .membership-order-actions:has(button:not(.hidden)) {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--ds-divider);
 }
 
 html[data-p07-ui="enabled"] body[data-workspace-route] .membership-policy-notes {
@@ -5009,11 +5011,7 @@ html[data-p07-ui="enabled"] body[data-workspace-route] .admin-tabs button.active
 }
 
 html[data-p07-ui="enabled"] body[data-workspace-route] .admin-tabs .ds-tab-indicator {
-  top: auto;
-  bottom: 0;
-  height: 2px;
-  border-radius: 0;
-  background: var(--ds-action-primary);
+  display: none;
 }
 
 html[data-p07-ui="enabled"] body[data-workspace-route] .feature-console-toolbar {
@@ -5081,6 +5079,10 @@ html[data-p07-ui="enabled"] body[data-workspace-route] :is(.admin-user-card .adm
   align-items: baseline;
   margin: 0;
   font-size: 0.8125rem;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] .admin-user-card .admin-user-security > .admin-last-login {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 html[data-p07-ui="enabled"] body[data-workspace-route] .admin-log-card > div:first-child {
@@ -5346,6 +5348,16 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal #releaseCha
 }
 
 @media (max-width: 640px) {
+  html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-goal-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-goal-option {
+    min-width: 0;
+    padding-inline: 10px;
+    overflow-wrap: anywhere;
+  }
+
   html[data-p07-ui="enabled"] body[data-workspace-route] .feature-console-toolbar {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));

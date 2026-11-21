@@ -1425,10 +1425,9 @@
         <section class="v3-workspace membership-page hidden" id="membershipModal" aria-labelledby="membershipTitle" aria-hidden="true">
       <div class="v3-workspace-content membership-workspace-content modal-panel">
         <button class="modal-close" data-close-modal="membershipModal" type="button" aria-label="关闭"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
-        <p class="section-kicker">会员服务</p>
-        <h1 id="membershipTitle">会员方案 · 规则清楚，开通可追踪</h1>
+        <h1 id="membershipTitle">会员与充值</h1>
         <div class="membership-v3-stepper" role="group" aria-label="会员开通流程">
-          <div class="v3-step-item active"><span class="v3-step-num">1</span><span>选择功能与套餐</span></div>
+          <div class="v3-step-item"><span class="v3-step-num">1</span><span>选择功能与套餐</span></div>
           <div class="v3-step-item"><span class="v3-step-num">2</span><span>扫码支付与备注</span></div>
           <div class="v3-step-item"><span class="v3-step-num">3</span><span>管理员人工核对</span></div>
           <div class="v3-step-item"><span class="v3-step-num">4</span><span>权益生效与同步</span></div>
@@ -1461,7 +1460,7 @@
         </fieldset>
         <div class="membership-checkout-bar">
           <div class="purchase-summary" id="purchaseSummary">请先选择需要的功能</div>
-          <div class="action-row"><button class="primary" id="submitRechargeBtn" type="button" disabled>确认订单并显示二维码</button><button class="hidden" id="confirmPaymentBtn" type="button">我已付款</button><button class="hidden" id="cancelPaymentOrderBtn" type="button">取消并更换</button></div>
+          <div class="action-row"><button class="primary" id="submitRechargeBtn" type="button" disabled>确认订单并显示二维码</button></div>
           <p class="meta-line" id="rechargeMessage" aria-live="polite"></p>
         </div>
         <div class="payment-order hidden" id="paymentOrderBox">
@@ -1476,6 +1475,10 @@
                 <p id="paymentQrLabel">请使用所选支付方式扫码付款</p>
                 <img id="paymentQrImage" alt="当前订单的私有收款二维码" />
                 <p class="meta-line" id="paymentQrMessage" aria-live="polite"></p>
+              </div>
+              <div class="action-row membership-order-actions">
+                <button class="primary hidden" id="confirmPaymentBtn" type="button">我已付款</button>
+                <button class="hidden" id="cancelPaymentOrderBtn" type="button">取消并更换</button>
               </div>
             </div>
           </div>
