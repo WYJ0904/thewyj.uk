@@ -1,0 +1,243 @@
+{
+  "previewUrl": "https://i06-module-experience.thewyj-i06-preview.pages.dev",
+  "headCommit": "3b6f261edfde05d4cf371503ef30ccc540794211",
+  "checkedAt": "2026-11-21T19:25:23.285Z",
+  "buildInfo": {
+    "schema_version": 1,
+    "environment": "isolated-preview",
+    "stage": "I06-module-experience",
+    "source_commit": "5a337a28989db29c7cf290d36d518d17cb60963f",
+    "project_name": "thewyj-i06-preview",
+    "branch": "i06-module-experience",
+    "remote_check": {
+      "verified": true,
+      "project": "thewyj-i06-preview",
+      "branch": "i06-module-experience",
+      "productionBranch": "release-held",
+      "targetD1Id": "949eb48b-4662-4f63-98d8-043c7afc17b6",
+      "targetD1Name": "aeris-i06-preview",
+      "priorPreviewD1Id": "949eb48b-4662-4f63-98d8-043c7afc17b6",
+      "priorPreviewR2": [],
+      "targetR2Count": 0,
+      "targetAiCount": 0,
+      "bindingConsistent": true
+    },
+    "file_count": 205,
+    "artifact_tree_sha256": "9545e9e479ed154e6a3629d64aa2d09516a9e01cdb72cf4efaad49ca0d47dc69"
+  },
+  "apiStatus": {
+    "ok": true,
+    "status": "degraded",
+    "service": "wyj-cloud-foundation",
+    "environment": "preview",
+    "build": "2026-08-26-task15-cloud-only",
+    "time": "2026-11-21T19:25:19.706Z",
+    "auth": true,
+    "backend_ready": true,
+    "ai_ready": false,
+    "model": "Cloudflare rules only",
+    "bindings": {
+      "d1": true,
+      "r2": false,
+      "workers_ai": false
+    },
+    "task11": {
+      "schema_ready": true,
+      "schema_version": "1"
+    },
+    "task12": {
+      "schema_ready": true,
+      "schema_version": "1",
+      "session_strategy": "invalidate_legacy_sessions",
+      "password_pepper_configured": true
+    },
+    "task13": {
+      "schema_ready": true,
+      "schema_version": "1",
+      "payment_primary": true
+    },
+    "task14": {
+      "schema_ready": true,
+      "schema_version": "1",
+      "temporary_primary": true,
+      "secret_configured": true
+    },
+    "task15": {
+      "schema_ready": true,
+      "schema_version": "1",
+      "cloud_only": true
+    },
+    "task16": {
+      "schema_ready": true,
+      "schema_version": "5",
+      "cloud_reads": true,
+      "cloud_writes": true
+    },
+    "task18": {
+      "schema_ready": false,
+      "schema_version": "1",
+      "enabled": true,
+      "owner_count": 0
+    },
+    "task20": {
+      "schema_ready": true,
+      "schema_version": "1",
+      "enabled": true,
+      "session_secret_configured": true
+    },
+    "task22": {
+      "schema_ready": true,
+      "schema_version": "2",
+      "reads_enabled": true,
+      "writes_enabled": true
+    },
+    "features": {
+      "cloud_foundation": true,
+      "cloud_reads": true,
+      "cloud_writes": true,
+      "task11_cloud_reads": true,
+      "task11_cloud_writes": true,
+      "task12_cloud_accounts": true,
+      "task12_import": true,
+      "task12_password_pepper": true,
+      "task13_cloud_reads": true,
+      "task13_cloud_writes": true,
+      "task13_import": true,
+      "task13_payment_primary": true,
+      "task14_cloud_reads": true,
+      "task14_cloud_writes": true,
+      "task14_import": true,
+      "task14_temporary_primary": true,
+      "task14_legacy_writes_frozen": true,
+      "task14_temporary_secret": true,
+      "workers_ai": false,
+      "task15_cloud_only": true,
+      "task16_cloud_reads": true,
+      "task16_cloud_writes": true,
+      "task16_import": true,
+      "task18_admin_messages": true,
+      "task20_android_app": true,
+      "task22_transfer_reads": true,
+      "task22_transfer_writes": true,
+      "task25_feature_flags": true,
+      "task30_privacy": true,
+      "legacy_api_fallback": false,
+      "payment_cloud_migration": true
+    },
+    "rate_limit": {
+      "enabled": false,
+      "degraded": false,
+      "limit": 120,
+      "window_seconds": 60
+    },
+    "degraded_reasons": [
+      "r2_binding_missing",
+      "task18_schema_not_ready",
+      "task13_r2_binding_missing",
+      "task14_r2_binding_missing"
+    ],
+    "request_id": "3615bab4-efa8-42fc-9887-f1b58877bee2"
+  },
+  "apiHealth": {
+    "ok": false,
+    "error": "请先登录",
+    "code": "authentication_required",
+    "retryable": false,
+    "request_id": "69e465f3-1375-46c2-bc72-10fa97a48b26"
+  },
+  "uiFeatures": {
+    "ok": true,
+    "public_ui": {
+      "schema_version": 1,
+      "flag_key": "p07_accessibility",
+      "enabled": true,
+      "revision": 1,
+      "reason": "public_stable",
+      "observed_at": "2026-11-21T19:25:20.792Z",
+      "expires_at": "2026-11-21T19:25:50.792Z",
+      "max_age_seconds": 30
+    },
+    "request_id": "d8e364a2-3dac-419d-b18f-e1ec68a05101"
+  },
+  "verifiedAssets": [
+    {
+      "assetPath": "design-system.css",
+      "sha256": "046b22f534b29c676bede99c63813bf5e1bb1333ce39f962461537d943ae8bf6",
+      "bytes": 58261
+    },
+    {
+      "assetPath": "spatial-experience.css",
+      "sha256": "5ab2fa5649b58b6d995077548e8b6a09944a0ff1f33925a7adaa0fbc75a02667",
+      "bytes": 183165
+    },
+    {
+      "assetPath": "app.js",
+      "sha256": "462fa3245eb25f0202c45572cdcf8f807010643c6b9a18988c88603b29595e29",
+      "bytes": 380005
+    },
+    {
+      "assetPath": "tools.js",
+      "sha256": "6e1a57897cccce30da830e02eb9a8e569d03ec6077523ec6862ec9445a1931e8",
+      "bytes": 98241
+    },
+    {
+      "assetPath": "js/core/design-system.js",
+      "sha256": "c53a7a759d682454452c65c1791319fadfd6f5f4b17e4cb018f7d7918dd56995",
+      "bytes": 18177
+    },
+    {
+      "assetPath": "js/core/feature-console.js",
+      "sha256": "4703db308e75d98c585c43b23103cfab400b895ed281d1f16d0cb941f90a185e",
+      "bytes": 11894
+    },
+    {
+      "assetPath": "js/finance/app.js",
+      "sha256": "1d5fae3ab17aabed4aaf49104bc56f51e6b40441159208c28d0ad2225d6ff2b0",
+      "bytes": 92896
+    },
+    {
+      "assetPath": "js/transfer/app.js",
+      "sha256": "4a3bb1d5504d1e45915ad4fdad4152c51f15c108cf20af356cc49922d773281e",
+      "bytes": 74517
+    }
+  ],
+  "bannerChecks": {
+    "theme": "dark",
+    "strongColor": "rgb(67, 20, 7)",
+    "bg": "rgb(255, 247, 237)"
+  },
+  "moduleChecks": {
+    "registeredUser": "i06p_mwqssprc",
+    "unpaidToolsRedirectedToRecharge": true,
+    "transferDisclosureAndExpanded": true,
+    "trialPageReachable": true
+  },
+  "axeScans": [
+    {
+      "label": "hosted-guest-light",
+      "violationCount": 0,
+      "passes": 45,
+      "violations": []
+    },
+    {
+      "label": "hosted-recharge",
+      "violationCount": 0,
+      "passes": 41,
+      "violations": []
+    },
+    {
+      "label": "hosted-transfer",
+      "violationCount": 0,
+      "passes": 47,
+      "violations": []
+    },
+    {
+      "label": "hosted-trial",
+      "violationCount": 0,
+      "passes": 46,
+      "violations": []
+    }
+  ],
+  "runtimeErrors": [],
+  "status": "PASS"
+}

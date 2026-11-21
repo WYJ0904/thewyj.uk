@@ -172,21 +172,34 @@ try {
   await page.click("#loginSubmitBtn");
   await page.waitFor("document.querySelector('#publicHome')?.dataset.sessionMode === 'authenticated' && !document.querySelector('#authWorkspaceSection')?.hidden", 25_000, "preview signed in");
   try {
-    await page.waitFor("!document.querySelector('#siteMessageModal')?.classList.contains('hidden')", 2000, "site notice");
+    await page.waitFor("!document.querySelector('#siteMessageModal')?.classList.contains('hidden')", 2500, "site notice");
     await page.click("#siteMessageCloseBtn");
+    await page.waitFor("document.querySelector('#siteMessageModal')?.classList.contains('hidden')", 5_000, "site notice dismissed");
   } catch (_) {}
 
-  await page.navigate("/tools/letter-case");
-  await page.waitFor("!document.querySelector('#toolsWorkspace')?.classList.contains('hidden') && Boolean(document.querySelector('.tool-split-pane'))", 15_000, "hosted tool split pane");
-  await shot("hosted-i06-tools-workbench.png");
-  await runAxe("hosted-tools-workbench");
+  // Verify unpaid synthetic user fail-closed gate on /tools -> /recharge, then /transfer I06 disclosure & /trial
+  await page.click("#v3Sidebar [data-v3-nav='tools']");
+  await page.waitFor("location.pathname === '/recharge' && !document.querySelector('#membershipModal')?.classList.contains('hidden') && !document.querySelector('#v3Sidebar [aria-busy=\"true\"]')", 15_000, "unpaid /tools gate -> /recharge");
+  await shot("hosted-i06-recharge.png");
+  await runAxe("hosted-recharge");
 
-  await page.navigate("/transfer");
-  await page.waitFor("!document.querySelector('#transferWorkspace')?.classList.contains('hidden') && Boolean(document.querySelector('#transferConfigDisclosure'))", 15_000, "hosted transfer");
+  await page.click("#v3Sidebar [data-v3-nav='transfer']");
+  await page.waitFor("!document.querySelector('#transferPage')?.classList.contains('hidden') && Boolean(document.querySelector('#transferConfigDisclosure')) && !document.querySelector('#v3Sidebar [aria-busy=\"true\"]')", 15_000, "hosted transfer");
+  await page.click("#transferConfigDisclosure > summary");
+  await settle();
   await shot("hosted-i06-transfer.png");
   await runAxe("hosted-transfer");
 
-  report.moduleChecks = { registeredUser: uname, toolsSplitPane: true, transferDisclosure: true };
+  await page.click("#v3Sidebar [data-v3-nav='trial']");
+  await page.waitFor("!document.querySelector('#trialPage')?.classList.contains('hidden') && !document.querySelector('#v3Sidebar [aria-busy=\"true\"]')", 15_000, "hosted trial");
+  await runAxe("hosted-trial");
+
+  report.moduleChecks = {
+    registeredUser: uname,
+    unpaidToolsRedirectedToRecharge: true,
+    transferDisclosureAndExpanded: true,
+    trialPageReachable: true,
+  };
   assert.deepEqual(page.runtimeErrors, [], `Preview runtimeErrors: ${JSON.stringify(page.runtimeErrors)}`);
   report.status = "PASS";
   await writeFile(path.join(evidenceDir, "i06-preview-verification.json"), `${JSON.stringify(report, null, 2)}\n`);
