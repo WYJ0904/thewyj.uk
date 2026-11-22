@@ -99,9 +99,9 @@ const REQUIRED_SHELL = [...CORE_SHELL, ...TASK26_SHELL, ...FINANCE_SHELL, ...TAS
 const INSTALL_SHELL = REQUIRED_SHELL;
 // Canonical UTF-8 hashes bind the current S0 shell plus Task27 additions.
 const TASK26_INTEGRITY = Object.freeze({
-  "/": "20f7036801d61ef22fcbefa4cd0f7570a3f8e0c6791e79b62e2d3408f5e47e78",
-  "/index.html": "20f7036801d61ef22fcbefa4cd0f7570a3f8e0c6791e79b62e2d3408f5e47e78",
-  "/app.js?release=20261121-aeris-i05-preview": "a91a8f34d0c9fedfa2b291fbe8dc8e5b281176751b62153c025503002dd4f049",
+  "/": "80cb13e1dd931867e779e8f643820458479ed3589a72bc97d020f673a0a18b21",
+  "/index.html": "80cb13e1dd931867e779e8f643820458479ed3589a72bc97d020f673a0a18b21",
+  "/app.js?release=20261121-aeris-i05-preview": "ed3e8ba40d98820eb414227bd78e47a586aa608d79cd4811efe7a176917139b3",
   "/learning-sync.js?release=20261121-aeris-i05-preview": "74ced24b8dab7c8ad16dc6b4b68ff81a89e968d18a607bbba6b066a8bee7727d",
   "/product-ui.css?release=20261121-aeris-i05-preview": "1114fec82346011cf331a343888b74e73b137e7afb84fe3b234c729e6796163b",
   "/js/language/mastery.js?release=20261121-aeris-i05-preview": "8a45bd65d69445c2f697c0abfb0dbff57c70b0ed4ceaee7f8617b115f676b51b",
@@ -120,7 +120,7 @@ const TASK26_INTEGRITY = Object.freeze({
   "/js/account/password-policy.js?release=20261121-aeris-i05-preview": "48fd3d494120682e5b8baac8c73fb6ff68714cbc89d567318e9ea39549c80c56",
   "/js/account/password-fields.js?release=20261121-aeris-i05-preview": "e67497c31748194bdba244723e45620dbfd9552840c7721b1a9b0530208c2e78"
 });
-const PUBLICATION_HASH = "4f022cbbeb27ce7d0d996268daa5a6141b3d9986263aa6300905603d07123d4d";
+const PUBLICATION_HASH = "b5ba70e25b1eda0f2e25b060c23d191235bf12bb0bb4420fbcb6a16fbbf2b1d3";
 const PUBLICATION_CACHE = `${CACHE}-task26-${PUBLICATION_HASH.slice(0, 16)}`;
 const PUBLICATION_MARKER = "/__aeris/task26-publication";
 

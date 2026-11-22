@@ -1,0 +1,2035 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light" data-motion="normal">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aeris V6 — 高保真交互原型</title>
+<style>
+/* ==========================================================================
+   1. DESIGN TOKENS (Preserved from V5 Linear + Actual Budget Baseline)
+   ========================================================================== */
+:root {
+  --bg-app: #ffffff;
+  --bg-sidebar: #f9f9fb;
+  --bg-surface: #ffffff;
+  --bg-subtle: #f4f4f6;
+  --bg-hover: #ededf0;
+  --bg-selected: #eef2ff;
+
+  --text-primary: #17171c;
+  --text-secondary: #4e4e5a;
+  --text-muted: #7c7c8a;
+  --text-faint: #a3a3b0;
+
+  --border-hair: #e6e6eb;
+  --border-strong: #d0d0d8;
+
+  --accent: #5e6ad2;
+  --accent-hover: #4e5bc2;
+  --accent-soft: rgba(94, 106, 210, 0.1);
+
+  --ok: #16a34a;
+  --ok-soft: rgba(22, 163, 74, 0.1);
+  --warn: #d97706;
+  --warn-soft: rgba(217, 119, 6, 0.11);
+  --err: #dc2626;
+  --err-soft: rgba(220, 38, 38, 0.1);
+
+  --shadow-menu: 0 10px 30px -6px rgba(16, 16, 24, 0.14), 0 2px 6px rgba(16, 16, 24, 0.06);
+  --shadow-modal: 0 24px 60px -12px rgba(16, 16, 24, 0.25);
+  --shadow-stage: 0 32px 80px -16px rgba(16, 16, 28, 0.18), 0 4px 16px rgba(16, 16, 28, 0.06);
+
+  --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-press: 90ms;
+  --dur-ui: 180ms;
+
+  --proto-h: 38px;
+  --topbar-h: 46px;
+  --sidebar-w: 228px;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+html[data-theme="dark"] {
+  --bg-app: #101114;
+  --bg-sidebar: #141519;
+  --bg-surface: #18191e;
+  --bg-subtle: #1e2027;
+  --bg-hover: #262932;
+  --bg-selected: rgba(94, 106, 210, 0.16);
+
+  --text-primary: #f2f2f5;
+  --text-secondary: #b4b4c0;
+  --text-muted: #7d7d8c;
+  --text-faint: #555562;
+
+  --border-hair: #23252d;
+  --border-strong: #323542;
+
+  --accent: #7a86e8;
+  --accent-hover: #8b96f0;
+  --accent-soft: rgba(122, 134, 232, 0.16);
+
+  --ok: #4ade80;
+  --ok-soft: rgba(74, 222, 128, 0.12);
+  --warn: #fbbf24;
+  --warn-soft: rgba(251, 191, 36, 0.14);
+  --err: #f87171;
+  --err-soft: rgba(248, 113, 113, 0.14);
+
+  --shadow-menu: 0 12px 34px rgba(0, 0, 0, 0.55);
+  --shadow-modal: 0 28px 64px rgba(0, 0, 0, 0.72);
+  --shadow-stage: 0 32px 84px -12px rgba(0, 0, 0, 0.65);
+}
+
+html[data-motion="reduced"],
+html[data-motion="reduced"] * {
+  --dur-press: 0ms;
+  --dur-ui: 0ms;
+  transition-duration: 0.01ms !important;
+  animation-duration: 0.01ms !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur-press: 0ms; --dur-ui: 0ms; }
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.45;
+  background: var(--bg-app);
+  color: var(--text-primary);
+  overflow-x: hidden;
+}
+
+button, input, textarea { font-family: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+:focus:not(:focus-visible) { outline: none; }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+/* ==========================================================================
+   2. PROTOTYPE STRIP
+   ========================================================================== */
+.proto-bar {
+  position: sticky;
+  top: 0;
+  z-index: 9500;
+  min-height: var(--proto-h);
+  background: #121317;
+  color: #d4d4dc;
+  border-bottom: 1px solid #272932;
+  padding: 4px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+}
+.proto-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.proto-group::-webkit-scrollbar { display: none; }
+.proto-pill {
+  height: 26px;
+  padding: 0 9px;
+  border-radius: 5px;
+  border: 1px solid #2e313d;
+  background: #1b1d24;
+  color: #d4d4dc;
+  font-size: 11.5px;
+  white-space: nowrap;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform var(--dur-press) var(--ease-spring), background var(--dur-press) ease;
+}
+.proto-pill:hover { background: #262934; color: #fff; }
+.proto-pill:active { transform: scale(0.96); }
+.proto-pill.is-on { background: #5e6ad2; border-color: #707ce0; color: #fff; font-weight: 600; }
+
+/* ==========================================================================
+   3. LINEAR-INSPIRED GLOBAL SHELL + SLIDING SIDEBAR INDICATOR
+   ========================================================================== */
+.shell {
+  display: flex;
+  min-height: calc(100vh - var(--proto-h));
+}
+
+.sidebar {
+  position: relative;
+  width: var(--sidebar-w);
+  flex-shrink: 0;
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border-hair);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 10px 8px 12px;
+  user-select: none;
+  overflow-y: auto;
+}
+.sidebar.is-hidden-public { display: none; }
+
+.sb-nav-wrap { position: relative; }
+.sb-indicator {
+  position: absolute;
+  left: 0;
+  width: 3px;
+  border-radius: 99px;
+  background: var(--accent);
+  pointer-events: none;
+  transition: transform var(--dur-ui) var(--ease-spring), height var(--dur-ui) var(--ease-spring), opacity 120ms ease;
+}
+
+.ws-switcher {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  transition: background var(--dur-press) ease, transform var(--dur-press) var(--ease-spring);
+}
+.ws-switcher:hover { background: var(--bg-hover); }
+.ws-switcher:active { transform: scale(0.98); }
+
+.cmd-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 30px;
+  margin: 8px 0 8px;
+  padding: 0 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border-hair);
+  background: var(--bg-surface);
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+.cmd-trigger:hover { border-color: var(--border-strong); color: var(--text-secondary); }
+
+.kbd {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  border: 1px solid var(--border-hair);
+  background: var(--bg-subtle);
+  color: var(--text-muted);
+}
+
+.nav-sec-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 10px 8px 4px;
+}
+
+.nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 30px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-bottom: 1px;
+  transition: background var(--dur-press) ease, color var(--dur-press) ease, transform var(--dur-press) var(--ease-spring);
+}
+.nav-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+.nav-btn:active { transform: scale(0.98); }
+.nav-btn.is-active { background: var(--bg-hover); color: var(--text-primary); font-weight: 600; }
+.nav-left { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.nav-badge { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+.main-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-app);
+}
+
+.topbar {
+  position: sticky;
+  top: var(--proto-h);
+  z-index: 100;
+  height: var(--topbar-h);
+  border-bottom: 1px solid var(--border-hair);
+  background: color-mix(in srgb, var(--bg-app) 92%, transparent);
+  backdrop-filter: blur(8px);
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.topbar-left, .topbar-right { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.mobile-menu-btn { display: none; }
+.sidebar-scrim {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 240;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+@media (max-width: 860px) {
+  .mobile-menu-btn { display: inline-flex; }
+  .topbar { padding: 0 12px; }
+  .sidebar {
+    position: fixed;
+    top: var(--proto-h);
+    bottom: 0;
+    left: 0;
+    z-index: 250;
+    transform: translateX(-105%);
+    transition: transform var(--dur-ui) var(--ease-spring);
+  }
+  .sidebar.is-open { display: flex; transform: translateX(0); }
+  .sidebar-scrim.is-open { display: block; }
+}
+
+/* ==========================================================================
+   4. SHARED PRIMITIVES
+   ========================================================================== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--dur-press) ease, border-color var(--dur-press) ease, transform var(--dur-press) var(--ease-spring);
+}
+.btn:hover:not(:disabled) { background: var(--bg-hover); }
+.btn:active:not(:disabled) { transform: scale(0.97); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.btn-lg { height: 38px; padding: 0 18px; font-size: 14px; border-radius: 99px; }
+.btn-accent { background: var(--accent); border-color: var(--accent); color: #ffffff; font-weight: 600; }
+.btn-accent:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+.btn-ghost { border-color: transparent; background: transparent; }
+.btn-ghost:hover:not(:disabled) { background: var(--bg-hover); }
+.btn-danger { color: var(--err); border-color: rgba(220,38,38,0.3); background: var(--err-soft); }
+
+.input, .textarea {
+  height: 28px;
+  padding: 0 9px;
+  border-radius: 6px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 12.5px;
+  transition: border-color var(--dur-press) ease, box-shadow var(--dur-press) ease;
+}
+.textarea { height: auto; padding: 8px 10px; font-family: var(--font-mono); resize: vertical; }
+.input:focus, .textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); outline: none; }
+.input.is-invalid, .textarea.is-invalid { border-color: var(--err); box-shadow: 0 0 0 2px var(--err-soft); }
+
+.seg-wrap {
+  position: relative;
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 7px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-hair);
+}
+.seg-indicator {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: 2px;
+  border-radius: 5px;
+  background: var(--bg-surface);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+  transition: transform var(--dur-ui) var(--ease-spring), width var(--dur-ui) var(--ease-spring);
+  pointer-events: none;
+}
+.seg-btn {
+  position: relative;
+  z-index: 1;
+  height: 24px;
+  padding: 0 10px;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.seg-btn.is-active { color: var(--text-primary); font-weight: 600; }
+
+.switch {
+  position: relative;
+  width: 34px;
+  height: 18px;
+  border-radius: 99px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-hover);
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: background var(--dur-ui) var(--ease-spring);
+}
+.switch:disabled { opacity: 0.45; cursor: not-allowed; }
+.switch-dot {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  transition: transform var(--dur-ui) var(--ease-spring);
+}
+.switch[aria-checked="true"] { background: var(--accent); border-color: var(--accent); }
+.switch[aria-checked="true"] .switch-dot { transform: translateX(16px); }
+
+.tag-chip {
+  font-size: 11px;
+  padding: 1px 7px;
+  border-radius: 4px;
+  border: 1px solid var(--border-hair);
+  background: var(--bg-subtle);
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.tag-chip.ok   { color: var(--ok);   background: var(--ok-soft);   border-color: rgba(22,163,74,0.25); }
+.tag-chip.warn { color: var(--warn); background: var(--warn-soft); border-color: rgba(217,119,6,0.25); }
+.tag-chip.err  { color: var(--err);  background: var(--err-soft);  border-color: rgba(220,38,38,0.25); }
+
+/* ==========================================================================
+   5. APPLE-INSPIRED PUBLIC HOME (Full-bleed narrative + interactive stage)
+   ========================================================================== */
+.apple-hero {
+  text-align: center;
+  padding: 56px 20px 36px;
+  max-width: 980px;
+  margin: 0 auto;
+}
+.apple-eyebrow {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: 0.02em;
+  margin-bottom: 10px;
+}
+.apple-h1 {
+  margin: 0 auto 14px;
+  font-size: clamp(32px, 5vw, 56px);
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+  font-weight: 700;
+  max-width: 780px;
+}
+.apple-sub {
+  margin: 0 auto 24px;
+  font-size: clamp(15px, 1.8vw, 19px);
+  color: var(--text-secondary);
+  max-width: 600px;
+  line-height: 1.5;
+}
+.apple-cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 36px;
+}
+
+.product-stage-wrap {
+  max-width: 1060px;
+  margin: 0 auto;
+  padding: 0 20px 48px;
+}
+.product-stage {
+  border: 1px solid var(--border-strong);
+  border-radius: 14px;
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-stage);
+  overflow: hidden;
+  transform-origin: center top;
+  will-change: transform;
+}
+.stage-chrome {
+  height: 40px;
+  padding: 0 14px;
+  background: var(--bg-subtle);
+  border-bottom: 1px solid var(--border-hair);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.traffic-dots { display: inline-flex; gap: 6px; }
+.traffic-dots span { width: 10px; height: 10px; border-radius: 50%; background: var(--border-strong); }
+.stage-body {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  min-height: 320px;
+}
+.stage-nav {
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border-hair);
+  padding: 12px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.stage-nav-btn {
+  height: 32px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  text-align: left;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.stage-nav-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+.stage-nav-btn.is-active { background: var(--bg-hover); color: var(--text-primary); font-weight: 600; }
+.stage-viewport { padding: 20px; text-align: left; }
+
+/* Alternating Full-Bleed Apple Bands */
+.band-dark {
+  background: #0d0e12;
+  color: #f4f4f6;
+  padding: 64px 20px;
+}
+.band-light {
+  background: var(--bg-subtle);
+  padding: 64px 20px;
+  border-top: 1px solid var(--border-hair);
+  border-bottom: 1px solid var(--border-hair);
+}
+.band-inner {
+  max-width: 1040px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 40px;
+  align-items: center;
+}
+.band-h2 {
+  margin: 0 0 12px;
+  font-size: clamp(24px, 3vw, 34px);
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+}
+.band-panel {
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.04);
+  padding: 18px;
+}
+.band-light .band-panel {
+  border-color: var(--border-strong);
+  background: var(--bg-surface);
+}
+
+@media (max-width: 860px) {
+  .apple-hero { padding: 32px 16px 24px; }
+  .product-stage-wrap { padding: 0 12px 32px; }
+  .stage-body { grid-template-columns: 1fr; }
+  .stage-nav { flex-direction: row; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--border-hair); }
+  .stage-nav-btn { white-space: nowrap; }
+  .band-dark, .band-light { padding: 42px 16px; }
+  .band-inner { grid-template-columns: 1fr; gap: 24px; }
+}
+
+/* ==========================================================================
+   6. WORKSPACE, FINANCE, MODULES (Preserved V5 + Restored Features)
+   ========================================================================== */
+.view-pad { padding: 18px 20px 48px; }
+.split-pane { display: grid; grid-template-columns: 7fr 5fr; min-height: calc(100vh - var(--proto-h) - var(--topbar-h)); }
+.split-left { border-right: 1px solid var(--border-hair); overflow-y: auto; }
+.split-right { padding: 16px 20px; background: var(--bg-sidebar); overflow-y: auto; }
+
+.ws-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 20px; border-bottom: 1px solid var(--border-hair); }
+.group-header { display: flex; align-items: center; justify-content: space-between; padding: 7px 20px; background: var(--bg-subtle); border-bottom: 1px solid var(--border-hair); font-size: 12px; font-weight: 600; color: var(--text-secondary); cursor: pointer; }
+.task-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 42px; padding: 6px 20px; border-bottom: 1px solid var(--border-hair); background: var(--bg-app); }
+.task-row:hover { background: var(--bg-subtle); }
+.task-row.is-selected { background: var(--bg-selected); }
+.task-row.is-dragging { opacity: 0.45; }
+.task-left { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1; }
+.task-id { font-family: var(--font-mono); font-size: 11.5px; color: var(--text-muted); width: 54px; flex-shrink: 0; }
+.status-dot-btn { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--text-muted); background: transparent; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; padding: 0; }
+.status-dot-btn[data-st="doing"] { border-color: var(--warn); background: radial-gradient(circle, var(--warn) 45%, transparent 50%); }
+.status-dot-btn[data-st="done"]  { border-color: var(--accent); background: var(--accent); color: #fff; font-size: 10px; }
+.task-title { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.task-row[data-done="true"] .task-title { color: var(--text-muted); text-decoration: line-through; }
+.task-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+.board-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding: 16px 20px; }
+.board-col { background: var(--bg-sidebar); border: 1px solid var(--border-hair); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.board-card { background: var(--bg-surface); border: 1px solid var(--border-hair); border-radius: 6px; padding: 10px; display: flex; flex-direction: column; gap: 6px; }
+
+.acct-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 20px; border-bottom: 1px solid var(--border-hair); }
+.acct-balances { display: flex; flex-wrap: wrap; align-items: baseline; gap: 18px; }
+.bal-item { display: flex; align-items: baseline; gap: 6px; }
+.bal-lbl { font-size: 11.5px; color: var(--text-muted); }
+.bal-val { font-size: 15px; font-weight: 700; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.is-scrambled .bal-val, .is-scrambled .amt-cell { filter: blur(5px); user-select: none; }
+.fin-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 20px; border-bottom: 1px solid var(--border-hair); background: var(--bg-subtle); }
+.register-wrap { width: 100%; overflow-x: auto; }
+.register-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.register-table th { position: sticky; top: 0; background: var(--bg-sidebar); border-bottom: 1px solid var(--border-strong); padding: 7px 12px; text-align: left; font-size: 11px; font-weight: 600; color: var(--text-muted); white-space: nowrap; }
+.register-table td { padding: 6px 12px; border-bottom: 1px solid var(--border-hair); white-space: nowrap; }
+.register-table tr:hover td { background: var(--bg-subtle); }
+.entry-row td { background: var(--accent-soft) !important; padding: 6px 8px; border-bottom: 1px solid var(--accent); }
+.cleared-dot { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--text-muted); background: transparent; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; }
+.cleared-dot[data-cleared="true"] { border-color: var(--ok); background: var(--ok); color: #fff; }
+.fin-bottom-split { display: grid; grid-template-columns: 1fr 270px; border-top: 1px solid var(--border-hair); }
+.cat-drawer { border-left: 1px solid var(--border-hair); background: var(--bg-sidebar); padding: 14px 16px; }
+
+.settings-group { border: 1px solid var(--border-hair); border-radius: 8px; background: var(--bg-surface); overflow: hidden; margin-bottom: 16px; }
+.settings-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--border-hair); }
+.settings-row:last-child { border-bottom: 0; }
+
+.dropzone {
+  border: 1.5px dashed var(--border-strong);
+  border-radius: 8px;
+  padding: 20px;
+  background: var(--bg-subtle);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  transition: border-color var(--dur-press) ease, background var(--dur-press) ease;
+}
+.dropzone.is-dragover { border-color: var(--accent); background: var(--accent-soft); }
+
+.scrim { position: fixed; inset: 0; z-index: 9000; background: rgba(10, 12, 18, 0.45); display: none; align-items: flex-start; justify-content: center; padding: 12vh 16px 16px; }
+.scrim.is-open { display: flex; }
+.dialog-card { width: 100%; max-width: 480px; background: var(--bg-surface); border: 1px solid var(--border-strong); border-radius: 10px; box-shadow: var(--shadow-modal); overflow: hidden; }
+.cmd-input { width: 100%; height: 44px; padding: 0 14px; border: 0; border-bottom: 1px solid var(--border-hair); background: transparent; font-size: 13.5px; outline: none; }
+.cmd-list { max-height: 280px; overflow-y: auto; padding: 6px; }
+.cmd-item { width: 100%; height: 34px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; display: flex; align-items: center; justify-content: space-between; font-size: 13px; cursor: pointer; }
+.cmd-item:hover { background: var(--bg-hover); }
+
+.feedback-dock { position: fixed; bottom: 16px; right: 16px; z-index: 8000; display: flex; flex-direction: column; gap: 8px; max-width: 360px; }
+.feedback-pill { background: var(--text-primary); color: var(--bg-app); padding: 8px 12px; border-radius: 7px; font-size: 12.5px; display: flex; align-items: center; justify-content: space-between; gap: 10px; box-shadow: var(--shadow-menu); }
+.feedback-pill[data-tone="error"] { background: var(--err); color: #fff; }
+
+@media (max-width: 860px) {
+  .split-pane { grid-template-columns: 1fr; }
+  .split-left { border-right: 0; border-bottom: 1px solid var(--border-hair); }
+  .ws-toolbar, .group-header, .task-row, .acct-header, .fin-toolbar { padding-left: 12px; padding-right: 12px; }
+  .task-id { display: none; }
+  .board-grid { grid-template-columns: 1fr; padding: 12px; }
+  .fin-bottom-split { grid-template-columns: 1fr; }
+  .cat-drawer { border-left: 0; border-top: 1px solid var(--border-hair); }
+}
+</style>
+</head>
+<body>
+
+<div class="proto-bar" role="region" aria-label="原型控制栏">
+  <div class="proto-group">
+    <span style="font-weight:600;color:#9ea6ff;white-space:nowrap;">Aeris V6</span>
+    <button type="button" class="proto-pill" id="protoRole">角色：i09admin</button>
+    <button type="button" class="proto-pill" id="protoFail">保存：正常</button>
+  </div>
+  <div class="proto-group">
+    <button type="button" class="proto-pill" id="protoTheme">浅色</button>
+    <button type="button" class="proto-pill" id="protoMotion">动效：正常</button>
+  </div>
+</div>
+
+<div class="sidebar-scrim" id="sidebarScrim"></div>
+
+<div class="shell">
+  <aside class="sidebar" id="sidebar" aria-label="主导航">
+    <div class="sb-nav-wrap" id="sbNavWrap">
+      <div class="sb-indicator" id="sbIndicator"></div>
+      <button type="button" class="ws-switcher" id="wsMenuBtn">
+        <span style="display:inline-flex;align-items:center;gap:8px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 3L3 20h4.2l4.8-9.6L16.8 20H21L12 3z" fill="currentColor"/>
+            <circle cx="12" cy="16.5" r="2" fill="var(--accent)"/>
+          </svg>
+          <span>Aeris 空间</span>
+        </span>
+        <span style="color:var(--text-muted);font-size:11px;">▾</span>
+      </button>
+
+      <button type="button" class="cmd-trigger" id="cmdOpenBtn">
+        <span>搜索或命令…</span>
+        <span class="kbd">Ctrl K</span>
+      </button>
+
+      <div class="nav-sec-label">核心工作区</div>
+      <button type="button" class="nav-btn" data-route="workspace"><span class="nav-left"><span>◎</span><span>个人工作台</span></span><span class="nav-badge" id="sbTaskCount">0</span></button>
+      <button type="button" class="nav-btn" data-route="inbox"><span class="nav-left"><span>✉</span><span>通知中心</span></span><span class="nav-badge" id="sbUnreadCount">0</span></button>
+      <button type="button" class="nav-btn" data-route="finance"><span class="nav-left"><span>▤</span><span>财务账本</span></span><span class="nav-badge" id="sbLedgerBal">¥0</span></button>
+
+      <div class="nav-sec-label">工具与模块</div>
+      <button type="button" class="nav-btn" data-route="language"><span class="nav-left"><span>あ</span><span>语言学习</span></span></button>
+      <button type="button" class="nav-btn" data-route="tools"><span class="nav-left"><span>⌘</span><span>工具箱</span></span></button>
+      <button type="button" class="nav-btn" data-route="workflows"><span class="nav-left"><span>⇄</span><span>工作流</span></span></button>
+      <button type="button" class="nav-btn" data-route="transfer"><span class="nav-left"><span>⇅</span><span>文件传输</span></span></button>
+      <button type="button" class="nav-btn" data-route="chat"><span class="nav-left"><span>☷</span><span>临时聊天与剪贴板</span></span></button>
+
+      <div class="nav-sec-label">账户与站点</div>
+      <button type="button" class="nav-btn" data-route="account"><span class="nav-left"><span>⚙</span><span>账户与安全</span></span></button>
+      <button type="button" class="nav-btn" data-route="recharge"><span class="nav-left"><span>◈</span><span>会员与充值</span></span></button>
+      <button type="button" class="nav-btn" data-route="admin"><span class="nav-left"><span>⚑</span><span>管理后台</span></span></button>
+
+      <div class="nav-sec-label">公开与认证</div>
+      <button type="button" class="nav-btn" data-route="public"><span class="nav-left"><span>⌂</span><span>公开主页</span></span></button>
+      <button type="button" class="nav-btn" data-route="auth"><span class="nav-left"><span>→</span><span>登录与注册</span></span></button>
+      <button type="button" class="nav-btn" data-route="changelog"><span class="nav-left"><span>▤</span><span>下载与更新日志</span></span></button>
+    </div>
+
+    <div style="border-top:1px solid var(--border-hair);padding:8px 8px 0;font-size:11px;color:var(--text-muted);">
+      <span class="kbd">G</span>+<span class="kbd">W</span> 工作台 · <span class="kbd">G</span>+<span class="kbd">I</span> 通知 · <span class="kbd">G</span>+<span class="kbd">F</span> 账本
+    </div>
+  </aside>
+
+  <div class="main-col">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button type="button" class="btn btn-ghost mobile-menu-btn" id="mobileMenuBtn" aria-label="打开导航">☰</button>
+        <div id="topbarBreadcrumb" style="display:flex;align-items:center;gap:8px;font-weight:600;"></div>
+      </div>
+      <div class="topbar-right" id="topbarRight"></div>
+    </header>
+    <div id="viewMount"></div>
+  </div>
+</div>
+
+<!-- COMMAND PALETTE -->
+<div class="scrim" id="cmdScrim" role="dialog" aria-modal="true" aria-label="命令面板">
+  <div class="dialog-card" id="cmdCard">
+    <input class="cmd-input" id="cmdInput" placeholder="跳转到任意模块或执行命令…">
+    <div class="cmd-list" id="cmdList"></div>
+  </div>
+</div>
+
+<!-- SHARED MODAL -->
+<div class="scrim" id="modalScrim" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="dialog-card" id="modalCard">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border-hair);">
+      <strong id="modalTitle">确认</strong>
+      <button type="button" class="btn btn-ghost" id="modalCloseBtn">✕</button>
+    </div>
+    <div id="modalBody" style="padding:16px;"></div>
+  </div>
+</div>
+
+<!-- IMPORT MODAL (Restored from V4) -->
+<div class="scrim" id="importScrim" role="dialog" aria-modal="true" aria-labelledby="impTitle">
+  <div class="dialog-card" id="importCard">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border-hair);">
+      <strong id="impTitle">导入本地对账单 (CSV / JSON)</strong>
+      <button type="button" class="btn btn-ghost" id="impCloseBtn">✕</button>
+    </div>
+    <div style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button type="button" class="btn btn-accent" id="impPickBtn">选择本地文件</button>
+        <input type="file" id="impFileIn" accept=".csv,.json,.txt" hidden>
+        <span id="impFileName" style="font-size:12px;color:var(--text-muted);">未选择文件</span>
+      </div>
+      <div id="impProgressWrap" hidden>
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
+          <span id="impStatusTxt">准备解析…</span><span class="mono" id="impPctTxt">0%</span>
+        </div>
+        <div style="height:6px;background:var(--bg-subtle);border-radius:99px;overflow:hidden;">
+          <div id="impBar" style="width:0%;height:100%;background:var(--accent);transition:width 120ms linear;"></div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;">
+        <button type="button" class="btn" id="impCancelBtn">取消</button>
+        <button type="button" class="btn btn-accent" id="impRunBtn" disabled>开始解析导入</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="feedback-dock" id="feedbackDock" aria-live="polite"></div>
+
+<script>
+/* ==========================================================================
+   SECURITY HELPERS: Escaping & Safe Math Parser (Zero eval / Zero Function)
+   ========================================================================== */
+function esc(str) {
+  return String(str == null ? '' : str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function safeEvalMath(raw) {
+  const s = String(raw || '').replace(/\s+/g, '');
+  if (!s) return 0;
+  let pos = 0;
+  function parseExpr() {
+    let left = parseTerm();
+    while (pos < s.length && (s[pos] === '+' || s[pos] === '-')) {
+      const op = s[pos++];
+      const right = parseTerm();
+      left = op === '+' ? left + right : left - right;
+    }
+    return left;
+  }
+  function parseTerm() {
+    let left = parseFactor();
+    while (pos < s.length && (s[pos] === '*' || s[pos] === '/')) {
+      const op = s[pos++];
+      const right = parseFactor();
+      if (op === '/' && right === 0) return NaN;
+      left = op === '*' ? left * right : left / right;
+    }
+    return left;
+  }
+  function parseFactor() {
+    if (s[pos] === '(') {
+      pos++;
+      const val = parseExpr();
+      if (s[pos] !== ')') return NaN;
+      pos++;
+      return val;
+    }
+    const start = pos;
+    if (s[pos] === '-') pos++;
+    while (pos < s.length && /[0-9.]/.test(s[pos])) pos++;
+    if (pos === start) return NaN;
+    const num = Number(s.slice(start, pos));
+    return Number.isFinite(num) ? num : NaN;
+  }
+  const result = parseExpr();
+  return pos === s.length && Number.isFinite(result) ? result : NaN;
+}
+
+/* ==========================================================================
+   MOTION ENGINE (FLIP, Sidebar Indicator, Interruptible View Transitions)
+   ========================================================================== */
+const prefersReduced = () => document.documentElement.dataset.motion === 'reduced' || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function animateIn(el, fromY = -6) {
+  if (!el || prefersReduced() || !el.animate) return;
+  el.animate(
+    [{ opacity: 0, transform: `translateY(${fromY}px) scale(0.97)` }, { opacity: 1, transform: 'translateY(0) scale(1)' }],
+    { duration: 160, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', fill: 'both' }
+  );
+}
+
+function animateOutAndHide(el, onDone) {
+  if (!el) return;
+  if (prefersReduced() || !el.animate) { onDone(); return; }
+  const anim = el.animate(
+    [{ opacity: 1, transform: 'scale(1)' }, { opacity: 0, transform: 'scale(0.97)' }],
+    { duration: 120, easing: 'ease-out', fill: 'forwards' }
+  );
+  anim.onfinish = () => { anim.cancel(); onDone(); };
+}
+
+function capturePositions(container, selector) {
+  const map = new Map();
+  if (!container) return map;
+  container.querySelectorAll(selector).forEach(el => { if (el.dataset.key) map.set(el.dataset.key, el.getBoundingClientRect()); });
+  return map;
+}
+
+function playFLIP(container, selector, prevMap) {
+  if (prefersReduced() || !container) return;
+  container.querySelectorAll(selector).forEach(el => {
+    const prev = prevMap.get(el.dataset.key);
+    if (!prev) {
+      el.animate([{ opacity: 0, transform: 'translateY(-4px)' }, { opacity: 1, transform: 'none' }], { duration: 180, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' });
+      return;
+    }
+    const next = el.getBoundingClientRect();
+    const dx = prev.left - next.left, dy = prev.top - next.top;
+    if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
+      el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'translate(0, 0)' }], { duration: 220, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' });
+    }
+  });
+}
+
+function moveTabIndicator(wrap, activeBtn) {
+  const ind = wrap && wrap.querySelector('.seg-indicator');
+  if (!ind || !activeBtn) return;
+  ind.style.width = activeBtn.offsetWidth + 'px';
+  ind.style.transform = `translateX(${activeBtn.offsetLeft - 2}px)`;
+}
+
+function updateSidebarIndicator() {
+  const ind = document.getElementById('sbIndicator');
+  const active = document.querySelector('.nav-btn.is-active');
+  if (!ind || !active) { if (ind) ind.style.opacity = '0'; return; }
+  ind.style.opacity = '1';
+  ind.style.height = (active.offsetHeight - 8) + 'px';
+  ind.style.transform = `translateY(${active.offsetTop + 4}px)`;
+}
+
+/* ==========================================================================
+   STATE
+   ========================================================================== */
+const state = {
+  route: 'public',
+  routeGen: 0,
+  role: 'i09admin',
+  simulateFail: false,
+  theme: 'light',
+  motion: 'normal',
+
+  // Public Stage
+  pubStageTab: 'workspace',
+
+  // Workspace
+  wsLayout: 'list',
+  wsSearch: '',
+  wsEditing: false,
+  wsSnapshot: null,
+  wsCollapsed: { doing: false, todo: false, done: false },
+  tasks: [
+    { id: 'AER-101', title: '核对 11 月个人账本并补录今日消费', status: 'doing', tag: '财务', route: 'finance' },
+    { id: 'AER-102', title: '完成 JLPT N5 词汇每日 10 题', status: 'doing', tag: '学习', route: 'language' },
+    { id: 'AER-103', title: '整理常用 JSON 格式化模板', status: 'todo', tag: '工具', route: 'tools' },
+    { id: 'AER-104', title: '导出上周备份并校验哈希', status: 'done', tag: '安全', route: 'account' }
+  ],
+
+  // Finance
+  finSearch: '',
+  finFilter: 'all',
+  finScramble: false,
+  transactions: [
+    { id: 'tx1', date: '2026-11-21', payee: '新标日初级教材', cat: '学习', out: 68.00, in: 0, cleared: true },
+    { id: 'tx2', date: '2026-11-20', payee: '技术专栏稿费', cat: '收入', out: 0, in: 1800.00, cleared: true },
+    { id: 'tx3', date: '2026-11-18', payee: '云存储月度订阅', cat: '工具', out: 42.00, in: 0, cleared: true },
+    { id: 'tx4', date: '2026-11-16', payee: '手冲咖啡豆', cat: '日常', out: 95.00, in: 0, cleared: false }
+  ],
+
+  // Language
+  langTrack: 'ja',
+  langTab: 'quiz',
+  quizIdx: 0,
+  quizPick: null,
+  quizSubmitted: false,
+  wrongItems: [{ q: '約束（やくそく）', a: '约定' }],
+
+  // Toolbox
+  toolQuery: '',
+  toolIdx: 0,
+  toolFavs: new Set(['json']),
+  jsonIn: '{\n  "app": "Aeris",\n  "mode": "local",\n  "modules": 12\n}',
+
+  // Workflows
+  wfTpl: 'json-clean',
+  wfSteps: [
+    { id: 's1', name: '校验输入结构', enabled: true },
+    { id: 's2', name: '清理空白与规范缩进', enabled: true },
+    { id: 's3', name: '生成可复制输出', enabled: true }
+  ],
+  wfInput: '{"hello":"aeris","ready":true}',
+  wfStatus: 'idle',
+  wfActiveStep: -1,
+  wfOutput: '',
+
+  // Transfer
+  peers: [{ id: 'p1', name: 'Pixel 8 · Android' }, { id: 'p2', name: 'MacBook Air' }],
+  selectedPeer: 'p1',
+  files: [],
+  tfProgress: 0,
+  tfStatus: 'idle',
+
+  // Chat
+  roomCode: 'AER7K',
+  roomConnected: true,
+  roomMessages: [{ id: 'm1', sender: 'Pixel 8', text: 'https://thewyj.uk/tools', time: '21:14' }],
+
+  // Inbox
+  inboxFilter: 'all',
+  inboxSelected: 'n1',
+  notifications: [
+    { id: 'n1', title: '演示通知：工作台备份提醒', body: '此为原型模拟通知，非生产环境真实历史记录。', unread: true, archived: false, time: '10 分钟前' },
+    { id: 'n2', title: '演示通知：11 月账本有 1 笔待核对', body: '手冲咖啡豆 ¥95.00 尚未标记为已核对。', unread: true, archived: false, time: '1 小时前' },
+    { id: 'n3', title: '演示通知：体验通道说明', body: '当前预览处于本地演示状态。', unread: false, archived: false, time: '昨天' }
+  ],
+
+  // Account, Recharge, Admin, Auth
+  releaseChannel: 'Stable',
+  rcPlan: 'all-month',
+  rcPay: 'wechat',
+  admEnv: 'all',
+  admSearch: '',
+  admSelected: 'p07_unified_feedback',
+  admKill: false,
+  flags: [
+    { key: 'p07_unified_feedback', desc: '全站统一交互反馈', env: 'Stable', rollout: 100, on: true },
+    { key: 'custom_select_v2', desc: '统一自定义下拉菜单', env: 'Beta', rollout: 50, on: true },
+    { key: 'workflow_batch', desc: '工作流批量运行', env: 'Experimental', rollout: 10, on: false }
+  ],
+  admLogs: [{ time: '23:10:02', actor: 'i09admin', msg: '查看 Feature Flags 列表' }],
+  authMode: 'login'
+};
+
+function getBalanceStats() {
+  const totalIn = state.transactions.reduce((s, t) => s + t.in, 0);
+  const totalOut = state.transactions.reduce((s, t) => s + t.out, 0);
+  const clearedBal = state.transactions.filter(t => t.cleared).reduce((s, t) => s + t.in - t.out, 0);
+  return { totalIn, totalOut, net: totalIn - totalOut, clearedBal };
+}
+
+/* ==========================================================================
+   FEEDBACK, MODAL & SAFE CLIPBOARD
+   ========================================================================== */
+function notify(msg, { tone = 'info', actionLabel = null, onAction = null, duration = 3600 } = {}) {
+  const dock = document.getElementById('feedbackDock');
+  while (dock.children.length >= 2) dock.firstElementChild.remove();
+  const pill = document.createElement('div');
+  pill.className = 'feedback-pill';
+  pill.dataset.tone = tone;
+  const span = document.createElement('span');
+  span.textContent = msg;
+  pill.appendChild(span);
+
+  const right = document.createElement('div');
+  right.style.display = 'flex'; right.style.gap = '6px';
+  if (actionLabel && onAction) {
+    const ab = document.createElement('button');
+    ab.type = 'button'; ab.className = 'btn'; ab.style.height = '24px'; ab.textContent = actionLabel;
+    ab.onclick = () => { onAction(); pill.remove(); };
+    right.appendChild(ab);
+  }
+  const cb = document.createElement('button');
+  cb.type = 'button'; cb.style.cssText = 'border:0;background:transparent;color:inherit;cursor:pointer;padding:0 4px;'; cb.textContent = '✕';
+  cb.onclick = () => pill.remove();
+  right.appendChild(cb);
+  pill.appendChild(right);
+  dock.appendChild(pill);
+  animateIn(pill, 8);
+  if (duration > 0) setTimeout(() => { if (pill.isConnected) pill.remove(); }, duration);
+}
+
+let lastTrigger = null;
+function openModal(title, renderFn, trigger) {
+  lastTrigger = trigger || document.activeElement;
+  const scrim = document.getElementById('modalScrim');
+  document.getElementById('modalTitle').textContent = title;
+  const body = document.getElementById('modalBody'); body.innerHTML = '';
+  renderFn(body);
+  scrim.classList.add('is-open');
+  animateIn(document.getElementById('modalCard'), -8);
+  document.getElementById('modalCloseBtn').focus();
+}
+function closeModal() {
+  const scrim = document.getElementById('modalScrim');
+  if (!scrim.classList.contains('is-open')) return;
+  animateOutAndHide(document.getElementById('modalCard'), () => {
+    scrim.classList.remove('is-open');
+    if (lastTrigger && lastTrigger.isConnected) lastTrigger.focus();
+  });
+}
+document.getElementById('modalCloseBtn').onclick = closeModal;
+document.getElementById('modalScrim').onclick = (e) => { if (e.target.id === 'modalScrim') closeModal(); };
+
+async function copyReal(text, btn) {
+  const orig = btn.textContent;
+  const ok = () => { btn.textContent = '已复制 ✓'; setTimeout(() => { if (btn.isConnected) btn.textContent = orig; }, 1400); };
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) { await navigator.clipboard.writeText(text); ok(); return; }
+  } catch {}
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.cssText = 'position:fixed;opacity:0;left:-9999px;';
+    document.body.appendChild(ta); ta.select();
+    const copied = document.execCommand('copy'); ta.remove();
+    if (copied) { ok(); return; }
+  } catch {}
+  notify('复制失败：当前环境限制剪贴板访问', { tone: 'error' });
+}
+
+/* ==========================================================================
+   SHELL & ROUTING
+   ========================================================================== */
+function syncBadges() {
+  document.getElementById('sbTaskCount').textContent = state.tasks.filter(t => t.status !== 'done').length;
+  document.getElementById('sbUnreadCount').textContent = state.notifications.filter(n => n.unread && !n.archived).length;
+  document.getElementById('sbLedgerBal').textContent = '¥' + getBalanceStats().net.toFixed(0);
+}
+
+let activeViewAnim = null;
+function goRoute(route) {
+  state.route = route;
+  const gen = ++state.routeGen;
+  document.getElementById('sidebar').classList.remove('is-open');
+  document.getElementById('sidebarScrim').classList.remove('is-open');
+  document.getElementById('sidebar').classList.toggle('is-hidden-public', route === 'public');
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('is-active', b.dataset.route === route));
+  requestAnimationFrame(updateSidebarIndicator);
+  renderTopbar();
+
+  const mount = document.getElementById('viewMount');
+  if (activeViewAnim) { activeViewAnim.cancel(); activeViewAnim = null; }
+  renderCurrentView();
+  if (!prefersReduced() && mount.animate && gen === state.routeGen) {
+    activeViewAnim = mount.animate(
+      [{ opacity: 0.4, transform: 'translateY(4px)' }, { opacity: 1, transform: 'translateY(0)' }],
+      { duration: 150, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' }
+    );
+  }
+  syncBadges();
+}
+
+function renderTopbar() {
+  const bc = document.getElementById('topbarBreadcrumb');
+  const tr = document.getElementById('topbarRight');
+  const labels = {
+    workspace: '个人工作台', finance: '11 月主账本', language: '语言学习', tools: '工具箱',
+    workflows: '工作流', transfer: '文件传输', chat: '临时聊天与剪贴板', inbox: '通知中心',
+    account: '账户与安全', recharge: '会员与充值', admin: '管理后台 · Feature Flags',
+    public: 'Aeris', auth: '登录与注册', changelog: '下载与更新日志'
+  };
+
+  if (state.route === 'public') {
+    bc.innerHTML = `<strong style="font-size:15px;">Aeris</strong>`;
+    tr.innerHTML = `<button type="button" class="btn btn-ghost" id="pubNavDl">下载与日志</button><button type="button" class="btn" id="pubNavAuth">登录</button><button type="button" class="btn btn-accent" id="pubNavEnter">进入工作台</button>`;
+    tr.querySelector('#pubNavDl').onclick = () => goRoute('changelog');
+    tr.querySelector('#pubNavAuth').onclick = () => goRoute('auth');
+    tr.querySelector('#pubNavEnter').onclick = () => goRoute('workspace');
+    return;
+  }
+
+  bc.textContent = labels[state.route] || state.route;
+  if (state.route === 'workspace') {
+    tr.innerHTML = `
+      <div class="seg-wrap" id="wsLayoutSeg">
+        <div class="seg-indicator"></div>
+        <button type="button" class="seg-btn ${state.wsLayout === 'list' ? 'is-active' : ''}" data-wl="list">列表</button>
+        <button type="button" class="seg-btn ${state.wsLayout === 'board' ? 'is-active' : ''}" data-wl="board">看板</button>
+      </div>
+      <button type="button" class="btn" id="wsEditToggle">${state.wsEditing ? '退出编辑' : '调整顺序'}</button>`;
+    const seg = tr.querySelector('#wsLayoutSeg');
+    requestAnimationFrame(() => moveTabIndicator(seg, seg.querySelector('.seg-btn.is-active')));
+    seg.querySelectorAll('.seg-btn').forEach(b => {
+      b.onclick = () => { state.wsLayout = b.dataset.wl; seg.querySelectorAll('.seg-btn').forEach(x => x.classList.toggle('is-active', x === b)); moveTabIndicator(seg, b); renderCurrentView(); };
+    });
+    tr.querySelector('#wsEditToggle').onclick = () => {
+      if (!state.wsEditing) { state.wsSnapshot = JSON.parse(JSON.stringify(state.tasks)); state.wsEditing = true; }
+      else { state.wsEditing = false; state.wsSnapshot = null; }
+      renderTopbar(); renderCurrentView();
+    };
+  } else if (state.route === 'finance') {
+    tr.innerHTML = `<button type="button" class="btn btn-ghost" id="finBackWs">← 工作台</button><button type="button" class="btn" id="finImportBtn">导入对账单</button><button type="button" class="btn" id="finPrivacyBtn">${state.finScramble ? '显示金额' : '隐藏金额'}</button>`;
+    tr.querySelector('#finBackWs').onclick = () => goRoute('workspace');
+    tr.querySelector('#finImportBtn').onclick = openImportModal;
+    tr.querySelector('#finPrivacyBtn').onclick = () => { state.finScramble = !state.finScramble; renderTopbar(); renderCurrentView(); };
+  } else {
+    tr.innerHTML = `<button type="button" class="btn btn-ghost" id="backWsAny">← 工作台</button>`;
+    tr.querySelector('#backWsAny').onclick = () => goRoute('workspace');
+  }
+}
+
+function renderCurrentView() {
+  const m = document.getElementById('viewMount');
+  m.innerHTML = '';
+  const map = {
+    public: renderPublic, workspace: renderWorkspace, finance: renderFinance, language: renderLanguage,
+    tools: renderTools, workflows: renderWorkflows, transfer: renderTransfer, chat: renderChat,
+    inbox: renderInbox, account: renderAccount, recharge: renderRecharge, admin: renderAdmin,
+    auth: renderAuth, changelog: renderChangelog
+  };
+  (map[state.route] || renderPublic)(m);
+}
+
+/* ==========================================================================
+   APPLE-INSPIRED PUBLIC HOME (Hero Stage + Scroll Narrative + Alternating Bands)
+   ========================================================================== */
+function renderPublic(mount) {
+  const { net } = getBalanceStats();
+  mount.innerHTML = `
+    <section class="apple-hero">
+      <div class="apple-eyebrow">Aeris</div>
+      <h1 class="apple-h1">把学习、账本与日常工具，安静地收拢在一处。</h1>
+      <p class="apple-sub">无需在十几个标签页之间来回切换。打开即用，本地优先，每一次点击都有清晰回应。</p>
+      <div class="apple-cta-row">
+        <button type="button" class="btn btn-accent btn-lg" id="heroEnterWs">进入个人工作台</button>
+        <button type="button" class="btn btn-lg" id="heroTryTools">试用本地工具</button>
+      </div>
+    </section>
+
+    <div class="product-stage-wrap">
+      <div class="product-stage" id="heroProductStage">
+        <div class="stage-chrome">
+          <div class="traffic-dots"><span></span><span></span><span></span></div>
+          <div class="mono" style="font-size:11.5px;color:var(--text-muted);">thewyj.uk</div>
+          <span class="tag-chip ok">可点击体验</span>
+        </div>
+        <div class="stage-body">
+          <div class="stage-nav" id="stageNav">
+            <button type="button" class="stage-nav-btn ${state.pubStageTab === 'workspace' ? 'is-active' : ''}" data-st="workspace">个人工作台</button>
+            <button type="button" class="stage-nav-btn ${state.pubStageTab === 'finance' ? 'is-active' : ''}" data-st="finance">11 月主账本</button>
+            <button type="button" class="stage-nav-btn ${state.pubStageTab === 'quiz' ? 'is-active' : ''}" data-st="quiz">日语词测</button>
+            <button type="button" class="stage-nav-btn ${state.pubStageTab === 'json' ? 'is-active' : ''}" data-st="json">JSON 校验</button>
+          </div>
+          <div class="stage-viewport" id="stageViewport"></div>
+        </div>
+      </div>
+    </div>
+
+    <section class="band-dark">
+      <div class="band-inner">
+        <div>
+          <div style="font-size:12px;color:#9ea6ff;font-weight:600;margin-bottom:8px;">财务账本</div>
+          <h2 class="band-h2">像电子表格一样快，<br>算式直接算进金额栏。</h2>
+          <p style="color:#a1a1b0;font-size:14px;line-height:1.6;margin:0 0 18px;">支持行内回车记账、核对圆点标记、隐私金额模糊与撤销删除。当前演示净结余 <strong class="mono" style="color:#fff;">¥${net.toFixed(2)}</strong>。</p>
+          <button type="button" class="btn btn-accent" id="bandGoFin">打开完整账本 →</button>
+        </div>
+        <div class="band-panel">
+          <div style="display:flex;justify-content:space-between;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.1);font-size:12px;color:#a1a1b0;">
+            <span>最新流水预览</span><span class="mono">共 ${state.transactions.length} 笔</span>
+          </div>
+          ${state.transactions.slice(0, 3).map(t => `
+            <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06);font-size:13px;">
+              <span>${esc(t.payee)}</span>
+              <span class="mono" style="color:${t.in > 0 ? '#4ade80' : '#f4f4f6'};">${t.in > 0 ? '+¥' + t.in.toFixed(2) : '-¥' + t.out.toFixed(2)}</span>
+            </div>`).join('')}
+        </div>
+      </div>
+    </section>
+
+    <section class="band-light">
+      <div class="band-inner">
+        <div class="band-panel">
+          <strong style="display:block;margin-bottom:8px;">工具箱与语言练习</strong>
+          <p style="margin:0 0 12px;color:var(--text-secondary);font-size:13px;">JSON 格式化、文本统计、Base64 编解码全部在浏览器本地完成；日语 N5 测验即时给出解析。</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button type="button" class="btn btn-accent" id="bandGoLang">开始 N5 测验</button>
+            <button type="button" class="btn" id="bandGoTools">打开工具箱</button>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:12px;color:var(--accent);font-weight:600;margin-bottom:8px;">本地优先 · 跨设备</div>
+          <h2 class="band-h2">不打扰的日常工具箱，<br>随时与手机交换文本和文件。</h2>
+          <p style="color:var(--text-secondary);font-size:14px;line-height:1.6;margin:0;">内置工作流步骤编辑与跨设备临时房间，在任何屏幕尺寸下都保持相同的按键与触控响应。</p>
+        </div>
+      </div>
+    </section>`;
+
+  mount.querySelector('#heroEnterWs').onclick = () => goRoute('workspace');
+  mount.querySelector('#heroTryTools').onclick = () => goRoute('tools');
+  mount.querySelector('#bandGoFin').onclick = () => goRoute('finance');
+  mount.querySelector('#bandGoLang').onclick = () => goRoute('language');
+  mount.querySelector('#bandGoTools').onclick = () => goRoute('tools');
+
+  const stageVp = mount.querySelector('#stageViewport');
+  const drawStage = () => {
+    mount.querySelectorAll('.stage-nav-btn').forEach(b => b.classList.toggle('is-active', b.dataset.st === state.pubStageTab));
+    if (state.pubStageTab === 'workspace') {
+      stageVp.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <strong>进行中的任务</strong>
+          <button type="button" class="btn btn-accent" id="stOpenWs">在工作台中打开 →</button>
+        </div>
+        ${state.tasks.slice(0, 3).map(t => `<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border-hair);"><span><span class="mono" style="color:var(--text-muted);margin-right:8px;">${esc(t.id)}</span>${esc(t.title)}</span><span class="tag-chip">${esc(t.tag)}</span></div>`).join('')}`;
+      stageVp.querySelector('#stOpenWs').onclick = () => goRoute('workspace');
+    } else if (state.pubStageTab === 'finance') {
+      stageVp.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <strong>11 月账本 · 净结余 <span class="mono">¥${net.toFixed(2)}</span></strong>
+          <button type="button" class="btn btn-accent" id="stOpenFin">进入账本 →</button>
+        </div>
+        ${state.transactions.slice(0, 3).map(t => `<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border-hair);"><span>${esc(t.payee)}</span><span class="mono">${t.in > 0 ? '+¥' + t.in.toFixed(2) : '-¥' + t.out.toFixed(2)}</span></div>`).join('')}`;
+      stageVp.querySelector('#stOpenFin').onclick = () => goRoute('finance');
+    } else if (state.pubStageTab === 'quiz') {
+      stageVp.innerHTML = `
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">JLPT N5</div>
+        <div style="font-size:20px;font-weight:700;margin-bottom:12px;">電車（でんしゃ）</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;" id="stQOpts"></div>
+        <div id="stQRes" style="margin-top:10px;font-size:12.5px;"></div>`;
+      ['电车', '图书馆', '自行车'].forEach((o, i) => {
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'btn'; b.textContent = o;
+        b.onclick = () => { stageVp.querySelector('#stQRes').innerHTML = `<span class="tag-chip ${i === 0 ? 'ok' : 'err'}">${i === 0 ? '正确：電車指电车' : '再试一次'}</span>`; };
+        stageVp.querySelector('#stQOpts').appendChild(b);
+      });
+    } else {
+      stageVp.innerHTML = `
+        <textarea class="textarea" id="stJson" style="width:100%;min-height:110px;">${esc(state.jsonIn)}</textarea>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
+          <button type="button" class="btn btn-accent" id="stJsonBtn">格式化</button>
+          <span id="stJsonMsg" style="font-size:12px;color:var(--text-muted);">本地运行</span>
+        </div>`;
+      stageVp.querySelector('#stJsonBtn').onclick = () => {
+        const ta = stageVp.querySelector('#stJson'), msg = stageVp.querySelector('#stJsonMsg');
+        try { ta.value = JSON.stringify(JSON.parse(ta.value), null, 2); msg.textContent = '✓ 格式有效'; msg.style.color = 'var(--ok)'; }
+        catch (err) { msg.textContent = '✕ ' + err.message; msg.style.color = 'var(--err)'; }
+      };
+    }
+    animateIn(stageVp, 4);
+  };
+  mount.querySelectorAll('.stage-nav-btn').forEach(b => b.onclick = () => { state.pubStageTab = b.dataset.st; drawStage(); });
+  drawStage();
+
+  // Scroll-linked subtle scale on hero product stage (respects Reduced Motion, zero scroll hijack)
+  const stageEl = mount.querySelector('#heroProductStage');
+  const onScroll = () => {
+    if (!stageEl.isConnected || state.route !== 'public') { window.removeEventListener('scroll', onScroll); return; }
+    if (prefersReduced()) { stageEl.style.transform = ''; return; }
+    const progress = Math.min(1, Math.max(0, window.scrollY / 420));
+    const scale = 1 - progress * 0.035;
+    stageEl.style.transform = `scale(${scale.toFixed(4)})`;
+  };
+  window.addEventListener('scroll', onScroll, { passive: true });
+}
+
+/* ==========================================================================
+   WORKSPACE (Linear + Drag-and-Drop + FLIP)
+   ========================================================================== */
+function renderWorkspace(mount) {
+  const { net } = getBalanceStats();
+  const finTask = state.tasks.find(t => t.id === 'AER-101');
+  if (finTask) finTask.meta = `当前账本净结余 ¥${net.toFixed(2)}（共 ${state.transactions.length} 笔）`;
+
+  const tb = document.createElement('div');
+  tb.className = 'ws-toolbar';
+  tb.innerHTML = `
+    <input class="input" id="wsSearchIn" placeholder="筛选任务编号或标题…" value="${esc(state.wsSearch)}" style="max-width:260px;">
+    <div style="display:flex;gap:6px;">
+      ${state.wsEditing ? `<button type="button" class="btn btn-accent" id="wsSaveOrd">保存顺序</button><button type="button" class="btn" id="wsCancelOrd">取消</button>` : `<button type="button" class="btn" id="wsAddTask">+ 新建任务</button>`}
+    </div>`;
+  mount.appendChild(tb);
+
+  const list = document.createElement('div');
+  mount.appendChild(list);
+
+  const draw = (flip = false) => {
+    const prev = flip ? capturePositions(list, '[data-key]') : null;
+    const q = state.wsSearch.trim().toLowerCase();
+    const rows = state.tasks.filter(t => !q || t.title.toLowerCase().includes(q) || t.id.toLowerCase().includes(q));
+    if (state.wsLayout === 'list') {
+      list.innerHTML = '';
+      [{ k: 'doing', l: '进行中' }, { k: 'todo', l: '待处理' }, { k: 'done', l: '已完成' }].forEach(g => {
+        const items = rows.filter(t => t.status === g.k);
+        const gh = document.createElement('div');
+        gh.className = 'group-header';
+        gh.innerHTML = `<span>${state.wsCollapsed[g.k] ? '▸' : '▾'} ${g.l}</span><span class="mono">${items.length}</span>`;
+        gh.onclick = () => { state.wsCollapsed[g.k] = !state.wsCollapsed[g.k]; draw(true); };
+        list.appendChild(gh);
+        if (!state.wsCollapsed[g.k]) {
+          items.forEach(t => {
+            const idx = state.tasks.findIndex(x => x.id === t.id);
+            const r = document.createElement('div');
+            r.className = 'task-row'; r.dataset.key = t.id; r.dataset.done = t.status === 'done';
+            r.draggable = state.wsEditing;
+            r.innerHTML = `
+              <div class="task-left">
+                <button type="button" class="status-dot-btn" data-st="${t.status}" aria-label="切换状态">${t.status === 'done' ? '✓' : ''}</button>
+                <span class="task-id">${esc(t.id)}</span>
+                <div style="min-width:0;"><div class="task-title">${esc(t.title)}</div>${t.meta ? `<div style="font-size:11.5px;color:var(--text-muted);">${esc(t.meta)}</div>` : ''}</div>
+              </div>
+              <div class="task-right">
+                <span class="tag-chip">${esc(t.tag)}</span>
+                ${state.wsEditing ? `<button type="button" class="btn" data-mv="up" ${idx === 0 ? 'disabled' : ''}>↑</button><button type="button" class="btn" data-mv="dn" ${idx === state.tasks.length - 1 ? 'disabled' : ''}>↓</button>` : (t.route ? `<button type="button" class="btn btn-accent" data-go="${t.route}">打开 →</button>` : '')}
+              </div>`;
+            r.querySelector('.status-dot-btn').onclick = () => {
+              const prevSt = t.status;
+              const seq = ['todo', 'doing', 'done'];
+              t.status = seq[(seq.indexOf(t.status) + 1) % 3];
+              draw(true); syncBadges();
+              notify(`${t.id} 状态已更新`, { actionLabel: '撤销', onAction: () => { t.status = prevSt; draw(true); syncBadges(); } });
+            };
+            const go = r.querySelector('[data-go]'); if (go) go.onclick = () => goRoute(t.route);
+            const up = r.querySelector('[data-mv="up"]'); if (up) up.onclick = () => { [state.tasks[idx - 1], state.tasks[idx]] = [state.tasks[idx], state.tasks[idx - 1]]; draw(true); };
+            const dn = r.querySelector('[data-mv="dn"]'); if (dn) dn.onclick = () => { [state.tasks[idx + 1], state.tasks[idx]] = [state.tasks[idx], state.tasks[idx + 1]]; draw(true); };
+            r.ondragstart = (e) => { e.dataTransfer.setData('text/plain', t.id); r.classList.add('is-dragging'); };
+            r.ondragend = () => r.classList.remove('is-dragging');
+            r.ondragover = (e) => e.preventDefault();
+            r.ondrop = (e) => {
+              e.preventDefault();
+              const fromIdx = state.tasks.findIndex(x => x.id === e.dataTransfer.getData('text/plain'));
+              const toIdx = state.tasks.findIndex(x => x.id === t.id);
+              if (fromIdx !== -1 && toIdx !== -1 && fromIdx !== toIdx) {
+                const [moved] = state.tasks.splice(fromIdx, 1);
+                state.tasks.splice(toIdx, 0, moved);
+                draw(true);
+              }
+            };
+            list.appendChild(r);
+          });
+        }
+      });
+    } else {
+      list.innerHTML = `<div class="board-grid">${[{ k: 'todo', l: '待处理' }, { k: 'doing', l: '进行中' }, { k: 'done', l: '已完成' }].map(c => `
+        <div class="board-col">
+          <div style="font-weight:600;font-size:12px;">${c.l}</div>
+          ${rows.filter(t => t.status === c.k).map(t => `<div class="board-card" data-key="${esc(t.id)}"><span class="mono" style="font-size:11px;color:var(--text-muted);">${esc(t.id)}</span><strong>${esc(t.title)}</strong></div>`).join('')}
+        </div>`).join('')}</div>`;
+    }
+    if (flip && prev) playFLIP(list, '[data-key]', prev);
+  };
+
+  tb.querySelector('#wsSearchIn').oninput = (e) => { state.wsSearch = e.target.value; draw(false); };
+  if (state.wsEditing) {
+    tb.querySelector('#wsSaveOrd').onclick = () => { state.wsEditing = false; state.wsSnapshot = null; renderTopbar(); renderCurrentView(); notify('已保存顺序'); };
+    tb.querySelector('#wsCancelOrd').onclick = () => { if (state.wsSnapshot) state.tasks = JSON.parse(JSON.stringify(state.wsSnapshot)); state.wsEditing = false; state.wsSnapshot = null; renderTopbar(); renderCurrentView(); notify('已取消并恢复原顺序'); };
+  } else {
+    tb.querySelector('#wsAddTask').onclick = () => {
+      const id = 'AER-' + (105 + state.tasks.length);
+      state.tasks.unshift({ id, title: '新任务 ' + id, status: 'todo', tag: '日常', route: null });
+      draw(true); syncBadges();
+    };
+  }
+  draw(false);
+}
+
+/* ==========================================================================
+   FINANCE REGISTER (Actual Budget + Safe Math + FLIP + Restored Import)
+   ========================================================================== */
+function renderFinance(mount) {
+  const wrap = document.createElement('div');
+  if (state.finScramble) wrap.classList.add('is-scrambled');
+  mount.appendChild(wrap);
+  wrap.innerHTML = `
+    <div class="acct-header">
+      <div style="display:flex;align-items:center;gap:10px;"><h1 style="margin:0;font-size:16px;">11 月主账本</h1><span class="tag-chip">支持算式如 18.5*2</span></div>
+      <div class="acct-balances">
+        <div class="bal-item"><span class="bal-lbl">已核对</span><span class="bal-val" id="fBalClr">¥0</span></div>
+        <div class="bal-item"><span class="bal-lbl">收入</span><span class="bal-val" id="fBalIn" style="color:var(--ok);">¥0</span></div>
+        <div class="bal-item"><span class="bal-lbl">支出</span><span class="bal-val" id="fBalOut">¥0</span></div>
+        <div class="bal-item"><span class="bal-lbl">结余</span><span class="bal-val" id="fBalNet">¥0</span></div>
+      </div>
+    </div>
+    <div class="fin-toolbar">
+      <input class="input" id="finSearchIn" placeholder="搜索收付对象或分类…" value="${esc(state.finSearch)}" style="width:210px;">
+      <div class="seg-wrap" id="finSegFilter">
+        <div class="seg-indicator"></div>
+        <button type="button" class="seg-btn ${state.finFilter === 'all' ? 'is-active' : ''}" data-ff="all">全部</button>
+        <button type="button" class="seg-btn ${state.finFilter === 'cleared' ? 'is-active' : ''}" data-ff="cleared">已核对</button>
+        <button type="button" class="seg-btn ${state.finFilter === 'uncleared' ? 'is-active' : ''}" data-ff="uncleared">待核对</button>
+      </div>
+    </div>
+    <div class="fin-bottom-split">
+      <div class="register-wrap">
+        <table class="register-table">
+          <thead><tr><th>核对</th><th>日期</th><th>摘要</th><th>分类</th><th style="text-align:right;">支出</th><th style="text-align:right;">收入</th><th></th></tr></thead>
+          <tbody>
+            <tr class="entry-row">
+              <td style="text-align:center;">+</td>
+              <td><input class="input mono" id="eDate" type="date" value="2026-11-22" style="width:120px;"></td>
+              <td><input class="input" id="ePayee" placeholder="摘要（Enter 提交）" style="min-width:140px;"></td>
+              <td><input class="input" id="eCat" value="日常" style="width:74px;"></td>
+              <td><input class="input mono" id="eOut" placeholder="0.00" style="width:82px;text-align:right;"></td>
+              <td><input class="input mono" id="eIn" placeholder="0.00" style="width:82px;text-align:right;"></td>
+              <td><button type="button" class="btn btn-accent" id="eSaveBtn">记一笔</button></td>
+            </tr>
+          </tbody>
+          <tbody id="finTbody"></tbody>
+        </table>
+      </div>
+      <aside class="cat-drawer"><strong style="display:block;margin-bottom:10px;font-size:12px;">支出分类统计</strong><div id="finCats"></div></aside>
+    </div>`;
+
+  const seg = wrap.querySelector('#finSegFilter');
+  requestAnimationFrame(() => moveTabIndicator(seg, seg.querySelector('.seg-btn.is-active')));
+
+  const update = (flip = false) => {
+    const tb = wrap.querySelector('#finTbody');
+    const prev = flip ? capturePositions(tb, 'tr[data-key]') : null;
+    const { totalIn, totalOut, net, clearedBal } = getBalanceStats();
+    wrap.querySelector('#fBalClr').textContent = `¥${clearedBal.toFixed(2)}`;
+    wrap.querySelector('#fBalIn').textContent = `¥${totalIn.toFixed(2)}`;
+    wrap.querySelector('#fBalOut').textContent = `¥${totalOut.toFixed(2)}`;
+    wrap.querySelector('#fBalNet').textContent = `¥${net.toFixed(2)}`;
+    syncBadges();
+
+    const q = state.finSearch.trim().toLowerCase();
+    const list = state.transactions.filter(t => (state.finFilter === 'all' || (state.finFilter === 'cleared' ? t.cleared : !t.cleared)) && (!q || t.payee.toLowerCase().includes(q) || t.cat.toLowerCase().includes(q)));
+    tb.innerHTML = '';
+    list.forEach(t => {
+      const tr = document.createElement('tr');
+      tr.dataset.key = t.id;
+      tr.innerHTML = `
+        <td><button type="button" class="cleared-dot" data-cleared="${t.cleared}">${t.cleared ? '✓' : ''}</button></td>
+        <td class="mono">${esc(t.date)}</td><td>${esc(t.payee)}</td><td><span class="tag-chip">${esc(t.cat)}</span></td>
+        <td class="mono amt-cell" style="text-align:right;">${t.out > 0 ? '¥' + t.out.toFixed(2) : '—'}</td>
+        <td class="mono amt-cell" style="text-align:right;color:var(--ok);">${t.in > 0 ? '+¥' + t.in.toFixed(2) : '—'}</td>
+        <td><button type="button" class="btn btn-ghost" data-del="${esc(t.id)}">✕</button></td>`;
+      tr.querySelector('.cleared-dot').onclick = () => { t.cleared = !t.cleared; update(false); };
+      tr.querySelector('[data-del]').onclick = () => {
+        const i = state.transactions.findIndex(x => x.id === t.id);
+        const rem = state.transactions.splice(i, 1)[0];
+        update(true);
+        notify(`已删除「${rem.payee}」`, { actionLabel: '撤销', onAction: () => { state.transactions.splice(i, 0, rem); update(true); } });
+      };
+      tb.appendChild(tr);
+    });
+    if (flip && prev) playFLIP(tb, 'tr[data-key]', prev);
+
+    const grp = {}; state.transactions.filter(t => t.out > 0).forEach(t => { grp[t.cat] = (grp[t.cat] || 0) + t.out; });
+    wrap.querySelector('#finCats').innerHTML = Object.entries(grp).map(([c, a]) => `<div style="margin-bottom:8px;"><div style="display:flex;justify-content:space-between;font-size:12px;"><span>${esc(c)}</span><span class="mono">¥${a.toFixed(2)} (${totalOut ? Math.round(a/totalOut*100) : 0}%)</span></div></div>`).join('');
+  };
+
+  wrap.querySelector('#finSearchIn').oninput = (e) => { state.finSearch = e.target.value; update(false); };
+  seg.querySelectorAll('.seg-btn').forEach(b => { b.onclick = () => { state.finFilter = b.dataset.ff; seg.querySelectorAll('.seg-btn').forEach(x => x.classList.toggle('is-active', x === b)); moveTabIndicator(seg, b); update(true); }; });
+
+  const submit = () => {
+    const p = wrap.querySelector('#ePayee'), o = wrap.querySelector('#eOut'), i = wrap.querySelector('#eIn');
+    const outV = safeEvalMath(o.value), inV = safeEvalMath(i.value);
+    if (!p.value.trim() || isNaN(outV) || isNaN(inV) || (outV <= 0 && inV <= 0)) { notify('请填写有效摘要与金额', { tone: 'error' }); return; }
+    if (state.simulateFail) {
+      notify('保存失败（模拟异常）', { tone: 'error', actionLabel: '重试', onAction: () => { state.simulateFail = false; document.getElementById('protoFail').textContent = '保存：正常'; submit(); } });
+      return;
+    }
+    const tx = { id: 'tx' + Date.now(), date: wrap.querySelector('#eDate').value, payee: p.value.trim(), cat: wrap.querySelector('#eCat').value.trim() || '日常', out: outV, in: inV, cleared: false };
+    state.transactions.unshift(tx);
+    p.value = ''; o.value = ''; i.value = ''; p.focus();
+    update(true);
+    notify(`已保存「${tx.payee}」`, { actionLabel: '撤销', onAction: () => { state.transactions = state.transactions.filter(x => x.id !== tx.id); update(true); } });
+  };
+  wrap.querySelector('#eSaveBtn').onclick = submit;
+  ['#ePayee', '#eOut', '#eIn'].forEach(s => { wrap.querySelector(s).onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); submit(); } }; });
+  update(false);
+}
+
+/* ==========================================================================
+   LANGUAGE, TOOLS, WORKFLOWS, TRANSFER, CHAT, INBOX, ACCOUNT, RECHARGE, ADMIN, AUTH, CHANGELOG
+   ========================================================================== */
+function renderLanguage(mount) {
+  const bank = state.langTrack === 'ja'
+    ? [
+        { q: '電車（でんしゃ）', opts: ['电车', '汽车', '自行车', '飞机'], ans: 0, exp: '電車（でんしゃ）意为电车。' },
+        { q: '図書館（としょかん）', opts: ['博物馆', '图书馆', '车站', '医院'], ans: 1, exp: '図書館（としょかん）意为图书馆。' },
+        { q: '約束（やくそく）', opts: ['出发', '约定', '结束', '通知'], ans: 1, exp: '約束（やくそく）意为约定。' },
+        { q: '準備（じゅんび）', opts: ['准备', '休息', '散步', '阅读'], ans: 0, exp: '準備（じゅんび）表示准备。' }
+      ]
+    : [
+        { q: 'ephemeral', opts: ['短暂的', '永恒的', '复杂的', '透明的'], ans: 0, exp: 'ephemeral 表示短暂的。' },
+        { q: 'resilient', opts: ['脆弱的', '有韧性的', '昂贵的', '沉默的'], ans: 1, exp: 'resilient 表示有韧性的。' }
+      ];
+  const cur = bank[state.quizIdx % bank.length];
+  mount.innerHTML = `
+    <div class="ws-toolbar">
+      <div class="seg-wrap"><div class="seg-indicator"></div><button type="button" class="seg-btn ${state.langTrack === 'ja' ? 'is-active' : ''}" data-lt="ja">日语 JLPT N5</button><button type="button" class="seg-btn ${state.langTrack === 'en' ? 'is-active' : ''}" data-lt="en">英语核心词汇</button></div>
+      <div class="seg-wrap"><div class="seg-indicator"></div><button type="button" class="seg-btn ${state.langTab === 'quiz' ? 'is-active' : ''}" data-lm="quiz">词汇测验</button><button type="button" class="seg-btn ${state.langTab === 'review' ? 'is-active' : ''}" data-lm="review">错题复习 (${state.wrongItems.length})</button></div>
+    </div>
+    <div class="view-pad" style="max-width:640px;">
+      ${state.langTab === 'quiz' ? `
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-muted);margin-bottom:8px;"><span>题目 ${(state.quizIdx % bank.length) + 1} / ${bank.length}</span><span>支持数字键 1-4 选择</span></div>
+        <div style="height:4px;background:var(--bg-subtle);border-radius:99px;margin-bottom:20px;overflow:hidden;"><div style="width:${Math.round(((state.quizIdx % bank.length)+1)/bank.length*100)}%;height:100%;background:var(--accent);transition:width 200ms ease;"></div></div>
+        <h2 style="margin:0 0 16px;font-size:26px;">${esc(cur.q)}</h2>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;" id="langOpts"></div>
+        <div style="display:flex;align-items:center;gap:10px;"><button type="button" class="btn btn-accent" id="langSubBtn">提交答案</button><button type="button" class="btn" id="langNextBtn">下一题 →</button></div>
+        <div id="langRes" style="margin-top:12px;"></div>
+      ` : `<div class="settings-group">${state.wrongItems.map(w => `<div class="settings-row"><strong>${esc(w.q)}</strong><span>${esc(w.a)}</span></div>`).join('')}</div>`}
+    </div>`;
+  mount.querySelectorAll('.seg-wrap').forEach(s => requestAnimationFrame(() => moveTabIndicator(s, s.querySelector('.seg-btn.is-active'))));
+  mount.querySelectorAll('[data-lt]').forEach(b => b.onclick = () => { state.langTrack = b.dataset.lt; state.quizIdx = 0; state.quizPick = null; state.quizSubmitted = false; renderCurrentView(); });
+  mount.querySelectorAll('[data-lm]').forEach(b => b.onclick = () => { state.langTab = b.dataset.lm; renderCurrentView(); });
+  const optsWrap = mount.querySelector('#langOpts');
+  if (optsWrap) {
+    cur.opts.forEach((o, i) => {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'btn'; b.style.height = '38px'; b.style.justifyContent = 'flex-start';
+      b.textContent = `${i + 1}. ${o}`;
+      if (state.quizPick === i) b.style.borderColor = 'var(--accent)';
+      if (state.quizSubmitted && i === cur.ans) b.style.background = 'var(--ok-soft)';
+      b.onclick = () => { state.quizPick = i; state.quizSubmitted = false; renderCurrentView(); };
+      optsWrap.appendChild(b);
+    });
+    if (state.quizSubmitted) {
+      const ok = state.quizPick === cur.ans;
+      mount.querySelector('#langRes').innerHTML = `<span class="tag-chip ${ok ? 'ok' : 'err'}">${ok ? '正确' : '错误'}：${esc(cur.exp)}</span>`;
+    }
+    mount.querySelector('#langSubBtn').onclick = () => {
+      if (state.quizPick === null) { notify('请先选择一个选项', { tone: 'error' }); return; }
+      state.quizSubmitted = true;
+      if (state.quizPick !== cur.ans && !state.wrongItems.some(x => x.q === cur.q)) {
+        state.wrongItems.unshift({ q: cur.q, a: cur.opts[cur.ans] });
+      }
+      renderCurrentView();
+    };
+    mount.querySelector('#langNextBtn').onclick = () => { state.quizIdx++; state.quizPick = null; state.quizSubmitted = false; renderCurrentView(); };
+  }
+}
+
+function renderTools(mount) {
+  const tools = [
+    { id: 'json', name: 'JSON 格式化与校验', cat: '数据' },
+    { id: 'text', name: '字数与行数统计', cat: '文本' },
+    { id: 'hash', name: '文本 Base64 编码', cat: '编码' }
+  ];
+  mount.innerHTML = `<div class="split-pane"><div class="split-left"><div class="ws-toolbar"><input class="input" id="rcSearch" placeholder="Raycast 式搜索（↑/↓ 选择，Enter 聚焦工具）…" value="${esc(state.toolQuery)}" style="width:100%;"></div><div id="rcList"></div></div><div class="split-right" id="rcDetail"></div></div>`;
+  const listEl = mount.querySelector('#rcList'), detailEl = mount.querySelector('#rcDetail');
+
+  const drawList = () => {
+    const q = state.toolQuery.trim().toLowerCase();
+    const items = tools.filter(t => !q || t.name.toLowerCase().includes(q));
+    if (state.toolIdx >= items.length) state.toolIdx = 0;
+    listEl.innerHTML = '';
+    items.forEach((t, i) => {
+      const row = document.createElement('div');
+      row.className = 'task-row' + (i === state.toolIdx ? ' is-selected' : ''); row.style.cursor = 'pointer';
+      row.innerHTML = `<div><strong>${esc(t.name)}</strong><span class="tag-chip" style="margin-left:8px;">${esc(t.cat)}</span></div><button type="button" class="btn btn-ghost" data-fav="${t.id}">${state.toolFavs.has(t.id) ? '★' : '☆'}</button>`;
+      row.onclick = (e) => {
+        if (e.target.closest('[data-fav]')) { state.toolFavs.has(t.id) ? state.toolFavs.delete(t.id) : state.toolFavs.add(t.id); drawList(); return; }
+        state.toolIdx = i; drawList(); drawDetail(t);
+      };
+      listEl.appendChild(row);
+    });
+    if (items[state.toolIdx]) drawDetail(items[state.toolIdx]);
+    else detailEl.innerHTML = `<div style="color:var(--text-muted);">未找到匹配工具</div>`;
+  };
+
+  const drawDetail = (tool) => {
+    if (tool.id === 'json') {
+      detailEl.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><strong>JSON 格式化与校验（本地运行）</strong><span class="tag-chip ok">Live</span></div>
+        <textarea class="textarea" id="rcToolTa" style="width:100%;min-height:170px;">${esc(state.jsonIn)}</textarea>
+        <div id="rcJsonMsg" style="font-size:12px;margin:6px 0;min-height:18px;"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;"><button type="button" class="btn btn-accent" id="rcJsonFmt">格式化</button><button type="button" class="btn" id="rcJsonMin">压缩</button><button type="button" class="btn" id="rcJsonCopy">复制结果</button></div>`;
+      const ta = detailEl.querySelector('#rcToolTa'), msg = detailEl.querySelector('#rcJsonMsg');
+      ta.oninput = () => { state.jsonIn = ta.value; };
+      const run = (sp) => { try { state.jsonIn = JSON.stringify(JSON.parse(ta.value), null, sp); ta.value = state.jsonIn; ta.classList.remove('is-invalid'); msg.textContent = '✓ 校验通过'; msg.style.color = 'var(--ok)'; } catch (err) { ta.classList.add('is-invalid'); msg.textContent = '✕ ' + err.message; msg.style.color = 'var(--err)'; } };
+      detailEl.querySelector('#rcJsonFmt').onclick = () => run(2);
+      detailEl.querySelector('#rcJsonMin').onclick = () => run(0);
+      detailEl.querySelector('#rcJsonCopy').onclick = (e) => copyReal(ta.value, e.currentTarget);
+    } else if (tool.id === 'text') {
+      detailEl.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><strong>字数与行数统计（本地运行）</strong><span class="tag-chip ok">Live</span></div><textarea class="textarea" id="rcToolTa" style="width:100%;min-height:150px;">Aeris 本地文本统计工具\n支持实时字数统计。</textarea><div id="rcTextStats" style="display:flex;gap:16px;margin-top:10px;font-size:12.5px;" class="mono"></div>`;
+      const ta = detailEl.querySelector('#rcToolTa'), st = detailEl.querySelector('#rcTextStats');
+      const calc = () => { const v = ta.value; st.innerHTML = `<span>字符: <b>${v.length}</b></span><span>非空: <b>${v.replace(/\s/g,'').length}</b></span><span>行数: <b>${v?v.split(/\r?\n/).length:0}</b></span>`; };
+      ta.oninput = calc; calc();
+    } else {
+      detailEl.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><strong>Base64 编码 / 解码（本地运行）</strong><span class="tag-chip ok">Live</span></div><textarea class="textarea" id="rcToolTa" style="width:100%;min-height:130px;">Aeris V6 Local Tool</textarea><div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;"><button type="button" class="btn btn-accent" id="b64Enc">编码</button><button type="button" class="btn" id="b64Dec">解码</button><button type="button" class="btn" id="b64Cp">复制</button></div>`;
+      const ta = detailEl.querySelector('#rcToolTa');
+      detailEl.querySelector('#b64Enc').onclick = () => { try { ta.value = btoa(unescape(encodeURIComponent(ta.value))); } catch { notify('编码失败', { tone: 'error' }); } };
+      detailEl.querySelector('#b64Dec').onclick = () => { try { ta.value = decodeURIComponent(escape(atob(ta.value.trim()))); } catch { notify('Base64 无效', { tone: 'error' }); } };
+      detailEl.querySelector('#b64Cp').onclick = (e) => copyReal(ta.value, e.currentTarget);
+    }
+  };
+
+  const inp = mount.querySelector('#rcSearch');
+  inp.oninput = (e) => { state.toolQuery = e.target.value; drawList(); };
+  inp.onkeydown = (e) => {
+    const q = state.toolQuery.trim().toLowerCase();
+    const count = tools.filter(t => !q || t.name.toLowerCase().includes(q)).length;
+    if (e.key === 'ArrowDown' && count > 0) { e.preventDefault(); state.toolIdx = (state.toolIdx + 1) % count; drawList(); }
+    else if (e.key === 'ArrowUp' && count > 0) { e.preventDefault(); state.toolIdx = (state.toolIdx - 1 + count) % count; drawList(); }
+    else if (e.key === 'Enter') { e.preventDefault(); const ta = detailEl.querySelector('#rcToolTa'); if (ta) ta.focus(); }
+    else if (e.key === 'Escape') { state.toolQuery = ''; inp.value = ''; drawList(); }
+  };
+  drawList();
+}
+
+function renderWorkflows(mount) {
+  mount.innerHTML = `
+    <div class="split-pane">
+      <div class="split-left view-pad">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <strong>步骤编辑器（n8n 简化模式）</strong>
+          <button type="button" class="btn" id="wfSaveBtn">保存草稿</button>
+        </div>
+        <div class="settings-group" id="wfStepGroup"></div>
+        <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px;">输入参数（JSON）</label>
+        <textarea class="textarea" id="wfIn" style="width:100%;min-height:90px;">${esc(state.wfInput)}</textarea>
+      </div>
+      <div class="split-right">
+        <strong style="display:block;margin-bottom:10px;">执行面板（演示模拟）</strong>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+          <button type="button" class="btn btn-accent" id="wfRunBtn" ${state.wfStatus === 'running' ? 'disabled' : ''}>${state.wfStatus === 'running' ? '执行中…' : '运行工作流'}</button>
+          <button type="button" class="btn" id="wfCancelBtn" ${state.wfStatus !== 'running' ? 'disabled' : ''}>取消</button>
+        </div>
+        <div id="wfOutBox" style="font-size:12.5px;margin-bottom:12px;"></div>
+        ${state.wfOutput ? `<pre class="mono" style="background:var(--bg-surface);border:1px solid var(--border-hair);border-radius:6px;padding:10px;overflow:auto;font-size:12px;">${esc(state.wfOutput)}</pre>` : ''}
+      </div>
+    </div>`;
+
+  const sg = mount.querySelector('#wfStepGroup');
+  state.wfSteps.forEach((s, i) => {
+    const r = document.createElement('div'); r.className = 'settings-row';
+    r.innerHTML = `<span>${i + 1}. ${esc(s.name)} ${state.wfActiveStep === i ? '<span class="tag-chip warn">执行中</span>' : ''}</span><button type="button" class="switch" role="switch" aria-checked="${s.enabled}"><span class="switch-dot"></span></button>`;
+    r.querySelector('.switch').onclick = () => { s.enabled = !s.enabled; renderCurrentView(); };
+    sg.appendChild(r);
+  });
+
+  const outBox = mount.querySelector('#wfOutBox');
+  const statusMap = { idle: '就绪', running: '正在按步骤执行…', cancelled: '已取消执行', error: '执行失败（模拟异常）', success: '执行完成（已生成输出）' };
+  outBox.innerHTML = `<span class="tag-chip ${state.wfStatus === 'error' ? 'err' : state.wfStatus === 'success' ? 'ok' : ''}">${statusMap[state.wfStatus]}</span>`;
+  if (state.wfStatus === 'error') {
+    const rb = document.createElement('button'); rb.type = 'button'; rb.className = 'btn'; rb.style.marginLeft = '8px'; rb.textContent = '重试';
+    rb.onclick = () => { state.simulateFail = false; document.getElementById('protoFail').textContent = '保存：正常'; mount.querySelector('#wfRunBtn').click(); };
+    outBox.appendChild(rb);
+  }
+  mount.querySelector('#wfIn').oninput = (e) => { state.wfInput = e.target.value; };
+  mount.querySelector('#wfSaveBtn').onclick = () => notify('工作流草稿已保存');
+  mount.querySelector('#wfRunBtn').onclick = () => {
+    if (!state.wfInput.trim()) { notify('输入参数不能为空', { tone: 'error' }); return; }
+    state.wfStatus = 'running'; state.wfActiveStep = 0; state.wfOutput = ''; renderCurrentView();
+    setTimeout(() => {
+      if (state.wfStatus !== 'running') return;
+      if (state.simulateFail) { state.wfStatus = 'error'; state.wfActiveStep = -1; renderCurrentView(); return; }
+      try { state.wfOutput = JSON.stringify(JSON.parse(state.wfInput), null, 2); } catch { state.wfOutput = state.wfInput.trim(); }
+      state.wfStatus = 'success'; state.wfActiveStep = -1; renderCurrentView();
+    }, 550);
+  };
+  mount.querySelector('#wfCancelBtn').onclick = () => { state.wfStatus = 'cancelled'; state.wfActiveStep = -1; renderCurrentView(); };
+}
+
+function renderTransfer(mount) {
+  mount.innerHTML = `
+    <div class="view-pad">
+      <div class="dropzone" id="tfDropzone">
+        <div><strong>选择或拖放本地文件</strong><div style="font-size:12px;color:var(--text-muted);">演示传输 · 不上传任何远端服务器</div></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button type="button" class="btn btn-accent" id="tfPick">选择文件</button>
+          <button type="button" class="btn" id="tfDir">选择文件夹</button>
+          <input type="file" id="tfFIn" multiple hidden><input type="file" id="tfDIn" webkitdirectory hidden>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+        ${state.peers.map(p => `<button type="button" class="btn ${state.selectedPeer === p.id ? 'btn-accent' : ''}" data-peer="${p.id}">${esc(p.name)}</button>`).join('')}
+      </div>
+      <div class="settings-group">
+        <div class="settings-row">
+          <span>已选本地文件：${state.files.length} 个</span>
+          <div style="display:flex;gap:6px;"><button type="button" class="btn btn-accent" id="tfSend" ${state.files.length === 0 ? 'disabled' : ''}>模拟发送</button><button type="button" class="btn" id="tfCancel" ${state.tfStatus !== 'running' ? 'disabled' : ''}>取消</button></div>
+        </div>
+        ${state.files.map(f => `<div class="settings-row"><span>${esc(f.name)}</span><span class="mono">${(f.size/1024).toFixed(1)} KB · ${state.tfStatus === 'running' ? state.tfProgress + '%' : esc(state.tfStatus)}</span></div>`).join('')}
+      </div>
+    </div>`;
+  const dz = mount.querySelector('#tfDropzone');
+  const load = (fl) => { state.files = Array.from(fl).slice(0, 8).map(f => ({ name: f.webkitRelativePath || f.name, size: f.size })); state.tfStatus = 'idle'; renderCurrentView(); };
+  dz.ondragover = (e) => { e.preventDefault(); dz.classList.add('is-dragover'); };
+  dz.ondragleave = () => dz.classList.remove('is-dragover');
+  dz.ondrop = (e) => { e.preventDefault(); dz.classList.remove('is-dragover'); load(e.dataTransfer.files); };
+  mount.querySelectorAll('[data-peer]').forEach(b => b.onclick = () => { state.selectedPeer = b.dataset.peer; renderCurrentView(); });
+  mount.querySelector('#tfPick').onclick = () => mount.querySelector('#tfFIn').click();
+  mount.querySelector('#tfDir').onclick = () => mount.querySelector('#tfDIn').click();
+  mount.querySelector('#tfFIn').onchange = (e) => load(e.target.files);
+  mount.querySelector('#tfDIn').onchange = (e) => load(e.target.files);
+  mount.querySelector('#tfSend').onclick = () => {
+    state.tfStatus = 'running'; state.tfProgress = 45; renderCurrentView();
+    setTimeout(() => { if (state.tfStatus === 'running') { state.tfProgress = 100; state.tfStatus = '演示完成'; renderCurrentView(); } }, 500);
+  };
+  mount.querySelector('#tfCancel').onclick = () => { state.tfStatus = '已取消'; renderCurrentView(); };
+}
+
+function renderChat(mount) {
+  mount.innerHTML = `
+    <div class="view-pad" style="max-width:720px;">
+      <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;margin-bottom:14px;">
+        <div><strong>临时房间：<span class="mono">${esc(state.roomCode)}</span></strong> <span class="tag-chip ${state.roomConnected ? 'ok' : 'err'}">${state.roomConnected ? '在线（演示）' : '已断开'}</span></div>
+        <div style="display:flex;gap:6px;"><button type="button" class="btn" id="chToggleNet">${state.roomConnected ? '模拟断线' : '重新连接'}</button><button type="button" class="btn" id="chNewRoom">新建房间</button></div>
+      </div>
+      <div class="settings-group" id="chList">
+        ${state.roomMessages.map(m => `<div class="settings-row"><div><strong>${esc(m.sender)}</strong> <span class="mono" style="font-size:11px;color:var(--text-muted);">${esc(m.time)}</span><div>${esc(m.text)}</div></div><button type="button" class="btn" data-cp="${esc(m.text)}">复制</button></div>`).join('')}
+      </div>
+      <div style="display:flex;gap:8px;"><input class="input" id="chIn" placeholder="发送临时文本或链接到房间…" style="flex:1;"><button type="button" class="btn btn-accent" id="chSend">发送</button></div>
+    </div>`;
+  mount.querySelectorAll('[data-cp]').forEach(b => b.onclick = () => copyReal(b.dataset.cp, b));
+  mount.querySelector('#chToggleNet').onclick = () => { state.roomConnected = !state.roomConnected; renderCurrentView(); };
+  mount.querySelector('#chNewRoom').onclick = () => { state.roomCode = 'AER' + Math.floor(10 + Math.random() * 89); renderCurrentView(); };
+  mount.querySelector('#chSend').onclick = () => {
+    const v = mount.querySelector('#chIn').value.trim();
+    if (!v) return;
+    if (!state.roomConnected) { notify('当前处于断线状态，请先重连', { tone: 'error' }); return; }
+    state.roomMessages.push({ id: 'm' + Date.now(), sender: '本机', text: v, time: new Date().toTimeString().slice(0, 5) });
+    renderCurrentView();
+  };
+}
+
+function renderInbox(mount) {
+  const list = state.notifications.filter(n => state.inboxFilter === 'all' ? !n.archived : (state.inboxFilter === 'unread' ? (n.unread && !n.archived) : n.archived));
+  const cur = state.notifications.find(n => n.id === state.inboxSelected) || list[0];
+  mount.innerHTML = `
+    <div class="split-pane">
+      <div class="split-left">
+        <div class="ws-toolbar">
+          <div class="seg-wrap" id="inbSeg"><div class="seg-indicator"></div><button type="button" class="seg-btn ${state.inboxFilter === 'all' ? 'is-active' : ''}" data-if="all">全部</button><button type="button" class="seg-btn ${state.inboxFilter === 'unread' ? 'is-active' : ''}" data-if="unread">未读</button><button type="button" class="seg-btn ${state.inboxFilter === 'archived' ? 'is-active' : ''}" data-if="archived">已归档</button></div>
+          <button type="button" class="btn" id="inbReadAll">全部已读</button>
+        </div>
+        <div id="inbList">${list.length === 0 ? `<div style="padding:28px;text-align:center;color:var(--text-muted);">当前筛选下没有通知</div>` : list.map(n => `<div class="task-row ${cur && cur.id === n.id ? 'is-selected' : ''}" data-key="${esc(n.id)}" data-nid="${esc(n.id)}" style="cursor:pointer;"><div style="min-width:0;"><div style="font-weight:${n.unread ? '700' : '500'};">${n.unread ? '● ' : ''}${esc(n.title)}</div><div style="font-size:11.5px;color:var(--text-muted);">${esc(n.time)}</div></div></div>`).join('')}</div>
+      </div>
+      <div class="split-right">
+        ${cur ? `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><span class="tag-chip warn">原型模拟通知 · 非生产历史</span><div style="display:flex;gap:6px;"><button type="button" class="btn" id="inbToggleRead">${cur.unread ? '标为已读' : '标为未读'}</button><button type="button" class="btn" id="inbArchive">${cur.archived ? '取消归档' : '归档'}</button></div></div><h3 style="margin:0 0 8px;font-size:15px;">${esc(cur.title)}</h3><p style="margin:0;color:var(--text-secondary);">${esc(cur.body)}</p>` : `<div style="color:var(--text-muted);">选择左侧通知查看详情</div>`}
+      </div>
+    </div>`;
+  const seg = mount.querySelector('#inbSeg');
+  requestAnimationFrame(() => moveTabIndicator(seg, seg.querySelector('.seg-btn.is-active')));
+  seg.querySelectorAll('.seg-btn').forEach(b => b.onclick = () => { state.inboxFilter = b.dataset.if; renderCurrentView(); });
+  mount.querySelectorAll('[data-nid]').forEach(r => r.onclick = () => { state.inboxSelected = r.dataset.nid; renderCurrentView(); });
+  mount.querySelector('#inbReadAll').onclick = () => { state.notifications.forEach(n => n.unread = false); syncBadges(); renderCurrentView(); };
+  if (cur) {
+    mount.querySelector('#inbToggleRead').onclick = () => { cur.unread = !cur.unread; syncBadges(); renderCurrentView(); };
+    mount.querySelector('#inbArchive').onclick = () => { cur.archived = !cur.archived; syncBadges(); renderCurrentView(); };
+  }
+}
+
+function renderAccount(mount) {
+  const isAdmin = state.role === 'i09admin';
+  mount.innerHTML = `
+    <div class="view-pad" style="max-width:740px;">
+      <div class="settings-group">
+        <div class="settings-row"><div><strong>账户身份</strong><div style="font-size:12px;color:var(--text-muted);">用户名：<span class="mono">${esc(state.role)}</span></div></div><span class="tag-chip ok">${isAdmin ? '管理员直接授权（非付费会员）' : '普通用户（未购买付费会员）'}</span></div>
+        <div class="settings-row"><div><strong>体验通道</strong><div style="font-size:12px;color:var(--text-muted);">当前通道：${esc(state.releaseChannel)}</div></div><div style="display:flex;gap:4px;">${['Stable', 'Beta', 'Experimental'].map(c => `<button type="button" class="btn ${state.releaseChannel === c ? 'btn-accent' : ''}" data-ch="${c}">${c}</button>`).join('')}</div></div>
+      </div>
+      <div class="settings-group">
+        <div class="settings-row"><div><strong>加密备份与恢复</strong><div style="font-size:12px;color:var(--text-muted);">仅在本地演示导出结构</div></div><button type="button" class="btn" id="accExport">生成演示备份</button></div>
+        <div class="settings-row"><div><strong>登录设备与会话</strong><div style="font-size:12px;color:var(--text-muted);">退出全部设备需要二次确认</div></div><button type="button" class="btn btn-danger" id="accLogoutAll">退出全部设备</button></div>
+      </div>
+    </div>`;
+  mount.querySelectorAll('[data-ch]').forEach(b => b.onclick = () => { state.releaseChannel = b.dataset.ch; renderCurrentView(); notify(`体验通道已切换为 ${b.dataset.ch}`); });
+  mount.querySelector('#accExport').onclick = () => notify('已生成本地演示备份摘要（未写入服务器）');
+  mount.querySelector('#accLogoutAll').onclick = (e) => {
+    openModal('确认退出全部设备？', (body) => {
+      body.innerHTML = `<p style="margin:0 0 12px;">将注销其他浏览器会话（仅演示）。</p><div style="display:flex;justify-content:flex-end;gap:8px;"><button type="button" class="btn" id="cNo">取消</button><button type="button" class="btn btn-danger" id="cYes">确认退出</button></div>`;
+      body.querySelector('#cNo').onclick = closeModal;
+      body.querySelector('#cYes').onclick = () => { closeModal(); notify('已模拟清除其他设备会话'); };
+    }, e.currentTarget);
+  };
+}
+
+function renderRecharge(mount) {
+  const isAdmin = state.role === 'i09admin';
+  const plans = [{ id: 'en', name: '英语专项月卡', price: '¥8（演示价）' }, { id: 'all-month', name: '全功能包月会员', price: '¥30（演示价）' }, { id: 'all-perm', name: '全功能永久会员', price: '¥100（演示价）' }];
+  const cur = plans.find(p => p.id === state.rcPlan) || plans[1];
+  mount.innerHTML = `
+    <div class="split-pane">
+      <div class="split-left view-pad">
+        <strong style="display:block;margin-bottom:10px;">1. 选择套餐（清晰标注演示价格）</strong>
+        <div class="settings-group">${plans.map(p => `<div class="settings-row" style="cursor:pointer;background:${state.rcPlan === p.id ? 'var(--bg-selected)' : ''};" data-rcp="${p.id}"><strong>${esc(p.name)}</strong><span class="mono">${esc(p.price)}</span></div>`).join('')}</div>
+        <strong style="display:block;margin-bottom:10px;">2. 支付方式（仅原型展示，不接入真实支付）</strong>
+        <div style="display:flex;gap:8px;"><button type="button" class="btn ${state.rcPay === 'wechat' ? 'btn-accent' : ''}" data-pay="wechat">微信支付</button><button type="button" class="btn ${state.rcPay === 'alipay' ? 'btn-accent' : ''}" data-pay="alipay">支付宝</button></div>
+      </div>
+      <div class="split-right">
+        <strong style="display:block;margin-bottom:12px;">订单摘要</strong>
+        <div style="margin-bottom:8px;">套餐：${esc(cur.name)}</div>
+        <div style="margin-bottom:8px;">金额：<span class="mono">${esc(cur.price)}</span></div>
+        <div style="margin-bottom:14px;">方式：${state.rcPay === 'wechat' ? '微信支付' : '支付宝'}</div>
+        ${isAdmin ? `<div style="margin-bottom:12px;"><span class="tag-chip warn">管理员账户不可购买会员，请切换顶部角色为 i09user</span></div>` : ''}
+        <button type="button" class="btn btn-accent" id="rcSubmit" ${isAdmin ? 'disabled' : ''}>${isAdmin ? '管理员不可下单' : '查看支付说明（不发起真实交易）'}</button>
+      </div>
+    </div>`;
+  mount.querySelectorAll('[data-rcp]').forEach(r => r.onclick = () => { state.rcPlan = r.dataset.rcp; renderCurrentView(); });
+  mount.querySelectorAll('[data-pay]').forEach(b => b.onclick = () => { state.rcPay = b.dataset.pay; renderCurrentView(); });
+  mount.querySelector('#rcSubmit').onclick = (e) => openModal('原型演示：未接入真实支付', (b) => { b.innerHTML = `<p style="margin:0;">不生成真实二维码或扣款，仅用于展示下单交互。</p>`; }, e.currentTarget);
+}
+
+function renderAdmin(mount) {
+  const isAdmin = state.role === 'i09admin';
+  const curFlag = state.flags.find(f => f.key === state.admSelected) || state.flags[0];
+  mount.innerHTML = `
+    <div class="ws-toolbar">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <input class="input" id="admSearchIn" placeholder="筛选 Flag Key…" value="${esc(state.admSearch)}" style="width:190px;">
+        <div style="display:flex;gap:4px;">${['all', 'Stable', 'Beta', 'Experimental'].map(e => `<button type="button" class="btn ${state.admEnv === e ? 'btn-accent' : ''}" data-aenv="${e}">${e === 'all' ? '全部环境' : e}</button>`).join('')}</div>
+        <span class="tag-chip warn">${isAdmin ? '演示开关 · 非 Task25 服务端配置' : '当前为普通用户 i09user（只读权限）'}</span>
+      </div>
+      <button type="button" class="btn ${state.admKill ? 'btn-accent' : 'btn-danger'}" id="admKillBtn" ${!isAdmin ? 'disabled' : ''}>${state.admKill ? 'Kill Switch 运行中（点击解除）' : '全站 Kill Switch'}</button>
+    </div>
+    <div class="split-pane">
+      <div class="split-left"><table class="register-table"><thead><tr><th>Flag Key</th><th>环境</th><th>放量</th><th>状态</th></tr></thead><tbody id="admTbody"></tbody></table></div>
+      <div class="split-right">
+        <div style="font-weight:700;" class="mono">${esc(curFlag.key)}</div>
+        <p style="color:var(--text-secondary);">${esc(curFlag.desc)}</p>
+        <div style="margin:12px 0;">放量比例：<span class="mono" id="admRollVal">${curFlag.rollout}%</span><input type="range" min="0" max="100" step="10" value="${curFlag.rollout}" id="admRollSlider" ${!isAdmin ? 'disabled' : ''} style="width:100%;margin-top:6px;"></div>
+        <div style="border-top:1px solid var(--border-hair);padding-top:12px;margin-top:12px;">
+          <strong style="font-size:12px;display:block;margin-bottom:6px;">审计记录（演示）</strong>
+          ${state.admLogs.slice(0, 5).map(l => `<div style="font-size:11.5px;color:var(--text-muted);padding:2px 0;"><span class="mono">${esc(l.time)}</span> · ${esc(l.msg)}</div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+
+  const draw = () => {
+    const q = state.admSearch.trim().toLowerCase();
+    const tb = mount.querySelector('#admTbody'); tb.innerHTML = '';
+    state.flags.filter(f => (state.admEnv === 'all' || f.env === state.admEnv) && (!q || f.key.toLowerCase().includes(q))).forEach(f => {
+      const tr = document.createElement('tr');
+      if (f.key === state.admSelected) tr.style.background = 'var(--bg-selected)';
+      tr.innerHTML = `<td class="mono">${esc(f.key)}</td><td><span class="tag-chip">${esc(f.env)}</span></td><td class="mono">${f.rollout}%</td><td><button type="button" class="switch" role="switch" aria-checked="${f.on}" ${!isAdmin ? 'disabled' : ''}><span class="switch-dot"></span></button></td>`;
+      tr.onclick = (e) => {
+        if (e.target.closest('.switch')) {
+          if (!isAdmin) return;
+          f.on = !f.on; e.target.closest('.switch').setAttribute('aria-checked', String(f.on));
+          state.admLogs.unshift({ time: new Date().toTimeString().slice(0,8), actor: state.role, msg: `${f.key} → ${f.on ? 'ON' : 'OFF'}` });
+          renderCurrentView();
+          return;
+        }
+        state.admSelected = f.key; renderCurrentView();
+      };
+      tb.appendChild(tr);
+    });
+  };
+  mount.querySelector('#admSearchIn').oninput = (e) => { state.admSearch = e.target.value; draw(); };
+  mount.querySelectorAll('[data-aenv]').forEach(b => b.onclick = () => { state.admEnv = b.dataset.aenv; renderCurrentView(); });
+  mount.querySelector('#admRollSlider').oninput = (e) => {
+    curFlag.rollout = Number(e.target.value);
+    mount.querySelector('#admRollVal').textContent = curFlag.rollout + '%';
+    draw();
+  };
+  mount.querySelector('#admKillBtn').onclick = (e) => {
+    openModal(state.admKill ? '确认解除 Kill Switch？' : '确认开启 Kill Switch？', (b) => {
+      b.innerHTML = `<p style="margin:0 0 12px;">仅修改当前浏览器演示状态。</p><div style="display:flex;justify-content:flex-end;gap:8px;"><button type="button" class="btn" id="akN">取消</button><button type="button" class="btn btn-danger" id="akY">确认</button></div>`;
+      b.querySelector('#akN').onclick = closeModal;
+      b.querySelector('#akY').onclick = () => { state.admKill = !state.admKill; state.admLogs.unshift({ time: new Date().toTimeString().slice(0,8), actor: state.role, msg: state.admKill ? '开启 Kill Switch' : '解除 Kill Switch' }); closeModal(); renderCurrentView(); };
+    }, e.currentTarget);
+  };
+  draw();
+}
+
+function renderAuth(mount) {
+  mount.innerHTML = `
+    <div class="view-pad" style="max-width:380px;margin:28px auto;">
+      <div class="seg-wrap" style="margin-bottom:16px;"><div class="seg-indicator"></div><button type="button" class="seg-btn ${state.authMode === 'login' ? 'is-active' : ''}" data-am="login">登录</button><button type="button" class="seg-btn ${state.authMode === 'reg' ? 'is-active' : ''}" data-am="reg">注册</button></div>
+      <div class="settings-group" style="padding:16px;display:flex;flex-direction:column;gap:10px;">
+        <input class="input" id="auUser" placeholder="用户名">
+        <div style="display:flex;gap:6px;"><input class="input" id="auPwd" type="password" placeholder="登录密码（至少 8 位）" style="flex:1;"><button type="button" class="btn" id="auEye">显示</button></div>
+        <button type="button" class="btn btn-accent" id="auSub">${state.authMode === 'login' ? '登录（原型校验）' : '注册（原型校验）'}</button>
+        <div id="auMsg" style="font-size:12px;"></div>
+      </div>
+    </div>`;
+  const seg = mount.querySelector('.seg-wrap'); requestAnimationFrame(() => moveTabIndicator(seg, seg.querySelector('.seg-btn.is-active')));
+  mount.querySelectorAll('[data-am]').forEach(b => b.onclick = () => { state.authMode = b.dataset.am; renderCurrentView(); });
+  mount.querySelector('#auEye').onclick = (e) => { const p = mount.querySelector('#auPwd'); p.type = p.type === 'password' ? 'text' : 'password'; e.currentTarget.textContent = p.type === 'password' ? '显示' : '隐藏'; };
+  mount.querySelector('#auSub').onclick = () => {
+    const u = mount.querySelector('#auUser'), p = mount.querySelector('#auPwd'), m = mount.querySelector('#auMsg');
+    if (!u.value.trim() || p.value.length < 8) { p.classList.add('is-invalid'); m.textContent = '请填写用户名且密码至少 8 位'; m.style.color = 'var(--err)'; return; }
+    p.classList.remove('is-invalid'); m.textContent = '✓ 原型校验通过（未发起真实请求）'; m.style.color = 'var(--ok)';
+  };
+}
+
+function renderChangelog(mount) {
+  mount.innerHTML = `
+    <div class="view-pad" style="max-width:700px;">
+      <h2 style="margin:0 0 14px;">下载与更新日志</h2>
+      <div class="settings-group">
+        <div class="settings-row"><div><strong>Android 客户端</strong><div style="font-size:12px;color:var(--text-muted);">离线记账与备份同步（演示入口，不提供真实安装包）</div></div><button type="button" class="btn" id="dlBtn">查看说明</button></div>
+        <div class="settings-row"><div><strong>V6 完整原型定稿</strong><div style="font-size:12px;color:var(--text-muted);">Apple 式公开主页、全站滑动指示器与 FLIP 动效、安全输入转义</div></div><span class="mono">2026-11-22</span></div>
+        <div class="settings-row"><div><strong>V5 全站模块基线</strong><div style="font-size:12px;color:var(--text-muted);">整合 Linear / Actual Budget / Raycast / Unleash / PairDrop 交互模式</div></div><span class="mono">2026-11-22</span></div>
+      </div>
+    </div>`;
+  mount.querySelector('#dlBtn').onclick = () => notify('原型演示：此处为客户端下载入口');
+}
+
+/* ==========================================================================
+   IMPORT MODAL (Restored from V4)
+   ========================================================================== */
+let impTimer = null;
+function openImportModal() {
+  const scrim = document.getElementById('importScrim');
+  scrim.classList.add('is-open'); animateIn(document.getElementById('importCard'), -8);
+  document.getElementById('impProgressWrap').hidden = true;
+  document.getElementById('impRunBtn').disabled = !document.getElementById('impFileIn').files.length;
+}
+function closeImportModal() {
+  clearInterval(impTimer);
+  const scrim = document.getElementById('importScrim');
+  if (!scrim.classList.contains('is-open')) return;
+  animateOutAndHide(document.getElementById('importCard'), () => scrim.classList.remove('is-open'));
+}
+document.getElementById('impCloseBtn').onclick = closeImportModal;
+document.getElementById('impCancelBtn').onclick = closeImportModal;
+document.getElementById('impPickBtn').onclick = () => document.getElementById('impFileIn').click();
+document.getElementById('impFileIn').onchange = (e) => {
+  const f = e.target.files[0];
+  document.getElementById('impFileName').textContent = f ? `${f.name} (${(f.size/1024).toFixed(1)} KB)` : '未选择文件';
+  document.getElementById('impRunBtn').disabled = !f;
+};
+document.getElementById('impRunBtn').onclick = () => {
+  const wrap = document.getElementById('impProgressWrap'), bar = document.getElementById('impBar'), pct = document.getElementById('impPctTxt'), st = document.getElementById('impStatusTxt');
+  wrap.hidden = false; let p = 20; bar.style.width = '20%'; pct.textContent = '20%'; st.textContent = '正在本地解析文件…';
+  clearInterval(impTimer);
+  impTimer = setInterval(() => {
+    p += 25;
+    if (p >= 100) { clearInterval(impTimer); bar.style.width = '100%'; pct.textContent = '100%'; st.textContent = '解析完成（演示状态，未写入远端）'; setTimeout(closeImportModal, 450); }
+    else { bar.style.width = p + '%'; pct.textContent = p + '%'; }
+  }, 180);
+};
+
+/* ==========================================================================
+   COMMAND PALETTE, KEYBOARD SHORTCUTS & BOOT
+   ========================================================================== */
+function openCmd() {
+  const s = document.getElementById('cmdScrim'), i = document.getElementById('cmdInput');
+  s.classList.add('is-open'); animateIn(document.getElementById('cmdCard'), -8); i.value = ''; renderCmd(''); i.focus();
+}
+function closeCmd() {
+  const s = document.getElementById('cmdScrim');
+  if (!s.classList.contains('is-open')) return;
+  animateOutAndHide(document.getElementById('cmdCard'), () => s.classList.remove('is-open'));
+}
+function renderCmd(q) {
+  const items = [
+    { l: '公开主页', r: 'public' }, { l: '工作台', r: 'workspace' }, { l: '通知中心', r: 'inbox' },
+    { l: '财务账本', r: 'finance' }, { l: '语言学习', r: 'language' }, { l: '工具箱', r: 'tools' },
+    { l: '工作流', r: 'workflows' }, { l: '文件传输', r: 'transfer' }, { l: '临时聊天与剪贴板', r: 'chat' },
+    { l: '账户与安全', r: 'account' }, { l: '会员与充值', r: 'recharge' }, { l: '管理后台', r: 'admin' }
+  ].filter(x => !q || x.l.toLowerCase().includes(q.toLowerCase()));
+  const list = document.getElementById('cmdList'); list.innerHTML = '';
+  items.forEach(x => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'cmd-item';
+    b.innerHTML = `<span>前往：${esc(x.l)}</span><span class="kbd">Enter</span>`;
+    b.onclick = () => { closeCmd(); goRoute(x.r); };
+    list.appendChild(b);
+  });
+}
+document.getElementById('cmdOpenBtn').onclick = openCmd;
+document.getElementById('cmdInput').oninput = (e) => renderCmd(e.target.value);
+document.getElementById('cmdScrim').onclick = (e) => { if (e.target.id === 'cmdScrim') closeCmd(); };
+
+let gTimer = false;
+document.addEventListener('keydown', (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); document.getElementById('cmdScrim').classList.contains('is-open') ? closeCmd() : openCmd(); return; }
+  if (e.key === 'Escape') { closeCmd(); closeModal(); closeImportModal(); return; }
+  if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+  if (e.key.toLowerCase() === 'g') { gTimer = true; setTimeout(() => gTimer = false, 800); return; }
+  if (gTimer && e.key.toLowerCase() === 'w') { gTimer = false; goRoute('workspace'); }
+  if (gTimer && e.key.toLowerCase() === 'i') { gTimer = false; goRoute('inbox'); }
+  if (gTimer && e.key.toLowerCase() === 'f') { gTimer = false; goRoute('finance'); }
+});
+
+document.getElementById('mobileMenuBtn').onclick = () => { document.getElementById('sidebar').classList.add('is-open'); document.getElementById('sidebarScrim').classList.add('is-open'); };
+document.getElementById('sidebarScrim').onclick = () => { document.getElementById('sidebar').classList.remove('is-open'); document.getElementById('sidebarScrim').classList.remove('is-open'); };
+document.querySelectorAll('[data-route]').forEach(b => { b.onclick = () => goRoute(b.dataset.route); });
+
+document.getElementById('protoRole').onclick = (e) => { state.role = state.role === 'i09admin' ? 'i09user' : 'i09admin'; e.currentTarget.textContent = '角色：' + state.role; renderCurrentView(); };
+document.getElementById('protoFail').onclick = (e) => { state.simulateFail = !state.simulateFail; e.currentTarget.textContent = '保存：' + (state.simulateFail ? '模拟失败' : '正常'); e.currentTarget.classList.toggle('is-on', state.simulateFail); };
+document.getElementById('protoTheme').onclick = (e) => { state.theme = state.theme === 'light' ? 'dark' : 'light'; document.documentElement.dataset.theme = state.theme; e.currentTarget.textContent = state.theme === 'light' ? '浅色' : '深色'; };
+document.getElementById('protoMotion').onclick = (e) => { state.motion = state.motion === 'normal' ? 'reduced' : 'normal'; document.documentElement.dataset.motion = state.motion; e.currentTarget.textContent = '动效：' + (state.motion === 'normal' ? '正常' : 'Reduced'); };
+
+goRoute('public');
+</script>
+</body>
+</html>

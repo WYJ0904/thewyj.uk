@@ -5,6 +5,26 @@ import { projectHomeWidgets } from "./home-widget-data.js?release=20261121-aeris
 const bound = new WeakSet();
 const setText = (node,value) => { if(node && node.textContent!==String(value))node.textContent=String(value); };
 
+/** Formats time-of-day greeting strictly for verified authenticated accounts. */
+export function formatLocalTimeGreeting(account, now = new Date()) {
+  const displayName = String(account?.display_name || account?.username || "").trim();
+  if (!account || !displayName) return { greeting: "", prompt: "", isLateNight: false };
+  const hour = typeof now?.getHours === "function" ? now.getHours() : new Date().getHours();
+  if (hour >= 0 && hour <= 4) {
+    return {
+      greeting: `这么晚不睡，${displayName}，请多注意身体。`,
+      prompt: "",
+      isLateNight: true,
+    };
+  }
+  const period = hour <= 10 ? "早上好" : hour <= 13 ? "中午好" : hour <= 17 ? "下午好" : "晚上好";
+  return {
+    greeting: `${displayName}，${period}。`,
+    prompt: "Aeris 有什么能帮你？",
+    isLateNight: false,
+  };
+}
+
 /** Shared home presentation. State and service owners remain in their modules. */
 export function createDashboardView(context) {
  let lastDetailModel = null;
@@ -182,7 +202,19 @@ export function createDashboardView(context) {
   widgets.render(snapshot);
   reconcileKeyedRows(recentRoot,snapshot.activity,{key:x=>x.id,signature:x=>JSON.stringify(x),render:x=>`<li><button type="button" data-home-activity="${escapeHtml(x.path)}">${escapeHtml(x.label)}<small>${escapeHtml(context.formatLocalDateTime(x.at))}</small></button></li>`,empty:'<li>'+(snapshot.demo?'登录后显示自己的学习与工具记录。':'暂无最近活动。完成学习或使用工具后会显示在这里。')+'</li>'});
  }
- function prepare() {widgets.setAccount();if(!context.state().account){renderGuestV3Summary();present(projectHomeWidgets({demo:true}));}}
+ function prepare() {
+  widgets.setAccount();
+  if (!context.state().account) {
+    setText($("dashboardGreeting"), "");
+    const promptEl = $("dashboardGreetingPrompt");
+    if (promptEl) {
+      promptEl.textContent = "";
+      promptEl.hidden = true;
+    }
+    renderGuestV3Summary();
+    present(projectHomeWidgets({ demo: true }));
+  }
+}
  const { accountMembershipSummary, accountEntitlements, entitlementLabel, calculateStudyStreak, dashboardGoal, formatLocalDateTime, quizLanguageLabel, practiceModeLabel, formatFinanceMoney, loadProjectRuntime, renderLatestUpdate, renderLearningSyncDashboardStatus, isSuperAdmin, hasAccountEntitlement }=context;
  function setDashboardService(id,label,status) { const node=$(id);if(!node)return;setText(node,label);const wanted="dashboard-service "+status;if(node.dataset.serviceTone===status)return;node.classList.remove("is-online","is-offline","is-warning");node.classList.add(status);node.dataset.serviceTone=status; }
  function renderDashboardToolShelf(id,items,emptyMessage) {
@@ -202,7 +234,13 @@ export function createDashboardView(context) {
   const englishGoal = dashboardGoal("english");
   const japaneseGoal = dashboardGoal("japanese");
 
-  setText($("dashboardGreeting"), account.username);
+  const greetingModel = formatLocalTimeGreeting(account);
+  setText($("dashboardGreeting"), greetingModel.greeting || account.username);
+  const promptEl = $("dashboardGreetingPrompt");
+  if (promptEl) {
+    promptEl.textContent = greetingModel.prompt;
+    promptEl.hidden = !greetingModel.prompt;
+  }
   setText($("dashboardMembershipName"), summary.name || "普通用户");
   setText($("dashboardMembershipExpiry"), summary.permanent
     ? "永久有效"

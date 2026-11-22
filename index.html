@@ -121,7 +121,14 @@
       </section>
       <div class="v3-app-frame" id="v3AppFrame">
         <aside class="v3-sidebar" id="v3Sidebar" aria-label="工作空间导航">
+          <div class="v3-sidebar-top">
+            <button class="v3-cmd-trigger" id="v3CmdTrigger" type="button" aria-label="打开全局命令面板 (Ctrl K)" aria-haspopup="dialog" aria-controls="commandPaletteModal">
+              <span class="v3-cmd-label">搜索或命令…</span>
+              <kbd class="v3-kbd" aria-hidden="true">Ctrl K</kbd>
+            </button>
+          </div>
           <nav class="v3-sidebar-nav" aria-label="空间模块">
+            <span class="v3-nav-indicator" id="v3SidebarIndicator" aria-hidden="true"></span>
             <p class="v3-sidebar-group-title">工作区</p>
             <a href="/" data-v3-nav="home" aria-current="page"><span class="v3-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg></span><span>首页</span></a>
             <a href="/language" data-v3-nav="language"><span class="v3-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M4 5h6a2 2 0 0 1 2 2v12a1.5 1.5 0 0 0-1.5-1.5H4zM20 5h-6a2 2 0 0 0-2 2v12a1.5 1.5 0 0 1 1.5-1.5H20z"/></svg></span><span>学习</span></a>
@@ -136,6 +143,7 @@
             <a href="/admin" data-v3-nav="admin" id="v3SidebarAdminLink" hidden><span class="v3-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M12 3 4 6.5v5.5c0 4.5 3.4 8.4 8 9.5 4.6-1.1 8-5 8-9.5V6.5z"/></svg></span><span>管理后台</span></a>
           </nav>
           <div class="v3-sidebar-footer">
+            <p class="v3-shortcut-hints" aria-hidden="true"><kbd class="v3-kbd">G</kbd>+<kbd class="v3-kbd">W</kbd> 工作台 · <kbd class="v3-kbd">F</kbd> 账本 · <kbd class="v3-kbd">T</kbd> 工具</p>
             <small id="v3SidebarVersion">Aeris · V6.3</small>
           </div>
         </aside>
@@ -155,9 +163,10 @@
               </div>
             </div>
             <div class="v3-hero-copy">
+              <p class="v3-hero-eyebrow" id="v3HeroEyebrow">Aeris Workspace · V6.3</p>
               <p class="v3-hero-headline"><strong>一个工作台，安静地把事做好。</strong><span>词表练习、本机实用工具、云端账本与受控分享共用同一账户，未登录也能直接试用核心工具。</span></p>
             </div>
-            <p class="home-identity" data-home-personal hidden><span id="dashboardGreeting"></span><span id="dashboardMembershipName"></span><span id="dashboardMembershipExpiry"></span></p>
+            <p class="home-identity" data-home-personal hidden><span id="dashboardGreeting"></span><span class="home-greeting-prompt" id="dashboardGreetingPrompt" hidden></span><span id="dashboardMembershipName"></span><span id="dashboardMembershipExpiry"></span></p>
             <div class="public-actions">
               <button class="primary" id="publicLoginBtn" type="button">开始使用</button>
               <button class="button-secondary" id="publicRegisterBtn" type="button">继续学习</button>
@@ -1702,6 +1711,18 @@
           <button id="roundWrongBtn" type="button">查看错题</button>
           <button id="roundSetupBtn" type="button">返回词表</button>
         </div>
+      </section>
+    </div>
+
+    <div class="modal-layer hidden" id="commandPaletteModal" aria-hidden="true">
+      <section class="modal-panel v3-cmd-panel" role="dialog" aria-modal="true" aria-labelledby="commandPaletteTitle">
+        <header class="v3-cmd-header">
+          <h2 id="commandPaletteTitle" class="sr-only">全局命令面板</h2>
+          <input id="commandPaletteInput" class="v3-cmd-input" type="search" autocomplete="off" spellcheck="false" placeholder="跳转到模块或执行命令…" aria-label="搜索命令与模块" />
+          <button class="modal-close" type="button" data-close-modal="commandPaletteModal" aria-label="关闭命令面板">关闭</button>
+        </header>
+        <p class="v3-cmd-hint meta-line" id="commandPaletteHint" role="status" aria-live="polite">输入关键字筛选，↑ ↓ 选择，Enter 确认，Esc 关闭</p>
+        <div class="v3-cmd-list" id="commandPaletteList" role="listbox" aria-label="可用命令"></div>
       </section>
     </div>
 

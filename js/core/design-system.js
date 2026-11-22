@@ -390,14 +390,36 @@ export function workspaceRouteMeta(pathname, { authenticated = false, toolTitle 
   return null;
 }
 
+export function syncSidebarActiveIndicator(doc = globalThis.document) {
+  const sidebar = doc?.getElementById?.("v3Sidebar");
+  const indicator = doc?.getElementById?.("v3SidebarIndicator");
+  if (!sidebar || !indicator) return;
+  const active = sidebar.querySelector('.v3-sidebar-nav [data-v3-nav][aria-current="page"]');
+  if (!active || active.hidden || !active.offsetHeight) {
+    indicator.style.opacity = "0";
+    return;
+  }
+  const height = Math.max(16, active.offsetHeight - 10);
+  const top = Math.max(0, active.offsetTop + Math.round((active.offsetHeight - height) / 2));
+  indicator.style.height = `${height}px`;
+  indicator.style.transform = `translateY(${top}px)`;
+  indicator.style.opacity = "1";
+}
+
 export function syncWorkspaceShell(doc, meta) {
   if (meta) doc.body.dataset.workspaceRoute = meta.id;
   else delete doc.body.dataset.workspaceRoute;
   const nav = doc.getElementById("workspaceBreadcrumb");
-  if (!nav) return;
+  if (!nav) {
+    syncSidebarActiveIndicator(doc);
+    return;
+  }
   nav.hidden = !meta;
   const list = nav.querySelector("ol");
-  if (!list) return;
+  if (!list) {
+    syncSidebarActiveIndicator(doc);
+    return;
+  }
   const items = meta ? ["Aeris", ...meta.trail] : ["Aeris"];
   items.forEach((text, i) => {
     let li = list.children[i];
@@ -410,6 +432,7 @@ export function syncWorkspaceShell(doc, meta) {
     else li.removeAttribute("aria-current");
   });
   while (list.children.length > items.length) list.lastElementChild.remove();
+  syncSidebarActiveIndicator(doc);
 }
 
 export function initDesignSystem() {

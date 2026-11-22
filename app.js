@@ -47,7 +47,7 @@ import {
 } from "./js/core/session.js?release=20261121-aeris-i05-preview";
 import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?release=20261121-aeris-i05-preview";
 import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?release=20261121-aeris-i05-preview";
-import { initDesignSystem, setExperienceMode, setInterfaceEnhancementsEnabled, dialogFocusTargets, focusDialog, workspaceRouteMeta, syncWorkspaceShell, syncSystemNoticeLayout } from "./js/core/design-system.js?release=20261121-aeris-i05-preview";
+import { initDesignSystem, setExperienceMode, setInterfaceEnhancementsEnabled, dialogFocusTargets, focusDialog, workspaceRouteMeta, syncWorkspaceShell, syncSidebarActiveIndicator, syncSystemNoticeLayout } from "./js/core/design-system.js?release=20261121-aeris-i05-preview";
 import { createPublicUiPolicyController } from "./js/core/public-ui-policy.js?release=20261121-aeris-i05-preview";
 import { completeStartupSplash, canPresentWorkspace, waitForPresentation } from "./js/core/startup.js?release=20261121-aeris-i05-preview";
 import { installMotionSystem, motionDuration, prefersReducedMotion, attachSheetAdapter, syncModalScrollLock, setControlFeedbackState, getSharedToastManager, showToast, dismissToastByKey, invalidateToastContext } from "./js/core/motion.js?release=20261121-aeris-i05-preview";
@@ -8085,6 +8085,119 @@ async function boot() {
   // Capability anchors use the existing site-nav dispatcher in both sessions.
   $("publicRegisterBtn")?.addEventListener("click", () => navigateFromSiteNav('language'));
   $("homeSearchBtn")?.addEventListener("click", async event => {await withInteractionFeedback(event.currentTarget,'home-tool-search',()=>navigateFromSiteNav('tools'));if(!$("toolsDashboard")?.classList.contains('hidden'))$("toolSearchInput")?.focus();else if(!$("trialPage")?.classList.contains('hidden'))$("trialTextInput")?.focus();});
+  let cmdActiveIndex = 0;
+  let cmdFilteredItems = [];
+  function buildCommandPaletteItems() {
+    const authed = Boolean(state.session && state.account);
+    const items = [
+      { id: "home", label: authed ? "前往个人工作台" : "前往公开首页", hint: "G W", keywords: "home workspace 首页 工作台", run: () => navigateFromSiteNav("home") },
+      { id: "language", label: authed ? "打开语言学习" : "语言学习试做 (最多 10 题)", hint: "G L", keywords: "language learn 英语 日语 学习", run: () => navigateFromSiteNav("language") },
+      { id: "trial", label: "打开免费试用", hint: "/trial", keywords: "trial 试用 测验", run: () => showTrial(true, "quiz") },
+      { id: "tools", label: "打开工具箱", hint: "G T", keywords: "tools json image text 工具箱", run: () => navigateFromSiteNav("tools") },
+      { id: "transfer", label: "打开文件传输与分享", hint: "G S", keywords: "transfer share file 文件 传输 分享", run: () => navigateFromSiteNav("transfer") },
+      { id: "finance", label: authed ? "打开财务账本" : "登录后查看财务账本", hint: "G F", keywords: "finance ledger budget 财务 账本", run: () => navigateFromSiteNav("finance") },
+      { id: "download", label: "下载 Android 客户端", hint: "/download", keywords: "download android apk 下载", run: () => navigateFromSiteNav("download") },
+      { id: "changelog", label: "查看更新日志", hint: "/changelog", keywords: "changelog updates 版本 更新", run: () => navigateFromSiteNav("changelog") },
+    ];
+    if (authed) {
+      items.push(
+        { id: "workflows", label: "打开工作流编排", hint: "/tools/workflows", keywords: "workflow 工作流 自动化", run: () => showTools("/tools/workflows", true) },
+        { id: "inbox", label: "打开个人通知收件箱", hint: "G I", keywords: "inbox notifications 通知 收件箱", run: () => $("notificationInboxMenuBtn")?.click() },
+        { id: "security", label: "打开账户安全中心", hint: "Security", keywords: "security 2fa passkey email 安全", run: () => $("securityCenterMenuBtn")?.click() },
+        { id: "account", label: "打开账户设置", hint: "G A", keywords: "account profile settings 账户 设置", run: () => $("accountBtn")?.click() },
+        { id: "membership", label: "管理会员与充值", hint: "G M", keywords: "membership recharge plan 会员 充值", run: () => $("membershipBtn")?.click() },
+        { id: "feedback", label: "反馈与功能投票", hint: "Feedback", keywords: "feedback vote 反馈", run: () => $("feedbackBtn")?.click() },
+      );
+      if (isAdmin(state.account)) {
+        items.push({ id: "admin", label: "进入管理后台 & Feature Flags", hint: "/admin", keywords: "admin flags audit 管理 后台 开关", run: () => $("adminBtn")?.click() });
+      }
+    } else {
+      items.push(
+        { id: "login", label: "登录 Aeris 账户", hint: "/login", keywords: "login sign in 登录", run: () => showAuth("", { mode: "login", path: "/login" }) },
+        { id: "register", label: "注册新账户", hint: "/register", keywords: "register sign up 注册", run: () => showAuth("", { mode: "register", path: "/register" }) },
+      );
+    }
+    items.push({ id: "theme", label: `切换外观模式 (当前: ${$("themeToggleLabel")?.textContent || "系统"})`, hint: "Theme", keywords: "theme dark light system 主题 深色 浅色", run: () => $("themeToggleBtn")?.click() });
+    return items;
+  }
+  function renderCommandPaletteList() {
+    const list = $("commandPaletteList");
+    const hint = $("commandPaletteHint");
+    const input = $("commandPaletteInput");
+    if (!list) return;
+    const query = (input?.value || "").trim().toLowerCase();
+    const tokens = query ? query.split(/\s+/).filter(Boolean) : [];
+    cmdFilteredItems = buildCommandPaletteItems().filter((item) => {
+      if (!tokens.length) return true;
+      const haystack = `${item.label} ${item.hint} ${item.keywords}`.toLowerCase();
+      return tokens.every((tok) => haystack.includes(tok));
+    });
+    if (cmdActiveIndex >= cmdFilteredItems.length) cmdActiveIndex = 0;
+    list.replaceChildren();
+    if (!cmdFilteredItems.length) {
+      const empty = document.createElement("p");
+      empty.className = "meta-line v3-cmd-empty";
+      empty.textContent = "未找到匹配命令或模块，按 Esc 关闭或修改关键字。";
+      list.append(empty);
+      if (hint) hint.textContent = "0 条匹配命令";
+      return;
+    }
+    if (hint) hint.textContent = `${cmdFilteredItems.length} 条可用操作 · ↑ ↓ 选择 · Enter 执行`;
+    cmdFilteredItems.forEach((item, idx) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "v3-cmd-item";
+      btn.setAttribute("role", "option");
+      btn.setAttribute("aria-selected", idx === cmdActiveIndex ? "true" : "false");
+      if (idx === cmdActiveIndex) btn.classList.add("is-active");
+      const nameSpan = document.createElement("span");
+      nameSpan.className = "v3-cmd-item-label";
+      nameSpan.textContent = item.label;
+      const hintKbd = document.createElement("kbd");
+      hintKbd.className = "v3-kbd";
+      hintKbd.textContent = item.hint;
+      btn.append(nameSpan, hintKbd);
+      btn.addEventListener("click", () => {
+        closeModal("commandPaletteModal");
+        void item.run();
+      });
+      list.append(btn);
+    });
+  }
+  function openCommandPalette() {
+    const modal = $("commandPaletteModal");
+    if (!modal) return;
+    cmdActiveIndex = 0;
+    if ($("commandPaletteInput")) $("commandPaletteInput").value = "";
+    renderCommandPaletteList();
+    openModal("commandPaletteModal");
+    window.requestAnimationFrame(() => $("commandPaletteInput")?.focus({ preventScroll: true }));
+  }
+  $("v3CmdTrigger")?.addEventListener("click", openCommandPalette);
+  $("commandPaletteInput")?.addEventListener("input", () => {
+    cmdActiveIndex = 0;
+    renderCommandPaletteList();
+  });
+  $("commandPaletteInput")?.addEventListener("keydown", (event) => {
+    if (event.key === "ArrowDown") {
+      if (!cmdFilteredItems.length) return;
+      event.preventDefault();
+      cmdActiveIndex = (cmdActiveIndex + 1) % cmdFilteredItems.length;
+      renderCommandPaletteList();
+    } else if (event.key === "ArrowUp") {
+      if (!cmdFilteredItems.length) return;
+      event.preventDefault();
+      cmdActiveIndex = (cmdActiveIndex - 1 + cmdFilteredItems.length) % cmdFilteredItems.length;
+      renderCommandPaletteList();
+    } else if (event.key === "Enter") {
+      const activeItem = cmdFilteredItems[cmdActiveIndex];
+      if (!activeItem) return;
+      event.preventDefault();
+      closeModal("commandPaletteModal");
+      void activeItem.run();
+    }
+  });
+  window.addEventListener("resize", () => syncSidebarActiveIndicator(document), { passive: true });
   $("publicLoginBtn")?.addEventListener("click", () => state.session && state.account ? $("accountBtn").click() : showAuth("", { mode: "login", path: "/login" }));
   $("dashboardNotificationsBtn")?.addEventListener("click", () => showFinance(true));
   $("dashboardTransferBtn")?.addEventListener("click", () => showTransfer(true));
@@ -8177,7 +8290,39 @@ async function boot() {
     }
     closeModal(modal.id);
   }));
+  let lastGChordAt = 0;
   document.addEventListener("keydown", (event) => {
+    if ((event.ctrlKey || event.metaKey) && !event.altKey && event.key.toLowerCase() === "k") {
+      event.preventDefault();
+      const cmdModal = $("commandPaletteModal");
+      if (cmdModal && !cmdModal.classList.contains("hidden")) closeModal("commandPaletteModal");
+      else openCommandPalette();
+      return;
+    }
+    if (!event.isComposing && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      const activeTag = document.activeElement?.tagName;
+      const inEditable = activeTag === "INPUT" || activeTag === "TEXTAREA" || activeTag === "SELECT" || document.activeElement?.isContentEditable;
+      const anyModalOpen = Boolean(document.querySelector(".modal-layer:not(.hidden)"));
+      if (!inEditable && !anyModalOpen && event.key.length === 1) {
+        const key = event.key.toLowerCase();
+        const now = Date.now();
+        if (now - lastGChordAt <= 900) {
+          lastGChordAt = 0;
+          if (key === "w") { event.preventDefault(); void navigateFromSiteNav("home"); return; }
+          if (key === "l") { event.preventDefault(); void navigateFromSiteNav("language"); return; }
+          if (key === "t") { event.preventDefault(); void navigateFromSiteNav("tools"); return; }
+          if (key === "f") { event.preventDefault(); void navigateFromSiteNav("finance"); return; }
+          if (key === "s") { event.preventDefault(); void navigateFromSiteNav("transfer"); return; }
+          if (key === "a" && state.session && state.account) { event.preventDefault(); $("accountBtn")?.click(); return; }
+          if (key === "m" && state.session && state.account) { event.preventDefault(); $("membershipBtn")?.click(); return; }
+          if (key === "i" && state.session && state.account) { event.preventDefault(); $("notificationInboxMenuBtn")?.click(); return; }
+        } else if (key === "g") {
+          lastGChordAt = now;
+        } else {
+          lastGChordAt = 0;
+        }
+      }
+    }
     if (event.key === "Tab") {
       const modal = [...document.querySelectorAll(".modal-layer:not(.hidden)")].findLast((layer) => !layer.inert);
       if (!modal) return;
