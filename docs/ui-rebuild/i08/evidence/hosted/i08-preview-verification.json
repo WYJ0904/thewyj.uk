@@ -1,0 +1,302 @@
+{
+  "previewUrl": "https://i08-global-polish.thewyj-i08-preview.pages.dev",
+  "headCommit": "76f2f441c52f38f0e0853369e1f1a4a3edc8a146",
+  "checkedAt": "2026-11-22T11:43:59.261Z",
+  "buildInfo": {
+    "schema_version": 1,
+    "environment": "isolated-preview",
+    "stage": "I08-global-polish",
+    "source_commit": "76f2f441c52f38f0e0853369e1f1a4a3edc8a146",
+    "project_name": "thewyj-i08-preview",
+    "branch": "i08-global-polish",
+    "remote_check": {
+      "verified": true,
+      "project": "thewyj-i08-preview",
+      "branch": "i08-global-polish",
+      "productionBranch": "release-held",
+      "targetD1Id": "db9ec9c6-daa9-4b3b-9792-a6ba8bb3a7f7",
+      "targetD1Name": "aeris-i08-preview",
+      "priorPreviewD1Id": "db9ec9c6-daa9-4b3b-9792-a6ba8bb3a7f7",
+      "priorPreviewR2": [],
+      "targetR2Count": 0,
+      "targetAiCount": 0,
+      "bindingConsistent": true
+    },
+    "file_count": 205,
+    "artifact_tree_sha256": "814ecd87886fa125ab2b9d19b7125da03b5c3ce4eeccf3259081063a64a2f3df"
+  },
+  "apiStatus": {
+    "ok": true,
+    "status": "degraded",
+    "service": "wyj-cloud-foundation",
+    "environment": "preview",
+    "build": "2026-08-26-task15-cloud-only",
+    "time": "2026-11-22T11:43:51.446Z",
+    "auth": true,
+    "backend_ready": true,
+    "ai_ready": false,
+    "model": "Cloudflare rules only",
+    "bindings": {
+      "d1": true,
+      "r2": false,
+      "workers_ai": false
+    },
+    "task11": {
+      "schema_ready": true,
+      "schema_version": "1"
+    },
+    "task12": {
+      "schema_ready": true,
+      "schema_version": "1",
+      "session_strategy": "invalidate_legacy_sessions",
+      "password_pepper_configured": true
+    },
+    "task13": {
+      "schema_ready": true,
+      "schema_version": "1",
+      "payment_primary": true
+    },
+    "task14": {
+      "schema_ready": true,
+      "schema_version": "1",
+      "temporary_primary": true,
+      "secret_configured": true
+    },
+    "task15": {
+      "schema_ready": true,
+      "schema_version": "1",
+      "cloud_only": true
+    },
+    "task16": {
+      "schema_ready": true,
+      "schema_version": "5",
+      "cloud_reads": true,
+      "cloud_writes": true
+    },
+    "task18": {
+      "schema_ready": true,
+      "schema_version": "1",
+      "enabled": true,
+      "owner_count": 1
+    },
+    "task20": {
+      "schema_ready": true,
+      "schema_version": "1",
+      "enabled": true,
+      "session_secret_configured": true
+    },
+    "task22": {
+      "schema_ready": true,
+      "schema_version": "2",
+      "reads_enabled": true,
+      "writes_enabled": true
+    },
+    "features": {
+      "cloud_foundation": true,
+      "cloud_reads": true,
+      "cloud_writes": true,
+      "task11_cloud_reads": true,
+      "task11_cloud_writes": true,
+      "task12_cloud_accounts": true,
+      "task12_import": true,
+      "task12_password_pepper": true,
+      "task13_cloud_reads": true,
+      "task13_cloud_writes": true,
+      "task13_import": true,
+      "task13_payment_primary": true,
+      "task14_cloud_reads": true,
+      "task14_cloud_writes": true,
+      "task14_import": true,
+      "task14_temporary_primary": true,
+      "task14_legacy_writes_frozen": true,
+      "task14_temporary_secret": true,
+      "workers_ai": false,
+      "task15_cloud_only": true,
+      "task16_cloud_reads": true,
+      "task16_cloud_writes": true,
+      "task16_import": true,
+      "task18_admin_messages": true,
+      "task20_android_app": true,
+      "task22_transfer_reads": true,
+      "task22_transfer_writes": true,
+      "task25_feature_flags": true,
+      "task30_privacy": true,
+      "legacy_api_fallback": false,
+      "payment_cloud_migration": true
+    },
+    "rate_limit": {
+      "enabled": false,
+      "degraded": false,
+      "limit": 120,
+      "window_seconds": 60
+    },
+    "degraded_reasons": [
+      "r2_binding_missing",
+      "task13_r2_binding_missing",
+      "task14_r2_binding_missing"
+    ],
+    "request_id": "7ea77aa7-19e1-4a00-b9d9-408efb7ca2ca"
+  },
+  "apiHealth": {
+    "ok": false,
+    "error": "请先登录",
+    "code": "authentication_required",
+    "retryable": false,
+    "request_id": "06667a11-3085-4ec5-b87e-ad23776fb918"
+  },
+  "uiFeatures": {
+    "ok": true,
+    "public_ui": {
+      "schema_version": 1,
+      "flag_key": "p07_accessibility",
+      "enabled": true,
+      "revision": 1,
+      "reason": "public_stable",
+      "observed_at": "2026-11-22T11:43:53.754Z",
+      "expires_at": "2026-11-22T11:44:23.754Z",
+      "max_age_seconds": 30
+    },
+    "request_id": "fd3d4beb-9b35-41df-9820-b97933f1516b"
+  },
+  "verifiedAssets": [
+    {
+      "assetPath": "design-system.css",
+      "sha256": "046b22f534b29c676bede99c63813bf5e1bb1333ce39f962461537d943ae8bf6",
+      "bytes": 58261
+    },
+    {
+      "assetPath": "spatial-experience.css",
+      "sha256": "3afc417dfd1eec50ebc618192211626b16ba695bfe7595f107ebbf6347952aea",
+      "bytes": 193937
+    },
+    {
+      "assetPath": "app.js",
+      "sha256": "beee162e84bcb322d89de2470f1611cb15ea673482d32a2d2362edcec1be44e4",
+      "bytes": 386973
+    },
+    {
+      "assetPath": "tools.js",
+      "sha256": "6e1a57897cccce30da830e02eb9a8e569d03ec6077523ec6862ec9445a1931e8",
+      "bytes": 98241
+    },
+    {
+      "assetPath": "js/core/design-system.js",
+      "sha256": "c53a7a759d682454452c65c1791319fadfd6f5f4b17e4cb018f7d7918dd56995",
+      "bytes": 18177
+    },
+    {
+      "assetPath": "js/core/feature-console.js",
+      "sha256": "eb01e324c33a4c9f9057a884ef2d5646ab24fb7a0c6f5b43fb1021e56463ca44",
+      "bytes": 12093
+    },
+    {
+      "assetPath": "js/core/router.js",
+      "sha256": "687ec289a97cc6949103f9d5ca12b5132e034accdbf9ab83d011e1f4f9aebf63",
+      "bytes": 3783
+    },
+    {
+      "assetPath": "js/finance/app.js",
+      "sha256": "1d5fae3ab17aabed4aaf49104bc56f51e6b40441159208c28d0ad2225d6ff2b0",
+      "bytes": 92896
+    },
+    {
+      "assetPath": "js/transfer/app.js",
+      "sha256": "4a3bb1d5504d1e45915ad4fdad4152c51f15c108cf20af356cc49922d773281e",
+      "bytes": 74517
+    },
+    {
+      "assetPath": "js/admin/formatters.js",
+      "sha256": "ede38226d1a11796aed804f6214125a65e86fd22755b9c9d5981a8f6a2153b33",
+      "bytes": 62178
+    }
+  ],
+  "scenarios": {
+    "r01WithPrompt": {
+      "noticeTitle": "完善账户安全",
+      "inertAfterClose": {
+        "appShellInert": false,
+        "frameInert": false
+      },
+      "navigatedTo": "/language"
+    },
+    "r03Scroll": {
+      "finBefore": {
+        "scrollY": 420,
+        "scrollHeight": 2208,
+        "clientHeight": 900
+      },
+      "toolsY": 0,
+      "finAfter": {
+        "scrollY": 420,
+        "scrollHeight": 1974,
+        "clientHeight": 900
+      },
+      "expectedY": 420
+    },
+    "p07Off": {
+      "offDisplay": "none",
+      "overflow": -15
+    },
+    "acctCheck": {
+      "sideSvgs": 10,
+      "acctIcons": 3,
+      "acctChevrons": 3,
+      "title": "修改登录密码",
+      "curLabel": "当前密码",
+      "confirmLabel": "再次输入新密码",
+      "hasLegacy": false
+    },
+    "killState": {
+      "killActive": "true",
+      "capsule": "kill",
+      "warnVisible": true,
+      "cb1": [
+        20,
+        20
+      ],
+      "cb2": [
+        20,
+        20
+      ]
+    },
+    "downloadAlign": {
+      "aHeight": 44,
+      "bHeight": 44,
+      "topDiff": 0
+    },
+    "noPromptState": {
+      "modalHidden": true,
+      "appShellInert": false,
+      "frameInert": false
+    }
+  },
+  "axeScans": [
+    {
+      "label": "hosted-i08-account-1440-light",
+      "violationCount": 0,
+      "passes": 46,
+      "violations": []
+    },
+    {
+      "label": "hosted-i08-account-375-dark",
+      "violationCount": 0,
+      "passes": 46,
+      "violations": []
+    },
+    {
+      "label": "hosted-i08-admin-kill-switch-1440-light",
+      "violationCount": 0,
+      "passes": 49,
+      "violations": []
+    }
+  ],
+  "screenshots": [
+    "hosted-i08-account-1440-light.png",
+    "hosted-i08-account-390-light.png",
+    "hosted-i08-account-375-dark.png",
+    "hosted-i08-admin-kill-switch-1440-light.png",
+    "hosted-i08-admin-kill-switch-1440-dark.png"
+  ],
+  "runtimeErrors": [],
+  "status": "PASS"
+}
