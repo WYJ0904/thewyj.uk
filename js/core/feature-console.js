@@ -27,6 +27,9 @@ export function createFeatureConsole({ api, apiGet, getAccount, refreshFeatures,
     if (rolloutEl) rolloutEl.textContent = `放量 ${pct}%`;
     if (channelsEl) channelsEl.textContent = channels.length ? channels.join(' · ') : '未允许任何通道';
     if (revEl) revEl.textContent = `v${rev}`;
+    const formEl = node('featureFlagForm');
+    if (formEl) formEl.dataset.killActive = killSwitch ? 'true' : 'false';
+    node('featureFlagKillWarning')?.classList.toggle('hidden', !killSwitch);
     node('featureFlagSummaryList')?.querySelectorAll('[data-flag-key]').forEach(btn => {
       btn.setAttribute('aria-current', btn.dataset.flagKey === key ? 'true' : 'false');
     });

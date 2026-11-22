@@ -3170,12 +3170,13 @@ async function showAdminPanel(pushHistory = true) {
     showModulePicker(false, "当前账户没有管理员权限，已返回功能选择。");
     return;
   }
-  if (pushHistory && location.pathname !== "/admin") history.pushState({}, "", "/admin");
+  if (pushHistory) pushRoute("/admin");
   $("adminRolesTab")?.classList.toggle("hidden", !isSuperAdmin());
   hidePrimaryScreens();
   $("adminPanel").classList.remove("hidden");
   $("adminPanel").setAttribute("aria-hidden", "false");
   renderAccountUi();
+  applyWorkspaceRouteScroll(pushHistory);
   if ($("adminRoleContext")) {
     $("adminRoleContext").textContent = `当前身份：${isSuperAdmin() ? "站点所有者" : "管理员"}`;
   }
@@ -3969,6 +3970,30 @@ function applyPublicRouteScroll(pushHistory) {
   window.requestAnimationFrame(() => window.requestAnimationFrame(() => window.WYJPublicScroll?.refresh?.()));
 }
 
+function applyWorkspaceRouteScroll(pushHistory) {
+  const target = !pushHistory && pendingPopScroll && Number.isFinite(pendingPopScroll.scrollY)
+    ? pendingPopScroll
+    : null;
+  if (target) pendingPopScroll = null;
+  if (!pushHistory && !target) return;
+  const scrollToPos = (left, top) => {
+    if (typeof window.scrollTo !== "function") return;
+    try {
+      window.scrollTo({ left, top, behavior: "instant" });
+    } catch (_) {
+      window.scrollTo(left, top);
+    }
+  };
+  const apply = () => {
+    if (target) scrollToPos(target.scrollX || 0, target.scrollY);
+    else if (pushHistory) scrollToPos(0, 0);
+  };
+  apply();
+  if (typeof window.requestAnimationFrame === "function") {
+    window.requestAnimationFrame(() => apply());
+  }
+}
+
 function showPublicHome(pushHistory = true) {
   stopProjectActivity();
   currentProject = "";
@@ -4179,6 +4204,7 @@ function showProjectPicker(pushHistory = true) {
   document.body.classList.add("project-picker-active");
   if (pushHistory) pushRoute("/language");
   renderAccountUi();
+  applyWorkspaceRouteScroll(pushHistory);
 }
 
 function showMainShell() {
@@ -4228,6 +4254,7 @@ function enterProject(value, pushHistory = true) {
   applyPendingScreen();
   if (pushHistory) pushRoute(`/language/${language}`);
   renderAccountUi();
+  applyWorkspaceRouteScroll(pushHistory);
   if (!state.roundActive) {
     if ($("wordText")) $("wordText").textContent = "-";
     if ($("wordReading")) {
@@ -4349,6 +4376,7 @@ async function showTools(path = "/tools", pushHistory = true, generation = route
   if (pushHistory) { pushRoute(path); generation = routeGeneration; }
   document.body.classList.remove("project-picker-active");
   renderAccountUi();
+  applyWorkspaceRouteScroll(pushHistory);
   try {
     const preparing = Promise.resolve(window.WYJTools.prepare()).catch(error => ({ error }));
     if (!access) {
@@ -4411,6 +4439,7 @@ async function showMembership(pushHistory = true, options = {}) {
   document.body.classList.remove("modal-open", "project-picker-active");
   if ($("appShell")) $("appShell").inert = false;
   renderAccountUi();
+  applyWorkspaceRouteScroll(pushHistory);
   await loadMembershipWorkspace({ ...options, goal: context.goal });
 }
 
@@ -4433,6 +4462,7 @@ function showAccount(pushHistory = true) {
   document.body.classList.remove("modal-open", "project-picker-active");
   if ($("appShell")) $("appShell").inert = false;
   renderAccountUi();
+  applyWorkspaceRouteScroll(pushHistory);
   renderAccountDetails();
 }
 
@@ -4450,6 +4480,7 @@ async function showFinance(pushHistory = true, generation = routeGeneration) {
   document.body.classList.remove("project-picker-active");
   if (pushHistory) { pushRoute("/finance"); generation = routeGeneration; }
   renderAccountUi();
+  applyWorkspaceRouteScroll(pushHistory);
   try {
     const financeVisible = await financeController?.show?.();
     if (!isRouteGenerationCurrent(generation)) return;
@@ -4475,6 +4506,7 @@ async function showTransfer(pushHistory = true, generation = routeGeneration) {
   document.body.classList.remove("project-picker-active");
   if (pushHistory) { pushRoute("/transfer"); generation = routeGeneration; }
   renderAccountUi();
+  applyWorkspaceRouteScroll(pushHistory);
   try {
     await transferController?.show?.();
   } catch (error) {

@@ -201,9 +201,7 @@ html[data-p07-ui="enabled"] .v3-sidebar-nav a {
   font-size: 0.90625rem;
   font-weight: 500;
   text-decoration: none;
-  transition:
-    background-color var(--ds-duration-fast) var(--ds-ease-standard),
-    color var(--ds-duration-fast) var(--ds-ease-standard);
+  transition: background-color var(--ds-duration-fast) var(--ds-ease-standard);
 }
 
 /* Grouped navigation titles inside #v3Sidebar */
@@ -5268,15 +5266,29 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-se
   border-bottom: 0;
 }
 
-html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-settings-list > button::after {
-  content: "";
-  width: 8px;
-  height: 8px;
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-setting-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-setting-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-surface-muted);
+  color: var(--ds-text-secondary);
+  flex: 0 0 auto;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-setting-chevron {
   flex: 0 0 auto;
   margin-left: 12px;
-  border-right: 1.5px solid var(--ds-text-muted);
-  border-top: 1.5px solid var(--ds-text-muted);
-  transform: rotate(45deg);
+  color: var(--ds-text-muted);
 }
 
 html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-settings-list > button:hover {
@@ -6438,4 +6450,139 @@ html[data-p07-ui="enabled"] body[data-workspace-route] .feature-audit-head time 
 html[data-p07-ui="enabled"] body[data-workspace-route] .feature-audit-detail {
   font-size: 0.75rem;
   color: var(--ds-text-muted);
+}
+
+/* ==========================================================================
+ * I08 Global Polish & Control Refinement Layer (Icons, Controls, Alignment)
+ * ========================================================================== */
+
+html:not([data-p07-ui="enabled"]) :is(.v3-nav-icon, .account-setting-icon, .account-setting-chevron, .feature-kill-warning, .home-quick-arrow) {
+  display: none;
+}
+
+/* Sidebar vector icon alignment & active polarity */
+html[data-p07-ui="enabled"] .v3-nav-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  color: var(--ds-text-muted);
+}
+
+html[data-p07-ui="enabled"] .v3-sidebar-nav a:hover .v3-nav-icon,
+html[data-p07-ui="enabled"] .v3-sidebar-nav a[aria-current="page"] .v3-nav-icon,
+html[data-p07-ui="enabled"] .v3-sidebar-nav a.active .v3-nav-icon {
+  color: var(--ds-text);
+}
+
+/* Quick access SVG arrows */
+html[data-p07-ui="enabled"] .home-quick-access .home-quick-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ds-text-muted);
+  flex: 0 0 auto;
+}
+
+/* Unified a.primary & button.primary baseline/height parity */
+html[data-p07-ui="enabled"] :is(.public-actions, .action-row) :is(a.primary, button.primary, a.button-secondary, button.button-secondary, a.button-ghost, button.button-ghost) {
+  box-sizing: border-box;
+  min-height: var(--ds-touch-min);
+  line-height: 1.25;
+  vertical-align: middle;
+}
+
+/* Admin Feature Flag & Kill Switch toggle pills (checkbox hit stays <= 24px) */
+html[data-p07-ui="enabled"] body[data-workspace-route] #adminFeatureFlagsView .feature-toggle-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #adminFeatureFlagsView .feature-toggle-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--ds-touch-min);
+  padding: 6px 14px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+  color: var(--ds-text);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #adminFeatureFlagsView .feature-toggle-option input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  flex: 0 0 auto;
+  accent-color: var(--ds-action-primary);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #adminFeatureFlagsView .feature-toggle-option:has(#featureFlagEnabled:checked) {
+  border-color: var(--ds-success-border);
+  background: var(--ds-success-soft);
+  color: var(--ds-success);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #adminFeatureFlagsView .feature-toggle-option:has(#featureFlagEnabled:checked) input {
+  accent-color: var(--ds-success);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #adminFeatureFlagsView .feature-toggle-option:has(#featureFlagKillSwitch:checked) {
+  border-color: var(--ds-error-border);
+  background: var(--ds-error-soft);
+  color: var(--ds-error);
+  font-weight: 700;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #adminFeatureFlagsView .feature-toggle-option:has(#featureFlagKillSwitch:checked) input {
+  accent-color: var(--ds-error);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #adminFeatureFlagsView .feature-kill-warning {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--ds-error-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-error-soft);
+  color: var(--ds-error);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+/* Transfer checkbox rows (#transferOneTime / #transferPrivate stay <= 24px) */
+html[data-p07-ui="enabled"] body[data-workspace-route] #transferPage .transfer-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--ds-touch-min);
+  padding: 6px 12px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+  color: var(--ds-text);
+  cursor: pointer;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #transferPage .transfer-check input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  flex: 0 0 auto;
+  accent-color: var(--ds-action-primary);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #transferPage .transfer-check:has(#transferOneTime:checked) {
+  border-color: var(--ds-warning-border);
+  background: var(--ds-warning-soft);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #transferPage .transfer-check:has(input:disabled) {
+  opacity: 0.65;
+  cursor: not-allowed;
 }
