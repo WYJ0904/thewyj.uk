@@ -5932,13 +5932,18 @@ html[data-p07-ui="enabled"] body[data-workspace-route] .finance-drawer-meta {
 
 @media (min-width: 761px) and (prefers-reduced-motion: no-preference) {
   html[data-p07-ui="enabled"] #financeTransactionModal:not(.hidden) .finance-editor-modal {
-    animation: aerisDrawerIn var(--ds-duration-sheet) var(--ds-ease-emphasized) both;
+    animation: aerisDrawerIn var(--ds-duration-sheet) var(--ds-ease-emphasized) backwards;
   }
 
   @keyframes aerisDrawerIn {
     from { transform: translateX(28px); opacity: 0.92; }
     to { transform: translateX(0); opacity: 1; }
   }
+}
+
+html[data-p07-ui="enabled"] #financeTransactionModal :is(select, input, textarea) {
+  position: relative;
+  z-index: 2;
 }
 
 /* --- Module 3: /tools Two-Pane Index & Split Input/Output Workbench --- */
@@ -6975,11 +6980,61 @@ html[data-p07-ui="enabled"] #publicHome[data-session-mode="guest"] .aeris-privac
   background: #14161e;
 }
 
-/* Authenticated "/" & "/select": Compact Greeting + First-Screen Workspace */
+/* Sidebar Footer Shortcut Chips (never break trailing dots) */
+html[data-p07-ui="enabled"] .v3-shortcut-hints {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin: 0 0 6px;
+}
+
+html[data-p07-ui="enabled"] .v3-shortcut-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+/* Preview Gallery Height Stability (prevents browser scroll clamping on tab switch) */
+html[data-p07-ui="enabled"] #publicCapabilityGallery .aeris-window-content {
+  min-height: 360px;
+}
+
+@media (max-width: 720px) {
+  html[data-p07-ui="enabled"] #publicCapabilityGallery .aeris-window-content {
+    min-height: 360px;
+  }
+}
+
+/* Guest "/" Apple + Samsung Showcase Polish */
+html[data-p07-ui="enabled"] #publicHome[data-session-mode="guest"] .public-preview-stage {
+  margin-top: 8px;
+}
+
+html[data-p07-ui="enabled"] #publicHome[data-session-mode="guest"] .aeris-product-tabs {
+  gap: 6px;
+}
+
+html[data-p07-ui="enabled"] #publicHome[data-session-mode="guest"] .bento-tile {
+  border-radius: var(--ds-radius-lg);
+  transition: transform var(--ds-duration-fast) var(--ds-ease-standard),
+    border-color var(--ds-duration-fast) var(--ds-ease-standard),
+    box-shadow var(--ds-duration-fast) var(--ds-ease-standard);
+}
+
+html[data-p07-ui="enabled"] #publicHome[data-session-mode="guest"] .bento-tile:hover {
+  transform: translateY(-2px);
+}
+
+/* Authenticated "/" & "/select": Linear Workspace First Screen (Zero Nested Box Clutter) */
 html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
+  width: min(calc(100% - 40px), var(--ds-container-console));
+  margin: 0 auto;
+  padding-top: 8px;
 }
 
 html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"].hidden {
@@ -6989,14 +7044,17 @@ html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"].hidde
 html[data-p07-ui="enabled"]:not([data-large-text="true"]) #publicHome[data-session-mode="authenticated"]:not([data-widget-layout="mobile"]) > [data-public-section="hero"],
 html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] > [data-public-section="hero"] {
   order: 1;
-  width: min(calc(100% - 40px), var(--ds-container-console));
+  width: 100%;
+  max-width: none;
   height: auto;
   min-height: 0;
-  margin: 8px auto 0;
-  padding: 12px 18px;
-  border-radius: var(--ds-radius-md);
-  border: 1px solid var(--ds-border);
-  background: var(--ds-surface);
+  margin: 0;
+  padding: 6px 0 14px;
+  border: 0;
+  border-bottom: 1px solid var(--ds-divider);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -7021,14 +7079,28 @@ html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] .publ
 
 html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] .home-identity:not([hidden]) {
   margin-top: 0;
-  padding: 4px 12px 4px 10px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  display: flex;
   flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 12px;
   max-width: 100%;
 }
 
-html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] .home-greeting-prompt:not([hidden]) {
+html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] #dashboardGreeting {
+  font-size: clamp(1.25rem, 1.9vw, 1.5rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] .home-greeting-prompt:not([hidden]),
+html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] #dashboardMembershipExpiry {
   font-size: 0.8125rem;
-  color: var(--ds-text-secondary);
+  color: var(--ds-text-muted);
 }
 
 html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] .public-hero .public-actions {
@@ -7037,25 +7109,262 @@ html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] .publ
   flex-wrap: wrap;
 }
 
-html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] > #authWorkspaceSection {
-  order: 2;
-  margin-top: 0;
+html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] .public-hero .public-actions :is(button, a) {
+  min-height: 36px;
+  padding: 0 12px;
+  font-size: 0.8125rem;
 }
 
+/* Segmented 4-Metric Bar directly below greeting */
 html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] > #homeV3SummaryGrid {
-  order: 3;
+  order: 2;
+  width: 100%;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  border: 1px solid var(--ds-divider);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+  overflow: hidden;
+  box-shadow: none;
 }
 
+html[data-p07-ui="enabled"] #homeV3SummaryGrid .v3-summary-card {
+  border: 0;
+  border-right: 1px solid var(--ds-divider);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 12px 14px;
+  gap: 6px;
+  transition: background-color var(--ds-duration-fast) var(--ds-ease-standard);
+}
+
+html[data-p07-ui="enabled"] #homeV3SummaryGrid .v3-summary-card:last-child {
+  border-right: 0;
+}
+
+html[data-p07-ui="enabled"] #homeV3SummaryGrid .v3-summary-card:hover {
+  background: var(--ds-surface-subtle);
+}
+
+/* Unified Linear Module Surface (replaces massive outer box + 6 card boxes + duplicate badges) */
+html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] > #authWorkspaceSection {
+  order: 3;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+html[data-p07-ui="enabled"] #authWorkspaceSection .auth-workspace-header {
+  padding: 0 0 10px;
+  border-bottom: 1px solid var(--ds-divider);
+  margin-bottom: 12px;
+  align-items: center;
+}
+
+html[data-p07-ui="enabled"] #authWorkspaceSection .auth-workspace-title-row {
+  gap: 8px;
+  align-items: baseline;
+}
+
+html[data-p07-ui="enabled"] #authWorkspaceSection #authWorkspaceTitle {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+html[data-p07-ui="enabled"] #authWorkspaceSection #workspacePersistenceBadge {
+  display: none;
+}
+
+html[data-p07-ui="enabled"] #authWorkspaceSection #workspaceSaveStatus {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--ds-text-secondary);
+}
+
+html[data-p07-ui="enabled"] #authWorkspaceSection #workspaceSaveStatus[data-save-state="saved"] {
+  color: var(--ds-text-secondary);
+}
+
+html[data-p07-ui="enabled"] #authWorkspaceSection .workspace-console-toolbar {
+  gap: 6px;
+}
+
+html[data-p07-ui="enabled"] #authWorkspaceSection .workspace-console-toolbar :is(button) {
+  min-height: 36px;
+  padding: 0 10px;
+  font-size: 0.8125rem;
+}
+
+html[data-p07-ui="enabled"] #authWorkspaceSection #workspaceBentoGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0;
+  border: 1px solid var(--ds-divider);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+  overflow: hidden;
+  box-shadow: none;
+}
+
+html[data-p07-ui="enabled"] #authWorkspaceSection #workspaceBentoGrid[data-density="compact"] {
+  grid-template-columns: 1fr;
+}
+
+html[data-p07-ui="enabled"] #authWorkspaceSection .workspace-bento-card {
+  margin: 0;
+  padding: 12px 16px;
+  border: 0;
+  border-right: 1px solid var(--ds-divider);
+  border-bottom: 1px solid var(--ds-divider);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  display: grid;
+  gap: 8px;
+  min-height: 0;
+  transition: background-color var(--ds-duration-fast) var(--ds-ease-standard);
+}
+
+html[data-p07-ui="enabled"] #authWorkspaceSection #workspaceBentoGrid[data-density="comfortable"] .workspace-bento-card:nth-child(2n) {
+  border-right: 0;
+}
+
+html[data-p07-ui="enabled"] #authWorkspaceSection #workspaceBentoGrid[data-density="compact"] .workspace-bento-card {
+  border-right: 0;
+  grid-template-columns: minmax(170px, 0.85fr) minmax(0, 1.4fr) auto;
+  align-items: center;
+  gap: 6px 14px;
+  padding: 8px 16px;
+}
+
+html[data-p07-ui="enabled"] #authWorkspaceSection #workspaceBentoGrid[data-density="compact"] .workspace-card-head {
+  flex-wrap: nowrap;
+}
+
+html[data-p07-ui="enabled"] #authWorkspaceSection #workspaceBentoGrid[data-density="compact"] .workspace-card-body {
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
+html[data-p07-ui="enabled"] #authWorkspaceSection #workspaceBentoGrid[data-density="compact"] .workspace-card-extra {
+  display: none;
+}
+
+html[data-p07-ui="enabled"] #authWorkspaceSection #workspaceBentoGrid[data-density="compact"] .workspace-card-detail {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+html[data-p07-ui="enabled"] #authWorkspaceSection .workspace-bento-card:hover {
+  background: var(--ds-surface-subtle);
+}
+
+html[data-p07-ui="enabled"] #authWorkspaceSection .workspace-card-head {
+  padding: 0;
+  border: 0;
+  gap: 8px;
+  align-items: center;
+}
+
+html[data-p07-ui="enabled"] #authWorkspaceSection .workspace-card-title-group {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+html[data-p07-ui="enabled"] #authWorkspaceSection .workspace-card-kicker {
+  font-size: 0.6875rem;
+  font-family: var(--ds-font-mono);
+  letter-spacing: 0.06em;
+  color: var(--ds-text-muted);
+}
+
+html[data-p07-ui="enabled"] #authWorkspaceSection .workspace-card-title-group h3 {
+  font-size: 0.9375rem;
+  font-weight: 650;
+}
+
+html[data-p07-ui="enabled"] #authWorkspaceSection .workspace-card-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+
+html[data-p07-ui="enabled"] #authWorkspaceSection .workspace-card-metric {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+html[data-p07-ui="enabled"] #authWorkspaceSection .workspace-card-detail,
+html[data-p07-ui="enabled"] #authWorkspaceSection .workspace-card-extra {
+  margin: 0;
+  font-size: 0.78125rem;
+  color: var(--ds-text-secondary);
+}
+
+html[data-p07-ui="enabled"] #authWorkspaceSection .workspace-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  padding-top: 0;
+  border-top: 0;
+}
+
+html[data-p07-ui="enabled"] #authWorkspaceSection .workspace-card-footer :is(button, a) {
+  min-height: 32px;
+  padding: 0 10px;
+  font-size: 0.78125rem;
+}
+
+/* Quick Access + Recent Activity Split (zero nested cards) */
 html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] > .home-workspace-overview {
   order: 4;
+  width: 100%;
+  margin: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] .home-workspace-overview > section {
+  border: 1px solid var(--ds-divider);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+  padding: 14px 16px;
+  box-shadow: none;
 }
 
 html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] > #homeProductDetails {
   order: 5;
+  width: 100%;
+  margin: 0;
+  border: 1px solid var(--ds-divider);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+  padding: 10px 14px;
 }
 
+/* Subdued Below-the-fold Public Reference Strip in Authenticated Mode (keeps P3.3 DOM intact without cluttering workspace) */
 html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] > [data-public-section="window"] {
   order: 6;
+  margin-top: 12px;
+  padding-top: 18px;
+  border-top: 1px solid var(--ds-divider);
 }
 
 html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] > [data-public-section="capabilities"] {
@@ -7074,25 +7383,92 @@ html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] > [da
   order: 10;
 }
 
-@media (max-width: 640px) {
-  html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] > [data-public-section="hero"] {
-    width: calc(100% - 20px);
-    padding: 10px 12px;
+html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] .apple-bento-wall {
+  box-shadow: none;
+  gap: 10px;
+}
+
+html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] .bento-tile {
+  padding: 14px 16px;
+  min-height: 0;
+}
+
+@media (max-width: 900px) {
+  html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] > #homeV3SummaryGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  html[data-p07-ui="enabled"] #homeV3SummaryGrid .v3-summary-card:nth-child(2n) {
+    border-right: 0;
+  }
+
+  html[data-p07-ui="enabled"] #homeV3SummaryGrid .v3-summary-card:nth-child(-n+2) {
+    border-bottom: 1px solid var(--ds-divider);
+  }
+
+  html[data-p07-ui="enabled"] #authWorkspaceSection #workspaceBentoGrid,
+  html[data-p07-ui="enabled"] #authWorkspaceSection #workspaceBentoGrid[data-density="compact"] .workspace-bento-card,
+  html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] > .home-workspace-overview {
+    grid-template-columns: 1fr;
+  }
+
+  html[data-p07-ui="enabled"] #authWorkspaceSection #workspaceBentoGrid .workspace-bento-card {
+    border-right: 0;
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  html[data-p07-ui="enabled"] .v3-nav-indicator,
-  html[data-p07-ui="enabled"] .v3-cmd-trigger {
-    transition: none;
+@media (max-width: 640px) {
+  html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] {
+    width: calc(100% - 20px);
+    gap: 12px;
   }
 }
 
 /* ==========================================================================
- * V6.3 Phase 2: Actual Budget Finance, Raycast Tools, n8n Workflows,
- * PairDrop Transfer, GitHub/OneUI Security, Linear Inbox & Mobile Parity
+ * Finance Page (/finance): Actual Budget Register Architecture (P0-C & P0-D)
  * ========================================================================== */
-/* Finance: Actual Budget register density, tabular figures & privacy blur */
+html[data-p07-ui="enabled"] #financePage {
+  gap: 14px;
+}
+
+html[data-p07-ui="enabled"] #financePage .finance-header {
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--ds-divider);
+}
+
+html[data-p07-ui="enabled"] #financePage :is(.finance-summary-section, .finance-trend-section, .finance-ledger-panel, .finance-insight-panel) {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+  margin: 0;
+}
+
+html[data-p07-ui="enabled"] #financePage .finance-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  border: 1px solid var(--ds-divider);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+  overflow: hidden;
+  margin-top: 10px;
+}
+
+html[data-p07-ui="enabled"] #financePage .finance-summary-grid > article {
+  border: 0;
+  border-right: 1px solid var(--ds-divider);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 12px 16px;
+}
+
+html[data-p07-ui="enabled"] #financePage .finance-summary-grid > article:last-child {
+  border-right: 0;
+}
+
 html[data-p07-ui="enabled"] #financePage :is(#financeIncomeTotal, #financeExpenseTotal, #financeRefundTotal, #financeBalanceTotal, .finance-transaction-side strong, .finance-budget-status small, .finance-category-stat strong, .trend-month-card span) {
   font-family: var(--ds-font-mono);
   font-variant-numeric: tabular-nums;
@@ -7103,23 +7479,167 @@ html[data-p07-ui="enabled"] #financePage[data-privacy-mask="true"] :is(.finance-
   user-select: none;
 }
 
-html[data-p07-ui="enabled"] #financePage .finance-transaction {
-  border: 1px solid var(--ds-border-subtle);
+/* Remove permanent focus border & double borders on History / Recorded fold */
+html[data-p07-ui="enabled"] #financePage .finance-fold > summary {
+  min-height: 44px;
+  padding: 8px 2px;
+  border-bottom: 1px solid var(--ds-divider);
+}
+
+html[data-p07-ui="enabled"] #financePage .finance-fold > summary:focus:not(:focus-visible) {
+  outline: none;
+  box-shadow: none;
+}
+
+html[data-p07-ui="enabled"] #financePage .finance-fold > summary:focus-visible {
+  outline: 2px solid var(--ds-focus);
+  outline-offset: 2px;
   border-radius: var(--ds-radius-sm);
+}
+
+html[data-p07-ui="enabled"] #financePage .finance-history-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px 14px;
+  padding: 10px 0 12px;
+  margin-bottom: 10px;
+  border: 0;
+  border-bottom: 1px solid var(--ds-divider);
+  border-radius: 0;
+  background: transparent;
+}
+
+html[data-p07-ui="enabled"] #financePage .finance-history-controls > p {
+  flex: 1 1 240px;
+  margin: 0;
+  font-size: 0.8125rem;
+}
+
+html[data-p07-ui="enabled"] #financePage .finance-history-controls label {
+  min-width: 170px;
+}
+
+html[data-p07-ui="enabled"] #financePage .finance-filter-grid {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--ds-divider);
+  margin-bottom: 0;
+  align-items: end;
+}
+
+html[data-p07-ui="enabled"] #financePage .finance-filter-grid label > span {
+  white-space: nowrap;
+}
+
+html[data-p07-ui="enabled"] #financePage .finance-register-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 14px;
+  border-top: 1px solid var(--ds-divider);
+  border-bottom: 1px solid var(--ds-divider);
+  background: var(--ds-surface-subtle);
+  color: var(--ds-text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+html[data-p07-ui="enabled"] #financePage #financeTransactionList {
+  margin-top: 0;
+  border: 1px solid var(--ds-divider);
+  border-top: 0;
+  border-radius: 0 0 var(--ds-radius-md) var(--ds-radius-md);
+  background: var(--ds-surface);
+}
+
+html[data-p07-ui="enabled"] #financePage .finance-transaction {
+  border: 0;
+  border-bottom: 1px solid var(--ds-divider);
+  border-radius: 0;
   padding: 10px 14px;
-  transition: background var(--ds-duration-fast) var(--ds-ease-standard),
-    border-color var(--ds-duration-fast) var(--ds-ease-standard);
+  margin: 0;
+  transition: background-color var(--ds-duration-fast) var(--ds-ease-standard);
+}
+
+html[data-p07-ui="enabled"] #financePage .finance-transaction:last-child {
+  border-bottom: 0;
 }
 
 html[data-p07-ui="enabled"] #financePage .finance-transaction:hover {
   background: var(--ds-surface-subtle);
-  border-color: var(--ds-border);
 }
 
-/* Toolbox: Raycast keyboard active highlight & shortcut badge */
+html[data-p07-ui="enabled"] #financePage .finance-empty {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 28px 16px;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+html[data-p07-ui="enabled"] #financePage .finance-empty p {
+  margin: 0;
+  color: var(--ds-text-secondary);
+  font-size: 0.875rem;
+}
+
+html[data-p07-ui="enabled"] #financePage .finance-side-column {
+  border-left: 1px solid var(--ds-divider);
+  padding-left: 18px;
+}
+
+html[data-p07-ui="enabled"] #financePage .finance-side-panel {
+  border: 0;
+  border-bottom: 1px solid var(--ds-divider);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0 0 14px;
+}
+
+html[data-p07-ui="enabled"] #financePage .finance-side-panel:last-child {
+  border-bottom: 0;
+}
+
+/* ==========================================================================
+ * Toolbox (/tools): IT-Tools Directory & Raycast Search (P0-E)
+ * ========================================================================== */
+html[data-p07-ui="enabled"] .tools-search-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+  padding: 12px 0 16px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--ds-divider);
+}
+
+html[data-p07-ui="enabled"] .tools-search-bar .tool-search {
+  flex: 1 1 380px;
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+html[data-p07-ui="enabled"] .tool-search-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 html[data-p07-ui="enabled"] .tool-search-kbd {
-  margin-left: 8px;
-  padding: 1px 6px;
+  margin-left: 0;
+  padding: 2px 8px;
   border-radius: var(--ds-radius-xs);
   border: 1px solid var(--ds-border);
   background: var(--ds-surface-subtle);
@@ -7127,48 +7647,259 @@ html[data-p07-ui="enabled"] .tool-search-kbd {
   font-family: var(--ds-font-mono);
   font-size: 0.6875rem;
   font-weight: 500;
+  white-space: nowrap;
+}
+
+html[data-p07-ui="enabled"] .tools-search-bar-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+html[data-p07-ui="enabled"] .tools-search-bar .workflow-launcher {
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--ds-divider);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+  box-shadow: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+html[data-p07-ui="enabled"] .tools-search-bar .workflow-launcher-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+html[data-p07-ui="enabled"] .tools-search-bar .workflow-launcher-copy :is(p, h2) {
+  margin: 0;
+  font-size: 0.8125rem;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] .tools-two-pane {
+  grid-template-columns: 272px minmax(0, 1fr);
+  gap: 24px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] .tools-index-rail .tool-category-card {
+  min-height: 40px;
+  padding: 8px 12px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] .tools-index-rail .tool-category-card span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] .tools-index-rail .tool-category-card strong {
+  font-size: 0.8125rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] .tools-index-rail .tool-category-card small {
+  display: none;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] .tools-index-rail .tool-category-card em {
+  font-style: normal;
+  font-family: var(--ds-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.75rem;
+  color: var(--ds-text-muted);
+  white-space: nowrap;
+}
+
+html[data-p07-ui="enabled"] #toolsPanel .tool-catalog {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
 }
 
 html[data-p07-ui="enabled"] #toolsPanel .tool-card {
-  border: 1px solid var(--ds-border);
+  border: 1px solid var(--ds-divider);
   border-radius: var(--ds-radius-md);
   background: var(--ds-surface);
+  box-shadow: none;
   transition: border-color var(--ds-duration-fast) var(--ds-ease-standard),
-    background var(--ds-duration-fast) var(--ds-ease-standard),
-    box-shadow var(--ds-duration-fast) var(--ds-ease-standard);
+    background-color var(--ds-duration-fast) var(--ds-ease-standard),
+    transform var(--ds-duration-fast) var(--ds-ease-standard);
+}
+
+html[data-p07-ui="enabled"] #toolsPanel .tool-card .tool-open strong {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 html[data-p07-ui="enabled"] #toolsPanel .tool-card.is-kbd-active,
 html[data-p07-ui="enabled"] #toolsPanel .tool-card:hover {
   border-color: var(--ds-brand-border);
   background: var(--ds-brand-soft);
+  transform: translateY(-1px);
 }
 
-/* Workflows: n8n step rail & active progression contrast */
+/* ==========================================================================
+ * Workflows (/tools/workflows): n8n Canvas & Split Input/Output (P0-E)
+ * ========================================================================== */
+html[data-p07-ui="enabled"] #workflowWorkspace .workflow-header {
+  border: 0;
+  border-bottom: 1px solid var(--ds-divider);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 6px 0 14px;
+}
+
+html[data-p07-ui="enabled"] #workflowWorkspace .workflow-layout {
+  display: grid;
+  grid-template-columns: 268px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+html[data-p07-ui="enabled"] #workflowWorkspace .workflow-sidebar {
+  border: 0;
+  border-right: 1px solid var(--ds-divider);
+  border-radius: 0;
+  background: transparent;
+  padding: 0 16px 0 0;
+}
+
+html[data-p07-ui="enabled"] #workflowWorkspace .workflow-editor {
+  border: 1px solid var(--ds-divider);
+  border-radius: var(--ds-radius-lg);
+  background-color: var(--ds-surface-subtle);
+  background-image: radial-gradient(var(--ds-border) 1px, transparent 1px);
+  background-size: 16px 16px;
+  padding: 18px;
+  min-height: 460px;
+}
+
+html[data-p07-ui="enabled"] #workflowWorkspace .workflow-editor-empty {
+  border: 1px solid var(--ds-divider);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+  max-width: 460px;
+  margin: 48px auto;
+  padding: 24px;
+  box-shadow: var(--ds-shadow-card);
+}
+
 html[data-p07-ui="enabled"] #workflowWorkspace #workflowStepList {
   position: relative;
   display: grid;
-  gap: 10px;
+  gap: 18px;
+  padding-left: 12px;
+}
+
+html[data-p07-ui="enabled"] #workflowWorkspace #workflowStepList::before {
+  content: "";
+  position: absolute;
+  left: 23px;
+  top: 16px;
+  bottom: 16px;
+  width: 2px;
+  background: var(--ds-border-strong);
 }
 
 html[data-p07-ui="enabled"] #workflowWorkspace .workflow-step {
+  position: relative;
   border: 1px solid var(--ds-border);
   border-radius: var(--ds-radius-md);
   background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+  padding: 14px 16px;
+  transition: border-color var(--ds-duration-fast) var(--ds-ease-standard);
+}
+
+html[data-p07-ui="enabled"] #workflowWorkspace .workflow-step:not(:last-child)::after {
+  content: "↓";
+  position: absolute;
+  left: 4px;
+  bottom: -16px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--ds-text-muted);
+  background: var(--ds-surface-subtle);
+  padding: 0 3px;
+}
+
+html[data-p07-ui="enabled"] #workflowWorkspace .workflow-runner-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0;
+  margin-top: 16px;
+  border: 1px solid var(--ds-divider);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+  overflow: hidden;
+}
+
+html[data-p07-ui="enabled"] #workflowWorkspace .workflow-runner-pane {
+  padding: 14px 16px;
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  min-width: 0;
+}
+
+html[data-p07-ui="enabled"] #workflowWorkspace .workflow-runner-pane .workflow-section-heading {
+  flex-wrap: wrap;
+  gap: 8px 10px;
+}
+
+html[data-p07-ui="enabled"] #workflowWorkspace .workflow-runner-pane .workflow-section-heading :is(h2, h3, button) {
+  white-space: nowrap;
+}
+
+html[data-p07-ui="enabled"] #workflowWorkspace .workflow-runner-input {
+  border-right: 1px solid var(--ds-divider);
 }
 
 html[data-p07-ui="enabled"] #workflowWorkspace .workflow-step-statuses {
   display: grid;
-  gap: 8px;
+  gap: 6px;
 }
 
-/* Transfer: PairDrop drag-over ring & responsive file list */
+html[data-p07-ui="enabled"] #workflowWorkspace .workflow-step-statuses > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: var(--ds-radius-sm);
+  border: 1px solid var(--ds-divider);
+  background: var(--ds-surface-subtle);
+  font-size: 0.8125rem;
+}
+
+html[data-p07-ui="enabled"] #workflowWorkspace .workflow-step-statuses > div[data-status="running"] {
+  border-color: var(--ds-brand-border);
+  background: var(--ds-brand-soft);
+}
+
+html[data-p07-ui="enabled"] #workflowWorkspace .workflow-step-statuses > div[data-status="success"] {
+  border-color: var(--ds-success);
+}
+
+/* Transfer Drop Zone & Task27/28/29/30 Harmonization */
 html[data-p07-ui="enabled"] #transferPage .transfer-drop-zone {
   border: 1.5px dashed var(--ds-border-strong);
   border-radius: var(--ds-radius-lg);
   background: var(--ds-surface-subtle);
   transition: border-color var(--ds-duration-fast) var(--ds-ease-standard),
-    background var(--ds-duration-fast) var(--ds-ease-standard),
+    background-color var(--ds-duration-fast) var(--ds-ease-standard),
     box-shadow var(--ds-duration-fast) var(--ds-ease-standard);
 }
 
@@ -7179,16 +7910,9 @@ html[data-p07-ui="enabled"] #transferPage .transfer-drop-zone:is(.drag-over, .is
   box-shadow: 0 0 0 3px var(--ds-brand-soft);
 }
 
-/* Account Security & Inbox: GitHub Settings grouped cards & Linear Inbox */
-html[data-p07-ui="enabled"] .task27-security-summary > article {
-  border: 1px solid var(--ds-border);
-  border-radius: var(--ds-radius-md);
-  background: var(--ds-surface);
-  padding: 16px;
-}
-
+html[data-p07-ui="enabled"] .task27-security-summary > article,
 html[data-p07-ui="enabled"] .task27-inbox-list > article {
-  border: 1px solid var(--ds-border);
+  border: 1px solid var(--ds-divider);
   border-radius: var(--ds-radius-md);
   background: var(--ds-surface);
   padding: 14px 16px;
@@ -7203,10 +7927,64 @@ html[data-p07-ui="enabled"] #task30PrivacyModal :is(.sc-privacy-tab, .sc-privacy
   min-height: 45px;
 }
 
-/* Mobile 375px / 390px readability & touch-safe wrapping across all modules */
+html[data-p07-ui="enabled"] #financePage .finance-currency-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: end;
+}
+
+/* Mobile 375px / 390px Responsive Integrity */
+@media (max-width: 980px) {
+  html[data-p07-ui="enabled"] #workflowWorkspace .workflow-layout,
+  html[data-p07-ui="enabled"] #workflowWorkspace .workflow-runner-grid {
+    grid-template-columns: 1fr;
+  }
+
+  html[data-p07-ui="enabled"] #workflowWorkspace .workflow-sidebar {
+    border-right: 0;
+    border-bottom: 1px solid var(--ds-divider);
+    padding: 0 0 14px;
+  }
+
+  html[data-p07-ui="enabled"] #workflowWorkspace .workflow-runner-input {
+    border-right: 0;
+    border-bottom: 1px solid var(--ds-divider);
+  }
+
+  html[data-p07-ui="enabled"] #financePage .finance-side-column {
+    border-left: 0;
+    padding-left: 0;
+  }
+}
+
+@media (max-width: 720px) {
+  html[data-p07-ui="enabled"] #financePage .finance-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  html[data-p07-ui="enabled"] #financePage .finance-summary-grid > article:nth-child(2n) {
+    border-right: 0;
+  }
+
+  html[data-p07-ui="enabled"] #financePage .finance-summary-grid > article:nth-child(-n+2) {
+    border-bottom: 1px solid var(--ds-divider);
+  }
+
+  html[data-p07-ui="enabled"] #financePage .finance-register-head {
+    display: none;
+  }
+
+  html[data-p07-ui="enabled"] #financePage .finance-currency-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 640px) {
   html[data-p07-ui="enabled"] .tool-search-kbd {
     display: none;
+  }
+
+  html[data-p07-ui="enabled"] #toolsPanel .tool-catalog {
+    grid-template-columns: 1fr;
   }
 
   html[data-p07-ui="enabled"] #financePage .finance-header-actions {
@@ -7238,7 +8016,6 @@ html[data-p07-ui="enabled"] #task30PrivacyModal :is(.sc-privacy-tab, .sc-privacy
     width: 100%;
   }
 
-  html[data-p07-ui="enabled"] #financePage .finance-summary-grid,
   html[data-p07-ui="enabled"] #financePage .finance-form-grid {
     grid-template-columns: 1fr;
   }
@@ -7263,9 +8040,14 @@ html[data-p07-ui="enabled"] #task30PrivacyModal :is(.sc-privacy-tab, .sc-privacy
 }
 
 @media (prefers-reduced-motion: reduce) {
+  html[data-p07-ui="enabled"] #publicHome[data-session-mode="guest"] .bento-tile,
+  html[data-p07-ui="enabled"] #authWorkspaceSection .workspace-bento-card,
   html[data-p07-ui="enabled"] #financePage .finance-transaction,
   html[data-p07-ui="enabled"] #toolsPanel .tool-card,
-  html[data-p07-ui="enabled"] #transferPage .transfer-drop-zone {
+  html[data-p07-ui="enabled"] #workflowWorkspace .workflow-step,
+  html[data-p07-ui="enabled"] #transferPage .transfer-drop-zone,
+  html[data-p07-ui="enabled"] .v3-nav-indicator,
+  html[data-p07-ui="enabled"] .v3-cmd-trigger {
     transition: none;
   }
 }

@@ -143,7 +143,7 @@
             <a href="/admin" data-v3-nav="admin" id="v3SidebarAdminLink" hidden><span class="v3-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M12 3 4 6.5v5.5c0 4.5 3.4 8.4 8 9.5 4.6-1.1 8-5 8-9.5V6.5z"/></svg></span><span>管理后台</span></a>
           </nav>
           <div class="v3-sidebar-footer">
-            <p class="v3-shortcut-hints" aria-hidden="true"><kbd class="v3-kbd">G W</kbd> 工作台 · <kbd class="v3-kbd">G F</kbd> 账本 · <kbd class="v3-kbd">G T</kbd> 工具</p>
+            <p class="v3-shortcut-hints" aria-hidden="true"><span class="v3-shortcut-item"><kbd class="v3-kbd">G W</kbd> 工作台</span><span class="v3-shortcut-item"><kbd class="v3-kbd">G F</kbd> 账本</span><span class="v3-shortcut-item"><kbd class="v3-kbd">G T</kbd> 工具</span></p>
             <small id="v3SidebarVersion">Aeris · V6.3</small>
           </div>
         </aside>
@@ -182,7 +182,7 @@
                 <h2 id="authWorkspaceTitle">个人工作台</h2>
                 <span class="status-badge workspace-scope-badge" id="workspacePersistenceBadge">本账户隔离配置</span>
               </div>
-              <p class="auth-workspace-subtitle" id="workspaceSaveStatus" role="status" aria-live="polite" data-tone="neutral" data-save-state="saved">默认布局（本地按账户隔离）</p>
+              <p class="auth-workspace-subtitle" id="workspaceSaveStatus" role="status" aria-live="polite" data-tone="neutral" data-save-state="saved">标准视图</p>
             </div>
             <div class="workspace-console-toolbar" id="workspaceConsoleToolbar" role="toolbar" aria-label="工作台布局操作">
               <button class="button-ghost" id="dashboardNotificationsBtn" type="button">通知待核实 <strong class="tabular-nums" id="dashboardNotificationPending">未读取</strong></button>
@@ -741,7 +741,7 @@
 
           <section class="finance-summary-section" aria-labelledby="financeSummaryTitle">
             <div class="finance-section-heading"><div><h2 id="financeSummaryTitle">收支概览</h2><p id="financeSummaryPeriod">本月</p></div><button class="primary" id="financeAddTransactionBtn" type="button">新增账目</button></div>
-            <div class="finance-form-grid"><label><span>展示币种</span><select id="financeDisplayCurrency"><option value="CNY">CNY</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="HKD">HKD</option><option value="GBP">GBP</option><option value="JPY">JPY</option></select></label><label><span>账户基准币种</span><select id="financeAccountCurrency"><option value="CNY">CNY</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="HKD">HKD</option><option value="GBP">GBP</option><option value="JPY">JPY</option></select></label><label><span>未标明币种时</span><select id="financeDefaultCurrency"><option value="">保持待核实</option><option value="CNY">CNY</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="HKD">HKD</option><option value="GBP">GBP</option><option value="JPY">JPY</option></select></label></div><p id="financeCurrencyStatus" class="muted" role="status"></p><p id="financeCurrencyGroups" class="muted"></p>
+            <div class="finance-form-grid finance-currency-grid"><label><span>展示币种</span><select id="financeDisplayCurrency"><option value="CNY">CNY</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="HKD">HKD</option><option value="GBP">GBP</option><option value="JPY">JPY</option></select></label><label><span>账户基准币种</span><select id="financeAccountCurrency"><option value="CNY">CNY</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="HKD">HKD</option><option value="GBP">GBP</option><option value="JPY">JPY</option></select></label><label><span>未标明币种时</span><select id="financeDefaultCurrency"><option value="">保持待核实</option><option value="CNY">CNY</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="HKD">HKD</option><option value="GBP">GBP</option><option value="JPY">JPY</option></select></label></div><p id="financeCurrencyStatus" class="muted" role="status"></p><p id="financeCurrencyGroups" class="muted"></p>
             <div class="finance-summary-grid">
               <article><span>总收入</span><strong class="is-income" id="financeIncomeTotal">¥0.00</strong></article>
               <article><span>总支出</span><strong class="is-expense" id="financeExpenseTotal">¥0.00</strong></article>
@@ -803,13 +803,14 @@
                 <summary><span>筛选账目</span><small id="financeFilterSummary">全部账目</small></summary>
                 <div class="finance-filter-grid" aria-label="筛选账目">
                   <label><span>搜索</span><input id="financeSearchInput" type="search" maxlength="120" placeholder="商户、对手方或备注" /></label>
-                  <label><span>月份（收支 / 分类统计）</span><input id="financeMonthFilter" type="month" /></label>
+                  <label><span>统计月份</span><input id="financeMonthFilter" type="month" aria-label="月份（收支 / 分类统计）" title="收支与分类统计按此月份计算" /></label>
                   <label><span>类型</span><select id="financeDirectionFilter"><option value="">全部类型</option><option value="income">收入</option><option value="expense">支出</option><option value="refund">退款</option></select></label>
                   <label><span>分类</span><select id="financeCategoryFilter"><option value="">全部分类</option></select></label>
                   <label><span>状态</span><select id="financeStatusFilter"><option value="active">当前账目</option><option value="deleted">已删除</option><option value="all">全部状态</option></select></label>
                 </div>
               </details>
               <div class="finance-undo hidden" id="financeUndoBar"><span>账目已删除。</span><button id="financeUndoBtn" type="button">撤销</button></div>
+              <div class="finance-register-head" aria-hidden="true"><span>类型 · 摘要与分类时间</span><span>金额 · 操作</span></div>
               <div class="finance-transaction-list" id="financeTransactionList" aria-live="polite"></div>
               <div class="finance-pagination"><button class="button-secondary" id="financeLedgerMoreBtn" type="button" hidden>加载更多账目</button></div>
             </details>
@@ -915,8 +916,9 @@
           <div class="finance-drawer-meta hidden" id="financeTransactionDrawerMeta" aria-live="polite"></div>
           <form class="finance-form" id="financeTransactionForm">
             <input id="financeTransactionId" type="hidden" />
-            <div class="finance-form-grid"><label><span>类型</span><select id="financeTransactionDirection" required><option value="expense">支出</option><option value="income">收入</option><option value="refund">退款</option></select></label><label><span>交易币种</span><select id="financeTransactionCurrency"><option value="CNY">CNY</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="HKD">HKD</option><option value="GBP">GBP</option><option value="JPY">JPY</option></select></label><label><span>原币金额</span><input id="financeTransactionAmount" inputmode="decimal" maxlength="14" placeholder="0.00" required /></label></div>
-            <div class="finance-form-grid"><label><span>时间</span><input id="financeTransactionTime" type="datetime-local" required /></label><label><span>分类</span><select id="financeTransactionCategory"><option value="">未分类</option></select></label></div>
+            <div class="finance-form-grid"><label><span>类型</span><select id="financeTransactionDirection" required><option value="expense">支出</option><option value="income">收入</option><option value="refund">退款</option></select></label><label><span>交易币种</span><select id="financeTransactionCurrency"><option value="CNY">CNY</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="HKD">HKD</option><option value="GBP">GBP</option><option value="JPY">JPY</option></select></label></div>
+            <div class="finance-form-grid"><label><span>原币金额</span><input id="financeTransactionAmount" inputmode="decimal" maxlength="14" placeholder="0.00" required /></label><label><span>时间</span><input id="financeTransactionTime" type="datetime-local" required /></label></div>
+            <label><span>分类</span><select id="financeTransactionCategory"><option value="">未分类</option></select></label>
             <div class="finance-form-grid"><label><span>商户</span><input id="financeTransactionMerchant" maxlength="160" placeholder="例如：便利店" /></label><label><span>对手方</span><input id="financeTransactionCounterparty" maxlength="160" placeholder="例如：朋友或公司" /></label></div>
             <label><span>备注</span><textarea id="financeTransactionNote" maxlength="500" placeholder="可选，不要填写密码或支付凭据"></textarea></label>
             <div class="action-row"><button class="button-ghost danger-text hidden" id="financeTransactionDrawerDeleteBtn" type="button">删除账目</button><button class="button-secondary" data-finance-close="financeTransactionModal" type="button">取消</button><button class="primary" type="submit">保存账目</button></div>
@@ -1251,19 +1253,23 @@
           <div class="action-row compact"><button class="button-secondary" id="toolsTransferBtn" type="button">文件传输</button><button class="button-secondary" id="toolsAccountBtn" type="button">账户</button><button class="button-ghost" id="leaveToolsBtn" type="button">返回功能选择</button></div>
         </header>
         <div class="tools-dashboard" id="toolsDashboard">
+          <div class="tools-search-bar">
+            <label class="tool-search" for="toolSearchInput"><span class="tool-search-label-row"><span>模糊搜索工具</span><small class="tool-search-kbd" aria-hidden="true">↑↓ 选择 · Enter 打开 · / 聚焦</small></span><input id="toolSearchInput" type="search" autocomplete="off" placeholder="输入名称、用途或近似关键词，例如 JSON、压图、随机密码" /></label>
+            <div class="tools-search-bar-meta">
+              <p class="local-processing-note">文本、图片与文件默认只在当前浏览器处理，不上传服务器。</p>
+              <section class="workflow-launcher" aria-labelledby="workflowLauncherTitle">
+                <div class="workflow-launcher-copy"><p class="section-kicker">处理流程</p><h2 id="workflowLauncherTitle">工具工作流</h2><p>串联文本、CSV、图片与 ZIP 步骤</p></div>
+                <button class="button-secondary" id="openWorkflowBtn" type="button">打开工作流 →</button>
+              </section>
+            </div>
+          </div>
           <div class="tools-two-pane">
             <aside class="tools-index-rail" aria-label="工具筛选与分类">
-              <label class="tool-search" for="toolSearchInput"><span>模糊搜索工具 <small class="tool-search-kbd" aria-hidden="true">↑↓ 选择 · Enter 打开 · / 聚焦</small></span><input id="toolSearchInput" type="search" autocomplete="off" placeholder="输入名称、用途或近似关键词，例如 JSON、压图、随机密码" /></label>
-              <p class="local-processing-note">文本、图片和普通文件默认只在当前浏览器中处理，不会上传服务器。</p>
               <section class="tool-shelf hidden" id="favoriteToolsSection"><div class="tool-section-title"><h2>收藏与固定</h2></div><div class="tool-chip-list" id="favoriteToolsList"></div></section>
               <section class="tool-shelf hidden" id="recentToolsSection"><div class="tool-section-title"><h2>最近使用</h2><button class="button-ghost" id="clearToolHistoryBtn" type="button">清除记录</button></div><div class="tool-chip-list" id="recentToolsList"></div></section>
               <section class="tool-category-grid" id="toolCategoryList" aria-label="工具分类"></section>
             </aside>
             <div class="tools-index-main">
-              <section class="workflow-launcher" aria-labelledby="workflowLauncherTitle">
-                <div><p class="section-kicker">可配置处理流程</p><h2 id="workflowLauncherTitle">工具工作流</h2><p>把兼容的文本、CSV、图片和 ZIP 步骤串起来，一次运行完整流程。</p></div>
-                <button class="primary" id="openWorkflowBtn" type="button">打开工作流</button>
-              </section>
               <section class="tool-catalog-section"><div class="tool-section-title"><h2 id="toolCatalogTitle">全部工具</h2><span id="toolResultCount">0 项</span></div><div class="tool-catalog" id="toolCatalog"></div><button class="button-secondary" id="toolCatalogMoreBtn" type="button" hidden>显示更多</button></section>
             </div>
           </div>
@@ -1295,17 +1301,22 @@
                 </div>
                 <p class="meta-line" id="workflowSaveState" aria-live="polite"></p>
                 <section class="workflow-steps" aria-labelledby="workflowStepsTitle"><div class="workflow-section-heading"><h2 id="workflowStepsTitle">处理步骤</h2><div><select id="workflowToolSelect" aria-label="选择要添加的工具"></select><button class="button-secondary" id="addWorkflowStepBtn" type="button">添加步骤</button></div></div><ol id="workflowStepList"></ol></section>
-                <section class="workflow-runner" aria-labelledby="workflowRunTitle">
-                  <div class="workflow-section-heading"><div><h2 id="workflowRunTitle">运行</h2><p id="workflowInputHint">请先添加步骤。</p></div><span class="status-badge" id="workflowRunState">等待</span></div>
-                  <label class="workflow-text-input hidden" id="workflowTextInputWrap"><span>输入文本</span><textarea id="workflowTextInput" spellcheck="false"></textarea></label>
-                  <label class="file-drop hidden" id="workflowFileInputWrap"><span id="workflowFileInputLabel">选择文件</span><input id="workflowFileInput" type="file" /></label>
-                  <label class="workflow-batch-toggle hidden" id="workflowBatchToggleWrap"><input id="workflowBatchToggle" type="checkbox" /> 批量运行并打包结果</label>
-                  <div class="action-row"><button class="primary" id="runWorkflowBtn" type="button">运行工作流</button><button class="button-ghost" id="cancelWorkflowBtn" type="button" disabled>取消</button><button class="button-ghost" id="downloadWorkflowResultBtn" type="button" disabled>下载结果</button><button class="button-ghost" id="copyWorkflowResultBtn" type="button" disabled>复制结果</button></div>
-                  <div class="workflow-step-statuses" id="workflowStepStatuses" aria-live="polite"></div>
-                  <div class="workflow-item-results hidden" id="workflowItemResults"></div>
-                  <label class="workflow-result"><span>最终结果</span><textarea id="workflowResultText" readonly></textarea></label>
-                  <div class="workflow-result-preview" id="workflowResultPreview"></div>
-                </section>
+                <div class="workflow-runner-grid">
+                  <section class="workflow-runner-pane workflow-runner-input" aria-labelledby="workflowRunTitle">
+                    <div class="workflow-section-heading"><div><h2 id="workflowRunTitle">INPUT · 运行输入</h2><p id="workflowInputHint">请先添加步骤。</p></div><span class="status-badge" id="workflowRunState">等待</span></div>
+                    <label class="workflow-text-input hidden" id="workflowTextInputWrap"><span>输入文本</span><textarea id="workflowTextInput" spellcheck="false"></textarea></label>
+                    <label class="file-drop hidden" id="workflowFileInputWrap"><span id="workflowFileInputLabel">选择文件</span><input id="workflowFileInput" type="file" /></label>
+                    <label class="workflow-batch-toggle hidden" id="workflowBatchToggleWrap"><input id="workflowBatchToggle" type="checkbox" /> 批量运行并打包结果</label>
+                    <div class="action-row"><button class="primary" id="runWorkflowBtn" type="button">运行工作流</button><button class="button-ghost" id="cancelWorkflowBtn" type="button" disabled>取消</button></div>
+                  </section>
+                  <section class="workflow-runner-pane workflow-runner-output" aria-label="OUTPUT · 执行轨迹与输出">
+                    <div class="workflow-section-heading"><div><h3>OUTPUT · 执行结果</h3></div><div class="action-row compact"><button class="button-ghost" id="downloadWorkflowResultBtn" type="button" disabled>下载结果</button><button class="button-ghost" id="copyWorkflowResultBtn" type="button" disabled>复制结果</button></div></div>
+                    <div class="workflow-step-statuses" id="workflowStepStatuses" aria-live="polite"></div>
+                    <div class="workflow-item-results hidden" id="workflowItemResults"></div>
+                    <label class="workflow-result"><span>最终结果</span><textarea id="workflowResultText" readonly></textarea></label>
+                    <div class="workflow-result-preview" id="workflowResultPreview"></div>
+                  </section>
+                </div>
               </div>
             </section>
           </div>

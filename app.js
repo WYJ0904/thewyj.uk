@@ -50,7 +50,7 @@ import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/cor
 import { initDesignSystem, setExperienceMode, setInterfaceEnhancementsEnabled, dialogFocusTargets, focusDialog, workspaceRouteMeta, syncWorkspaceShell, syncSidebarActiveIndicator, syncSystemNoticeLayout } from "./js/core/design-system.js?release=20261121-aeris-i05-preview";
 import { createPublicUiPolicyController } from "./js/core/public-ui-policy.js?release=20261121-aeris-i05-preview";
 import { completeStartupSplash, canPresentWorkspace, waitForPresentation } from "./js/core/startup.js?release=20261121-aeris-i05-preview";
-import { installMotionSystem, motionDuration, prefersReducedMotion, attachSheetAdapter, syncModalScrollLock, setControlFeedbackState, getSharedToastManager, showToast, dismissToastByKey, invalidateToastContext } from "./js/core/motion.js?release=20261121-aeris-i05-preview";
+import { installMotionSystem, motionDuration, prefersReducedMotion, attachSheetAdapter, syncModalScrollLock, setControlFeedbackState, getSharedToastManager, showToast, dismissToastByKey, invalidateToastContext, animateRouteViewEntrance, createAssetPrefetcher } from "./js/core/motion.js?release=20261121-aeris-i05-preview";
 import { initPublicExperience, renderPublicPlanCatalog } from "./js/core/public-experience.js?release=20261121-aeris-i05-preview";
 import { createAndroidDownloadController } from "./js/core/download.js?release=20261121-aeris-i05-preview";
 import { createFeatureController } from "./js/core/feature-flags.js?release=20261121-aeris-i05-preview";
@@ -3278,6 +3278,7 @@ async function showAdminPanel(pushHistory = true, generation = routeGeneration) 
   hidePrimaryScreens();
   $("adminPanel").classList.remove("hidden");
   $("adminPanel").setAttribute("aria-hidden", "false");
+  animateRouteViewEntrance($("adminPanel"));
   renderAccountUi();
   const reapplyPopScroll = applyWorkspaceRouteScroll(pushHistory);
   if ($("adminRoleContext")) {
@@ -3830,7 +3831,7 @@ function renderTrialQuestion() {
   $("trialQuizSubmitBtn").disabled = false;
   $("trialQuizNextBtn").classList.add("hidden");
   setTrialMessage("trialQuizMessage");
-  $("trialQuizAnswer").focus();
+  $("trialQuizAnswer").focus({ preventScroll: true });
 }
 
 function startTrialQuiz() {
@@ -3859,7 +3860,7 @@ function submitTrialQuizAnswer(event) {
   const answer = $("trialQuizAnswer").value.trim();
   if (!answer) {
     setTrialMessage("trialQuizMessage", "请输入答案后再提交。", "error");
-    $("trialQuizAnswer").focus();
+    $("trialQuizAnswer").focus({ preventScroll: true });
     return;
   }
   const normalized = normalizeTrialAnswer(answer, quiz.language);
@@ -3876,7 +3877,7 @@ function submitTrialQuizAnswer(event) {
   );
   $("trialQuizNextBtn").textContent = quiz.index + 1 >= quiz.questions.length ? "查看结果" : "下一题";
   $("trialQuizNextBtn").classList.remove("hidden");
-  $("trialQuizNextBtn").focus();
+  $("trialQuizNextBtn").focus({ preventScroll: true });
 }
 
 function nextTrialQuestion() {
@@ -3886,7 +3887,7 @@ function nextTrialQuestion() {
     $("trialQuizRun").classList.add("hidden");
     $("trialQuizSummary").classList.remove("hidden");
     $("trialQuizFinalScore").textContent = `${quiz.correct} / ${quiz.questions.length}`;
-    $("trialQuizRegisterBtn").focus();
+    $("trialQuizRegisterBtn").focus({ preventScroll: true });
     return;
   }
   quiz.index += 1;
@@ -3950,7 +3951,7 @@ function clearTrialJson() {
   $("trialJsonOutput").textContent = "";
   $("trialJsonOutput").classList.add("hidden");
   setTrialMessage("trialJsonMessage");
-  $("trialJsonInput").focus();
+  $("trialJsonInput").focus({ preventScroll: true });
 }
 
 async function decodeTrialImage(file) {
@@ -4214,6 +4215,7 @@ function showChangelog(pushHistory = true) {
   setExperienceMode("public");
   $("changelogPage").classList.remove("hidden");
   $("changelogPage").setAttribute("aria-hidden", "false");
+  animateRouteViewEntrance($("changelogPage"));
   document.body.classList.remove("project-picker-active");
   renderChangelog();
   if (pushHistory) pushRoute("/changelog");
@@ -4249,6 +4251,7 @@ function showTrial(pushHistory = true, tool = "") {
   setExperienceMode("public");
   $("trialPage").classList.remove("hidden");
   $("trialPage").setAttribute("aria-hidden", "false");
+  animateRouteViewEntrance($("trialPage"));
   document.body.classList.remove("project-picker-active");
   setTrialTool(tool || trialState.tool);
   if (pushHistory) pushRoute("/trial");
@@ -4543,6 +4546,7 @@ async function showTools(path = "/tools", pushHistory = true, generation = route
   hidePrimaryScreens();
   $("toolsPanel")?.classList.remove("hidden");
   $("toolsPanel")?.setAttribute("aria-hidden", "false");
+  animateRouteViewEntrance($("toolsPanel"));
   if (path.startsWith("/tools/workflows")) {
     $("toolsDashboard")?.classList.add("hidden");
     $("toolWorkbench")?.classList.add("hidden");
@@ -4668,6 +4672,7 @@ async function showFinance(pushHistory = true, generation = routeGeneration) {
   hidePrimaryScreens();
   $("financePage")?.classList.remove("hidden");
   $("financePage")?.setAttribute("aria-hidden", "false");
+  animateRouteViewEntrance($("financePage"));
   document.body.classList.remove("project-picker-active");
   if (pushHistory) { pushRoute("/finance"); generation = routeGeneration; }
   renderAccountUi();
@@ -4696,6 +4701,7 @@ async function showTransfer(pushHistory = true, generation = routeGeneration) {
   hidePrimaryScreens();
   $("transferPage")?.classList.remove("hidden");
   $("transferPage")?.setAttribute("aria-hidden", "false");
+  animateRouteViewEntrance($("transferPage"));
   document.body.classList.remove("project-picker-active");
   if (pushHistory) { pushRoute("/transfer"); generation = routeGeneration; }
   renderAccountUi();
@@ -8787,6 +8793,13 @@ async function boot() {
     installMotionSystem();
     installNativeThemeBridge();
     setupResponsiveDisclosures();
+    const assetPrefetcher = createAssetPrefetcher({ doc: document, view: window });
+    document.querySelectorAll("#v3Sidebar [data-v3-nav]").forEach((navLink) => {
+      const warm = () => assetPrefetcher.prefetchRoute(navLink.dataset.v3Nav);
+      navLink.addEventListener("pointerenter", warm, { passive: true });
+      navLink.addEventListener("focus", warm, { passive: true });
+    });
+    assetPrefetcher.scheduleIdleWarmup(["tools", "changelog"]);
     window.requestAnimationFrame(() => syncSidebarActiveIndicator(document));
     document.documentElement.dataset.bootState = startupMounted ? 'ready' : 'recovering';
   }, whenContentReady);

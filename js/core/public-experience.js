@@ -48,7 +48,16 @@ export function initPublicExperience(doc=globalThis.document) {
   let switchGen=0;
 
   doc.querySelectorAll('#publicHome [data-public-trigger]').forEach(button=>button.addEventListener('click',event=>{event.preventDefault();doc.getElementById(button.dataset.publicTrigger)?.click();}));
-  doc.querySelectorAll('#publicHome [data-public-open]').forEach(button=>button.addEventListener('click',()=>{const tab=tabs.find(item=>item.dataset.publicProduct===button.dataset.publicOpen);tab?.click();tab?.focus({preventScroll:true});root.scrollIntoView({block:'start',behavior:globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});}));
+  doc.querySelectorAll('#publicHome [data-public-open]').forEach(button=>button.addEventListener('click',()=>{
+    const tab=tabs.find(item=>item.dataset.publicProduct===button.dataset.publicOpen);
+    tab?.click();
+    tab?.focus({preventScroll:true});
+    const rect=root.getBoundingClientRect();
+    const vh=view?.innerHeight||900;
+    if(rect.bottom<48||rect.top>vh-48){
+      root.scrollIntoView({block:'nearest',behavior:globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});
+    }
+  }));
 
   // Legacy card-gallery disclosure handler (kept safe if any view includes [data-core-card-gallery]).
   const gallery=doc.querySelector('[data-core-card-gallery]');
@@ -104,7 +113,7 @@ export function initPublicExperience(doc=globalThis.document) {
       button.tabIndex=active?0:-1;
     }
     root.dataset.selected=tab.dataset.publicProduct;
-    if(focus)tab.focus();
+    if(focus)tab.focus({preventScroll:true});
     if(immediate||!windowContent){
       applyTabSelection(tab);
       return;
