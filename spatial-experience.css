@@ -6593,3 +6593,131 @@ html[data-p07-ui="enabled"] .v3-sidebar-nav a[aria-busy="true"] {
   color: var(--ds-text);
   background: var(--ds-surface-subtle);
 }
+
+/* ==========================================================================
+ * I09 System Notifications, Layering & Interaction Feedback Layer
+ * Zero !important rules; strictly follows --ds-z-* hierarchy.
+ * ========================================================================== */
+
+/* 1. Coordinate #versionNotice, #siteMessageSaveStatus, and .ds-toast-region on desktop (>980px) */
+html[data-p07-ui="enabled"] #versionNotice:not(.hidden) {
+  right: max(20px, env(safe-area-inset-right));
+  bottom: calc(max(20px, env(safe-area-inset-bottom)) + var(--ds-hud-keyboard-inset, 0px) + var(--ds-hud-save-offset, 0px));
+  z-index: var(--ds-z-toast);
+  max-height: calc(var(--ds-overlay-height, 100dvh) - var(--owner-preview-banner-height, 0px) - var(--site-nav-height, 64px) - 36px);
+  overflow-y: auto;
+}
+
+html[data-p07-ui="enabled"] #versionNotice .version-notice-close {
+  min-width: var(--ds-touch-min);
+  min-height: var(--ds-touch-min);
+  width: var(--ds-touch-min);
+}
+
+html[data-p07-ui="enabled"] #siteMessageSaveStatus:not(.hidden) {
+  left: auto;
+  right: max(20px, env(safe-area-inset-right));
+  bottom: calc(max(20px, env(safe-area-inset-bottom)) + var(--ds-hud-keyboard-inset, 0px));
+  z-index: calc(var(--ds-z-toast) + 2);
+  width: min(390px, calc(100vw - max(40px, env(safe-area-inset-left) + env(safe-area-inset-right))));
+  margin: 0;
+}
+
+html[data-p07-ui="enabled"] #siteMessageSaveStatus #siteMessageRetryBtn {
+  min-height: var(--ds-touch-min);
+}
+
+/* Mobile <= 980px: keep #versionNotice in-flow after #v3AppFrame and stack save-status cleanly under toasts */
+@media (max-width: 980px) {
+  html[data-p07-ui="enabled"] #versionNotice:not(.hidden) {
+    order: 0;
+    position: relative;
+    right: auto;
+    bottom: auto;
+    max-height: none;
+    overflow-y: visible;
+    width: min(calc(100% - 32px), var(--ds-container-default));
+    margin: 12px auto 20px;
+    grid-template-columns: minmax(0, 1fr) var(--ds-touch-min);
+  }
+
+  html[data-p07-ui="enabled"] #siteMessageSaveStatus:not(.hidden) {
+    left: max(12px, env(safe-area-inset-left));
+    right: max(12px, env(safe-area-inset-right));
+    bottom: calc(max(14px, env(safe-area-inset-bottom)) + var(--ds-hud-keyboard-inset, 0px));
+    width: auto;
+    max-width: none;
+  }
+}
+
+@media (max-height: 600px) {
+  html[data-p07-ui="enabled"] #versionNotice:not(.hidden) {
+    position: static;
+    right: auto;
+    bottom: auto;
+    max-height: none;
+    overflow-y: visible;
+    width: min(380px, calc(100% - 32px));
+    margin: 12px auto;
+  }
+}
+
+/* 2. Modal / Right-Drawer Coexistence for live .ds-toast-region */
+html[data-p07-ui="enabled"] body.modal-open .ds-toast-region {
+  z-index: calc(var(--ds-z-modal) + 10);
+}
+
+@media (min-width: 761px) {
+  html[data-p07-ui="enabled"][data-right-drawer-open="true"] .ds-toast-region {
+    right: calc(min(480px, 100vw) + 16px);
+    left: auto;
+    width: min(390px, calc(100vw - min(480px, 100vw) - 32px));
+  }
+}
+
+@media (max-width: 760px) {
+  html[data-p07-ui="enabled"] body.modal-open .ds-toast-region {
+    top: calc(var(--ds-overlay-top, 0px) + var(--owner-preview-banner-height, 0px) + 12px);
+    bottom: auto;
+  }
+}
+
+/* 3. Unified Inline Semantic Feedback & Kill Switch Persistent Warning */
+html[data-p07-ui="enabled"] :is(#accountMessage, #adminEditMessage, #adminError, #siteMessageError, #releaseChannelStatus, #featureConsoleStatus, #adminMessageFormStatus, #adminRoleStatus) {
+  color: var(--ds-text-secondary);
+  transition: color var(--ds-duration-fast) var(--ds-ease-standard);
+}
+
+html[data-p07-ui="enabled"] :is(#accountMessage, #adminEditMessage, #adminError, #siteMessageError, #releaseChannelStatus, #featureConsoleStatus, #adminMessageFormStatus, #adminRoleStatus)[data-feedback-state="pending"] {
+  color: var(--ds-text-secondary);
+}
+
+html[data-p07-ui="enabled"] :is(#accountMessage, #adminEditMessage, #adminError, #siteMessageError, #releaseChannelStatus, #featureConsoleStatus, #adminMessageFormStatus, #adminRoleStatus)[data-feedback-state="success"] {
+  color: var(--ds-success);
+}
+
+html[data-p07-ui="enabled"] :is(#accountMessage, #adminEditMessage, #adminError, #siteMessageError, #releaseChannelStatus, #featureConsoleStatus, #adminMessageFormStatus, #adminRoleStatus)[data-feedback-state="info"] {
+  color: var(--ds-info);
+}
+
+html[data-p07-ui="enabled"] :is(#accountMessage, #adminEditMessage, #adminError, #siteMessageError, #releaseChannelStatus, #featureConsoleStatus, #adminMessageFormStatus, #adminRoleStatus)[data-feedback-state="error"] {
+  color: var(--ds-error);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #adminFeatureFlagsView .feature-kill-warning[data-kill-mode="pending-enable"] {
+  border-color: var(--ds-warning-border);
+  background: var(--ds-warning-soft);
+  color: var(--ds-warning);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #adminFeatureFlagsView .feature-kill-warning[data-kill-mode="pending-clear"] {
+  border-color: var(--ds-error-border);
+  background: var(--ds-error-soft);
+  color: var(--ds-error);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-p07-ui="enabled"] :is(#accountMessage, #adminEditMessage, #adminError, #siteMessageError, #releaseChannelStatus, #featureConsoleStatus, #adminMessageFormStatus, #adminRoleStatus) {
+    transition: none;
+  }
+}

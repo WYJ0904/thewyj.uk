@@ -673,13 +673,18 @@ export function createToastManager({
     return {
       show: () => null,
       dismiss: () => {},
+      dismissByKey: () => {},
       clear: () => {},
+      invalidateContext: () => 0,
+      getContextToken: () => 0,
+      setContextToken: () => 0,
       dispose: () => {},
-      snapshot: () => ({ visible: [], queued: [] }),
+      snapshot: () => ({ visible: [], queued: [], contextToken: 0 }),
     };
   }
 
   let seq = 0;
+  let contextToken = 0;
   let disposed = false;
   const visible = [];
   const queue = [];
@@ -703,13 +708,25 @@ export function createToastManager({
 
     politeLive = doc.createElement("div");
     politeLive.className = "ds-sr-only";
+    politeLive.setAttribute("role", "status");
     politeLive.setAttribute("aria-live", "polite");
     politeLive.setAttribute("aria-atomic", "true");
 
     assertiveLive = doc.createElement("div");
     assertiveLive.className = "ds-sr-only";
+    assertiveLive.setAttribute("role", "alert");
     assertiveLive.setAttribute("aria-live", "assertive");
     assertiveLive.setAttribute("aria-atomic", "true");
+
+    region.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape") return;
+      const focusedToast = event.target?.closest?.("[data-toast-id]");
+      const id = focusedToast?.dataset?.toastId;
+      if (!id) return;
+      event.preventDefault();
+      event.stopPropagation?.();
+      dismiss(id, { restoreSiblingFocus: true });
+    });
 
     region.append(listNode, politeLive, assertiveLive);
     parent.append(region);
@@ -760,7 +777,8 @@ export function createToastManager({
     item.className = "ds-toast";
     item.dataset.toastId = entry.id;
     item.dataset.tone = entry.tone;
-    item.setAttribute("role", entry.tone === "error" ? "alert" : "status");
+    item.setAttribute("role", "group");
+    item.setAttribute("aria-label", TONE_LABELS[entry.tone] || "提示");
 
     const badge = doc.createElement("span");
     badge.className = "ds-toast-tone";
@@ -785,7 +803,7 @@ export function createToastManager({
       actionBtn.className = "ds-toast-action button-ghost";
       actionBtn.textContent = entry.actionLabel;
       actionBtn.addEventListener("click", () => {
-        try { entry.onAction(); } finally { dismiss(entry.id); }
+        try { entry.onAction(); } finally { dismiss(entry.id, { restoreSiblingFocus: true }); }
       });
       body.append(actionBtn);
     }
@@ -793,9 +811,9 @@ export function createToastManager({
     const closeBtn = doc.createElement("button");
     closeBtn.type = "button";
     closeBtn.className = "ds-toast-close";
-    closeBtn.setAttribute("aria-label", "关闭通知");
+    closeBtn.setAttribute("aria-label", `关闭${TONE_LABELS[entry.tone] || ""}通知：${entry.message}`.slice(0, 80));
     closeBtn.textContent = "关闭";
-    closeBtn.addEventListener("click", () => dismiss(entry.id));
+    closeBtn.addEventListener("click", () => dismiss(entry.id, { restoreSiblingFocus: true }));
 
     item.addEventListener("pointerenter", () => pauseTimer(entry));
     item.addEventListener("pointerleave", () => {
@@ -810,6 +828,7 @@ export function createToastManager({
 
     item.append(badge, body, closeBtn);
     entry.node = item;
+    entry.textNode = text;
     entry.countNode = countBadge;
     return item;
   }
@@ -824,10 +843,10 @@ export function createToastManager({
     if (!prefersReducedMotion(view) && typeof node.animate === "function") {
       entry.enterAnim = node.animate(
         [
-          { opacity: 0, transform: "translate3d(0, 14px, 0) scale(0.96)" },
-          { opacity: 1, transform: "translate3d(0, 0, 0) scale(1)" },
+          { opacity: 0, transform: "translate3d(0, 10px, 0)" },
+          { opacity: 1, transform: "translate3d(0, 0, 0)" },
         ],
-        { duration: 220, easing: "cubic-bezier(0.22, 1, 0.36, 1)", fill: "none" },
+        { duration: 200, easing: "cubic-bezier(0.22, 1, 0.36, 1)", fill: "none" },
       );
       entry.enterAnim?.finished?.catch?.(() => {});
     }
@@ -895,10 +914,13 @@ export function createToastManager({
 
   function show(input, maybeOptions = {}) {
     if (disposed) return null;
-    const opts = typeof input === "string" ? { message: input, ...maybeOptions } : { ...(input || {}) };
+    const opts = typeof input === "string" ? { message: input, ...maybeOptions } : { ...(input || {}), ...(maybeOptions || {}) };
     const message = String(opts.message || "").trim();
     if (!message) return null;
     const tone = VALID_TONES.has(opts.tone) ? opts.tone : "info";
+    if (opts.contextToken !== undefined && opts.contextToken !== contextToken && tone !== "error") {
+      return null;
+    }
     const dedupeKey = String(opts.dedupeKey || `${tone}:${message}`);
     const sticky = opts.sticky === true || opts.duration === Infinity;
     const duration = sticky
@@ -912,6 +934,14 @@ export function createToastManager({
       existing.count += 1;
       existing.remainingMs = duration;
       existing.sticky = sticky;
+      if (opts.message && existing.message !== message) {
+        existing.message = message;
+        if (existing.textNode) existing.textNode.textContent = message;
+      }
+      if (opts.actionLabel && typeof opts.onAction === "function") {
+        existing.actionLabel = String(opts.actionLabel);
+        existing.onAction = opts.onAction;
+      }
       if (existing.countNode) {
         existing.countNode.textContent = `×${existing.count}`;
         existing.countNode.hidden = false;
@@ -926,12 +956,15 @@ export function createToastManager({
       message,
       dedupeKey,
       sticky,
+      scoped: Boolean(opts.scoped || opts.contextToken !== undefined),
+      contextToken: opts.contextToken ?? contextToken,
       remainingMs: duration,
       count: 1,
       actionLabel: opts.actionLabel ? String(opts.actionLabel) : "",
       onAction: typeof opts.onAction === "function" ? opts.onAction : null,
       leaving: false,
       node: null,
+      textNode: null,
       countNode: null,
       enterAnim: null,
       exitAnim: null,
@@ -943,8 +976,17 @@ export function createToastManager({
     }
 
     // Critical errors preempt non-error visible toasts so urgent failures never starve behind info/success.
+    // Never displace a toast currently focused by keyboard or prefer evicting non-actionable toasts first.
     if (entry.tone === "error") {
-      const victimIndex = visible.findIndex((item) => !item.leaving && item.tone !== "error");
+      const activeEl = doc.activeElement;
+      const isFocused = (item) => Boolean(activeEl && item.node?.contains?.(activeEl));
+      let victimIndex = visible.findIndex((item) => !item.leaving && item.tone !== "error" && !isFocused(item) && !item.onAction);
+      if (victimIndex < 0) {
+        victimIndex = visible.findIndex((item) => !item.leaving && item.tone !== "error" && !isFocused(item));
+      }
+      if (victimIndex < 0) {
+        victimIndex = visible.findIndex((item) => !item.leaving && item.tone !== "error");
+      }
       if (victimIndex >= 0) {
         const [victim] = visible.splice(victimIndex, 1);
         pauseTimer(victim);
@@ -952,6 +994,7 @@ export function createToastManager({
         try { victim.exitAnim?.cancel(); } catch (_) {}
         victim.node?.remove?.();
         victim.node = null;
+        victim.textNode = null;
         victim.countNode = null;
         enqueueItem(victim, { front: true });
         mountEntry(entry);
@@ -964,18 +1007,25 @@ export function createToastManager({
     return entry.id;
   }
 
-  function finalizeRemoval(entry) {
+  function finalizeRemoval(entry, { restoreSiblingFocus = false } = {}) {
     clearTimer(entry.id);
+    const activeEl = doc.activeElement;
+    const hadFocus = Boolean(restoreSiblingFocus && activeEl && entry.node?.contains?.(activeEl));
     const idx = visible.indexOf(entry);
     if (idx >= 0) visible.splice(idx, 1);
     try { entry.enterAnim?.cancel(); } catch (_) {}
     try { entry.exitAnim?.cancel(); } catch (_) {}
     entry.node?.remove?.();
     entry.node = null;
+    entry.textNode = null;
     flushQueue();
+    if (hadFocus && visible.length > 0) {
+      const targetBtn = visible[0]?.node?.querySelector?.(".ds-toast-action, .ds-toast-close");
+      targetBtn?.focus?.({ preventScroll: true });
+    }
   }
 
-  function dismiss(id) {
+  function dismiss(id, options = {}) {
     const qIdx = queue.findIndex((item) => item.id === id);
     if (qIdx >= 0) {
       queue.splice(qIdx, 1);
@@ -987,7 +1037,7 @@ export function createToastManager({
     clearTimer(entry.id);
     entry.node?.setAttribute("data-leaving", "true");
     if (prefersReducedMotion(view) || typeof entry.node?.animate !== "function") {
-      finalizeRemoval(entry);
+      finalizeRemoval(entry, options);
       return;
     }
     entry.exitAnim = entry.node.animate(
@@ -997,7 +1047,18 @@ export function createToastManager({
       ],
       { duration: 180, easing: "cubic-bezier(0.2, 0, 0, 1)", fill: "forwards" },
     );
-    entry.exitAnim.finished.then(() => finalizeRemoval(entry), () => finalizeRemoval(entry));
+    entry.exitAnim.finished.then(() => finalizeRemoval(entry, options), () => finalizeRemoval(entry, options));
+  }
+
+  function dismissByKey(dedupeKey) {
+    if (!dedupeKey) return;
+    const key = String(dedupeKey);
+    for (let i = queue.length - 1; i >= 0; i -= 1) {
+      if (queue[i].dedupeKey === key) queue.splice(i, 1);
+    }
+    for (const entry of [...visible]) {
+      if (entry.dedupeKey === key) dismiss(entry.id);
+    }
   }
 
   function clear({ includeErrors = true } = {}) {
@@ -1007,6 +1068,22 @@ export function createToastManager({
     for (const entry of [...visible]) {
       if (includeErrors || entry.tone !== "error") finalizeRemoval(entry);
     }
+  }
+
+  function invalidateContext({ includeErrors = false } = {}) {
+    contextToken += 1;
+    for (let i = queue.length - 1; i >= 0; i -= 1) {
+      const item = queue[i];
+      if (item.scoped && (includeErrors || (item.tone !== "error" && !item.sticky))) {
+        queue.splice(i, 1);
+      }
+    }
+    for (const entry of [...visible]) {
+      if (entry.scoped && (includeErrors || (entry.tone !== "error" && !entry.sticky))) {
+        finalizeRemoval(entry);
+      }
+    }
+    return contextToken;
   }
 
   function onUnload(event) {
@@ -1048,6 +1125,7 @@ export function createToastManager({
       visible: visible.map((item) => ({ id: item.id, tone: item.tone, message: item.message, count: item.count })),
       queued: queue.map((item) => ({ id: item.id, tone: item.tone, message: item.message, count: item.count })),
       maxVisible,
+      contextToken,
       disposed,
     };
   }
@@ -1062,7 +1140,11 @@ export function createToastManager({
     warning: (message, opts) => show({ ...opts, message, tone: "warning" }),
     error: (message, opts) => show({ ...opts, message, tone: "error" }),
     dismiss,
+    dismissByKey,
     clear,
+    invalidateContext,
+    getContextToken: () => contextToken,
+    setContextToken: (next) => { contextToken = Number(next) || 0; return contextToken; },
     dispose,
     snapshot,
   });
@@ -1085,6 +1167,14 @@ export function showToast(input, options = {}, doc = globalThis.document) {
 
 export function dismissToast(id, doc = globalThis.document) {
   getSharedToastManager(doc).dismiss(id);
+}
+
+export function dismissToastByKey(dedupeKey, doc = globalThis.document) {
+  getSharedToastManager(doc).dismissByKey(dedupeKey);
+}
+
+export function invalidateToastContext(options = {}, doc = globalThis.document) {
+  return getSharedToastManager(doc).invalidateContext(options);
 }
 
 // ============================================================================
