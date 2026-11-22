@@ -313,13 +313,13 @@ export function setExperienceMode(mode) {
   navigationController?.close();
 }
 
-export function workspaceRouteMeta(pathname, { authenticated = false, toolTitle = "", adminSection = "" } = {}) {
+export function workspaceRouteMeta(pathname, { authenticated = false, toolTitle = "", adminSection = "", languageSection = "" } = {}) {
   if (!authenticated) return null;
   const path = String(pathname || "/").replace(/\/+$/, "") || "/";
   if (path === "/" || path === "/select") return { id: "home", trail: ["个人工作台"] };
-  if (path === "/language") return { id: "language", trail: ["语言学习"] };
-  if (path === "/language/english") return { id: "language", trail: ["语言学习", "英语"] };
-  if (path === "/language/japanese") return { id: "language", trail: ["语言学习", "日语"] };
+  if (path === "/language") return { id: "language", trail: ["语言学习", languageSection].filter(Boolean) };
+  if (path === "/language/english") return { id: "language", trail: ["语言学习", "英语", languageSection].filter(Boolean) };
+  if (path === "/language/japanese") return { id: "language", trail: ["语言学习", "日语", languageSection].filter(Boolean) };
   if (path === "/tools") return { id: "tools", trail: ["工具箱"] };
   if (path === "/tools/workflows") return { id: "tools", trail: ["工具箱", "工作流"] };
   if (path.startsWith("/tools/")) return { id: "tools", trail: ["工具箱", toolTitle || "工具"] };

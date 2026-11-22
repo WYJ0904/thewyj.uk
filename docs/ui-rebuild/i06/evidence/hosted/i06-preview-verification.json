@@ -1,0 +1,317 @@
+{
+  "previewUrl": "https://55ee200c.thewyj-i06-preview.pages.dev",
+  "headCommit": "2550b14a6edf8d27922a4212233229f0ebf1f1e1",
+  "checkedAt": "2026-11-22T04:59:33.897Z",
+  "buildInfo": {
+    "schema_version": 1,
+    "environment": "isolated-preview",
+    "stage": "I06-module-experience",
+    "source_commit": "2550b14a6edf8d27922a4212233229f0ebf1f1e1",
+    "project_name": "thewyj-i06-preview",
+    "branch": "i06-module-experience",
+    "remote_check": {
+      "verified": true,
+      "project": "thewyj-i06-preview",
+      "branch": "i06-module-experience",
+      "productionBranch": "release-held",
+      "targetD1Id": "949eb48b-4662-4f63-98d8-043c7afc17b6",
+      "targetD1Name": "aeris-i06-preview",
+      "priorPreviewD1Id": "949eb48b-4662-4f63-98d8-043c7afc17b6",
+      "priorPreviewR2": [],
+      "targetR2Count": 0,
+      "targetAiCount": 0,
+      "bindingConsistent": true
+    },
+    "file_count": 205,
+    "artifact_tree_sha256": "da9a53f4b7b1582d5a62963b14135e9fcffd6e183f42cf7bc756b65adc16925b"
+  },
+  "apiStatus": {
+    "ok": true,
+    "status": "degraded",
+    "service": "wyj-cloud-foundation",
+    "environment": "preview",
+    "build": "2026-08-26-task15-cloud-only",
+    "time": "2026-11-22T04:59:28.100Z",
+    "auth": true,
+    "backend_ready": true,
+    "ai_ready": false,
+    "model": "Cloudflare rules only",
+    "bindings": {
+      "d1": true,
+      "r2": false,
+      "workers_ai": false
+    },
+    "task11": {
+      "schema_ready": true,
+      "schema_version": "1"
+    },
+    "task12": {
+      "schema_ready": true,
+      "schema_version": "1",
+      "session_strategy": "invalidate_legacy_sessions",
+      "password_pepper_configured": true
+    },
+    "task13": {
+      "schema_ready": true,
+      "schema_version": "1",
+      "payment_primary": true
+    },
+    "task14": {
+      "schema_ready": true,
+      "schema_version": "1",
+      "temporary_primary": true,
+      "secret_configured": true
+    },
+    "task15": {
+      "schema_ready": true,
+      "schema_version": "1",
+      "cloud_only": true
+    },
+    "task16": {
+      "schema_ready": true,
+      "schema_version": "5",
+      "cloud_reads": true,
+      "cloud_writes": true
+    },
+    "task18": {
+      "schema_ready": true,
+      "schema_version": "1",
+      "enabled": true,
+      "owner_count": 1
+    },
+    "task20": {
+      "schema_ready": true,
+      "schema_version": "1",
+      "enabled": true,
+      "session_secret_configured": true
+    },
+    "task22": {
+      "schema_ready": true,
+      "schema_version": "2",
+      "reads_enabled": true,
+      "writes_enabled": true
+    },
+    "features": {
+      "cloud_foundation": true,
+      "cloud_reads": true,
+      "cloud_writes": true,
+      "task11_cloud_reads": true,
+      "task11_cloud_writes": true,
+      "task12_cloud_accounts": true,
+      "task12_import": true,
+      "task12_password_pepper": true,
+      "task13_cloud_reads": true,
+      "task13_cloud_writes": true,
+      "task13_import": true,
+      "task13_payment_primary": true,
+      "task14_cloud_reads": true,
+      "task14_cloud_writes": true,
+      "task14_import": true,
+      "task14_temporary_primary": true,
+      "task14_legacy_writes_frozen": true,
+      "task14_temporary_secret": true,
+      "workers_ai": false,
+      "task15_cloud_only": true,
+      "task16_cloud_reads": true,
+      "task16_cloud_writes": true,
+      "task16_import": true,
+      "task18_admin_messages": true,
+      "task20_android_app": true,
+      "task22_transfer_reads": true,
+      "task22_transfer_writes": true,
+      "task25_feature_flags": true,
+      "task30_privacy": true,
+      "legacy_api_fallback": false,
+      "payment_cloud_migration": true
+    },
+    "rate_limit": {
+      "enabled": false,
+      "degraded": false,
+      "limit": 120,
+      "window_seconds": 60
+    },
+    "degraded_reasons": [
+      "r2_binding_missing",
+      "task13_r2_binding_missing",
+      "task14_r2_binding_missing"
+    ],
+    "request_id": "7a5ef88b-631f-4156-bd4c-8eba1185302b"
+  },
+  "apiHealth": {
+    "ok": false,
+    "error": "请先登录",
+    "code": "authentication_required",
+    "retryable": false,
+    "request_id": "e6acd201-ede0-446b-8b3a-52a803f8f261"
+  },
+  "uiFeatures": {
+    "ok": true,
+    "public_ui": {
+      "schema_version": 1,
+      "flag_key": "p07_accessibility",
+      "enabled": true,
+      "revision": 1,
+      "reason": "public_stable",
+      "observed_at": "2026-11-22T04:59:30.204Z",
+      "expires_at": "2026-11-22T05:00:00.204Z",
+      "max_age_seconds": 30
+    },
+    "request_id": "1b720f56-b869-4f16-a47f-fb204cfb1b9a"
+  },
+  "verifiedAssets": [
+    {
+      "assetPath": "design-system.css",
+      "sha256": "046b22f534b29c676bede99c63813bf5e1bb1333ce39f962461537d943ae8bf6",
+      "bytes": 58261
+    },
+    {
+      "assetPath": "spatial-experience.css",
+      "sha256": "75b0a2b76ea8cdf01d3ddb68cd8455aff33ef4102229efb3b9a96d78a76516e7",
+      "bytes": 188736
+    },
+    {
+      "assetPath": "app.js",
+      "sha256": "dc02dbdd8ceddc8632a450be27bde212eff09097d2fb8847f2fcc0883d4b5ee1",
+      "bytes": 380358
+    },
+    {
+      "assetPath": "tools.js",
+      "sha256": "6e1a57897cccce30da830e02eb9a8e569d03ec6077523ec6862ec9445a1931e8",
+      "bytes": 98241
+    },
+    {
+      "assetPath": "js/core/design-system.js",
+      "sha256": "c53a7a759d682454452c65c1791319fadfd6f5f4b17e4cb018f7d7918dd56995",
+      "bytes": 18177
+    },
+    {
+      "assetPath": "js/core/feature-console.js",
+      "sha256": "4703db308e75d98c585c43b23103cfab400b895ed281d1f16d0cb941f90a185e",
+      "bytes": 11894
+    },
+    {
+      "assetPath": "js/finance/app.js",
+      "sha256": "1d5fae3ab17aabed4aaf49104bc56f51e6b40441159208c28d0ad2225d6ff2b0",
+      "bytes": 92896
+    },
+    {
+      "assetPath": "js/transfer/app.js",
+      "sha256": "4a3bb1d5504d1e45915ad4fdad4152c51f15c108cf20af356cc49922d773281e",
+      "bytes": 74517
+    }
+  ],
+  "bannerChecks": {
+    "theme": "dark",
+    "strongColor": "rgb(67, 20, 7)",
+    "bg": "rgb(255, 247, 237)"
+  },
+  "moduleChecks": {
+    "registeredUser": "i06p_mwrdb3v0",
+    "unpaidToolsRedirectedToRecharge": true,
+    "transferDisclosureAndExpanded": true,
+    "hostedTransfer375": {
+      "selectFilesBottom": 731.078125,
+      "vh": 812,
+      "overflow": 0
+    },
+    "trialPageReachable": true
+  },
+  "axeScans": [
+    {
+      "label": "hosted-guest-light",
+      "violationCount": 0,
+      "passes": 45,
+      "violations": []
+    },
+    {
+      "label": "hosted-recharge",
+      "violationCount": 0,
+      "passes": 34,
+      "violations": []
+    },
+    {
+      "label": "hosted-transfer",
+      "violationCount": 0,
+      "passes": 34,
+      "violations": []
+    },
+    {
+      "label": "hosted-trial",
+      "violationCount": 0,
+      "passes": 34,
+      "violations": []
+    },
+    {
+      "label": "hosted-finance",
+      "violationCount": 0,
+      "passes": 37,
+      "violations": []
+    },
+    {
+      "label": "hosted-tools",
+      "violationCount": 0,
+      "passes": 45,
+      "violations": []
+    },
+    {
+      "label": "hosted-admin-flags",
+      "violationCount": 0,
+      "passes": 49,
+      "violations": []
+    }
+  ],
+  "runtimeErrors": [],
+  "authorizedChecks": {
+    "adminUser": "i06admin",
+    "hostedQuiz1440": {
+      "scrollY": 0,
+      "navBottom": 139.75,
+      "wordTop": 463.3251953125,
+      "submitHeight": 48,
+      "submitBottom": 711.3095703125,
+      "skipBottom": 769.3095703125,
+      "vh": 900,
+      "overflow": -15
+    },
+    "hostedQuiz1440Dark": {
+      "scrollY": 0,
+      "navBottom": 139.75,
+      "wordTop": 457.6875,
+      "submitHeight": 48,
+      "submitBottom": 705.671875,
+      "skipBottom": 763.671875,
+      "vh": 900,
+      "overflow": -15
+    },
+    "hostedQuiz390": {
+      "scrollY": 0,
+      "navBottom": 203.546875,
+      "wordTop": 503.125,
+      "submitHeight": 48,
+      "submitBottom": 733.515625,
+      "skipBottom": 789.515625,
+      "vh": 844,
+      "overflow": 0
+    },
+    "hostedQuiz375": {
+      "scrollY": 0,
+      "navBottom": 220.34375,
+      "wordTop": 519.921875,
+      "submitHeight": 48,
+      "submitBottom": 750.3125,
+      "skipBottom": 806.3125,
+      "vh": 812,
+      "overflow": 0
+    },
+    "hostedFlagKey": "i06_hosted_align_buui",
+    "hostedFlags390": {
+      "count": 10,
+      "minHeight": 44.8017578125,
+      "pillRightSpread": 0.74017333984375,
+      "listHeight": 224,
+      "formTop": 484.84375,
+      "overflow": 0
+    }
+  },
+  "status": "PASS"
+}

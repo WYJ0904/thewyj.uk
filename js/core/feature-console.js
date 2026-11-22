@@ -5,6 +5,32 @@ export function createFeatureConsole({ api, apiGet, getAccount, refreshFeatures,
   const ownerId = () => String(getAccount()?.id || '');
   const current = () => flags.find(flag => flag.flag_key === node('featureFlagSelect')?.value);
   const message = text => { if (node('featureConsoleStatus')) node('featureConsoleStatus').textContent = text; };
+  function syncCapsules() {
+    const stateEl = node('featureFlagStateCapsule');
+    const rolloutEl = node('featureFlagRolloutCapsule');
+    const channelsEl = node('featureFlagChannelCapsules');
+    const revEl = node('featureFlagRevisionCapsule');
+    const key = node('featureFlagKey')?.value?.trim();
+    const enabled = Boolean(node('featureFlagEnabled')?.checked);
+    const killSwitch = Boolean(node('featureFlagKillSwitch')?.checked);
+    const rev = Number(node('featureFlagForm')?.dataset?.revision || 0);
+    const pct = node('featureFlagPercentage')?.value ?? '100';
+    const channels = ['stable', 'beta', 'experimental']
+      .filter(ch => node(`featureChannel_${ch}`)?.checked)
+      .map(ch => ch[0].toUpperCase() + ch.slice(1));
+    if (stateEl) {
+      if (killSwitch) { stateEl.textContent = '紧急关闭'; stateEl.dataset.state = 'kill'; }
+      else if (!key && rev === 0) { stateEl.textContent = '新建草稿'; stateEl.dataset.state = 'new'; }
+      else if (enabled) { stateEl.textContent = '全局 ON'; stateEl.dataset.state = 'on'; }
+      else { stateEl.textContent = '全局 OFF'; stateEl.dataset.state = 'off'; }
+    }
+    if (rolloutEl) rolloutEl.textContent = `放量 ${pct}%`;
+    if (channelsEl) channelsEl.textContent = channels.length ? channels.join(' · ') : '未允许任何通道';
+    if (revEl) revEl.textContent = `v${rev}`;
+    node('featureFlagSummaryList')?.querySelectorAll('[data-flag-key]').forEach(btn => {
+      btn.setAttribute('aria-current', btn.dataset.flagKey === key ? 'true' : 'false');
+    });
+  }
   function edit(flag = null) {
     node('featureFlagKey').value = flag?.flag_key || ''; node('featureFlagKey').readOnly = Boolean(flag);
     node('featureFlagDescription').value = flag?.description || '';
@@ -12,6 +38,7 @@ export function createFeatureConsole({ api, apiGet, getAccount, refreshFeatures,
     node('featureFlagPercentage').value = flag?.rollout_percentage ?? 100;
     for (const channel of ['stable', 'beta', 'experimental']) node(`featureChannel_${channel}`).checked = (flag?.channels || ['experimental']).includes(channel);
     node('featureFlagForm').dataset.revision = String(flag?.revision || 0);
+    syncCapsules();
   }
   function render() {
     const selected = node('featureFlagSelect').value;
@@ -21,6 +48,34 @@ export function createFeatureConsole({ api, apiGet, getAccount, refreshFeatures,
       return option;
     }));
     if (flags.some(flag => flag.flag_key === selected)) node('featureFlagSelect').value = selected;
+    const summaryList = node('featureFlagSummaryList');
+    if (summaryList) {
+      summaryList.replaceChildren(...flags.map(flag => {
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.className = 'feature-directory-item';
+        item.dataset.flagKey = flag.flag_key;
+        item.setAttribute('role', 'listitem');
+        const state = flag.kill_switch ? 'kill' : flag.enabled ? 'on' : 'off';
+        const stateLabel = flag.kill_switch ? '紧急关闭' : flag.enabled ? 'ON' : 'OFF';
+        const keySpan = document.createElement('code');
+        keySpan.textContent = flag.flag_key;
+        const metaSpan = document.createElement('span');
+        metaSpan.className = 'feature-directory-meta';
+        metaSpan.textContent = `${Number(flag.rollout_percentage ?? 100)}% · v${flag.revision}`;
+        const pill = document.createElement('span');
+        pill.className = 'feature-capsule';
+        pill.dataset.state = state;
+        pill.textContent = stateLabel;
+        item.append(keySpan, metaSpan, pill);
+        item.addEventListener('click', () => {
+          const select = node('featureFlagSelect');
+          if (select) { select.value = flag.flag_key; }
+          edit(flag);
+        });
+        return item;
+      }));
+    }
     edit(current());
   }
   async function load() {
@@ -30,8 +85,41 @@ export function createFeatureConsole({ api, apiGet, getAccount, refreshFeatures,
       const response = await apiGet('/api/admin/feature-flags');
       if (ticket !== generation || owner !== ownerId() || !isAdmin()) return;
       flags = response.flags || []; render();
-      node('featureFlagAudit').textContent = (response.audit || []).map(row =>
+      const rows = response.audit || [];
+      node('featureFlagAudit').textContent = rows.map(row =>
         `${row.created_at} · ${row.action} · ${row.flag_key}${row.target_user_id ? ` · ${row.target_user_id}` : ''} · ${row.actor_user_id}`).join('\n') || '暂无修改记录';
+      const timeline = node('featureFlagAuditTimeline');
+      if (timeline) {
+        if (!rows.length) {
+          const empty = document.createElement('li');
+          empty.className = 'feature-audit-empty';
+          empty.textContent = '暂无修改记录';
+          timeline.replaceChildren(empty);
+        } else {
+          timeline.replaceChildren(...rows.map(row => {
+            const li = document.createElement('li');
+            li.className = 'feature-audit-item';
+            const dot = document.createElement('span');
+            dot.className = 'feature-audit-dot';
+            dot.setAttribute('aria-hidden', 'true');
+            const head = document.createElement('div');
+            head.className = 'feature-audit-head';
+            const actionBadge = document.createElement('span');
+            actionBadge.className = 'feature-audit-action';
+            actionBadge.textContent = row.action || '';
+            const keyCode = document.createElement('code');
+            keyCode.textContent = row.flag_key || '';
+            const timeEl = document.createElement('time');
+            timeEl.textContent = row.created_at || '';
+            head.append(actionBadge, keyCode, timeEl);
+            const detail = document.createElement('div');
+            detail.className = 'feature-audit-detail';
+            detail.textContent = [row.target_user_id ? `对象 ${row.target_user_id}` : '', row.actor_user_id ? `操作者 ${row.actor_user_id}` : ''].filter(Boolean).join(' · ');
+            li.append(dot, head, detail);
+            return li;
+          }));
+        }
+      }
       message('已读取最新配置');
     } catch (error) { if (ticket === generation && owner === ownerId()) message(error.message); }
     finally { if (ticket === generation) loading = false; }
@@ -41,12 +129,15 @@ export function createFeatureConsole({ api, apiGet, getAccount, refreshFeatures,
     if (next !== available || nextId !== accountId) {
       generation++; loading = false; flags = []; available = next; accountId = nextId;
       node('featureFlagSelect')?.replaceChildren(); node('featureFlagAudit')?.replaceChildren();
+      node('featureFlagSummaryList')?.replaceChildren(); node('featureFlagAuditTimeline')?.replaceChildren();
       node('featureEvaluationResult')?.replaceChildren(); edit(); message('');
       node('learningMetrics')?.replaceChildren();
       for (const id of ['featureOverrideUser', 'featureEvaluateUser']) node(id).value = '';
     }
     node('adminFeatureFlagsTab')?.classList.toggle('hidden', !available);
   }
+  node('featureFlagForm')?.addEventListener('change', syncCapsules);
+  node('featureFlagForm')?.addEventListener('input', syncCapsules);
   async function mutate(path, payload, button) {
     if (!available || !isAdmin() || button.disabled) return;
     const owner = ownerId(); button.disabled = true; message('正在保存…');

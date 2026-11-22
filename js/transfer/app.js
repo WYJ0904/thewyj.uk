@@ -560,7 +560,21 @@ export function createTransferController({
     return queue.find((item) => item.id === id);
   }
 
+  function renderConfigSummary() {
+    const summary = element("transferConfigSummary");
+    if (!summary) return;
+    const expiryEl = element("transferExpiry");
+    const expiryLabel = expiryEl?.selectedOptions?.[0]?.textContent?.trim() || "1 天";
+    const maxDl = Number(element("transferMaxDownloads")?.value || 5);
+    const parts = [expiryLabel, `最多 ${maxDl} 次`];
+    if (element("transferPassword")?.value?.trim()) parts.push("需密码");
+    if (element("transferOneTime")?.checked) parts.push("阅后即焚");
+    if (element("transferPrivate")?.checked) parts.push("私有附件");
+    summary.textContent = parts.join(" · ");
+  }
+
   function renderQueue() {
+    renderConfigSummary();
     const privacy = element('transferPrivate');
     if (privacy) {
       privacy.disabled = !authenticated() || Boolean(activeSession?.id);
@@ -580,24 +594,25 @@ export function createTransferController({
       render: (item) => {
         const percent = item.size ? Math.min(100, Math.round((item.uploaded / item.size) * 100)) : 0;
         const action = transferItemAction(item);
+        const stateKey = item.paused && !["done", "cancelled"].includes(item.status) ? "paused" : (item.status || "pending");
         const phase = action === "preparing" ? " · 正在创建安全上传任务" : item.error ? ` · ${escapeHtml(item.error)}` : "";
         const primaryAction = action === "resume"
-          ? `<button type="button" data-transfer-resume="${escapeHtml(item.id)}">开始/继续</button>`
+          ? `<button class="button-secondary" type="button" data-transfer-resume="${escapeHtml(item.id)}">开始/继续</button>`
           : action === "pause"
-            ? `<button type="button" data-transfer-pause="${escapeHtml(item.id)}">暂停</button>`
+            ? `<button class="button-secondary" type="button" data-transfer-pause="${escapeHtml(item.id)}">暂停</button>`
             : action === "preparing"
-              ? '<span class="transfer-item-state" role="status">准备中…</span>'
+              ? '<span class="transfer-item-state" data-status="preparing" role="status">准备中…</span>'
               : "";
         return `<article class="transfer-item" data-transfer-item="${escapeHtml(item.id)}">
           <div class="transfer-item-main">
-            <div class="transfer-item-heading"><strong>${escapeHtml(item.name)}</strong><span class="transfer-item-state">${escapeHtml(transferItemStatusLabel(item))}</span></div>
+            <div class="transfer-item-heading"><strong>${escapeHtml(item.name)}</strong><span class="transfer-item-state" data-status="${escapeHtml(stateKey)}">${escapeHtml(transferItemStatusLabel(item))}</span><span class="transfer-item-percent tabular-nums">${percent}%</span></div>
             <small>${escapeHtml(item.relativePath)} · ${formatBytes(item.uploaded)} / ${formatBytes(item.size)}${item.speed ? ` · ${formatBytes(item.speed)}/s` : ""}${item.eta ? ` · 剩余 ${Math.ceil(item.eta)}s` : ""}${item.needsFile ? " · 已恢复，请重新选择同一文件继续" : ""}${phase}</small>
             <progress max="100" value="${percent}" aria-label="${escapeHtml(item.name)} 上传进度"></progress>
           </div>
           <div class="transfer-item-actions">
             ${primaryAction}
-            ${action === "retry" ? `<button type="button" data-transfer-retry="${escapeHtml(item.id)}">重试</button>` : ""}
-            <button class="danger-text" type="button" data-transfer-cancel="${escapeHtml(item.id)}">取消</button>
+            ${action === "retry" ? `<button class="button-secondary" type="button" data-transfer-retry="${escapeHtml(item.id)}">重试</button>` : ""}
+            <button class="button-ghost danger-text" type="button" data-transfer-cancel="${escapeHtml(item.id)}">取消</button>
           </div>
         </article>`;
       },
@@ -605,7 +620,7 @@ export function createTransferController({
     progressNodes = new Map();
     list.querySelectorAll?.("[data-transfer-item]").forEach((row) => {
       progressNodes.set(row.dataset.transferItem, {
-        row, detail: row.querySelector?.("small"), progress: row.querySelector?.("progress"),
+        row, detail: row.querySelector?.("small"), progress: row.querySelector?.("progress"), percent: row.querySelector?.(".transfer-item-percent"),
       });
     });
     const complete = queue.length > 0 && queue.every((item) => item.status === "done");
@@ -624,6 +639,7 @@ export function createTransferController({
         + (item.eta ? ` · 剩余 ${Math.ceil(item.eta)}s` : "");
       if (nodes.detail && nodes.detail.textContent !== text) nodes.detail.textContent = text;
       if (nodes.progress && Number(nodes.progress.value) !== percent) nodes.progress.value = percent;
+      if (nodes.percent && nodes.percent.textContent !== `${percent}%`) nodes.percent.textContent = `${percent}%`;
     }
     renderQuota();
   }
@@ -1561,6 +1577,10 @@ export function createTransferController({
     });
     element("transferPage")?.addEventListener("click", handleClick);
     element('transferPrivate')?.addEventListener('change',renderQueue);
+    for (const id of ["transferExpiry", "transferPassword", "transferMaxDownloads", "transferOneTime"]) {
+      element(id)?.addEventListener("input", renderConfigSummary);
+      element(id)?.addEventListener("change", renderConfigSummary);
+    }
     const dropZone = element("transferDropZone");
     attachFileDropFeedback(dropZone, {
       doc: document,

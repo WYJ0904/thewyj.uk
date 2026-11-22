@@ -1,0 +1,48 @@
+{
+  "status": "PASS",
+  "mode": "source-only",
+  "previewUrl": "https://55ee200c.thewyj-i06-preview.pages.dev",
+  "headCommit": "2550b14a6edf8d27922a4212233229f0ebf1f1e1",
+  "verifiedAssets": [
+    {
+      "assetPath": "design-system.css",
+      "sha256": "046b22f534b29c676bede99c63813bf5e1bb1333ce39f962461537d943ae8bf6",
+      "bytes": 58261
+    },
+    {
+      "assetPath": "spatial-experience.css",
+      "sha256": "75b0a2b76ea8cdf01d3ddb68cd8455aff33ef4102229efb3b9a96d78a76516e7",
+      "bytes": 188736
+    },
+    {
+      "assetPath": "app.js",
+      "sha256": "dc02dbdd8ceddc8632a450be27bde212eff09097d2fb8847f2fcc0883d4b5ee1",
+      "bytes": 380358
+    },
+    {
+      "assetPath": "tools.js",
+      "sha256": "6e1a57897cccce30da830e02eb9a8e569d03ec6077523ec6862ec9445a1931e8",
+      "bytes": 98241
+    },
+    {
+      "assetPath": "js/core/design-system.js",
+      "sha256": "c53a7a759d682454452c65c1791319fadfd6f5f4b17e4cb018f7d7918dd56995",
+      "bytes": 18177
+    },
+    {
+      "assetPath": "js/core/feature-console.js",
+      "sha256": "4703db308e75d98c585c43b23103cfab400b895ed281d1f16d0cb941f90a185e",
+      "bytes": 11894
+    },
+    {
+      "assetPath": "js/finance/app.js",
+      "sha256": "1d5fae3ab17aabed4aaf49104bc56f51e6b40441159208c28d0ad2225d6ff2b0",
+      "bytes": 92896
+    },
+    {
+      "assetPath": "js/transfer/app.js",
+      "sha256": "4a3bb1d5504d1e45915ad4fdad4152c51f15c108cf20af356cc49922d773281e",
+      "bytes": 74517
+    }
+  ]
+}

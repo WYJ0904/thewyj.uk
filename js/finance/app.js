@@ -1087,7 +1087,7 @@ export function createFinanceController({
       const directionLabel = { income: "收入", expense: "支出", refund: "退款" }[item.direction];
       return `<article class="finance-transaction${item.status === "deleted" ? " is-deleted" : ""}" data-finance-transaction="${escapeHtml(item.id)}">
         <div class="finance-transaction-main"><span class="finance-direction is-${escapeHtml(item.direction)}">${directionLabel}</span><div><strong title="${escapeHtml(title)}">${escapeHtml(title)}</strong><small>${escapeHtml(categoryName(item.category_id))} · ${escapeHtml(new Date(item.occurred_at_ms).toLocaleString("zh-CN"))}${item.source_kind === "automatic" ? " · Android 自动识别" : ""}${item.native_notification_pending ? " · 等待同步" : ""}${isAuthorizationControl(item) ? " · 预授权（未结算）" : ""}${item.currency_review_required ? " · 默认币种待复核" : ""}${item.status === "deleted" ? " · 已删除" : ""}</small>${item.note ? `<p title="${escapeHtml(item.note)}">${escapeHtml(item.note)}</p>` : ""}</div></div>
-        <div class="finance-transaction-side"><strong class="is-${escapeHtml(item.direction)}">${sign}${escapeHtml(formatFinanceMoney(item.amount_minor, item.currency))}</strong><div class="finance-row-actions">${item.status === "deleted" ? `<button type="button" data-finance-restore="${escapeHtml(item.id)}">恢复</button>` : `<button type="button" data-finance-edit="${escapeHtml(item.id)}">编辑</button><button class="danger-text" type="button" data-finance-delete="${escapeHtml(item.id)}">删除</button>`}</div></div>
+        <div class="finance-transaction-side"><strong class="is-${escapeHtml(item.direction)}">${sign}${escapeHtml(formatFinanceMoney(item.amount_minor, item.currency))}</strong><div class="finance-row-actions">${item.status === "deleted" ? `<button class="button-ghost" type="button" data-finance-restore="${escapeHtml(item.id)}">恢复</button>` : `<button class="button-ghost" type="button" data-finance-edit="${escapeHtml(item.id)}">编辑</button><button class="button-ghost danger-text" type="button" data-finance-delete="${escapeHtml(item.id)}">删除</button>`}</div></div>
       </article>`;
       },
     });
@@ -1493,6 +1493,23 @@ export function createFinanceController({
     const offset = date.getTimezoneOffset() * 60000;
     element("financeTransactionTime").value = new Date(date.getTime() - offset).toISOString().slice(0, 16);
     element("financeTransactionModalTitle").textContent = item ? "编辑账目" : "新增账目";
+    const metaBox = element("financeTransactionDrawerMeta");
+    if (metaBox) {
+      if (item) {
+        const dirLabel = { income: "收入", expense: "支出", refund: "退款" }[item.direction] || item.direction;
+        const sourceLabel = item.source_kind === "automatic" ? "Android 自动识别" : "手动记账";
+        const syncLabel = item.native_notification_pending ? "待同步" : "已同步";
+        metaBox.innerHTML = `<span class="finance-direction is-${escapeHtml(item.direction)}">${dirLabel}</span><span>${sourceLabel}</span><span>${syncLabel} · v${Number(item.revision || 0)}</span>`;
+        metaBox.classList.remove("hidden");
+      } else {
+        metaBox.innerHTML = "";
+        metaBox.classList.add("hidden");
+      }
+    }
+    const drawerDeleteBtn = element("financeTransactionDrawerDeleteBtn");
+    if (drawerDeleteBtn) {
+      drawerDeleteBtn.classList.toggle("hidden", !item || item.status === "deleted");
+    }
     setMessage();
     openLayer("financeTransactionModal");
   }
@@ -1702,8 +1719,18 @@ export function createFinanceController({
 
   function handlePageClick(event) {
     const button = event.target.closest("button");
-    if (!button) return;
+    if (!button) {
+      const row = event.target.closest(".finance-transaction[data-finance-transaction]");
+      if (row && !row.classList.contains("is-deleted") && !event.target.closest("a, input, select")) {
+        openTransactionEditor(row.dataset.financeTransaction);
+      }
+      return;
+    }
     if (button.id === "financeAddTransactionBtn") openTransactionEditor();
+    else if (button.id === "financeTransactionDrawerDeleteBtn") {
+      const txId = element("financeTransactionId")?.value;
+      if (txId) { deleteTransaction(txId); closeLayer("financeTransactionModal"); }
+    }
     else if (button.id === "financeAllMonthsBtn") { ledgerAllMonths = true; renderAll(); }
     else if (button.id === "financeSelectedMonthBtn") { ledgerAllMonths = false; renderAll(); }
     else if (button.id === "financeLedgerMoreBtn") { ledgerLimit += CLIENT_PAGE_SIZE; renderTransactions(); }

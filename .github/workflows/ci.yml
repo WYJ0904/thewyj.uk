@@ -290,6 +290,7 @@ jobs:
             node --check local-backend/test_app_browser.mjs
             node --check local-backend/test_tools_browser.mjs
             node --check local-backend/test_i05_workspace_shell.mjs
+            node --check local-backend/test_i06_module_experience.mjs
             node --check local-backend/test_module_graph_js.mjs
             node --check scripts/check_js_module_graph.mjs
             node --check scripts/check_storage_contract.mjs
@@ -371,6 +372,7 @@ jobs:
           node local-backend/test_aeris_p5_js.mjs 2>&1 | tee artifacts/aeris-p5-ownership-unit.log
           node local-backend/test_aeris_public_js.mjs 2>&1 | tee artifacts/aeris-p3-public-unit.log
           node --test local-backend/test_i05_workspace_shell.mjs 2>&1 | tee artifacts/i05-workspace-shell.log
+          node --test local-backend/test_i06_module_experience.mjs 2>&1 | tee artifacts/i06-module-experience.log
 
       - name: Test Azure cloud TTS and legacy cache compatibility
         run: |

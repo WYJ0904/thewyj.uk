@@ -836,20 +836,23 @@
         </header>
         <progress class="transfer-quota" id="transferQuotaBar" max="1" value="0"></progress>
 
-        <section class="transfer-config" aria-label="分享设置">
-          <label><span>有效期</span>
-            <select id="transferExpiry">
-              <option value="60">1 小时</option>
-              <option value="1440" selected>1 天</option>
-              <option value="4320">3 天</option>
-              <option value="10080">7 天</option>
-            </select>
-          </label>
-          <label><span>访问密码（可选）</span><input id="transferPassword" type="text" maxlength="120" autocomplete="off" /></label>
-          <label><span>最大下载次数</span><input id="transferMaxDownloads" type="number" min="1" max="100" value="5" /></label>
-          <label class="transfer-check"><input id="transferOneTime" type="checkbox" /><span>阅后即焚（下载一次后销毁）</span></label>
-          <label class="transfer-check"><input id="transferPrivate" type="checkbox" disabled /><span>私有附件（登录后仅自己可访问）</span></label>
-        </section>
+        <details class="ds-collapse transfer-config-fold" id="transferConfigDisclosure">
+          <summary><span>分享参数与权限</span><small id="transferConfigSummary">1 天 · 最多 5 次</small></summary>
+          <section class="transfer-config" aria-label="分享设置">
+            <label><span>有效期</span>
+              <select id="transferExpiry">
+                <option value="60">1 小时</option>
+                <option value="1440" selected>1 天</option>
+                <option value="4320">3 天</option>
+                <option value="10080">7 天</option>
+              </select>
+            </label>
+            <label><span>访问密码（可选）</span><input id="transferPassword" type="text" maxlength="120" autocomplete="off" /></label>
+            <label><span>最大下载次数</span><input id="transferMaxDownloads" type="number" min="1" max="100" value="5" /></label>
+            <label class="transfer-check"><input id="transferOneTime" type="checkbox" /><span>阅后即焚（下载一次后销毁）</span></label>
+            <label class="transfer-check"><input id="transferPrivate" type="checkbox" disabled /><span>私有附件（登录后仅自己可访问）</span></label>
+          </section>
+        </details>
 
         <section class="transfer-drop-zone" id="transferDropZone">
           <div>
@@ -905,13 +908,14 @@
         <section class="modal-panel finance-editor-modal" role="dialog" aria-modal="true" aria-labelledby="financeTransactionModalTitle">
           <button class="modal-close" data-finance-close="financeTransactionModal" type="button" aria-label="关闭"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
           <p class="section-kicker">财务账目</p><h2 id="financeTransactionModalTitle">新增账目</h2>
+          <div class="finance-drawer-meta hidden" id="financeTransactionDrawerMeta" aria-live="polite"></div>
           <form class="finance-form" id="financeTransactionForm">
             <input id="financeTransactionId" type="hidden" />
             <div class="finance-form-grid"><label><span>类型</span><select id="financeTransactionDirection" required><option value="expense">支出</option><option value="income">收入</option><option value="refund">退款</option></select></label><label><span>交易币种</span><select id="financeTransactionCurrency"><option value="CNY">CNY</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="HKD">HKD</option><option value="GBP">GBP</option><option value="JPY">JPY</option></select></label><label><span>原币金额</span><input id="financeTransactionAmount" inputmode="decimal" maxlength="14" placeholder="0.00" required /></label></div>
             <div class="finance-form-grid"><label><span>时间</span><input id="financeTransactionTime" type="datetime-local" required /></label><label><span>分类</span><select id="financeTransactionCategory"><option value="">未分类</option></select></label></div>
             <div class="finance-form-grid"><label><span>商户</span><input id="financeTransactionMerchant" maxlength="160" placeholder="例如：便利店" /></label><label><span>对手方</span><input id="financeTransactionCounterparty" maxlength="160" placeholder="例如：朋友或公司" /></label></div>
             <label><span>备注</span><textarea id="financeTransactionNote" maxlength="500" placeholder="可选，不要填写密码或支付凭据"></textarea></label>
-            <div class="action-row"><button class="button-secondary" data-finance-close="financeTransactionModal" type="button">取消</button><button class="primary" type="submit">保存账目</button></div>
+            <div class="action-row"><button class="button-ghost danger-text hidden" id="financeTransactionDrawerDeleteBtn" type="button">删除账目</button><button class="button-secondary" data-finance-close="financeTransactionModal" type="button">取消</button><button class="primary" type="submit">保存账目</button></div>
           </form>
         </section>
       </div>
@@ -1088,8 +1092,8 @@
                 <button class="button-secondary" id="clearBtn" type="button" title="清空词表"><svg class="button-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="m19 6-1 14H6L5 6"/><path d="M10 11v5M14 11v5"/></svg><span>清空词表</span></button>
               </div>
               <div class="action-row secondary-row">
-                <button id="importWordsBtn">导入词表</button>
-                <button id="exportWordsBtn">导出词表</button>
+                <button class="button-ghost" id="importWordsBtn">导入词表</button>
+                <button class="button-ghost" id="exportWordsBtn">导出词表</button>
               </div>
               <input id="wordFileInput" class="hidden" type="file" accept=".txt,.csv,.json,text/plain,application/json" />
             </div>
@@ -1106,6 +1110,7 @@
 
           <section class="view" id="quizView" role="tabpanel" aria-labelledby="quizViewTab">
             <div class="quiz-card">
+              <div class="quiz-progress-track" aria-hidden="true"><div class="quiz-progress-fill" id="quizProgressFill"></div></div>
               <div class="quiz-meta">
                 <span id="progressLabel">0/0</span>
                 <span id="scoreLabel">得分 0</span>
@@ -1116,6 +1121,7 @@
                 <span class="word-primary" id="wordText">-</span>
                 <span class="word-reading hidden" id="wordReading" aria-hidden="true"></span>
               </div>
+              <div class="quiz-review-context hidden" id="quizReviewContext" aria-live="polite"></div>
               <label data-p07-label for="answerInput">你的答案</label>
               <form id="answerForm" class="answer-form">
                 <input id="answerInput" autocomplete="off" maxlength="240" placeholder="中文意思" aria-describedby="answerValidation" />
@@ -1123,11 +1129,11 @@
               </form>
               <p class="answer-validation hidden" id="answerValidation" role="alert"></p>
               <div class="action-row compact">
-                <button id="speakBtn" class="hidden" type="button">播放</button>
-                <button id="skipBtn" type="button">跳过</button>
-                <button id="nextNowBtn" type="button" disabled>下一题</button>
-                <button id="cancelJudgeBtn" class="hidden" type="button">取消判卷</button>
-                <button id="backBtn" type="button">词表</button>
+                <button id="speakBtn" class="button-secondary hidden" type="button">播放</button>
+                <button id="skipBtn" class="button-ghost" type="button">跳过</button>
+                <button id="nextNowBtn" class="button-secondary" type="button" disabled>下一题</button>
+                <button id="cancelJudgeBtn" class="button-ghost danger-text hidden" type="button">取消判卷</button>
+                <button id="backBtn" class="button-ghost" type="button">词表</button>
               </div>
               <div class="speech-rate-row hidden" id="speechRateRow">
                 <label for="speechRateSlider">语速</label>
@@ -1154,21 +1160,21 @@
               <label class="wrong-search" for="wrongSearchInput"><span class="visually-hidden">搜索错题</span><input id="wrongSearchInput" type="search" maxlength="120" autocomplete="off" placeholder="搜索单词、答案或释义" /></label>
               <div class="action-row">
                 <button class="primary" id="reviewBtn">复习本轮</button>
-                <button id="reviewHistoryBtn">复习历史</button>
+                <button class="button-secondary" id="reviewHistoryBtn">复习历史</button>
               </div>
               <div class="action-row secondary-row">
-                <button id="exportBtn">导出本轮 PDF</button>
-                <button id="exportHistoryBtn">导出历史 PDF</button>
+                <button class="button-ghost" id="exportBtn">导出本轮 PDF</button>
+                <button class="button-ghost" id="exportHistoryBtn">导出历史 PDF</button>
               </div>
               <div class="action-row secondary-row">
-                <button id="exportWrongDataBtn">导出错题数据</button>
-                <button id="importWrongDataBtn">导入错题数据</button>
+                <button class="button-ghost" id="exportWrongDataBtn">导出错题数据</button>
+                <button class="button-ghost" id="importWrongDataBtn">导入错题数据</button>
               </div>
               <p class="wrong-action-message hidden" id="wrongActionMessage" aria-live="polite"></p>
               <input id="wrongDataFileInput" class="hidden" type="file" accept=".json,application/json" />
               <div class="action-row secondary-row">
-                <button id="clearWrongBtn">清空本轮</button>
-                <button id="clearHistoryBtn">清空历史</button>
+                <button class="button-ghost danger-text" id="clearWrongBtn">清空本轮</button>
+                <button class="button-ghost danger-text" id="clearHistoryBtn">清空历史</button>
               </div>
               <div class="wrong-list" id="wrongList"></div>
             </div>
@@ -1227,8 +1233,8 @@
                 <div class="study-history" id="studyHistory"></div>
               </section>
               <div class="action-row secondary-row study-actions">
-                <button id="exportStudyBtn" type="button">导出当前统计</button>
-                <button id="clearStudyBtn" type="button">清除当前统计</button>
+                <button class="button-secondary" id="exportStudyBtn" type="button">导出当前统计</button>
+                <button class="button-ghost danger-text" id="clearStudyBtn" type="button">清除当前统计</button>
               </div>
             </div>
           </section>
@@ -1241,16 +1247,22 @@
           <div class="action-row compact"><button class="button-secondary" id="toolsTransferBtn" type="button">文件传输</button><button class="button-secondary" id="toolsAccountBtn" type="button">账户</button><button class="button-ghost" id="leaveToolsBtn" type="button">返回功能选择</button></div>
         </header>
         <div class="tools-dashboard" id="toolsDashboard">
-          <label class="tool-search" for="toolSearchInput"><span>模糊搜索工具</span><input id="toolSearchInput" type="search" autocomplete="off" placeholder="输入名称、用途或近似关键词，例如 JSON、压图、随机密码" /></label>
-          <p class="local-processing-note">文本、图片和普通文件默认只在当前浏览器中处理，不会上传服务器。</p>
-          <section class="workflow-launcher" aria-labelledby="workflowLauncherTitle">
-            <div><p class="section-kicker">可配置处理流程</p><h2 id="workflowLauncherTitle">工具工作流</h2><p>把兼容的文本、CSV、图片和 ZIP 步骤串起来，一次运行完整流程。</p></div>
-            <button class="primary" id="openWorkflowBtn" type="button">打开工作流</button>
-          </section>
-          <section class="tool-shelf hidden" id="favoriteToolsSection"><div class="tool-section-title"><h2>收藏与固定</h2></div><div class="tool-chip-list" id="favoriteToolsList"></div></section>
-          <section class="tool-shelf hidden" id="recentToolsSection"><div class="tool-section-title"><h2>最近使用</h2><button class="button-ghost" id="clearToolHistoryBtn" type="button">清除记录</button></div><div class="tool-chip-list" id="recentToolsList"></div></section>
-          <section class="tool-category-grid" id="toolCategoryList" aria-label="工具分类"></section>
-          <section class="tool-catalog-section"><div class="tool-section-title"><h2 id="toolCatalogTitle">全部工具</h2><span id="toolResultCount">0 项</span></div><div class="tool-catalog" id="toolCatalog"></div><button class="button-secondary" id="toolCatalogMoreBtn" type="button" hidden>显示更多</button></section>
+          <div class="tools-two-pane">
+            <aside class="tools-index-rail" aria-label="工具筛选与分类">
+              <label class="tool-search" for="toolSearchInput"><span>模糊搜索工具</span><input id="toolSearchInput" type="search" autocomplete="off" placeholder="输入名称、用途或近似关键词，例如 JSON、压图、随机密码" /></label>
+              <p class="local-processing-note">文本、图片和普通文件默认只在当前浏览器中处理，不会上传服务器。</p>
+              <section class="tool-shelf hidden" id="favoriteToolsSection"><div class="tool-section-title"><h2>收藏与固定</h2></div><div class="tool-chip-list" id="favoriteToolsList"></div></section>
+              <section class="tool-shelf hidden" id="recentToolsSection"><div class="tool-section-title"><h2>最近使用</h2><button class="button-ghost" id="clearToolHistoryBtn" type="button">清除记录</button></div><div class="tool-chip-list" id="recentToolsList"></div></section>
+              <section class="tool-category-grid" id="toolCategoryList" aria-label="工具分类"></section>
+            </aside>
+            <div class="tools-index-main">
+              <section class="workflow-launcher" aria-labelledby="workflowLauncherTitle">
+                <div><p class="section-kicker">可配置处理流程</p><h2 id="workflowLauncherTitle">工具工作流</h2><p>把兼容的文本、CSV、图片和 ZIP 步骤串起来，一次运行完整流程。</p></div>
+                <button class="primary" id="openWorkflowBtn" type="button">打开工作流</button>
+              </section>
+              <section class="tool-catalog-section"><div class="tool-section-title"><h2 id="toolCatalogTitle">全部工具</h2><span id="toolResultCount">0 项</span></div><div class="tool-catalog" id="toolCatalog"></div><button class="button-secondary" id="toolCatalogMoreBtn" type="button" hidden>显示更多</button></section>
+            </div>
+          </div>
         </div>
         <section class="tool-workbench hidden" id="toolWorkbench" aria-hidden="true">
           <header><button class="button-ghost" id="closeToolWorkbenchBtn" type="button">返回工具列表</button><div><p id="toolWorkbenchCategory"></p><h2 id="toolWorkbenchTitle">工具</h2><p id="toolWorkbenchDescription"></p></div><div class="tool-workbench-actions"><button class="button-secondary" id="favoriteToolBtn" type="button">收藏</button><button class="button-secondary" id="pinToolBtn" type="button">固定</button></div></header>
@@ -1342,6 +1354,13 @@
           <h2>功能开关与放量</h2>
           <p>紧急关闭、全局 OFF 和通道限制优先于用户覆盖。保存后影响新的服务端评估，已有预览功能最多 30 秒内关闭。</p>
           <div class="action-row feature-console-toolbar"><label>功能<select id="featureFlagSelect"></select></label><button class="button-secondary" id="newFeatureFlagBtn" type="button">新建功能</button><button class="button-ghost" id="refreshFeatureFlagsBtn" type="button">刷新配置</button></div>
+          <div class="feature-capsule-strip" id="featureFlagCapsuleStrip" aria-live="polite">
+            <span class="feature-capsule" id="featureFlagStateCapsule" data-state="new">新建草稿</span>
+            <span class="feature-capsule feature-capsule-rollout" id="featureFlagRolloutCapsule">放量 100%</span>
+            <span class="feature-capsule feature-capsule-channels" id="featureFlagChannelCapsules">Experimental</span>
+            <span class="feature-capsule feature-capsule-rev" id="featureFlagRevisionCapsule">v0</span>
+          </div>
+          <div class="feature-directory-list" id="featureFlagSummaryList" role="list" aria-label="功能开关目录"></div>
           <form id="featureFlagForm" data-revision="0">
             <label>功能标识<input id="featureFlagKey" required pattern="[a-z][a-z0-9._\-]{1,63}" maxlength="64" /></label>
             <label>说明<textarea id="featureFlagDescription" maxlength="500"></textarea></label>
@@ -1352,7 +1371,7 @@
           </form>
           <form id="featureOverrideForm"><h3>用户覆盖</h3><label>用户 ID<input id="featureOverrideUser" maxlength="80" required /></label><label>覆盖<select id="featureOverrideValue"><option value="inherit">跟随放量</option><option value="on">ON</option><option value="off">OFF</option></select></label><button class="button-secondary" id="saveFeatureOverrideBtn" type="submit">保存覆盖</button></form>
           <form id="featureEvaluateForm"><h3>预演评估</h3><label>用户 ID<input id="featureEvaluateUser" maxlength="80" required /></label><label>通道<select id="featureEvaluateChannel"><option value="stable">Stable</option><option value="beta">Beta</option><option value="experimental">Experimental</option></select></label><button class="button-secondary" id="evaluateFeatureBtn" type="submit">评估</button><pre id="featureEvaluationResult" aria-live="polite"></pre></form>
-          <p id="featureConsoleStatus" role="status" aria-live="polite"></p><details><summary>修改审计</summary><pre id="featureFlagAudit"></pre></details>
+          <p id="featureConsoleStatus" role="status" aria-live="polite"></p><details><summary>修改审计</summary><ol class="feature-audit-timeline" id="featureFlagAuditTimeline" aria-label="功能修改审计时间线"></ol><pre id="featureFlagAudit"></pre></details>
           <details><summary>学习服务状态</summary><p>仅显示汇总状态，不能修改用户掌握度。</p><button id="refreshLearningMetricsBtn" type="button" class="button-ghost">读取学习状态</button><pre id="learningMetrics" role="status"></pre></details>
         </section>
         <section class="admin-view active" id="adminUsersView" role="tabpanel" aria-labelledby="adminUsersTab">
@@ -1749,10 +1768,10 @@
           <p></p>
           <small class="wrong-rejudge-status" aria-live="polite"></small>
         </div>
-        <div class="wrong-item-actions"><strong></strong><button class="wrong-rejudge-button" type="button">重新判定</button><button class="wrong-remove-button" type="button">移除</button></div>
+        <div class="wrong-item-actions"><span class="wrong-review-pill hidden"></span><strong></strong><button class="wrong-rejudge-button" type="button">重新判定</button><button class="button-ghost danger-text wrong-remove-button" type="button">移除</button></div>
         <form class="wrong-rejudge-form hidden">
           <label><span>重新作答</span><input class="wrong-rejudge-input" maxlength="240" autocomplete="off" /></label>
-          <div class="wrong-rejudge-controls"><button class="primary wrong-rejudge-submit" type="submit">提交判定</button><button class="wrong-rejudge-cancel" type="button">取消</button></div>
+          <div class="wrong-rejudge-controls"><button class="primary wrong-rejudge-submit" type="submit">提交判定</button><button class="button-ghost wrong-rejudge-cancel" type="button">取消</button></div>
         </form>
       </article>
     </template>

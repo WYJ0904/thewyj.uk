@@ -1300,7 +1300,10 @@ function refreshWorkspaceShell() {
   const adminSection = path === "/admin"
     ? (document.querySelector(".admin-tabs button.active:not(.hidden)")?.textContent.trim() || "")
     : "";
-  syncWorkspaceShell(document, workspaceRouteMeta(path, { authenticated, toolTitle, adminSection }));
+  const languageSection = path.startsWith("/language") && !$("projectApp")?.classList.contains("hidden") && !$("workspace")?.classList.contains("hidden")
+    ? (document.querySelector("#workspace > .tabs button.active:not(.hidden)")?.textContent.trim() || "")
+    : "";
+  syncWorkspaceShell(document, workspaceRouteMeta(path, { authenticated, toolTitle, adminSection, languageSection }));
 }
 
 function setAdminKpi(id, value, status = "ready") {
@@ -5385,6 +5388,7 @@ async function ensureBackendConnection() {
 
 function setView(id) {
   if (id === "quizView" && !state.roundActive) id = "setupView";
+  const enteringQuiz = id === "quizView" && !$("quizView")?.classList.contains("active");
   const leavingQuiz = id !== "quizView" && $("quizView")?.classList.contains("active");
   if (leavingQuiz) {
     if (judgeController) judgeController.abort();
@@ -5393,13 +5397,21 @@ function setView(id) {
   document.querySelectorAll(".view").forEach((view) => view.classList.toggle("active", view.id === id));
   document.querySelectorAll(".tabs button").forEach((tab) => tab.classList.toggle("active", tab.dataset.view === id));
   if (id === "quizView" && state.roundActive) {
+    if (enteringQuiz && typeof window.scrollTo === "function") {
+      try {
+        window.scrollTo({ left: 0, top: 0, behavior: "instant" });
+      } catch (_) {
+        window.scrollTo(0, 0);
+      }
+    }
     if (state.pendingAdvance) resumeQuestionTransition();
-    else $("answerInput")?.focus();
+    else $("answerInput")?.focus({ preventScroll: true });
   }
   if (id === "wrongView") renderWrongBook({ force: true });
   if (id === "achievementsView") renderAchievements();
   if (id === "studyView") renderStudyDashboard();
   if (currentProject && state.roundActive) saveProjectRuntime();
+  refreshWorkspaceShell();
 }
 
 function updateStats() {
@@ -6140,6 +6152,28 @@ function showWord(options = {}) {
   $("progressLabel").setAttribute("aria-valuemin", "0");
   $("progressLabel").setAttribute("aria-valuemax", String(state.words.length));
   $("progressLabel").setAttribute("aria-valuenow", String(state.index + 1));
+  const progressFill = $("quizProgressFill");
+  if (progressFill) {
+    const pct = Math.min(100, Math.round(((state.index + 1) / Math.max(1, state.words.length)) * 100));
+    progressFill.style.width = `${pct}%`;
+  }
+  const reviewContextEl = $("quizReviewContext");
+  if (reviewContextEl) {
+    if (reviewInfo && wrongReviewController?.allowed()) {
+      const entryKey = state.reviewKeys[state.index] || word;
+      const review = wrongReviewView(reviewInfo, Date.now(), wrongReviewController.confirmed(entryKey, reviewInfo));
+      const statusLabel = review.mastered ? "已掌握" : review.due ? "待复习" : "已安排";
+      const nextLabel = review.mastered ? "持续巩固" : review.due ? "本次到期" : `下次 ${formatLocalDateTime(review.next_review_at)}`;
+      reviewContextEl.innerHTML = `<span class="wrong-review-pill" data-review-status="${escapeHtml(review.status)}">${statusLabel}</span>` +
+        `<span>连对 <strong class="tabular-nums">${review.streak}/5</strong></span>` +
+        `<span>掌握度 <strong class="tabular-nums">${review.score}%</strong></span>` +
+        `<span>${escapeHtml(nextLabel)}</span>`;
+      reviewContextEl.classList.remove("hidden");
+    } else {
+      reviewContextEl.innerHTML = "";
+      reviewContextEl.classList.add("hidden");
+    }
+  }
   $("scoreLabel").textContent = `得分 ${state.score}`;
   $("quizLanguageLabel").textContent = quizLanguageLabel(state.quizLanguage);
   $("practiceModeLabel").textContent = state.mode.startsWith("review-")
@@ -6165,7 +6199,7 @@ function showWord(options = {}) {
   }
   $("acceptedChips").innerHTML = "";
   const quizVisible = $("quizView")?.classList.contains("active") && !$("workspace")?.classList.contains("hidden");
-  if (options.focus !== false && quizVisible && !preserveTransition) $("answerInput").focus();
+  if (options.focus !== false && quizVisible && !preserveTransition) $("answerInput").focus({ preventScroll: true });
   if (dictation && !preserveTransition) speakCurrentWord();
 }
 
@@ -6957,6 +6991,19 @@ function renderWrongBook(options = {}) {
     node.querySelector("strong").textContent = `历史 ${info.wrong_count || 0}次`;
     const rejudgeStatus = node.querySelector(".wrong-rejudge-status");
     const review=wrongReviewView(info,Date.now(),wrongReviewController?.confirmed(entryKey,info));
+    const wrongArticle = node.querySelector(".wrong-item");
+    if (wrongArticle) wrongArticle.dataset.reviewStatus = review.status;
+    const pill = node.querySelector(".wrong-review-pill");
+    if (pill) {
+      if (wrongReviewController?.allowed()) {
+        const label = review.mastered ? "已掌握" : review.due ? "待复习" : "已安排";
+        pill.textContent = `${label} · ${review.score}%`;
+        pill.dataset.reviewStatus = review.status;
+        pill.classList.remove("hidden");
+      } else {
+        pill.classList.add("hidden");
+      }
+    }
     const progress=wrongReviewController?.allowed()?` · ${wrongReviewController.confirmed(entryKey,info)?'已确认':'本地'} · ${review.mastered?'已掌握':review.due?'待复习':`下次 ${formatLocalDateTime(review.next_review_at)}`}`:'';
     const persistedStatus = `${info.question_type==='dictation'?'听写':'释义'}${progress}${info.rejudge_result==='correct'?' · 原错误已纠正':''}；可重新判定`;
     rejudgeStatus.textContent = persistedStatus;
