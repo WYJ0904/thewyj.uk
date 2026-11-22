@@ -1,12 +1,12 @@
 {
-  "previewUrl": "https://i06-module-experience.thewyj-i06-preview.pages.dev",
-  "headCommit": "872a70b07cb6f9cec168f94d95a2d2063b83e43e",
-  "checkedAt": "2026-11-21T19:41:20.606Z",
+  "previewUrl": "https://55ee200c.thewyj-i06-preview.pages.dev",
+  "headCommit": "2550b14a6edf8d27922a4212233229f0ebf1f1e1",
+  "checkedAt": "2026-11-22T04:59:33.897Z",
   "buildInfo": {
     "schema_version": 1,
     "environment": "isolated-preview",
     "stage": "I06-module-experience",
-    "source_commit": "872a70b07cb6f9cec168f94d95a2d2063b83e43e",
+    "source_commit": "2550b14a6edf8d27922a4212233229f0ebf1f1e1",
     "project_name": "thewyj-i06-preview",
     "branch": "i06-module-experience",
     "remote_check": {
@@ -23,7 +23,7 @@
       "bindingConsistent": true
     },
     "file_count": 205,
-    "artifact_tree_sha256": "d9513c0af895e43ae6a87e220d6090cb90178586ab4ffdad979abdf0fde6958f"
+    "artifact_tree_sha256": "da9a53f4b7b1582d5a62963b14135e9fcffd6e183f42cf7bc756b65adc16925b"
   },
   "apiStatus": {
     "ok": true,
@@ -31,7 +31,7 @@
     "service": "wyj-cloud-foundation",
     "environment": "preview",
     "build": "2026-08-26-task15-cloud-only",
-    "time": "2026-11-21T19:41:16.936Z",
+    "time": "2026-11-22T04:59:28.100Z",
     "auth": true,
     "backend_ready": true,
     "ai_ready": false,
@@ -74,10 +74,10 @@
       "cloud_writes": true
     },
     "task18": {
-      "schema_ready": false,
+      "schema_ready": true,
       "schema_version": "1",
       "enabled": true,
-      "owner_count": 0
+      "owner_count": 1
     },
     "task20": {
       "schema_ready": true,
@@ -132,18 +132,17 @@
     },
     "degraded_reasons": [
       "r2_binding_missing",
-      "task18_schema_not_ready",
       "task13_r2_binding_missing",
       "task14_r2_binding_missing"
     ],
-    "request_id": "bdeb9466-eebb-4695-9738-1ab8862933e2"
+    "request_id": "7a5ef88b-631f-4156-bd4c-8eba1185302b"
   },
   "apiHealth": {
     "ok": false,
     "error": "请先登录",
     "code": "authentication_required",
     "retryable": false,
-    "request_id": "04f654ee-6a6d-4b2f-8bc2-da10c5685925"
+    "request_id": "e6acd201-ede0-446b-8b3a-52a803f8f261"
   },
   "uiFeatures": {
     "ok": true,
@@ -153,11 +152,11 @@
       "enabled": true,
       "revision": 1,
       "reason": "public_stable",
-      "observed_at": "2026-11-21T19:41:18.112Z",
-      "expires_at": "2026-11-21T19:41:48.112Z",
+      "observed_at": "2026-11-22T04:59:30.204Z",
+      "expires_at": "2026-11-22T05:00:00.204Z",
       "max_age_seconds": 30
     },
-    "request_id": "839e030d-196e-4fe6-913b-d3a6f55e26f9"
+    "request_id": "1b720f56-b869-4f16-a47f-fb204cfb1b9a"
   },
   "verifiedAssets": [
     {
@@ -167,13 +166,13 @@
     },
     {
       "assetPath": "spatial-experience.css",
-      "sha256": "5ab2fa5649b58b6d995077548e8b6a09944a0ff1f33925a7adaa0fbc75a02667",
-      "bytes": 183165
+      "sha256": "75b0a2b76ea8cdf01d3ddb68cd8455aff33ef4102229efb3b9a96d78a76516e7",
+      "bytes": 188736
     },
     {
       "assetPath": "app.js",
-      "sha256": "462fa3245eb25f0202c45572cdcf8f807010643c6b9a18988c88603b29595e29",
-      "bytes": 380005
+      "sha256": "dc02dbdd8ceddc8632a450be27bde212eff09097d2fb8847f2fcc0883d4b5ee1",
+      "bytes": 380358
     },
     {
       "assetPath": "tools.js",
@@ -207,9 +206,14 @@
     "bg": "rgb(255, 247, 237)"
   },
   "moduleChecks": {
-    "registeredUser": "i06p_mwqtd6ef",
+    "registeredUser": "i06p_mwrdb3v0",
     "unpaidToolsRedirectedToRecharge": true,
     "transferDisclosureAndExpanded": true,
+    "hostedTransfer375": {
+      "selectFilesBottom": 731.078125,
+      "vh": 812,
+      "overflow": 0
+    },
     "trialPageReachable": true
   },
   "axeScans": [
@@ -222,22 +226,92 @@
     {
       "label": "hosted-recharge",
       "violationCount": 0,
-      "passes": 41,
+      "passes": 34,
       "violations": []
     },
     {
       "label": "hosted-transfer",
       "violationCount": 0,
-      "passes": 47,
+      "passes": 34,
       "violations": []
     },
     {
       "label": "hosted-trial",
       "violationCount": 0,
-      "passes": 46,
+      "passes": 34,
+      "violations": []
+    },
+    {
+      "label": "hosted-finance",
+      "violationCount": 0,
+      "passes": 37,
+      "violations": []
+    },
+    {
+      "label": "hosted-tools",
+      "violationCount": 0,
+      "passes": 45,
+      "violations": []
+    },
+    {
+      "label": "hosted-admin-flags",
+      "violationCount": 0,
+      "passes": 49,
       "violations": []
     }
   ],
   "runtimeErrors": [],
+  "authorizedChecks": {
+    "adminUser": "i06admin",
+    "hostedQuiz1440": {
+      "scrollY": 0,
+      "navBottom": 139.75,
+      "wordTop": 463.3251953125,
+      "submitHeight": 48,
+      "submitBottom": 711.3095703125,
+      "skipBottom": 769.3095703125,
+      "vh": 900,
+      "overflow": -15
+    },
+    "hostedQuiz1440Dark": {
+      "scrollY": 0,
+      "navBottom": 139.75,
+      "wordTop": 457.6875,
+      "submitHeight": 48,
+      "submitBottom": 705.671875,
+      "skipBottom": 763.671875,
+      "vh": 900,
+      "overflow": -15
+    },
+    "hostedQuiz390": {
+      "scrollY": 0,
+      "navBottom": 203.546875,
+      "wordTop": 503.125,
+      "submitHeight": 48,
+      "submitBottom": 733.515625,
+      "skipBottom": 789.515625,
+      "vh": 844,
+      "overflow": 0
+    },
+    "hostedQuiz375": {
+      "scrollY": 0,
+      "navBottom": 220.34375,
+      "wordTop": 519.921875,
+      "submitHeight": 48,
+      "submitBottom": 750.3125,
+      "skipBottom": 806.3125,
+      "vh": 812,
+      "overflow": 0
+    },
+    "hostedFlagKey": "i06_hosted_align_buui",
+    "hostedFlags390": {
+      "count": 10,
+      "minHeight": 44.8017578125,
+      "pillRightSpread": 0.74017333984375,
+      "listHeight": 224,
+      "formTop": 484.84375,
+      "overflow": 0
+    }
+  },
   "status": "PASS"
 }

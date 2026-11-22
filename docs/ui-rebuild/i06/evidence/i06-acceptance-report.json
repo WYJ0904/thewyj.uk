@@ -1,16 +1,16 @@
 {
   "scope": "Isolated local Miniflare D1/R2 + headless Chrome CDP (I06 Module Experiences)",
-  "gitSha": "872a70b07cb6f9cec168f94d95a2d2063b83e43e",
+  "gitSha": "2550b14a6edf8d27922a4212233229f0ebf1f1e1",
   "gitBranch": "hydrogen/i06-module-experience",
   "worktreeDirty": false,
   "dirtyFiles": [],
   "source": {
-    "commit": "872a70b07cb6f9cec168f94d95a2d2063b83e43e",
-    "tree": "f284fc207e570b757cdde2de0649cab60ea3c3cf",
+    "commit": "2550b14a6edf8d27922a4212233229f0ebf1f1e1",
+    "tree": "e02c0d4c5b6a388c469d9f7e1c53c15332e21270",
     "branch": "hydrogen/i06-module-experience",
     "sourceMatchesCommit": true,
     "changedInputs": [],
-    "inputsSha256": "2280874075e66c529e8ca61abd87f5162aa965b3ab74a82a50e093f38e31e2d6",
+    "inputsSha256": "a20e8aa91023aa45d8ad43819024d389f275526c04c9e5ffe4eca280c3b48520",
     "inputs": [
       {
         "file": "THIRD_PARTY_NOTICES.md",
@@ -22,7 +22,7 @@
       },
       {
         "file": "app.js",
-        "sha256": "462fa3245eb25f0202c45572cdcf8f807010643c6b9a18988c88603b29595e29"
+        "sha256": "dc02dbdd8ceddc8632a450be27bde212eff09097d2fb8847f2fcc0883d4b5ee1"
       },
       {
         "file": "assets/brand/aeris-lockup.png",
@@ -974,7 +974,7 @@
       },
       {
         "file": "spatial-experience.css",
-        "sha256": "5ab2fa5649b58b6d995077548e8b6a09944a0ff1f33925a7adaa0fbc75a02667"
+        "sha256": "75b0a2b76ea8cdf01d3ddb68cd8455aff33ef4102229efb3b9a96d78a76516e7"
       },
       {
         "file": "styles.css",
@@ -982,7 +982,7 @@
       },
       {
         "file": "sw.js",
-        "sha256": "94c683fda2745eb3e9615f0d3d3ca1dd0cd947f2d5ea61e10e3ff2ae3afd2394"
+        "sha256": "5f1425aa9fc3ee0b92d40a1be0b2b49e801f052e640b955b11082bca337edd4d"
       },
       {
         "file": "tools.js",
@@ -1018,19 +1018,73 @@
       }
     ]
   },
-  "checkedAt": "2026-11-21T19:39:23.491Z",
+  "checkedAt": "2026-11-22T04:55:25.691Z",
   "browserVersion": "Chrome/158.0.8127.36",
   "scenarios": [
     {
       "name": "m1_language_focus_and_fsrs_context",
       "status": "PASS",
-      "ms": 2104,
+      "ms": 5049,
       "detail": {
         "quizBox": {
           "width": 760,
           "fillWidth": "50%",
           "crumb": "答题",
+          "scrollY": 0,
+          "navBottom": 61,
+          "wordTop": 379.44244384765625,
+          "wordBottom": 465.03619384765625,
+          "inputBottom": 569.4268188476562,
+          "submitHeight": 48,
+          "submitBottom": 627.4268188476562,
+          "skipBottom": 685.4268188476562,
+          "vh": 900,
           "overflow": -15
+        },
+        "quiz1440Dark": {
+          "width": 760,
+          "fillWidth": "50%",
+          "crumb": "答题",
+          "scrollY": 0,
+          "navBottom": 61,
+          "wordTop": 378.9375,
+          "wordBottom": 464.53125,
+          "inputBottom": 568.921875,
+          "submitHeight": 48,
+          "submitBottom": 626.921875,
+          "skipBottom": 684.921875,
+          "vh": 900,
+          "overflow": -15
+        },
+        "quiz390Light": {
+          "width": 338,
+          "fillWidth": "50%",
+          "crumb": "答题",
+          "scrollY": 0,
+          "navBottom": 108,
+          "wordTop": 407.578125,
+          "wordBottom": 479.578125,
+          "inputBottom": 579.96875,
+          "submitHeight": 48,
+          "submitBottom": 637.96875,
+          "skipBottom": 693.96875,
+          "vh": 844,
+          "overflow": 0
+        },
+        "quiz375Dark": {
+          "width": 323,
+          "fillWidth": "50%",
+          "crumb": "答题",
+          "scrollY": 0,
+          "navBottom": 108,
+          "wordTop": 407.578125,
+          "wordBottom": 479.578125,
+          "inputBottom": 579.96875,
+          "submitHeight": 48,
+          "submitBottom": 637.96875,
+          "skipBottom": 693.96875,
+          "vh": 812,
+          "overflow": 0
         },
         "wrongInfo": {
           "count": 1,
@@ -1042,7 +1096,7 @@
     {
       "name": "m2_finance_borderless_ledger_and_drawer",
       "status": "PASS",
-      "ms": 9000,
+      "ms": 8912,
       "detail": {
         "ledgerCheck": {
           "tabular": "tabular-nums",
@@ -1071,7 +1125,7 @@
     {
       "name": "m3_tools_two_pane_and_split_workbench",
       "status": "PASS",
-      "ms": 2501,
+      "ms": 2453,
       "detail": {
         "twoPane": {
           "railRight": 504,
@@ -1091,7 +1145,7 @@
     {
       "name": "m4_transfer_collapsible_config_and_progress",
       "status": "PASS",
-      "ms": 3419,
+      "ms": 7132,
       "detail": {
         "initialFold": {
           "open": false,
@@ -1109,7 +1163,7 @@
     {
       "name": "m5_admin_flags_capsules_timeline_and_dom_identity",
       "status": "PASS",
-      "ms": 17341,
+      "ms": 19472,
       "detail": {
         "preNodes": {
           "dirCount": 9,
@@ -1130,16 +1184,43 @@
           "sameCb": true,
           "removedCount": 0,
           "auditHasKey": true,
-          "timelineCount": 1,
+          "timelineCount": 2,
           "timelineHasKey": true
         },
-        "mobileOverflow": 0
+        "mobileFlags390": {
+          "count": 10,
+          "minHeight": 45,
+          "pillRightSpread": 0.2713623046875,
+          "listHeight": 224,
+          "formTop": 389.296875,
+          "vh": 844,
+          "overflow": 0
+        },
+        "mobileFlags375": {
+          "count": 10,
+          "minHeight": 44.9815673828125,
+          "pillRightSpread": 0.0657958984375,
+          "listHeight": 224,
+          "formTop": 388.6875,
+          "vh": 812,
+          "overflow": 0
+        },
+        "switchedOn": {
+          "ariaCurrent": "true",
+          "formKey": "i06_long_flag_alignment_d6g1u",
+          "capsuleState": "on"
+        },
+        "switchedOff": {
+          "ariaCurrent": "true",
+          "formKey": "adaptive_learning",
+          "capsuleState": "off"
+        }
       }
     },
     {
       "name": "a11y_p07_off_and_runtime_clean",
       "status": "PASS",
-      "ms": 32899,
+      "ms": 34566,
       "detail": {
         "axeRoutes": 5,
         "p07OffChecked": true
@@ -1180,20 +1261,24 @@
   ],
   "screenshots": [
     "1440-i06-language-quiz-light.png",
+    "390-i06-language-quiz-light.png",
+    "375-i06-language-quiz-dark.png",
     "1440-i06-finance-drawer-light.png",
     "390-i06-finance-sheet-dark.png",
     "1440-i06-tools-twopane-light.png",
     "1440-i06-tools-workbench-light.png",
+    "375-i06-transfer-light.png",
     "1440-i06-transfer-light.png",
     "1440-i06-admin-flags-timeline-light.png",
-    "390-i06-admin-flags-dark.png"
+    "390-i06-admin-flags-dark.png",
+    "375-i06-admin-flags-light.png"
   ],
   "screenshotProvenance": [
     {
       "name": "1440-i06-language-quiz-light.png",
       "width": 1440,
       "height": 900,
-      "sha256": "c330f8d8f98e4e4cbc88321ecef37cbcd171a190c43504df18633e63d5b332f1",
+      "sha256": "d16a0a4e54a5c1f6d947be0529188c8b1ed07d42c400021c32bb7273f6e10237",
       "viewport": {
         "width": 1440,
         "height": 900,
@@ -1205,10 +1290,40 @@
       "pathname": "/language/english"
     },
     {
+      "name": "390-i06-language-quiz-light.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "a33683a0f4e9016b35f2655e96e15b88cd11de3beef39447c1df4dec4623fd56",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "visualWidth": 390,
+        "visualHeight": 844,
+        "scale": 1,
+        "dpr": 1
+      },
+      "pathname": "/language/english"
+    },
+    {
+      "name": "375-i06-language-quiz-dark.png",
+      "width": 375,
+      "height": 812,
+      "sha256": "699e104c3ca07bb13a33a65d5e53bc8f7361a43f0e0bc8c1cebff58b06ed40ac",
+      "viewport": {
+        "width": 375,
+        "height": 812,
+        "visualWidth": 375,
+        "visualHeight": 812,
+        "scale": 1,
+        "dpr": 1
+      },
+      "pathname": "/language/english"
+    },
+    {
       "name": "1440-i06-finance-drawer-light.png",
       "width": 1440,
       "height": 900,
-      "sha256": "7a54bdeb6e648df4ee01258ced5f8d1448f4aed500ef368ec3812da24b1096ef",
+      "sha256": "a907fb1fb04632e359560d9eb55c2ada040659e7e26855479362bb4ef9494635",
       "viewport": {
         "width": 1440,
         "height": 900,
@@ -1223,7 +1338,7 @@
       "name": "390-i06-finance-sheet-dark.png",
       "width": 390,
       "height": 844,
-      "sha256": "876dcf81a4f84944d258f38d840e5b8505a2d92308bd91eb44d5cd602effccad",
+      "sha256": "d2beb92e733558d89470ca6c554a6386c81e78ecdda569fa0df96770109d13ba",
       "viewport": {
         "width": 390,
         "height": 844,
@@ -1253,7 +1368,7 @@
       "name": "1440-i06-tools-workbench-light.png",
       "width": 1440,
       "height": 900,
-      "sha256": "5ea5400c39061aeb43c814608005121c66cced6564abdda462309a574fc4e03a",
+      "sha256": "0424210f6bd334b238077e1115b30a9edb7ac4934ffc457d9cb6cc622c52b9d5",
       "viewport": {
         "width": 1440,
         "height": 900,
@@ -1265,10 +1380,25 @@
       "pathname": "/tools/letter-case"
     },
     {
+      "name": "375-i06-transfer-light.png",
+      "width": 375,
+      "height": 812,
+      "sha256": "d68c760b8bb2bfa4d19972000c46a1a6f3381be6ee6639bb2e54b580f080be0f",
+      "viewport": {
+        "width": 375,
+        "height": 812,
+        "visualWidth": 375,
+        "visualHeight": 812,
+        "scale": 1,
+        "dpr": 1
+      },
+      "pathname": "/transfer"
+    },
+    {
       "name": "1440-i06-transfer-light.png",
       "width": 1440,
       "height": 900,
-      "sha256": "f904533a8fbc8fb216e50ab803cf045f6994eb29f707c3001b0afa123d188e89",
+      "sha256": "e247b7f039b3d4d25a0cb49f34533188a6797aee3e992791657a9b371544810a",
       "viewport": {
         "width": 1440,
         "height": 900,
@@ -1283,7 +1413,7 @@
       "name": "1440-i06-admin-flags-timeline-light.png",
       "width": 1440,
       "height": 900,
-      "sha256": "5bb520d019f172c704be3ead24a3ead7b802dc33605f30020adf0be6cde154aa",
+      "sha256": "cd59fbfd3fa8f52ec05c3b39cf09b7c292cba46e7a5080b5c92b65826aa98cf4",
       "viewport": {
         "width": 1440,
         "height": 900,
@@ -1298,12 +1428,27 @@
       "name": "390-i06-admin-flags-dark.png",
       "width": 390,
       "height": 844,
-      "sha256": "3b20a13eb0121e2b3046f0ba8c2bc3fbc92401e11bd75c5638b6792059dec136",
+      "sha256": "814e004a9decd13b4e80d66205f07930bd67379a01c875e3c467adc5715a4536",
       "viewport": {
         "width": 390,
         "height": 844,
         "visualWidth": 390,
         "visualHeight": 844,
+        "scale": 1,
+        "dpr": 1
+      },
+      "pathname": "/admin"
+    },
+    {
+      "name": "375-i06-admin-flags-light.png",
+      "width": 375,
+      "height": 812,
+      "sha256": "b31e443afbc5d10ba25966ac329eeebb2f747d6bcafa48d80a57ee8521262260",
+      "viewport": {
+        "width": 375,
+        "height": 812,
+        "visualWidth": 375,
+        "visualHeight": 812,
         "scale": 1,
         "dpr": 1
       },

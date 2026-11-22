@@ -1,8 +1,8 @@
 {
   "status": "PASS",
   "mode": "source-only",
-  "previewUrl": "https://i06-module-experience.thewyj-i06-preview.pages.dev",
-  "headCommit": "872a70b07cb6f9cec168f94d95a2d2063b83e43e",
+  "previewUrl": "https://55ee200c.thewyj-i06-preview.pages.dev",
+  "headCommit": "2550b14a6edf8d27922a4212233229f0ebf1f1e1",
   "verifiedAssets": [
     {
       "assetPath": "design-system.css",
@@ -11,13 +11,13 @@
     },
     {
       "assetPath": "spatial-experience.css",
-      "sha256": "5ab2fa5649b58b6d995077548e8b6a09944a0ff1f33925a7adaa0fbc75a02667",
-      "bytes": 183165
+      "sha256": "75b0a2b76ea8cdf01d3ddb68cd8455aff33ef4102229efb3b9a96d78a76516e7",
+      "bytes": 188736
     },
     {
       "assetPath": "app.js",
-      "sha256": "462fa3245eb25f0202c45572cdcf8f807010643c6b9a18988c88603b29595e29",
-      "bytes": 380005
+      "sha256": "dc02dbdd8ceddc8632a450be27bde212eff09097d2fb8847f2fcc0883d4b5ee1",
+      "bytes": 380358
     },
     {
       "assetPath": "tools.js",
