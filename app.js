@@ -47,10 +47,10 @@ import {
 } from "./js/core/session.js?release=20261121-aeris-i05-preview";
 import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?release=20261121-aeris-i05-preview";
 import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?release=20261121-aeris-i05-preview";
-import { initDesignSystem, setExperienceMode, setInterfaceEnhancementsEnabled, dialogFocusTargets, focusDialog, workspaceRouteMeta, syncWorkspaceShell } from "./js/core/design-system.js?release=20261121-aeris-i05-preview";
+import { initDesignSystem, setExperienceMode, setInterfaceEnhancementsEnabled, dialogFocusTargets, focusDialog, workspaceRouteMeta, syncWorkspaceShell, syncSystemNoticeLayout } from "./js/core/design-system.js?release=20261121-aeris-i05-preview";
 import { createPublicUiPolicyController } from "./js/core/public-ui-policy.js?release=20261121-aeris-i05-preview";
 import { completeStartupSplash, canPresentWorkspace, waitForPresentation } from "./js/core/startup.js?release=20261121-aeris-i05-preview";
-import { installMotionSystem, motionDuration, prefersReducedMotion, attachSheetAdapter, syncModalScrollLock, showToast } from "./js/core/motion.js?release=20261121-aeris-i05-preview";
+import { installMotionSystem, motionDuration, prefersReducedMotion, attachSheetAdapter, syncModalScrollLock, setControlFeedbackState, getSharedToastManager, showToast, dismissToastByKey, invalidateToastContext } from "./js/core/motion.js?release=20261121-aeris-i05-preview";
 import { initPublicExperience, renderPublicPlanCatalog } from "./js/core/public-experience.js?release=20261121-aeris-i05-preview";
 import { createAndroidDownloadController } from "./js/core/download.js?release=20261121-aeris-i05-preview";
 import { createFeatureController } from "./js/core/feature-flags.js?release=20261121-aeris-i05-preview";
@@ -310,6 +310,7 @@ let adminMessageTargetSearchSequence = 0;
 let adminRoleUserSearchTimer = null;
 let adminRoleUserSearchSequence = 0;
 let confirmAction = null;
+let confirmErrorTarget = null;
 let pendingSiteMessages = [];
 let activeSiteMessage = null;
 let siteMessageLoadPromise = null;
@@ -328,6 +329,7 @@ let startupMounted = false;
 let startupRevealed = false;
 let authTransitionSequence = 0;
 let backendRecoveryTimer = null;
+let hadNetworkDisconnectToast = false;
 let achievementFilter = "all";
 let achievementToastTimer = null;
 let achievementToastHideTimer = null;
@@ -368,6 +370,7 @@ const { pushRoute } = createRouter({
   onRouteChange: () => {
     routeGeneration += 1;
     pendingOutgoingScroll = null;
+    invalidateToastContext({ includeErrors: false }, document);
     renderAccountUi();
   },
   getScrollPosition: () => {
@@ -1202,17 +1205,37 @@ function schedulePendingSiteMessages() {
   window.setTimeout(() => { void loadPendingSiteMessages(); }, 0);
 }
 
+function setInlineFeedback(target, feedbackState = "idle", text = "") {
+  const el = typeof target === "string" ? $(target) : target;
+  if (!el) return;
+  const cleanText = String(text || "");
+  el.textContent = cleanText;
+  if (el.dataset) el.dataset.feedbackState = cleanText ? feedbackState : "idle";
+  el.classList?.toggle("is-pending", feedbackState === "pending" && Boolean(cleanText));
+  el.classList?.toggle("is-success", feedbackState === "success" && Boolean(cleanText));
+  el.classList?.toggle("is-info", feedbackState === "info" && Boolean(cleanText));
+  if (el.id === "accountMessage" || el.id === "adminEditMessage" || el.id === "adminError" || el.id === "siteMessageError") {
+    el.classList?.toggle("error", feedbackState === "error" || feedbackState === "idle");
+  }
+}
+
 function renderSiteMessageSaveStatus() {
   const notice = $('siteMessageSaveStatus');
   if (!notice) return;
   const failures = [...siteMessagePendingDismissals.values()].filter(item => item.status === 'failed');
   const saving = [...siteMessagePendingDismissals.values()].some(item => item.status === 'saving');
   notice.classList.toggle('hidden', !siteMessagePendingDismissals.size);
+  if (notice.dataset) {
+    notice.dataset.feedbackState = failures.length ? 'error' : saving ? 'pending' : 'idle';
+  }
   $('siteMessageSaveText').textContent = failures.length
     ? `通知已在本页收起，但 ${failures.length} 条关闭状态未保存，刷新后可能再次显示。${failures[0].error}`
     : '通知已收起，正在保存关闭状态…';
-  $('siteMessageRetryBtn').classList.toggle('hidden', !failures.length);
-  $('siteMessageRetryBtn').disabled = saving;
+  const retryBtn = $('siteMessageRetryBtn');
+  retryBtn.classList.toggle('hidden', !failures.length);
+  retryBtn.disabled = saving;
+  setControlFeedbackState(retryBtn, saving ? 'pending' : failures.length ? 'error' : 'idle');
+  syncSystemNoticeLayout(document);
 }
 
 async function saveSiteMessageDismissal(messageId, owner = siteMessageOwner()) {
@@ -1256,20 +1279,27 @@ async function acknowledgeActiveSiteMessage() {
   const owner = siteMessageOwner();
   const button = $("siteMessageAcknowledgeBtn");
   button.disabled = true;
-  $("siteMessageError").textContent = "";
+  setControlFeedbackState(button, "pending");
+  setInlineFeedback("siteMessageError", "idle", "");
   try {
     await api("/api/messages/receipt", { message_id: message.id, action: "acknowledge" });
     if (owner !== siteMessageOwner()) return;
     siteMessageSessionDismissed.add(message.id);
+    setControlFeedbackState(button, "success");
     if (activeSiteMessage === message) {
       activeSiteMessage = null;
       closeModal("siteMessageModal", true);
     }
     window.setTimeout(showNextSiteMessage, 0);
   } catch (error) {
-    if (owner === siteMessageOwner() && activeSiteMessage === message) $("siteMessageError").textContent = `确认失败：${error.message}`;
+    if (owner === siteMessageOwner() && activeSiteMessage === message) {
+      const cancelled = error?.message === "操作已取消";
+      setControlFeedbackState(button, cancelled ? "idle" : "error");
+      setInlineFeedback("siteMessageError", cancelled ? "info" : "error", cancelled ? "已取消确认，消息状态保持未读。" : `确认失败：${error.message}`);
+    }
   } finally {
     button.disabled = false;
+    if (button.getAttribute("aria-busy") === "true") setControlFeedbackState(button, "idle");
   }
 }
 
@@ -1590,12 +1620,14 @@ function maybeShowVersionNotice() {
   $("versionNoticeTitle").textContent = `已更新至 v${latest.version}`;
   $("versionNoticeMessage").textContent = latest.title;
   notice.classList.remove("hidden");
+  syncSystemNoticeLayout(document);
 }
 
 function dismissVersionNotice() {
   const latest = latestChangelog();
   if (latest) safeStorageSet(localStorage, CHANGELOG_SEEN_KEY, latest.build);
   $("versionNotice")?.classList.add("hidden");
+  syncSystemNoticeLayout(document);
 }
 
 function renderDashboard() { dashboardView?.render(); }
@@ -1751,6 +1783,7 @@ function syncShellInteractivity() {
   if (appShell) appShell.inert = hasBlockingModal;
   const frame = $("v3AppFrame");
   if (frame) frame.inert = authTransitionActive || hasBlockingModal;
+  syncSystemNoticeLayout(document);
   return { authTransitionActive, hasBlockingModal, blockingModals };
 }
 
@@ -2501,11 +2534,14 @@ async function changeOwnSecret(event) {
   const newSecret = $("newSecretInput").value;
   const confirmation = $("newSecretConfirmInput").value;
   if (newSecret !== confirmation) {
-    message.textContent = "两次输入的新密码不一致";
+    setInlineFeedback(message, "error", "两次输入的新密码不一致");
+    setControlFeedbackState(button, "error");
     $("newSecretConfirmInput").focus();
     return;
   }
   button.disabled = true;
+  setControlFeedbackState(button, "pending");
+  setInlineFeedback(message, "pending", "正在验证并修改登录密码…");
   try {
     const securityProof=await task27Ui.isSupported()?{grant:await task27Ui.stepup('password_change',$("currentSecretInput").value)}:{current_secret:$("currentSecretInput").value};
     await api("/api/account/secret", {
@@ -2513,16 +2549,24 @@ async function changeOwnSecret(event) {
       new_secret: newSecret,
       confirm_secret: confirmation,
     });
-    message.textContent = "密码已修改，请使用新密码重新登录";
+    setControlFeedbackState(button, "success");
+    setInlineFeedback(message, "success", "密码已修改，请使用新密码重新登录");
     window.setTimeout(() => {
       closeModal("accountModal", true);
       clearSession();
       showAuth("密码已修改，请重新登录");
     }, 700);
   } catch (error) {
-    message.textContent = error.message;
+    const cancelled = error?.message === "操作已取消";
+    setControlFeedbackState(button, cancelled ? "idle" : "error");
+    setInlineFeedback(
+      message,
+      cancelled ? "info" : "error",
+      cancelled ? "已取消身份验证，登录密码未修改（已保留输入内容）。" : (error.message || "修改失败，请重试"),
+    );
   } finally {
     button.disabled = false;
+    if (button.getAttribute("aria-busy") === "true") setControlFeedbackState(button, "idle");
   }
 }
 
@@ -2624,11 +2668,11 @@ function generateAdminSecretForEditor() {
     input.value = generateSecureSecret();
     clearAdminSecretResult();
     setAdminSecretVisibility(true);
-    $("adminEditMessage").textContent = "已生成安全密码；保存后请把它交给该用户。";
+    setInlineFeedback("adminEditMessage", "info", "已生成安全密码；保存后请把它交给该用户。");
     input.focus();
     input.select();
   } catch (error) {
-    $("adminEditMessage").textContent = error.message;
+    setInlineFeedback("adminEditMessage", "error", error.message);
   }
 }
 
@@ -2651,6 +2695,8 @@ function clearOwnSecretEditor() {
   });
   setSecretFieldsVisibility(["currentSecretInput"], "toggleCurrentSecretBtn", false);
   setSecretFieldsVisibility(["newSecretInput", "newSecretConfirmInput"], "toggleNewSecretBtn", false);
+  setInlineFeedback("accountMessage", "idle", "");
+  setControlFeedbackState($("changeSecretForm")?.querySelector('button[type="submit"]'), "idle");
 }
 
 function generateOwnSecret() {
@@ -2660,11 +2706,11 @@ function generateOwnSecret() {
     $('newSecretInput').dispatchEvent(new Event('input',{bubbles:true}));
     $("newSecretConfirmInput").value = secret;
     setSecretFieldsVisibility(["newSecretInput", "newSecretConfirmInput"], "toggleNewSecretBtn", true);
-    $("accountMessage").textContent = "已生成安全密码；保存前请确认你已记住或安全保存。";
+    setInlineFeedback("accountMessage", "info", "已生成安全密码；保存前请确认你已记住或安全保存。");
     $("newSecretInput").focus();
     $("newSecretInput").select();
   } catch (error) {
-    $("accountMessage").textContent = error.message;
+    setInlineFeedback("accountMessage", "error", error.message);
   }
 }
 
@@ -2968,21 +3014,26 @@ async function sendAdminMessage(event) {
   askConfirmation(`确认向${targetDescription}发送“${payload.title}”？发送后只能撤回，不能修改。`, async () => {
     const button = $("sendAdminMessageBtn");
     button.disabled = true;
-    $("adminMessageFormStatus").textContent = "正在发送…";
+    setControlFeedbackState(button, "pending");
+    setInlineFeedback("adminMessageFormStatus", "pending", "正在发送站内消息…");
     try {
       await api("/api/admin/messages", payload);
       $("adminMessageForm").reset();
       $("adminMessageScope").value = "single";
       adminMessageSelectedUserIds.clear();
       renderAdminMessageTargets();
-      $("adminMessageFormStatus").textContent = "站内消息已发送";
+      setControlFeedbackState(button, "success");
+      setInlineFeedback("adminMessageFormStatus", "success", "站内消息已发送");
       await loadAdminData();
     } catch (error) {
-      $("adminMessageFormStatus").textContent = error.message;
+      const cancelled = error?.message === "操作已取消";
+      setControlFeedbackState(button, cancelled ? "idle" : "error");
+      setInlineFeedback("adminMessageFormStatus", cancelled ? "info" : "error", cancelled ? "已取消身份验证，站内消息未发送。" : error.message);
     } finally {
       button.disabled = false;
+      if (button.getAttribute("aria-busy") === "true") setControlFeedbackState(button, "idle");
     }
-  });
+  }, { errorTarget: $("adminMessageFormStatus") });
 }
 
 function renderAdminRoles(data = null) {
@@ -3319,7 +3370,7 @@ function openAdminEditor(userId) {
   $("adminPreserveJapanese").checked = false;
   clearAdminSecretEditor();
   $("adminToggleBanBtn").textContent = user.banned ? "解除封禁" : "永久封禁";
-  $("adminEditMessage").textContent = "";
+  setInlineFeedback("adminEditMessage", "idle", "");
   renderAdminCurrentMemberships(user);
   updateAdminMembershipFields(false);
   openModal("adminEditModal");
@@ -3335,6 +3386,8 @@ async function saveAdminMembership() {
   const actionLabel = { grant: "开通或覆盖", extend: "续期", cancel: "取消所选会员", cancel_all: "降级为普通用户" }[action] || action;
   askConfirmation(`确认对“${user?.username || userId}”执行“${actionLabel}”？`, async () => {
     button.disabled = true;
+    setControlFeedbackState(button, "pending");
+    setInlineFeedback("adminEditMessage", "pending", "正在保存会员设置…");
     try {
       const data = await api("/api/admin/membership/manage", {
         user_id: userId,
@@ -3349,13 +3402,17 @@ async function saveAdminMembership() {
       await loadAdminData();
       const refreshed = adminUserById(userId) || data.user;
       renderAdminCurrentMemberships(refreshed);
-      $("adminEditMessage").textContent = "会员设置已保存并立即生效";
+      setControlFeedbackState(button, "success");
+      setInlineFeedback("adminEditMessage", "success", "会员设置已保存并立即生效");
     } catch (error) {
-      $("adminEditMessage").textContent = error.message;
+      const cancelled = error?.message === "操作已取消";
+      setControlFeedbackState(button, cancelled ? "idle" : "error");
+      setInlineFeedback("adminEditMessage", cancelled ? "info" : "error", cancelled ? "已取消身份验证，会员设置未变更。" : error.message);
     } finally {
       button.disabled = false;
+      if (button.getAttribute("aria-busy") === "true") setControlFeedbackState(button, "idle");
     }
-  });
+  }, { errorTarget: $("adminEditMessage") });
 }
 
 function updateAdminToolsOverride(allowed) {
@@ -3365,6 +3422,7 @@ function updateAdminToolsOverride(allowed) {
     ? `确认仅取消“${user?.username || userId}”的在线工具箱权限？语言会员不会受影响。`
     : `确认移除“${user?.username || userId}”的工具权限覆盖，并恢复按会员方案计算？`;
   askConfirmation(message, async () => {
+    setInlineFeedback("adminEditMessage", "pending", "正在更新工具权限覆盖…");
     await api("/api/admin/entitlement", {
       user_id: userId,
       entitlement: "tools_access",
@@ -3373,14 +3431,14 @@ function updateAdminToolsOverride(allowed) {
     });
     await loadAdminData();
     renderAdminCurrentMemberships(adminUserById(userId));
-    $("adminEditMessage").textContent = allowed === false ? "已单独取消工具权限" : "已恢复按会员方案计算工具权限";
-  });
+    setInlineFeedback("adminEditMessage", "success", allowed === false ? "已单独取消工具权限" : "已恢复按会员方案计算工具权限");
+  }, { errorTarget: $("adminEditMessage") });
 }
 
 async function saveAdminSecret() {
   const supported=await task27Ui.isSupported();
   const legacySecret=$('adminNewSecretInput').value;
-  if(!supported&&!legacySecret){$('adminEditMessage').textContent='请先输入或生成新的登录密码';return;}
+  if(!supported&&!legacySecret){setInlineFeedback('adminEditMessage', 'error', '请先输入或生成新的登录密码');return;}
   const saveButton = $("saveAdminSecretBtn");
   const generateButton = $("generateAdminSecretBtn");
   const userId = $("adminEditUserId").value;
@@ -3388,6 +3446,8 @@ async function saveAdminSecret() {
   askConfirmation(`确认重置“${user?.username || userId}”的登录密码并退出其全部会话？`, async () => {
     saveButton.disabled = true;
     generateButton.disabled = true;
+    setControlFeedbackState(saveButton, "pending");
+    setInlineFeedback("adminEditMessage", "pending", "正在重置登录密码…");
     try {
       const result = await api("/api/admin/secret", { user_id: userId, ...(supported?{grant:await task27Ui.stepup(`admin_reset:${userId}`)}:{secret:legacySecret}) });
       await loadAdminData();
@@ -3395,29 +3455,45 @@ async function saveAdminSecret() {
       setAdminSecretVisibility(false);
       $("adminSecretResultValue").textContent = supported?result.temporary_password:legacySecret;
       $("adminSecretResult").classList.remove("hidden");
-      $("adminEditMessage").textContent = supported?"已生成随机 20 位临时密码，仅本次显示。旧会话已撤销，原 MFA 保留，用户须在首次登录时设置新密码。":"密码已修改，旧密码和旧会话均已失效。请立即复制新密码。";
+      setControlFeedbackState(saveButton, "success");
+      setInlineFeedback("adminEditMessage", "success", supported?"已生成随机 20 位临时密码，仅本次显示。旧会话已撤销，原 MFA 保留，用户须在首次登录时设置新密码。":"密码已修改，旧密码和旧会话均已失效。请立即复制新密码。");
+    } catch (error) {
+      const cancelled = error?.message === "操作已取消";
+      setControlFeedbackState(saveButton, cancelled ? "idle" : "error");
+      setInlineFeedback("adminEditMessage", cancelled ? "info" : "error", cancelled ? "已取消身份验证，用户密码未重置。" : error.message);
     } finally {
       saveButton.disabled = false;
       generateButton.disabled = false;
+      if (saveButton.getAttribute("aria-busy") === "true") setControlFeedbackState(saveButton, "idle");
     }
-  });
+  }, { errorTarget: $("adminEditMessage") });
 }
 
-function askConfirmation(message, action) {
+function askConfirmation(message, action, options = {}) {
   $("confirmMessage").textContent = message;
   confirmAction = action;
+  confirmErrorTarget = options.errorTarget || null;
   openModal("confirmModal");
 }
 
 async function runConfirmedAction() {
   const action = confirmAction;
+  const target = confirmErrorTarget;
   confirmAction = null;
+  confirmErrorTarget = null;
   $("acceptConfirmBtn").disabled = true;
   try {
     closeModal("confirmModal");
     if (action) await action();
   } catch (error) {
-    $("adminEditMessage").textContent = error.message;
+    const cancelled = error?.message === "操作已取消";
+    const resolvedTarget = target
+      || ($("adminEditModal") && !$("adminEditModal").classList.contains("hidden") ? $("adminEditMessage") : $("adminError"));
+    if (resolvedTarget) {
+      setInlineFeedback(resolvedTarget, cancelled ? "info" : "error", cancelled ? "已取消操作，未保存任何更改。" : error.message);
+    } else {
+      showToast({ tone: cancelled ? "info" : "error", message: error.message || "操作未完成" }, {}, document);
+    }
   } finally {
     $("acceptConfirmBtn").disabled = false;
   }
@@ -3428,16 +3504,18 @@ function adminUserAction(kind) {
   const user = adminUserById(userId);
   if (!user || user.is_admin || (!isSuperAdmin() && user.id === state.account?.id)) return;
   const configs = {
-    ban: [user.banned ? "确认解除该用户的永久封禁？" : "确认永久封禁该用户并立即退出其所有会话？", "/api/admin/ban", { user_id: userId, banned: !user.banned }],
-    logout: ["确认强制退出该用户的全部登录会话？", "/api/admin/logout-user", { user_id: userId }],
-    delete: ["确认删除该用户、会员资格、充值申请和全部会话？此操作不可恢复。", "/api/admin/delete-user", { user_id: userId }],
+    ban: [user.banned ? "确认解除该用户的永久封禁？" : "确认永久封禁该用户并立即退出其所有会话？", "/api/admin/ban", { user_id: userId, banned: !user.banned }, user.banned ? "已解除封禁" : "已永久封禁用户并撤回会话"],
+    logout: ["确认强制退出该用户的全部登录会话？", "/api/admin/logout-user", { user_id: userId }, "已强制退出该用户全部会话"],
+    delete: ["确认删除该用户、会员资格、充值申请和全部会话？此操作不可恢复。", "/api/admin/delete-user", { user_id: userId }, "已删除用户及关联数据"],
   };
-  const [message, path, payload] = configs[kind];
+  const [message, path, payload, doneMessage] = configs[kind];
   askConfirmation(message, async () => {
+    setInlineFeedback("adminEditMessage", "pending", "正在提交账户操作…");
     await api(path, payload);
     await loadAdminData();
     closeModal("adminEditModal");
-  });
+    setInlineFeedback("adminError", "success", doneMessage);
+  }, { errorTarget: $("adminEditMessage") });
 }
 
 function wordDraftKey(language = state.quizLanguage, profile = state.profile) {
@@ -4944,9 +5022,20 @@ function unlockAchievement(id) {
   renderAchievements();
 }
 
-function showAchievementToast(message) {
+function showAchievementToast(message, options = {}) {
   if (document.documentElement.dataset.p07Ui === "enabled") {
-    showToast({ tone: "success", message, dedupeKey: `achievement:${message}` }, {}, document);
+    const tone = options.tone || "success";
+    showToast({
+      tone,
+      message,
+      dedupeKey: options.dedupeKey || `${tone}:${message}`,
+      scoped: options.scoped !== false,
+      contextToken: options.contextToken,
+      actionLabel: options.actionLabel,
+      onAction: options.onAction,
+      sticky: options.sticky,
+      duration: options.duration,
+    }, {}, document);
     return;
   }
   const toast = $("achievementToast");
@@ -7594,10 +7683,20 @@ async function login(event) {
 
 async function performBackendRefresh() {
   const owner = state.session;
+  const wasDisconnected = !backendAvailable;
   try {
     const data = await checkBackendStatus();
     if (owner !== state.session) return;
     applyBackendStatus(data);
+    if (wasDisconnected && backendAvailable && hadNetworkDisconnectToast && document.documentElement.dataset.bootState === "ready") {
+      hadNetworkDisconnectToast = false;
+      dismissToastByKey("network:connectivity", document);
+      showAchievementToast("网络连接已恢复，正在同步状态", {
+        tone: "info",
+        dedupeKey: "network:recovered",
+        scoped: false,
+      });
+    }
 
     if (owner) {
       const healthResponse = await fetchWithTimeout(
@@ -7688,6 +7787,14 @@ function markBackendDisconnected(message = "设备当前没有网络连接，联
   if ($("modelLabel")) $("modelLabel").textContent = "离线模式";
   $("statusDot")?.classList.remove("online");
   renderDashboard();
+  if (document.documentElement.dataset.bootState === "ready" && document.documentElement.dataset.p07Ui === "enabled") {
+    hadNetworkDisconnectToast = true;
+    showAchievementToast("网络已断开，当前处于离线只读保护", {
+      tone: "warning",
+      dedupeKey: "network:connectivity",
+      scoped: false,
+    });
+  }
 }
 
 function scheduleBackendRecovery(baseDelayMs = 250) {
@@ -8224,6 +8331,7 @@ async function boot() {
   });
   window.addEventListener("popstate", (event) => {
     pendingOutgoingScroll = null;
+    invalidateToastContext({ includeErrors: false }, document);
     const hasSaved = Boolean(event?.state && Number.isFinite(event.state.scrollY));
     pendingPopScroll = hasSaved ? event.state : null;
     pendingPopReset = !hasSaved;

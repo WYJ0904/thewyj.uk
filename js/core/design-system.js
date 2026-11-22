@@ -22,6 +22,51 @@ export function setInterfaceEnhancementsEnabled(enabled) {
   return interfaceEnhancementsEnabled;
 }
 
+export function syncSystemNoticeLayout(doc = globalThis.document) {
+  if (!doc?.documentElement) return;
+  const root = doc.documentElement;
+  const view = doc.defaultView || globalThis.window;
+  const viewport = view?.visualViewport;
+  const innerH = Number(view?.innerHeight) || 0;
+  const innerW = Number(view?.innerWidth) || 0;
+  const vpH = Number(viewport?.height) || innerH;
+  const vpTop = Number(viewport?.offsetTop) || 0;
+  const kbInset = innerH > 0 ? Math.max(0, Math.round(innerH - (vpH + vpTop))) : 0;
+  root.style.setProperty("--ds-hud-keyboard-inset", `${kbInset}px`);
+
+  const saveEl = doc.getElementById("siteMessageSaveStatus");
+  let saveOffset = 0;
+  if (saveEl && !saveEl.classList?.contains("hidden") && !saveEl.hidden) {
+    const style = view?.getComputedStyle?.(saveEl);
+    if (!style || style.position === "fixed") {
+      const h = Math.ceil(saveEl.getBoundingClientRect?.().height || 0);
+      if (h > 0) saveOffset = h + 10;
+    }
+  }
+  root.style.setProperty("--ds-hud-save-offset", `${saveOffset}px`);
+
+  const verEl = doc.getElementById("versionNotice");
+  let versionOffset = 0;
+  if (verEl && !verEl.classList?.contains("hidden") && !verEl.hidden) {
+    const style = view?.getComputedStyle?.(verEl);
+    if (!style || style.position === "fixed") {
+      const h = Math.ceil(verEl.getBoundingClientRect?.().height || 0);
+      if (h > 0) versionOffset = h + 10;
+    }
+  }
+  root.style.setProperty("--ds-hud-version-offset", `${versionOffset}px`);
+
+  const financeModal = doc.getElementById("financeTransactionModal");
+  const rightDrawerOpen = Boolean(
+    financeModal
+    && !financeModal.classList?.contains("hidden")
+    && financeModal.getAttribute?.("aria-hidden") !== "true"
+    && innerW > 760,
+  );
+  if (rightDrawerOpen) root.dataset.rightDrawerOpen = "true";
+  else delete root.dataset.rightDrawerOpen;
+}
+
 function setupOverlayViewport() {
   // Keep every modal outside page stacking contexts and the inert main shell.
   document.querySelectorAll(".modal-layer").forEach((layer) => document.body.append(layer));
@@ -36,6 +81,7 @@ function setupOverlayViewport() {
     // Reflow the decorative widget composition when the user enlarges text.
     // The default 16px appearance is unchanged; the user's font size is retained.
     document.documentElement.dataset.largeText = String(parseFloat(getComputedStyle(document.documentElement).fontSize) > 20);
+    syncSystemNoticeLayout(document);
   };
   let frame = 0;
   const schedule = () => {
@@ -47,7 +93,20 @@ function setupOverlayViewport() {
   window.visualViewport?.addEventListener("resize", schedule, { passive: true });
   window.visualViewport?.addEventListener("scroll", schedule, { passive: true });
   const navigation = document.getElementById("accountBar");
-  if (navigation && typeof ResizeObserver === "function") new ResizeObserver(schedule).observe(navigation);
+  const resizeObserver = typeof ResizeObserver === "function" ? new ResizeObserver(schedule) : null;
+  if (navigation && resizeObserver) resizeObserver.observe(navigation);
+  const verEl = document.getElementById("versionNotice");
+  const saveEl = document.getElementById("siteMessageSaveStatus");
+  if (resizeObserver) {
+    if (verEl) resizeObserver.observe(verEl);
+    if (saveEl) resizeObserver.observe(saveEl);
+  }
+  if (typeof MutationObserver === "function") {
+    const obs = new MutationObserver(schedule);
+    [verEl, saveEl, document.getElementById("financeTransactionModal")].filter(Boolean).forEach((el) => {
+      obs.observe(el, { attributes: true, attributeFilter: ["class", "hidden", "aria-hidden"] });
+    });
+  }
 }
 
 /** Use the same focusable set for dialog entry, nested dialogs and Tab wrapping. */

@@ -1,0 +1,30 @@
+{
+  "buildJson": {
+    "schema_version": 1,
+    "environment": "isolated-preview",
+    "stage": "I09-system-feedback",
+    "source_commit": "bc13f316b30284fb77b6c35e562b6d3c8e9a1dfd",
+    "project_name": "thewyj-i09-preview",
+    "branch": "i09-system-feedback",
+    "remote_check": {
+      "verified": true,
+      "project": "thewyj-i09-preview",
+      "branch": "i09-system-feedback",
+      "productionBranch": "release-held",
+      "targetD1Id": "f664066f-9abb-45fc-b1fa-913bc65da0af",
+      "targetD1Name": "aeris-i09-preview",
+      "priorPreviewD1Id": "f664066f-9abb-45fc-b1fa-913bc65da0af",
+      "priorPreviewR2": [],
+      "targetR2Count": 0,
+      "targetAiCount": 0,
+      "bindingConsistent": true
+    },
+    "file_count": 205,
+    "artifact_tree_sha256": "3a2c21f0affbf079ae3022dd104e92945e1e4d68cd7d6fe0cbdca0e8f2a665f8"
+  },
+  "deployResult": {
+    "deployedUrl": "https://0aa7efff.thewyj-i09-preview.pages.dev",
+    "aliasUrl": "https://i09-system-feedback.thewyj-i09-preview.pages.dev",
+    "deploymentId": "0aa7efff-b091-4639-8f32-9335debe2983"
+  }
+}

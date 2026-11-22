@@ -1,0 +1,159 @@
+{
+  "scope": "Isolated local Miniflare D1/R2 + headless Chrome CDP (I09 System Notifications & Interaction Feedback)",
+  "gitSha": "c429fb949a997a8f2f223b31787a13dcff46061b",
+  "gitBranch": "hydrogen/i09-system-feedback",
+  "worktreeDirty": false,
+  "checkedAt": "2026-11-22T12:37:59.374Z",
+  "scenarios": [
+    {
+      "name": "i09_hud_layering_and_coexistence",
+      "status": "PASS",
+      "ms": 5024,
+      "detail": {
+        "w1440": {
+          "overflow": -15,
+          "overlaps": {
+            "verSave": false,
+            "verToast": false,
+            "saveToast": false,
+            "toastNav": false,
+            "verNav": false
+          }
+        },
+        "w1024": {
+          "overflow": -15,
+          "overlaps": {
+            "verSave": false,
+            "verToast": false,
+            "saveToast": false,
+            "toastNav": false,
+            "verNav": false
+          }
+        },
+        "w768": {
+          "overflow": -15,
+          "overlaps": {
+            "verSave": false,
+            "verToast": false,
+            "saveToast": false,
+            "toastNav": false,
+            "verNav": false
+          }
+        },
+        "w390": {
+          "overflow": 0,
+          "overlaps": {
+            "verSave": false,
+            "verToast": false,
+            "saveToast": false,
+            "toastNav": false,
+            "verNav": false
+          }
+        },
+        "w375": {
+          "overflow": 0,
+          "overlaps": {
+            "verSave": false,
+            "verToast": false,
+            "saveToast": false,
+            "toastNav": false,
+            "verNav": false
+          }
+        }
+      }
+    },
+    {
+      "name": "i09_modal_and_finance_drawer_coexistence",
+      "status": "PASS",
+      "ms": 25258,
+      "detail": {
+        "drawerMetrics": {
+          "rightDrawerAttr": "true",
+          "overlap": false,
+          "toastLeftOfDrawer": true,
+          "toastZ": 9010,
+          "modalZ": 9001,
+          "scrollOverflow": -15
+        },
+        "sheetMetrics": {
+          "overlap": false,
+          "toastTop": 12,
+          "panelTop": 97.55205535888672,
+          "scrollOverflow": 0
+        }
+      }
+    },
+    {
+      "name": "i09_toast_lifecycle_and_account_feedback",
+      "status": "PASS",
+      "ms": 11379,
+      "detail": {
+        "staleAndFocus": {
+          "staleId": null,
+          "liveId": "toast-1",
+          "activeId": "releaseChannelSelect"
+        },
+        "pwdMismatch": {
+          "state": "error",
+          "text": "两次输入的新密码不一致",
+          "preservedNew": "NewValidPass!2026"
+        },
+        "afterFail": {
+          "selected": "beta",
+          "btnDisabled": false,
+          "btnFeedback": "error",
+          "statusText": "体验配置服务暂时不可用（503），请重试。"
+        }
+      }
+    },
+    {
+      "name": "i09_admin_kill_switch_server_vs_draft_and_p07_off",
+      "status": "PASS",
+      "ms": 21346,
+      "detail": {
+        "pendingEnable": {
+          "mode": "pending-enable",
+          "visible": true,
+          "dirty": "true"
+        },
+        "pendingClear": {
+          "mode": "pending-clear",
+          "visible": true,
+          "capsuleText": "紧急关闭生效中 · 待保存"
+        },
+        "offCheck": {
+          "p07": "disabled",
+          "overflow": -15,
+          "chevDisplay": "none"
+        }
+      }
+    }
+  ],
+  "axeScans": [
+    {
+      "label": "i09-hud-coexistence-1440-light",
+      "violationCount": 0,
+      "passes": 45
+    },
+    {
+      "label": "i09-finance-drawer-toast-dark",
+      "violationCount": 0,
+      "passes": 37
+    },
+    {
+      "label": "i09-admin-kill-switch-pending-clear-light",
+      "violationCount": 0,
+      "passes": 49
+    }
+  ],
+  "screenshots": [
+    "1440-i09-hud-stack-light.png",
+    "390-i09-hud-stack-light.png",
+    "1440-i09-finance-drawer-toast-dark.png",
+    "375-i09-mobile-sheet-toast-dark.png",
+    "1440-i09-admin-kill-switch-warning-light.png"
+  ],
+  "apiErrors": [],
+  "runtimeErrors": [],
+  "status": "PASS"
+}
