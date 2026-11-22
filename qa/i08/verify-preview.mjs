@@ -318,8 +318,8 @@ try {
   await userPage.waitFor("Boolean(document.querySelector('#loginForm'))", 20_000);
   await userPage.setFields({ "#usernameInput": normalUser, "#secretInput": normalPass });
   await pointerClick("#loginSubmitBtn", userPage);
-  await userPage.waitFor("document.querySelector('#publicHome')?.dataset.sessionMode === 'authenticated' && !document.querySelector('#authWorkspaceSection')?.hidden", 25_000, "no-prompt user signed in");
-  await delay(500);
+  await userPage.waitFor("document.querySelector('#publicHome')?.dataset.sessionMode === 'authenticated' && !document.querySelector('#authWorkspaceSection')?.hidden && !document.getElementById('authTransitionScreen') && document.documentElement.dataset.workspaceMount === 'ready'", 25_000, "no-prompt user signed in");
+  await delay(300);
   await settle(userPage);
   const noPromptState = await userPage.evaluate("({ modalHidden: document.getElementById('siteMessageModal').classList.contains('hidden'), appShellInert: document.getElementById('appShell').inert, frameInert: document.getElementById('v3AppFrame').inert })");
   assert.deepEqual(noPromptState, { modalHidden: true, appShellInert: false, frameInert: false });
