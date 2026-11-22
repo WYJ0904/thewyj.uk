@@ -107,7 +107,7 @@ export async function verifyPassword(db,env,userId,password) {
 }
 export async function beginStepup(context,account,payload,sessionDigest) {
   const {env,request}=context, db=env.WYJ_DB;
-  if (typeof payload.scope!=='string' || payload.scope.length>200 || /[\u0000-\u001f\u007f]/u.test(payload.scope) || !/^(password_change|email_change|mfa_change|recovery_regenerate|sessions_revoke|account_delete|files_cleanup|privacy_consent_revoke|privacy_data_delete(?::[A-Za-z0-9._:-]{8,100})?|privacy_account_delete|backup_restore(?::[A-Za-z0-9._:-]{8,80})?|admin_reset:[^\u0000-\u001f\u007f]{1,80}|admin_roles|admin_account|admin_entitlements|admin_features|email_center:(test|send|retry|reply|templates|inbound)|email_send:[A-Za-z0-9_-]{1,80}:\d+)$/.test(payload.scope)) fail('stepup_scope_invalid','操作范围无效');
+  if (typeof payload.scope!=='string' || payload.scope.length>200 || /[\u0000-\u001f\u007f]/u.test(payload.scope) || !/^(profile_change|password_change|email_change|mfa_change|recovery_regenerate|sessions_revoke|account_delete|files_cleanup|privacy_consent_revoke|privacy_data_delete(?::[A-Za-z0-9._:-]{8,100})?|privacy_account_delete|backup_restore(?::[A-Za-z0-9._:-]{8,80})?|admin_reset:[^\u0000-\u001f\u007f]{1,80}|admin_roles|admin_account|admin_entitlements|admin_features|email_center:(test|send|retry|reply|templates|inbound)|email_send:[A-Za-z0-9_-]{1,80}:\d+)$/.test(payload.scope)) fail('stepup_scope_invalid','操作范围无效');
   await securityRate(context,'stepup-account',account.id);
   const user=await verifyPassword(db,env,account.id,payload.password), state=await securityState(db,account.id);
   const code=state.mfa_method==='email'?randomDigits():'';

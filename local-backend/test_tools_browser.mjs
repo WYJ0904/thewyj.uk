@@ -1024,6 +1024,13 @@ async function main() {
         6_000,
         "canonical file-transfer catalog entry",
       );
+      // The static page is visible before the lazy transfer controller binds
+      // the input. Quota rendering starts after that handler is installed.
+      await waitFor(
+        "(() => { const quota = document.querySelector('#transferQuotaText')?.textContent.trim(); return quota && !quota.includes('加载中'); })()",
+        25_000,
+        "canonical transfer controller and quota ready",
+      );
       // Real data path through the canonical implementation: select a file,
       // upload it, publish the share and download it back with a SHA check.
       const canonicalOriginal = path.join(TEST_ROOT, `transfer-canonical-${RUN_ID}.bin`);

@@ -38,6 +38,7 @@ await db.prepare(`INSERT INTO task12_users(id,username,username_normalized,passw
 await db.prepare("INSERT INTO task27_security(user_id,verified_email,email_verified_at,password_age_start_at) VALUES('mail-fixture','fixture@example.test',?1,?1)").bind(when).run();
 let registerCalls=0;
 let lastEnrollment=null;
+let profileDelayMs=0;
 const apiErrors=[];
 const spa=new Set(['/','/login','/register','/account','/admin','/forgot-password','/changelog','/language','/recharge']);
 const csp=(await readFile(path.join(root,'_headers'),'utf8')).match(/Content-Security-Policy: (.+)/)[1].trim();
@@ -47,6 +48,7 @@ const server=createServer(async(req,res)=>{
     const url=new URL(req.url,base);
     if(url.pathname==='/favicon.ico'){res.writeHead(204);res.end();return;}
     if(url.pathname.startsWith('/api/') || ['/terms','/privacy','/security-privacy'].includes(url.pathname)) {
+      if(url.pathname==='/api/account/profile' && profileDelayMs)await delay(profileDelayMs);
       const chunks=[];for await(const chunk of req)chunks.push(chunk);
       const request=new Request(url,{method:req.method,headers:req.headers,...(['GET','HEAD'].includes(req.method)?{}:{body:Buffer.concat(chunks)})});
       const tasks=[],context={request,env,data:{requestId:crypto.randomUUID()},waitUntil(p){tasks.push(p);}};
@@ -140,9 +142,13 @@ try {
     assert.ok(await page.evaluate("Boolean(document.querySelector('[data-ack-id]'))"));const receipt=await db.prepare("SELECT acknowledged_at,read_at FROM admin_message_receipts WHERE user_id=?1 AND read_at!='' LIMIT 1").bind(user.id).first();assert.equal(receipt.acknowledged_at,'');await screenshot('inbox-desktop');
   });
   await check('375px and 390px light and dark security layout wraps full status banner with zero clipping or horizontal overflow and passes axe',async()=>{
-    await page.click('#task27Inbox [data-task27-close]');await page.navigate('/account');await page.click('#openSecurityCenterBtn');await page.waitFor("document.querySelector('[data-security-mfa=totp]')",20000);
+    await page.click('#task27Inbox [data-task27-close]');await page.navigate('/account');
+    profileDelayMs=2400;
+    await page.click('#openSecurityCenterBtn');await page.waitFor("document.querySelector('[data-security-mfa=totp]')",20000);
     await page.click('[data-security-mfa=email]');
     await page.waitFor("!document.querySelector('#task27Security [data-task27-status]').hidden&&document.querySelector('#task27Security [data-task27-status]').textContent.includes('绑定并验证邮箱')",10000);
+    await page.waitFor("document.querySelector('[data-security-profile]')",12000);
+    profileDelayMs=0;
     assert.equal(await page.evaluate("document.querySelector('#task27Prompt')?.checkVisibility() || false"),false);
     const assertStatusGeometry=async()=>{
       const geom=await page.evaluate(`(()=>{

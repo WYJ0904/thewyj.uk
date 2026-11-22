@@ -168,7 +168,7 @@ export async function registerAccount(db, username, secret, options = {}) {
   return accountPayload(await userById(db, user.id));
 }
 
-export async function loginAccount(db, username, secret, request, options = {}) {
+export async function authenticateTask12Password(db, username, secret, options = {}) {
   const usernameText = String(username || "").trim();
   const secretText = String(secret || "");
   const row = await userByName(db, usernameText);
@@ -183,6 +183,11 @@ export async function loginAccount(db, username, secret, request, options = {}) 
   const verified = await verifyRowSecret(row, secretText, options);
   if (!verified.valid) throw new Task12Error("用户名或登录密码错误", 403, "invalid_credentials");
   if (row.banned) throw new Task12Error("账户已被封禁", 403, "account_banned");
+  return { row, secretText, verified };
+}
+
+export async function loginAccount(db, username, secret, request, options = {}) {
+  const { row, secretText, verified } = await authenticateTask12Password(db, username, secret, options);
   const challenge = await beginTask27Login(db, row, request, options);
   if (challenge) return challenge;
   return issueTask12Session(db, row, request, { ...options, secretText, verified });
