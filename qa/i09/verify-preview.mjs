@@ -264,10 +264,10 @@ try {
   // 3. Release Channel persistence & Account mobile dark
   await pointerClick("#v3Sidebar [data-v3-nav='account']");
   await page.waitFor("!document.querySelector('#releaseChannelSection')?.classList.contains('hidden') && !document.getElementById('saveReleaseChannelBtn').disabled", 15_000);
-  await page.evaluate("const s = document.getElementById('releaseChannelSelect'); s.value='beta'; s.dispatchEvent(new Event('change',{bubbles:true}));");
+  await page.evaluate("(() => { const s = document.getElementById('releaseChannelSelect'); s.value='beta'; s.dispatchEvent(new Event('change',{bubbles:true})); })()");
   await pointerClick("#saveReleaseChannelBtn");
   await page.waitFor("document.getElementById('releaseChannelStatus').dataset.feedbackState === 'success'", 12_000);
-  await page.evaluate("const s = document.getElementById('releaseChannelSelect'); s.value='stable'; s.dispatchEvent(new Event('change',{bubbles:true}));");
+  await page.evaluate("(() => { const s = document.getElementById('releaseChannelSelect'); s.value='stable'; s.dispatchEvent(new Event('change',{bubbles:true})); })()");
   await pointerClick("#saveReleaseChannelBtn");
   await page.waitFor("document.getElementById('releaseChannelStatus').dataset.feedbackState === 'success'", 12_000);
   await setViewport(375, 812);
