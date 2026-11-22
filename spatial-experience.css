@@ -7068,3 +7068,168 @@ html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] > [da
     transition: none;
   }
 }
+
+/* ==========================================================================
+ * V6.3 Phase 2: Actual Budget Finance, Raycast Tools, n8n Workflows,
+ * PairDrop Transfer, GitHub/OneUI Security, Linear Inbox & Mobile Parity
+ * ========================================================================== */
+/* Finance: Actual Budget register density, tabular figures & privacy blur */
+html[data-p07-ui="enabled"] #financePage :is(#financeIncomeTotal, #financeExpenseTotal, #financeRefundTotal, #financeBalanceTotal, .finance-transaction-side strong, .finance-budget-status small, .finance-category-stat strong, .trend-month-card span) {
+  font-family: var(--ds-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+html[data-p07-ui="enabled"] #financePage[data-privacy-mask="true"] :is(.finance-summary-grid strong, .finance-transaction-side strong, .finance-budget-status small, .finance-category-stat strong, .trend-month-card span) {
+  filter: blur(6px);
+  user-select: none;
+}
+
+html[data-p07-ui="enabled"] #financePage .finance-transaction {
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-sm);
+  padding: 10px 14px;
+  transition: background var(--ds-duration-fast) var(--ds-ease-standard),
+    border-color var(--ds-duration-fast) var(--ds-ease-standard);
+}
+
+html[data-p07-ui="enabled"] #financePage .finance-transaction:hover {
+  background: var(--ds-surface-subtle);
+  border-color: var(--ds-border);
+}
+
+/* Toolbox: Raycast keyboard active highlight & shortcut badge */
+html[data-p07-ui="enabled"] .tool-search-kbd {
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: var(--ds-radius-xs);
+  border: 1px solid var(--ds-border);
+  background: var(--ds-surface-subtle);
+  color: var(--ds-text-muted);
+  font-family: var(--ds-font-mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+}
+
+html[data-p07-ui="enabled"] #toolsPanel .tool-card {
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+  transition: border-color var(--ds-duration-fast) var(--ds-ease-standard),
+    background var(--ds-duration-fast) var(--ds-ease-standard),
+    box-shadow var(--ds-duration-fast) var(--ds-ease-standard);
+}
+
+html[data-p07-ui="enabled"] #toolsPanel .tool-card.is-kbd-active,
+html[data-p07-ui="enabled"] #toolsPanel .tool-card:hover {
+  border-color: var(--ds-brand-border);
+  background: var(--ds-brand-soft);
+}
+
+/* Workflows: n8n step rail & active progression contrast */
+html[data-p07-ui="enabled"] #workflowWorkspace #workflowStepList {
+  position: relative;
+  display: grid;
+  gap: 10px;
+}
+
+html[data-p07-ui="enabled"] #workflowWorkspace .workflow-step {
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+}
+
+html[data-p07-ui="enabled"] #workflowWorkspace .workflow-step-statuses {
+  display: grid;
+  gap: 8px;
+}
+
+/* Transfer: PairDrop drag-over ring & responsive file list */
+html[data-p07-ui="enabled"] #transferPage .transfer-drop-zone {
+  border: 1.5px dashed var(--ds-border-strong);
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-surface-subtle);
+  transition: border-color var(--ds-duration-fast) var(--ds-ease-standard),
+    background var(--ds-duration-fast) var(--ds-ease-standard),
+    box-shadow var(--ds-duration-fast) var(--ds-ease-standard);
+}
+
+html[data-p07-ui="enabled"] #transferPage .transfer-drop-zone:is(.drag-over, .is-dragover, [data-drag-state="active"]) {
+  border-color: var(--ds-brand);
+  border-style: solid;
+  background: var(--ds-brand-soft);
+  box-shadow: 0 0 0 3px var(--ds-brand-soft);
+}
+
+/* Account Security & Inbox: GitHub Settings grouped cards & Linear Inbox */
+html[data-p07-ui="enabled"] .task27-security-summary > article {
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+  padding: 16px;
+}
+
+html[data-p07-ui="enabled"] .task27-inbox-list > article {
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+  padding: 14px 16px;
+}
+
+html[data-p07-ui="enabled"] .task27-inbox-list > article.is-unread {
+  border-color: var(--ds-brand-border);
+  background: var(--ds-brand-soft);
+}
+
+/* Mobile 375px / 390px readability & touch-safe wrapping across all modules */
+@media (max-width: 640px) {
+  html[data-p07-ui="enabled"] .tool-search-kbd {
+    display: none;
+  }
+
+  html[data-p07-ui="enabled"] #financePage .finance-transaction {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 12px;
+  }
+
+  html[data-p07-ui="enabled"] #financePage .finance-transaction-side {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+  }
+
+  html[data-p07-ui="enabled"] #financePage .finance-summary-grid,
+  html[data-p07-ui="enabled"] #financePage .finance-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  html[data-p07-ui="enabled"] #transferPage .transfer-share-row,
+  html[data-p07-ui="enabled"] #transferPage .transfer-share-file {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  html[data-p07-ui="enabled"] #transferPage .transfer-share-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  html[data-p07-ui="enabled"] .task27-security-summary,
+  html[data-p07-ui="enabled"] .sc-backup-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-p07-ui="enabled"] #financePage .finance-transaction,
+  html[data-p07-ui="enabled"] #toolsPanel .tool-card,
+  html[data-p07-ui="enabled"] #transferPage .transfer-drop-zone {
+    transition: none;
+  }
+}

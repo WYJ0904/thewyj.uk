@@ -1741,6 +1741,16 @@ export function createFinanceController({
     else if (button.id === "toggleFinanceTrendBtn") {
       setTrendOpen(!isTrendOpen());
     }
+    else if (button.id === "financePrivacyBtn") {
+      const finPage = element("financePage");
+      if (finPage) {
+        const masked = finPage.dataset.privacyMask === "true";
+        const next = !masked;
+        finPage.dataset.privacyMask = String(next);
+        button.setAttribute("aria-pressed", String(next));
+        button.textContent = next ? "显示金额" : "隐藏金额";
+      }
+    }
     else if (button.id === "financeUpgradeBtn") openRecharge("finance");
     else if (button.id === "financeBackBtn") navigate("/select");
     else if (button.id === "financeUndoBtn" && undoTransactionId) restoreTransaction(undoTransactionId);

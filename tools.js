@@ -254,6 +254,20 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
     const more = byId("toolCatalogMoreBtn");
     if (more) { more.hidden = tools.length <= catalogLimit; more.textContent = `显示更多（剩余 ${Math.max(0, tools.length - catalogLimit)} 项）`; }
     bindToolButtons(target);
+    syncToolKeyboardHighlight(0);
+  }
+
+  let toolKbdIndex = -1;
+  function syncToolKeyboardHighlight(nextIndex = toolKbdIndex) {
+    const cards = [...(byId("toolCatalog")?.querySelectorAll(".tool-card[data-tool-card]") || [])];
+    if (!cards.length) {
+      toolKbdIndex = -1;
+      return null;
+    }
+    if (nextIndex < 0) toolKbdIndex = -1;
+    else toolKbdIndex = Math.max(0, Math.min(cards.length - 1, nextIndex));
+    cards.forEach((card, idx) => card.classList.toggle("is-kbd-active", idx === toolKbdIndex));
+    return toolKbdIndex >= 0 ? cards[toolKbdIndex] : null;
   }
 
   function renderShelves() {
@@ -616,6 +630,37 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
     };
     byId("toolSearchInput")?.addEventListener("input", queueSearch);
     byId("toolSearchInput")?.addEventListener("compositionend", queueSearch);
+    byId("toolSearchInput")?.addEventListener("keydown", (event) => {
+      if (event.isComposing) return;
+      const cards = [...(byId("toolCatalog")?.querySelectorAll(".tool-card[data-tool-card]") || [])];
+      if (!cards.length) return;
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        const active = syncToolKeyboardHighlight(toolKbdIndex < 0 ? 0 : (toolKbdIndex + 1) % cards.length);
+        active?.scrollIntoView?.({ block: "nearest" });
+      } else if (event.key === "ArrowUp") {
+        event.preventDefault();
+        const active = syncToolKeyboardHighlight(toolKbdIndex <= 0 ? cards.length - 1 : toolKbdIndex - 1);
+        active?.scrollIntoView?.({ block: "nearest" });
+      } else if (event.key === "Enter") {
+        const chosen = (toolKbdIndex >= 0 ? cards[toolKbdIndex] : cards[0])?.dataset.toolCard;
+        if (chosen) {
+          event.preventDefault();
+          openTool(chosen, true);
+        }
+      }
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "/" || event.ctrlKey || event.metaKey || event.altKey || event.isComposing) return;
+      const dash = byId("toolsDashboard");
+      const panel = byId("toolsPanel");
+      if (!panel || panel.classList.contains("hidden") || !dash || dash.classList.contains("hidden")) return;
+      const tag = document.activeElement?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || document.activeElement?.isContentEditable) return;
+      if (document.querySelector(".modal-layer:not(.hidden)")) return;
+      event.preventDefault();
+      byId("toolSearchInput")?.focus({ preventScroll: true });
+    });
     byId("toolCategoryList")?.addEventListener("click", (event) => {
       const button = event.target.closest("[data-tool-category]");
       if (!button) return;
