@@ -99,9 +99,9 @@ const REQUIRED_SHELL = [...CORE_SHELL, ...TASK26_SHELL, ...FINANCE_SHELL, ...TAS
 const INSTALL_SHELL = REQUIRED_SHELL;
 // Canonical UTF-8 hashes bind the current S0 shell plus Task27 additions.
 const TASK26_INTEGRITY = Object.freeze({
-  "/": "4d47d8fcb494ab0415bfe4a42d4f16d766b3055e28a2d90456a2840949302500",
-  "/index.html": "4d47d8fcb494ab0415bfe4a42d4f16d766b3055e28a2d90456a2840949302500",
-  "/app.js?release=20261121-aeris-i05-preview": "73847dce112b391d7056b32d8da82e75a4bf5bb19951e2be9b3362cb6b4aff2b",
+  "/": "d1bb29d020c9c74278d39b60c2e4d6abf4808e74f5d3b8b0c5adc2c6c4b0788a",
+  "/index.html": "d1bb29d020c9c74278d39b60c2e4d6abf4808e74f5d3b8b0c5adc2c6c4b0788a",
+  "/app.js?release=20261121-aeris-i05-preview": "b385546d24525282da11d060c6e7fd0753d65b24f7af20cf6208042a87ce65d8",
   "/learning-sync.js?release=20261121-aeris-i05-preview": "74ced24b8dab7c8ad16dc6b4b68ff81a89e968d18a607bbba6b066a8bee7727d",
   "/product-ui.css?release=20261121-aeris-i05-preview": "97d47d0afcb3369f2eeecee89b8f0cd6f411b47fb4431dddcee63022221d4230",
   "/js/language/mastery.js?release=20261121-aeris-i05-preview": "8a45bd65d69445c2f697c0abfb0dbff57c70b0ed4ceaee7f8617b115f676b51b",
@@ -114,13 +114,13 @@ const TASK26_INTEGRITY = Object.freeze({
   "/js/account/security-center.js?release=20261121-aeris-i05-preview": "a5a971fd43e5b1ed47850c2e5d111f896b0c63e48c078825a7a85988ade372ed",
   "/js/account/policy-page.js?release=20261121-aeris-i05-preview": "7d54511a956995afc6065f27ccac275dfb6657b3040f51d51ea4d8b8334562da",
   "/js/core/api.js?release=20261121-aeris-i05-preview": "e43598b6e896e541f9a40d8b4b5741217ef7547774c99875c3e9ec4b636e0680",
-  "/js/core/router.js?release=20261121-aeris-i05-preview": "67ec8601f63fb4bfc732f556723a1c4ce1258dbb41c6cfcdec3bfa118522779d",
+  "/js/core/router.js?release=20261121-aeris-i05-preview": "1563c9dbbbf1ecc17a2a41129557682838d5c4b00bd74f1db6b51432a7e53edd",
   "/js/account/policy-version.js?release=20261121-aeris-i05-preview": "601fb007c886c38a71c45afc216e79a9923c86ccd7883c26316e638767c8323e",
   "/js/transfer/app.js?release=20261121-aeris-i05-preview": "7edc17dd15e20d82dd52492dea5efe53f239a5d6924d902a576d4f17f821c6b1",
   "/js/account/password-policy.js?release=20261121-aeris-i05-preview": "48fd3d494120682e5b8baac8c73fb6ff68714cbc89d567318e9ea39549c80c56",
   "/js/account/password-fields.js?release=20261121-aeris-i05-preview": "e67497c31748194bdba244723e45620dbfd9552840c7721b1a9b0530208c2e78"
 });
-const PUBLICATION_HASH = "d78dc57a91e88b00fbad60aea6190a6d08acb3030aac94b32a7348a603ed154e";
+const PUBLICATION_HASH = "78fcb48ba429ef820036b150214cac98c7e2a7e05a2137ca864650364488fbbe";
 const PUBLICATION_CACHE = `${CACHE}-task26-${PUBLICATION_HASH.slice(0, 16)}`;
 const PUBLICATION_MARKER = "/__aeris/task26-publication";
 

@@ -363,7 +363,23 @@ let learningSyncStatus = {
 
 const restoredSession = restoreAccountSession();
 sessionRestorePending = Boolean(restoredSession);
-const { pushRoute } = createRouter({ onRouteChange: () => { routeGeneration += 1; renderAccountUi(); } });
+let pendingOutgoingScroll = null;
+const { pushRoute } = createRouter({
+  onRouteChange: () => {
+    routeGeneration += 1;
+    pendingOutgoingScroll = null;
+    renderAccountUi();
+  },
+  getScrollPosition: () => {
+    const path = currentRoutePath();
+    if (pendingOutgoingScroll && pendingOutgoingScroll.path === path) {
+      const captured = pendingOutgoingScroll;
+      pendingOutgoingScroll = null;
+      return captured;
+    }
+    return { scrollX: window.scrollX || 0, scrollY: window.scrollY || 0 };
+  },
+});
 const learningSyncAdapter = createLearningSyncAdapter(() => window.WYJLearningSync);
 
 function migrateProjectPreferences() {
@@ -1135,8 +1151,9 @@ function resetSiteMessageQueue() {
 
 function showNextSiteMessage() {
   if (activeSiteMessage || !state.session || !state.account) return;
+  if (document.body.classList.contains("auth-transition-active")) return;
   // A background broadcast must not interrupt an existing dialog or its proof.
-  if (document.querySelector('.modal-layer:not(.hidden):not(#siteMessageModal)')) return;
+  if (activeBlockingModals(document).some((layer) => layer.id !== "siteMessageModal")) return;
   const next = pendingSiteMessages.find((message) => !siteMessageSessionDismissed.has(message.id));
   pendingSiteMessages = pendingSiteMessages.filter((message) => message.id !== next?.id);
   if (!next) return;
@@ -1718,6 +1735,43 @@ async function voteForFeature(feedbackId, voted) {
   }
 }
 
+function activeBlockingModals(doc = document) {
+  return [...doc.querySelectorAll(".modal-layer:not(.hidden)")]
+    .filter((layer) => layer.dataset?.sheetWorkspace !== "true" && layer.getAttribute("aria-hidden") !== "true");
+}
+
+function syncShellInteractivity() {
+  const authTransitionActive = document.body.classList.contains("auth-transition-active")
+    && Boolean(document.getElementById("authTransitionScreen"));
+  const blockingModals = activeBlockingModals(document);
+  const hasBlockingModal = blockingModals.length > 0;
+  syncModalScrollLock(document);
+  if (!hasBlockingModal) document.body.classList.remove("ds-sheet-scaling");
+  const appShell = $("appShell");
+  if (appShell) appShell.inert = hasBlockingModal;
+  const frame = $("v3AppFrame");
+  if (frame) frame.inert = authTransitionActive || hasBlockingModal;
+  return { authTransitionActive, hasBlockingModal, blockingModals };
+}
+
+function focusWorkspaceFallback() {
+  const candidates = [
+    !$("sessionRecovery")?.classList.contains("hidden") ? $("retrySessionRecoveryBtn") : null,
+    !$("publicHome")?.classList.contains("hidden") ? $("publicHome")?.querySelector("h1") : null,
+    !$("projectPicker")?.classList.contains("hidden") ? $("projectPicker")?.querySelector("h1, h2") : null,
+    !$("projectApp")?.classList.contains("hidden") ? $("projectApp")?.querySelector("h1, h2") : null,
+    !$("toolsPanel")?.classList.contains("hidden") ? $("toolsPanel")?.querySelector("h1, h2") : null,
+    !$("financePage")?.classList.contains("hidden") ? $("financePage")?.querySelector("h1, h2") : null,
+    !$("transferPage")?.classList.contains("hidden") ? $("transferPage")?.querySelector("h1, h2") : null,
+    !$("adminPanel")?.classList.contains("hidden") ? $("adminPanel")?.querySelector("h1, h2") : null,
+    $("pageContent"),
+  ];
+  const target = candidates.find((el) => el && el.isConnected && el.getClientRects().length && !el.closest("[inert], .hidden"));
+  if (!target) return;
+  if (!target.matches("button, a, input, select, textarea, [tabindex]")) target.setAttribute("tabindex", "-1");
+  target.focus({ preventScroll: true });
+}
+
 function openModal(id) {
   if (id === "membershipModal") {
     void showMembership(true);
@@ -1742,14 +1796,14 @@ function openModal(id) {
   const openLayers = [...document.querySelectorAll(".modal-layer:not(.hidden)")].filter((layer) => layer !== modal);
   modal.style.zIndex = String(Math.max(9000, ...openLayers.map((layer) => Number(getComputedStyle(layer).zIndex) || 9000)) + 1);
   delete modal.dataset.sheetWorkspace;
+  modal.inert = false;
   modal.classList.remove("hidden", "is-closing");
   modal.setAttribute("aria-hidden", "false");
   attachSheetAdapter(modal, {
     dismissible: id !== "deleteAccountModal" && id !== "confirmModal" && id !== "rejudgeResultModal",
-    onRequestClose: () => closeModal(id, true),
+    onRequestClose: () => (id === "siteMessageModal" ? void dismissActiveSiteMessage() : closeModal(id, true)),
   }).onOpened();
-  document.body.classList.add("modal-open");
-  if ($("appShell")) $("appShell").inert = true;
+  syncShellInteractivity();
   document.querySelectorAll(".modal-layer:not(.hidden)").forEach((layer) => { layer.inert = layer !== modal; });
   focusDialog(modal);
 }
@@ -1764,7 +1818,9 @@ function closeModal(id, immediate = false) {
     releasePaymentQr();
     modal.classList.add("hidden");
     modal.setAttribute("aria-hidden", "true");
+    modal.inert = false;
     if (id === "accountModal") clearOwnSecretEditor();
+    syncShellInteractivity();
     if (location.pathname === "/recharge" || location.pathname === "/account") {
       const context = history.state?.aerisWorkspace;
       const requested = context?.id === id ? nativeAppRoute(context.returnTo, location.origin) : null;
@@ -1774,16 +1830,11 @@ function closeModal(id, immediate = false) {
     }
     return;
   }
+  if (!immediate && modal.classList.contains("is-closing") && modalCloseTimers.has(id)) return;
   const pendingClose = modalCloseTimers.get(id);
   if (pendingClose) {
     window.clearTimeout(pendingClose);
     modalCloseTimers.delete(id);
-  }
-  if (id === "membershipModal") {
-    membershipModalLoadSequence += 1;
-    membershipModalController?.abort();
-    membershipModalController = null;
-    releasePaymentQr();
   }
   const finish = () => {
     modalCloseTimers.delete(id);
@@ -1797,15 +1848,16 @@ function closeModal(id, immediate = false) {
     remaining.forEach((layer, index) => { layer.inert = index !== remaining.length - 1; });
     if (id === "accountModal") clearOwnSecretEditor();
     if (id === "adminEditModal") clearAdminSecretEditor();
-    if (!syncModalScrollLock(document)) {
-      document.body.classList.remove("modal-open");
-      if ($("appShell")) $("appShell").inert = false;
-    }
+    const { hasBlockingModal } = syncShellInteractivity();
     const returnFocus = modalReturnFocus.get(id);
     modalReturnFocus.delete(id);
-    if (returnFocus?.isConnected && returnFocus.getClientRects().length && !returnFocus.closest("[inert], .modal-layer.hidden")) {
+    if (returnFocus?.isConnected && returnFocus.getClientRects().length && !returnFocus.closest("[inert], .modal-layer.hidden, .hidden")) {
       returnFocus.focus({ preventScroll: true });
-    } else if (remaining.length) focusDialog(remaining.at(-1));
+    } else if (remaining.length) {
+      focusDialog(remaining.at(-1));
+    } else if (!hasBlockingModal) {
+      focusWorkspaceFallback();
+    }
     window.setTimeout(showNextSiteMessage, 0);
     if ((id === "membershipModal" && location.pathname === "/recharge") || (id === "accountModal" && location.pathname === "/account")) {
       if (state.session && state.account) {
@@ -2449,7 +2501,7 @@ async function changeOwnSecret(event) {
   const newSecret = $("newSecretInput").value;
   const confirmation = $("newSecretConfirmInput").value;
   if (newSecret !== confirmation) {
-    message.textContent = "两次输入的新登录密钥不一致";
+    message.textContent = "两次输入的新密码不一致";
     $("newSecretConfirmInput").focus();
     return;
   }
@@ -2461,11 +2513,11 @@ async function changeOwnSecret(event) {
       new_secret: newSecret,
       confirm_secret: confirmation,
     });
-    message.textContent = "密钥已修改，请使用新密钥重新登录";
+    message.textContent = "密码已修改，请使用新密码重新登录";
     window.setTimeout(() => {
       closeModal("accountModal", true);
       clearSession();
-      showAuth("密钥已修改，请重新登录");
+      showAuth("密码已修改，请重新登录");
     }, 700);
   } catch (error) {
     message.textContent = error.message;
@@ -2540,7 +2592,7 @@ function secureRandomIndex(maximum) {
     throw new Error("随机范围无效");
   }
   if (!globalThis.crypto?.getRandomValues) {
-    throw new Error("当前浏览器不支持安全随机数，请手动设置新密钥");
+    throw new Error("当前浏览器不支持安全随机数，请手动设置新密码");
   }
   const values = new Uint32Array(1);
   const range = 0x100000000;
@@ -2572,7 +2624,7 @@ function generateAdminSecretForEditor() {
     input.value = generateSecureSecret();
     clearAdminSecretResult();
     setAdminSecretVisibility(true);
-    $("adminEditMessage").textContent = "已生成安全密钥；保存后请把它交给该用户。";
+    $("adminEditMessage").textContent = "已生成安全密码；保存后请把它交给该用户。";
     input.focus();
     input.select();
   } catch (error) {
@@ -2608,7 +2660,7 @@ function generateOwnSecret() {
     $('newSecretInput').dispatchEvent(new Event('input',{bubbles:true}));
     $("newSecretConfirmInput").value = secret;
     setSecretFieldsVisibility(["newSecretInput", "newSecretConfirmInput"], "toggleNewSecretBtn", true);
-    $("accountMessage").textContent = "已生成安全密钥；保存前请确认你已记住或安全保存。";
+    $("accountMessage").textContent = "已生成安全密码；保存前请确认你已记住或安全保存。";
     $("newSecretInput").focus();
     $("newSecretInput").select();
   } catch (error) {
@@ -2685,7 +2737,7 @@ function renderAdminUsers(data = null, { append = false } = {}) {
     return `<article class="admin-user-card" data-user-id="${escapeHtml(user.id)}">
       <div class="admin-user-identity"><h2>${escapeHtml(user.username)}</h2><p class="admin-user-id">${escapeHtml(user.id)}</p><p><span class="status-badge">${escapeHtml(roleLabel)}</span></p><p class="${stateClass}">${user.banned ? "已永久封禁" : "正常"}</p></div>
       <div class="admin-user-facts"><p><span>最高等级</span><strong>${escapeHtml(summary.name)}</strong></p><p><span>有效会员</span><strong>${escapeHtml(memberships)}</strong></p><p><span>合并权益</span><strong>${escapeHtml(entitlements)}</strong></p></div>
-      <div class="admin-user-security"><p><span class="admin-field-name">登录密钥</span><span class="secret-value">不可读取 · 可安全重置</span></p><p class="admin-last-login">最后登录：${escapeHtml(formatLocalDateTime(user.last_login_at, "从未"))}</p></div>
+      <div class="admin-user-security"><p><span class="admin-field-name">登录密码</span><span class="secret-value">不可读取 · 可安全重置</span></p><p class="admin-last-login">最后登录：${escapeHtml(formatLocalDateTime(user.last_login_at, "从未"))}</p></div>
       <div class="action-row compact admin-user-actions"><button class="button-secondary" data-admin-edit type="button" ${protectedUser ? "disabled" : ""}>编辑</button></div>
     </article>`;
     },
@@ -3160,7 +3212,7 @@ async function loadAdminData() {
   }
 }
 
-async function showAdminPanel(pushHistory = true) {
+async function showAdminPanel(pushHistory = true, generation = routeGeneration) {
   if (!state.session || !state.account) {
     showAuth("请先登录管理员账户", { path: "/login", replace: true });
     return;
@@ -3170,18 +3222,20 @@ async function showAdminPanel(pushHistory = true) {
     showModulePicker(false, "当前账户没有管理员权限，已返回功能选择。");
     return;
   }
-  if (pushHistory) pushRoute("/admin");
+  if (pushHistory) { pushRoute("/admin"); generation = routeGeneration; }
   $("adminRolesTab")?.classList.toggle("hidden", !isSuperAdmin());
   hidePrimaryScreens();
   $("adminPanel").classList.remove("hidden");
   $("adminPanel").setAttribute("aria-hidden", "false");
   renderAccountUi();
-  applyWorkspaceRouteScroll(pushHistory);
+  const reapplyPopScroll = applyWorkspaceRouteScroll(pushHistory);
   if ($("adminRoleContext")) {
     $("adminRoleContext").textContent = `当前身份：${isSuperAdmin() ? "站点所有者" : "管理员"}`;
   }
   await loadAdminData();
+  if (!isRouteGenerationCurrent(generation)) return;
   await featureConsole?.load();
+  if (isRouteGenerationCurrent(generation)) reapplyPopScroll();
 }
 
 function leaveAdminPanel() {
@@ -3326,12 +3380,12 @@ function updateAdminToolsOverride(allowed) {
 async function saveAdminSecret() {
   const supported=await task27Ui.isSupported();
   const legacySecret=$('adminNewSecretInput').value;
-  if(!supported&&!legacySecret){$('adminEditMessage').textContent='请先输入或生成新的登录密钥';return;}
+  if(!supported&&!legacySecret){$('adminEditMessage').textContent='请先输入或生成新的登录密码';return;}
   const saveButton = $("saveAdminSecretBtn");
   const generateButton = $("generateAdminSecretBtn");
   const userId = $("adminEditUserId").value;
   const user = adminUserById(userId);
-  askConfirmation(`确认重置“${user?.username || userId}”的登录密钥并退出其全部会话？`, async () => {
+  askConfirmation(`确认重置“${user?.username || userId}”的登录密码并退出其全部会话？`, async () => {
     saveButton.disabled = true;
     generateButton.disabled = true;
     try {
@@ -3341,7 +3395,7 @@ async function saveAdminSecret() {
       setAdminSecretVisibility(false);
       $("adminSecretResultValue").textContent = supported?result.temporary_password:legacySecret;
       $("adminSecretResult").classList.remove("hidden");
-      $("adminEditMessage").textContent = supported?"已生成随机 20 位临时密码，仅本次显示。旧会话已撤销，原 MFA 保留，用户须在首次登录时设置新密码。":"密钥已修改，旧密钥和旧会话均已失效。请立即复制新密钥。";
+      $("adminEditMessage").textContent = supported?"已生成随机 20 位临时密码，仅本次显示。旧会话已撤销，原 MFA 保留，用户须在首次登录时设置新密码。":"密码已修改，旧密码和旧会话均已失效。请立即复制新密码。";
     } finally {
       saveButton.disabled = false;
       generateButton.disabled = false;
@@ -3954,28 +4008,54 @@ function setTrialTool(value) {
 }
 
 let pendingPopScroll = null;
+let pendingPopReset = false;
 
 function applyPublicRouteScroll(pushHistory) {
+  const target = !pushHistory && pendingPopScroll && Number.isFinite(pendingPopScroll.scrollY)
+    ? pendingPopScroll
+    : null;
+  const resetToTop = Boolean(pushHistory || (!target && pendingPopReset));
+  if (target || pushHistory || pendingPopReset) {
+    pendingPopScroll = null;
+    pendingPopReset = false;
+  }
+  const scrollToClamped = (left, top) => {
+    const maxX = Math.max(0, (document.documentElement?.scrollWidth || 0) - (window.innerWidth || 0));
+    const maxY = Math.max(0, (document.documentElement?.scrollHeight || 0) - (window.innerHeight || 0));
+    window.scrollTo({
+      left: Math.min(Math.max(0, left), maxX),
+      top: Math.min(Math.max(0, top), maxY),
+      behavior: "instant",
+    });
+  };
   const restore = () => {
-    if (!pushHistory && pendingPopScroll && Number.isFinite(pendingPopScroll.scrollY)) {
-      const target = pendingPopScroll;
-      pendingPopScroll = null;
-      window.scrollTo({ left: target.scrollX || 0, top: target.scrollY, behavior: "instant" });
-    } else if (pushHistory) {
-      window.scrollTo({ left: 0, top: 0, behavior: "instant" });
-    }
+    if (target) scrollToClamped(target.scrollX || 0, target.scrollY);
+    else if (resetToTop) window.scrollTo({ left: 0, top: 0, behavior: "instant" });
     window.WYJPublicScroll?.refresh?.();
   };
   restore();
   window.requestAnimationFrame(() => window.requestAnimationFrame(() => window.WYJPublicScroll?.refresh?.()));
+  if (!target) return () => {};
+  return () => {
+    scrollToClamped(target.scrollX || 0, target.scrollY);
+    window.WYJPublicScroll?.refresh?.();
+    window.requestAnimationFrame(() => {
+      scrollToClamped(target.scrollX || 0, target.scrollY);
+      window.WYJPublicScroll?.refresh?.();
+    });
+  };
 }
 
 function applyWorkspaceRouteScroll(pushHistory) {
   const target = !pushHistory && pendingPopScroll && Number.isFinite(pendingPopScroll.scrollY)
     ? pendingPopScroll
     : null;
-  if (target) pendingPopScroll = null;
-  if (!pushHistory && !target) return;
+  const resetToTop = Boolean(pushHistory || (!target && pendingPopReset));
+  if (target || pushHistory || pendingPopReset) {
+    pendingPopScroll = null;
+    pendingPopReset = false;
+  }
+  if (!resetToTop && !target) return () => {};
   const scrollToPos = (left, top) => {
     if (typeof window.scrollTo !== "function") return;
     try {
@@ -3985,13 +4065,28 @@ function applyWorkspaceRouteScroll(pushHistory) {
     }
   };
   const apply = () => {
-    if (target) scrollToPos(target.scrollX || 0, target.scrollY);
-    else if (pushHistory) scrollToPos(0, 0);
+    if (target) {
+      const maxX = Math.max(0, (document.documentElement?.scrollWidth || 0) - (window.innerWidth || 0));
+      const maxY = Math.max(0, (document.documentElement?.scrollHeight || 0) - (window.innerHeight || 0));
+      scrollToPos(
+        Math.min(Math.max(0, target.scrollX || 0), maxX),
+        Math.min(Math.max(0, target.scrollY), maxY),
+      );
+    } else if (resetToTop) {
+      scrollToPos(0, 0);
+    }
   };
   apply();
   if (typeof window.requestAnimationFrame === "function") {
     window.requestAnimationFrame(() => apply());
   }
+  if (!target) return () => {};
+  return () => {
+    apply();
+    if (typeof window.requestAnimationFrame === "function") {
+      window.requestAnimationFrame(() => apply());
+    }
+  };
 }
 
 function showPublicHome(pushHistory = true) {
@@ -4004,10 +4099,14 @@ function showPublicHome(pushHistory = true) {
   $("publicHome").setAttribute("aria-hidden", "false");
   document.body.classList.remove("project-picker-active");
   if (pushHistory) pushRoute("/");
+  const homeGen = routeGeneration;
   renderAccountUi();
-  applyPublicRouteScroll(pushHistory);
+  const reapplyPopScroll = applyPublicRouteScroll(pushHistory);
   // Share the existing catalog owner/promise; never block the public page.
-  void loadMembershipPlans().then(plans=>renderPublicPlanCatalog(document,plans)).catch(error=>renderPublicPlanCatalog(document,[],error.message));
+  void loadMembershipPlans()
+    .then(plans => renderPublicPlanCatalog(document, plans))
+    .catch(error => renderPublicPlanCatalog(document, [], error.message))
+    .finally(() => { if (isRouteGenerationCurrent(homeGen)) reapplyPopScroll(); });
 }
 
 function resetChangelogScroll(pushHistory = true) {
@@ -4138,6 +4237,18 @@ function showLanguageGate() {
 }
 
 function hidePrimaryScreens() {
+  const outgoingPath = currentRoutePath();
+  if (!pendingOutgoingScroll || pendingOutgoingScroll.path !== outgoingPath) {
+    pendingOutgoingScroll = {
+      path: outgoingPath,
+      scrollX: window.scrollX || 0,
+      scrollY: window.scrollY || 0,
+    };
+    const token = pendingOutgoingScroll;
+    queueMicrotask(() => {
+      if (pendingOutgoingScroll === token) pendingOutgoingScroll = null;
+    });
+  }
   dashboardView?.hide();
   setExperienceMode("workspace");
   const leavingTrial = Boolean($("trialPage") && !$("trialPage").classList.contains("hidden"));
@@ -4157,10 +4268,7 @@ function hidePrimaryScreens() {
   membershipModalLoadSequence += 1;
   membershipModalController?.abort(); membershipModalController = null;
   releasePaymentQr();
-  if (!syncModalScrollLock(document)) {
-    document.body.classList.remove("modal-open", "ds-sheet-scaling");
-    if ($("appShell")) $("appShell").inert = false;
-  }
+  syncShellInteractivity();
   window.WYJTools?.hide?.();
   financeController?.hide?.();
   financeCandidatesController?.hide?.();
@@ -4376,7 +4484,7 @@ async function showTools(path = "/tools", pushHistory = true, generation = route
   if (pushHistory) { pushRoute(path); generation = routeGeneration; }
   document.body.classList.remove("project-picker-active");
   renderAccountUi();
-  applyWorkspaceRouteScroll(pushHistory);
+  const reapplyPopScroll = applyWorkspaceRouteScroll(pushHistory);
   try {
     const preparing = Promise.resolve(window.WYJTools.prepare()).catch(error => ({ error }));
     if (!access) {
@@ -4392,6 +4500,7 @@ async function showTools(path = "/tools", pushHistory = true, generation = route
     if (prepared?.error) throw prepared.error;
     if (!isRouteGenerationCurrent(generation)) return;
     await window.WYJTools.show(path, { access, offline });
+    if (isRouteGenerationCurrent(generation)) reapplyPopScroll();
   } catch (error) {
     await handleToolsAccessFailure(error, generation);
   }
@@ -4427,20 +4536,23 @@ async function showMembership(pushHistory = true, options = {}) {
   }
   stopProjectActivity();
   const context = workspaceEntry('membershipModal', '/recharge', pushHistory, options);
+  const generation = routeGeneration;
   currentProject = "";
   state.quizLanguage = "";
   hidePrimaryScreens();
   const page = $("membershipModal");
   if (page) {
     page.dataset.sheetWorkspace = "true";
+    page.inert = false;
     page.classList.remove("hidden", "is-closing");
     page.setAttribute("aria-hidden", "false");
   }
-  document.body.classList.remove("modal-open", "project-picker-active");
-  if ($("appShell")) $("appShell").inert = false;
+  document.body.classList.remove("project-picker-active");
+  syncShellInteractivity();
   renderAccountUi();
-  applyWorkspaceRouteScroll(pushHistory);
+  const reapplyPopScroll = applyWorkspaceRouteScroll(pushHistory);
   await loadMembershipWorkspace({ ...options, goal: context.goal });
+  if (isRouteGenerationCurrent(generation)) reapplyPopScroll();
 }
 
 function showAccount(pushHistory = true) {
@@ -4456,11 +4568,12 @@ function showAccount(pushHistory = true) {
   const page = $("accountModal");
   if (page) {
     page.dataset.sheetWorkspace = "true";
+    page.inert = false;
     page.classList.remove("hidden", "is-closing");
     page.setAttribute("aria-hidden", "false");
   }
-  document.body.classList.remove("modal-open", "project-picker-active");
-  if ($("appShell")) $("appShell").inert = false;
+  document.body.classList.remove("project-picker-active");
+  syncShellInteractivity();
   renderAccountUi();
   applyWorkspaceRouteScroll(pushHistory);
   renderAccountDetails();
@@ -4480,12 +4593,13 @@ async function showFinance(pushHistory = true, generation = routeGeneration) {
   document.body.classList.remove("project-picker-active");
   if (pushHistory) { pushRoute("/finance"); generation = routeGeneration; }
   renderAccountUi();
-  applyWorkspaceRouteScroll(pushHistory);
+  const reapplyPopScroll = applyWorkspaceRouteScroll(pushHistory);
   try {
     const financeVisible = await financeController?.show?.();
     if (!isRouteGenerationCurrent(generation)) return;
     if (financeVisible) await financeCandidatesController?.show?.();
     else financeCandidatesController?.hide?.();
+    if (isRouteGenerationCurrent(generation)) reapplyPopScroll();
   } catch (error) {
     if (!isRouteGenerationCurrent(generation)) return;
     const message = $("financeMessage");
@@ -4493,6 +4607,7 @@ async function showFinance(pushHistory = true, generation = routeGeneration) {
       message.textContent = error?.message || "财务账本暂时无法加载，本机数据仍然保留。";
       message.dataset.tone = "error";
     }
+    reapplyPopScroll();
   }
 }
 
@@ -4506,9 +4621,10 @@ async function showTransfer(pushHistory = true, generation = routeGeneration) {
   document.body.classList.remove("project-picker-active");
   if (pushHistory) { pushRoute("/transfer"); generation = routeGeneration; }
   renderAccountUi();
-  applyWorkspaceRouteScroll(pushHistory);
+  const reapplyPopScroll = applyWorkspaceRouteScroll(pushHistory);
   try {
     await transferController?.show?.();
+    if (isRouteGenerationCurrent(generation)) reapplyPopScroll();
   } catch (error) {
     if (!isRouteGenerationCurrent(generation)) return;
     const message = $("transferMessage");
@@ -4516,6 +4632,7 @@ async function showTransfer(pushHistory = true, generation = routeGeneration) {
       message.textContent = error?.message || "文件传输暂时无法加载。";
       message.dataset.tone = "error";
     }
+    reapplyPopScroll();
   }
 }
 
@@ -7403,7 +7520,7 @@ function showAuthTransition(message = "正在验证身份与权限…") {
       '</div>';
     document.body.appendChild(overlay);
   document.body.classList.add('auth-transition-active');
-  $('v3AppFrame').inert = true;
+  syncShellInteractivity();
   return { overlay, sequence: ++authTransitionSequence };
 }
 
@@ -7412,11 +7529,11 @@ function finishAuthTransition(transition, owner) {
   transition.overlay.remove();
   if (transition.sequence !== authTransitionSequence) return;
   document.body.classList.remove('auth-transition-active');
-  const frame = $('v3AppFrame');
-  frame.inert = Boolean(document.querySelector('.modal-layer:not(.hidden)'));
-  if (state.session === owner && !frame.inert) {
+  const { hasBlockingModal } = syncShellInteractivity();
+  if (state.session === owner && !hasBlockingModal) {
     const target = !$('sessionRecovery').classList.contains('hidden') ? $('retrySessionRecoveryBtn') : $('publicHome')?.querySelector('h1');
     if (target) { if (!target.matches('button')) target.setAttribute('tabindex', '-1'); target.focus({ preventScroll: true }); }
+    window.setTimeout(showNextSiteMessage, 0);
   }
 }
 
@@ -7749,6 +7866,9 @@ function auditRuntimeCapabilities() {
 }
 
 async function boot() {
+  if (typeof history !== "undefined" && "scrollRestoration" in history) {
+    try { history.scrollRestoration = "manual"; } catch (_) {}
+  }
   document.documentElement.dataset.bootState='initializing';
   document.documentElement.dataset.workspaceMount = 'pending';
   initDesignSystem();
@@ -7970,7 +8090,7 @@ async function boot() {
     const modal = openModals[openModals.length - 1];
     if (modal) {
       if (modal.hasAttribute("data-confirm-only")) {
-        modal.querySelector("button")?.focus();
+        modal.querySelector("button")?.focus({ preventScroll: true });
         return;
       }
       if (modal.id === "siteMessageModal") {
@@ -8103,7 +8223,10 @@ async function boot() {
     setView("setupView");
   });
   window.addEventListener("popstate", (event) => {
-    pendingPopScroll = (event?.state && Number.isFinite(event.state.scrollY)) ? event.state : null;
+    pendingOutgoingScroll = null;
+    const hasSaved = Boolean(event?.state && Number.isFinite(event.state.scrollY));
+    pendingPopScroll = hasSaved ? event.state : null;
+    pendingPopReset = !hasSaved;
     routeCurrent();
   });
   $("offlineReviewBtn").addEventListener("click", () => {

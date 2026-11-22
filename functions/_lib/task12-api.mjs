@@ -229,7 +229,7 @@ async function executeRoute(context, descriptor, account, flags) {
     validateConsent(payload);
     if (!await hasTask27(db)) throw new Task12Error('注册政策记录尚未就绪，请稍后重试',503,'task27_policy_schema_not_ready',true);
     if (String(payload.secret || "") !== String(payload.confirm_secret || "")) {
-      throw new Task12Error("两次输入的登录密钥不一致", 400, "secret_mismatch");
+      throw new Task12Error("两次输入的登录密码不一致", 400, "secret_mismatch");
     }
     return response({
       ok: true,
@@ -323,7 +323,7 @@ async function executeRoute(context, descriptor, account, flags) {
   if (path === "/api/account/secret") {
     requireAllowedFields(payload, new Set(["current_secret", "new_secret", "confirm_secret"]));
     if ("confirm_secret" in payload && String(payload.new_secret || "") !== String(payload.confirm_secret || "")) {
-      throw new Task12Error("两次输入的新登录密钥不一致", 400, "secret_mismatch");
+      throw new Task12Error("两次输入的新密码不一致", 400, "secret_mismatch");
     }
     await changeOwnSecret(db, account, payload.current_secret, payload.new_secret, passwordOptions(context));
     try {

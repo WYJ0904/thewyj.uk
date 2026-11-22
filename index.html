@@ -991,7 +991,7 @@
           </div>
           <div id="loginTabPanel" role="tabpanel" aria-labelledby="showLoginBtn"><form id="loginForm" class="login-form" aria-labelledby="showLoginBtn" aria-describedby="loginError">
             <label class="field-label auth-field"><span>用户名</span><input id="usernameInput" autocomplete="username" maxlength="40" placeholder="请输入用户名" required /></label>
-            <label class="field-label auth-field"><span>登录密钥</span><input id="secretInput" type="password" autocomplete="current-password" maxlength="256" placeholder="请输入现有登录密钥" required /></label>
+            <label class="field-label auth-field"><span>登录密码</span><input id="secretInput" type="password" autocomplete="current-password" maxlength="256" placeholder="请输入登录密码" required /></label>
             <button class="primary" id="loginSubmitBtn" type="submit">登录</button>
             <button class="button-ghost" id="forgotPasswordBtn" type="button">忘记密码或无法使用验证器？</button>
           </form>
@@ -1572,14 +1572,14 @@
           <p id="releaseChannelStatus" role="status" aria-live="polite"></p><span class="status-badge hidden" id="experimentalFeatureBadge">预览体验已开放</span>
         </section>
         <form id="changeSecretForm" class="stack-form">
-          <h2 class="account-settings-title">修改登录密钥</h2>
-          <label data-p07-label for="currentSecretInput">当前登录密钥</label>
-          <div class="secret-input-row"><input id="currentSecretInput" type="password" autocomplete="current-password" maxlength="256" placeholder="当前登录密钥" required /><button id="toggleCurrentSecretBtn" type="button" aria-pressed="false">显示</button></div>
+          <h2 class="account-settings-title">修改登录密码</h2>
+          <label data-p07-label for="currentSecretInput">当前密码</label>
+          <div class="secret-input-row"><input id="currentSecretInput" type="password" autocomplete="current-password" maxlength="256" placeholder="当前密码" required /><button id="toggleCurrentSecretBtn" type="button" aria-pressed="false">显示</button></div>
           <label data-p07-label for="newSecretInput">新密码（至少 9 位，包含大小写字母、数字和特殊符号）</label>
           <div class="secret-input-row"><input id="newSecretInput" type="password" autocomplete="new-password" minlength="9" maxlength="256" placeholder="设置新的混合密码" required /><button id="toggleNewSecretBtn" type="button" aria-pressed="false">显示</button></div>
-          <label data-p07-label for="newSecretConfirmInput">再次输入新登录密钥</label>
-          <input id="newSecretConfirmInput" type="password" autocomplete="new-password" minlength="9" maxlength="256" placeholder="再次输入新登录密码" required />
-          <div class="account-secret-actions"><button id="generateOwnSecretBtn" type="button">生成安全密钥</button><button class="primary" type="submit">保存并退出全部会话</button></div>
+          <label data-p07-label for="newSecretConfirmInput">再次输入新密码</label>
+          <input id="newSecretConfirmInput" type="password" autocomplete="new-password" minlength="9" maxlength="256" placeholder="再次输入新密码" required />
+          <div class="account-secret-actions"><button id="generateOwnSecretBtn" type="button">生成安全密码</button><button class="primary" type="submit">保存并退出全部会话</button></div>
         </form>
         <div class="danger-zone">
           <strong>注销账户</strong>
@@ -1624,8 +1624,8 @@
         <h2 id="deleteAccountTitle">确认永久注销账户</h2>
           <p class="danger-note" id="deleteAccountWarning">注销后无法继续使用原账户及其会员权益，Web 与 Android 登录会话、双重验证与联系邮箱将立即撤销，关联业务数据将进入安全清理与防复活保护。系统防刷审计、支付订单及您本机保存的离线文件/备份不会在同一时刻全部抹除，您可在「隐私与数据管理」查看完整留存例外与提前导出备份。</p>
         <form id="deleteAccountForm" class="stack-form">
-          <label data-p07-label for="deleteSecretInput">当前登录密钥</label>
-            <input id="deleteSecretInput" type="password" autocomplete="current-password" maxlength="256" placeholder="重新输入当前登录密钥" required />
+          <label data-p07-label for="deleteSecretInput">当前密码</label>
+            <input id="deleteSecretInput" type="password" autocomplete="current-password" maxlength="256" placeholder="重新输入当前密码" required />
           <div class="action-row"><button data-close-modal="deleteAccountModal" data-dialog-initial-focus type="button">取消</button><button class="danger-button" id="confirmDeleteAccountBtn" type="submit">永久注销</button></div>
         </form>
       </section>
@@ -1635,7 +1635,7 @@
       <section class="modal-panel admin-editor" role="dialog" aria-modal="true" aria-labelledby="adminEditTitle">
         <button class="modal-close" data-close-modal="adminEditModal" type="button" aria-label="关闭"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
         <h2 id="adminEditTitle">编辑用户</h2>
-        <p class="admin-editor-subtitle">调整会员权限、登录密钥和账户状态</p>
+        <p class="admin-editor-subtitle">调整会员权限、登录密码和账户状态</p>
         <input id="adminEditUserId" type="hidden" />
         <section class="admin-editor-section">
           <h3>会员权限</h3>
@@ -1656,13 +1656,13 @@
           <div class="admin-entitlement-actions"><button id="adminDisableToolsBtn" type="button">仅取消工具权限</button><button id="adminEnableToolsBtn" type="button">恢复方案工具权限</button></div>
         </section>
         <section class="admin-editor-section">
-          <h3>登录密钥</h3>
+          <h3>登录密码</h3>
           <p class="admin-date-help" id="adminSecretHelp">原密码不可读取。重新验证身份后，服务端生成随机 20 位临时密码，仅本次显示；撤销旧会话，保留 MFA，首次登录须设置新密码。</p>
           <div class="admin-secret-control">
             <div class="field-label admin-secret-field hidden" aria-hidden="true">
-              <label for="adminNewSecretInput">设置新登录密钥</label>
+              <label for="adminNewSecretInput">设置新密码</label>
               <span class="admin-secret-input-wrap">
-                <input id="adminNewSecretInput" type="password" autocomplete="new-password" minlength="7" maxlength="128" aria-describedby="adminSecretHelp" placeholder="输入或生成新密钥（至少 7 个字符）" />
+                <input id="adminNewSecretInput" type="password" autocomplete="new-password" minlength="7" maxlength="128" aria-describedby="adminSecretHelp" placeholder="输入或生成新密码（至少 7 个字符）" />
                 <button id="toggleAdminSecretBtn" type="button" aria-pressed="false">显示</button>
               </span>
             </div>
@@ -1672,8 +1672,8 @@
             </div>
           </div>
           <div class="admin-secret-result hidden" id="adminSecretResult" role="status" aria-live="polite">
-            <div><span>新密钥（仅本次显示）</span><code id="adminSecretResultValue"></code></div>
-            <button id="copyAdminSecretBtn" type="button">复制新密钥</button>
+            <div><span>新密码（仅本次显示）</span><code id="adminSecretResultValue"></code></div>
+            <button id="copyAdminSecretBtn" type="button">复制新密码</button>
           </div>
         </section>
         <section class="admin-editor-section admin-danger-section">

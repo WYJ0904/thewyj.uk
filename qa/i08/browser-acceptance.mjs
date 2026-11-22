@@ -250,6 +250,9 @@ try {
   await page.navigate("/login");
   await page.waitFor("document.documentElement.dataset.bootState === 'ready' && document.documentElement.dataset.p07Ui === 'enabled' && Boolean(document.querySelector('#loginForm'))", 20_000, "login ready");
   await settle();
+  const loginLabels = await page.evaluate("({ secretLabel: document.querySelector('#loginForm label[for], #loginForm .auth-field:nth-of-type(2) span')?.textContent || '', secretPlaceholder: document.getElementById('secretInput')?.placeholder || '', autocomplete: document.getElementById('secretInput')?.autocomplete || '' })");
+  assert.equal(loginLabels.secretLabel, "登录密码");
+  assert.equal(loginLabels.autocomplete, "current-password");
   await page.setFields({ "#usernameInput": "i08admin", "#secretInput": password });
   await page.click("#loginSubmitBtn");
   try {
@@ -258,36 +261,85 @@ try {
     const diag = await page.evaluate("({ path: location.pathname, err: document.querySelector('#loginError')?.textContent, mode: document.querySelector('#publicHome')?.dataset.sessionMode, boot: document.documentElement.dataset.bootState, rtErr: window.__rtErr })");
     throw new Error(`${err.message} | diag=${JSON.stringify(diag)} | rt=${JSON.stringify(page.runtimeErrors)}`);
   }
-  try {
-    await page.waitFor("!document.querySelector('#siteMessageModal')?.classList.contains('hidden')", 3000, "site notice");
-    await pointerClick("#siteMessageCloseBtn");
-    await page.waitFor("document.querySelector('#siteMessageModal')?.classList.contains('hidden')", 5_000, "site notice dismissed");
-  } catch (_) {}
-  await settle();
+  // R01: Login -> pending "完善账户安全" prompt -> close -> click sidebar "学习" -> navigate cleanly
+  await recordScenario("i08_r01_post_login_notice_inert_and_nav", async () => {
+    await page.waitFor("!document.querySelector('#siteMessageModal')?.classList.contains('hidden')", 10_000, "完善账户安全 modal visible");
+    const noticeTitle = await page.evaluate("document.getElementById('siteMessageTitle')?.textContent || ''");
+    assert.match(noticeTitle, /完善账户安全/);
+    assert.equal(await page.evaluate("document.getElementById('appShell').inert"), true);
+    assert.equal(await page.evaluate("document.getElementById('v3AppFrame').inert"), true);
 
-  // Scenario 1: Global route scroll governance (forward scroll-to-top + popstate restoration)
+    await pointerClick("#siteMessageCloseBtn");
+    // Repeat close call on already-closing/closed notice must be a safe no-op.
+    await page.evaluate("document.getElementById('siteMessageCloseBtn')?.click()");
+    await page.waitFor("document.querySelector('#siteMessageModal')?.classList.contains('hidden')", 5_000, "site notice dismissed");
+    await settle();
+    const lockState = await page.evaluate("({ appShellInert: document.getElementById('appShell').inert, frameInert: document.getElementById('v3AppFrame').inert, modalOpen: document.body.classList.contains('modal-open') })");
+    assert.deepEqual(lockState, { appShellInert: false, frameInert: false, modalOpen: false });
+
+    // Click sidebar "学习" right after dismissing notice
+    await pointerClick("#v3Sidebar [data-v3-nav='language']");
+    await page.waitFor("location.pathname === '/language' && !document.querySelector('#projectPicker')?.classList.contains('hidden')", 15_000, "sidebar click opened /language");
+
+    // Rapid route jump + Escape dismissal + mobile 390px verification
+    await page.evaluate(`(() => {
+      document.querySelector('#v3Sidebar [data-v3-nav="tools"]')?.click();
+      document.querySelector('#v3Sidebar [data-v3-nav="finance"]')?.click();
+    })()`);
+    await page.waitFor("location.pathname === '/finance' && !document.querySelector('#financeWorkspace')?.classList.contains('hidden')", 15_000, "rapid route switch settled on /finance");
+    await settle();
+
+    // Open a blocking modal (feedbackModal) and close via Escape on desktop + mobile 390px
+    await page.evaluate("document.getElementById('feedbackBtn')?.click()");
+    await page.waitFor("!document.querySelector('#feedbackModal')?.classList.contains('hidden')", 5_000, "feedback modal open");
+    assert.equal(await page.evaluate("document.getElementById('v3AppFrame').inert"), true);
+    await page.send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+    await page.send("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+    await page.waitFor("document.querySelector('#feedbackModal')?.classList.contains('hidden')", 5_000, "Escape dismissed modal");
+    assert.equal(await page.evaluate("document.getElementById('v3AppFrame').inert"), false);
+
+    await setViewport(390, 844);
+    await pointerClick("#siteNavToggle");
+    await pointerClick("#siteNavPanel [data-site-nav='language']");
+    await page.waitFor("location.pathname === '/language' && !document.querySelector('#projectPicker')?.classList.contains('hidden')", 15_000, "mobile nav click after modal Escape");
+    await setViewport(1440, 900);
+    return { noticeTitle, lockState, mobileNavOk: true };
+  });
+
+  // Scenario 1 (R03): Global route scroll governance (forward scroll-to-top + accurate popstate restoration)
   await recordScenario("i08_route_scroll_governance", async () => {
     await setViewport(1440, 900);
     await pointerClick("#v3Sidebar [data-v3-nav='finance']");
-    await page.waitFor("!document.querySelector('#financeWorkspace')?.classList.contains('hidden')", 15_000);
+    await page.waitFor("!document.querySelector('#financeWorkspace')?.classList.contains('hidden') && document.querySelectorAll('#financeTransactionList .finance-transaction').length >= 8", 15_000, "finance ledger hydrated");
     await settle();
     await page.evaluate("window.scrollTo(0, 420)");
     await settle();
-    const scrolledY = await page.evaluate("window.scrollY");
-    assert.ok(scrolledY >= 300, `Expected finance scroll >= 300, got ${scrolledY}`);
+    const financeBefore = await page.evaluate("({ scrollY: window.scrollY, scrollHeight: document.documentElement.scrollHeight, clientHeight: document.documentElement.clientHeight })");
+    const financeMaxBefore = Math.max(0, financeBefore.scrollHeight - financeBefore.clientHeight);
+    assert.ok(financeMaxBefore >= 420, `Finance fixture should allow >= 420px scroll, got ${JSON.stringify(financeBefore)}`);
+    assert.ok(Math.abs(financeBefore.scrollY - 420) <= 2, `Expected finance scroll ~420, got ${JSON.stringify(financeBefore)}`);
 
     await page.evaluate("document.querySelector('#v3Sidebar [data-v3-nav=\"tools\"]').click()");
-    await page.waitFor("!document.querySelector('#toolsPanel')?.classList.contains('hidden')", 15_000);
+    await page.waitFor("!document.querySelector('#toolsPanel')?.classList.contains('hidden') && document.querySelectorAll('#toolCatalog .tool-card').length > 0", 15_000);
     await settle();
     const toolsScrollY = await page.evaluate("window.scrollY");
-    assert.ok(toolsScrollY <= 4, `Forward route navigation must reset scroll to top, got ${toolsScrollY}`);
+    assert.ok(toolsScrollY <= 2, `Forward route navigation must reset scroll to top, got ${toolsScrollY}`);
 
     await page.evaluate("history.back()");
-    await page.waitFor("location.pathname === '/finance' && !document.querySelector('#financeWorkspace')?.classList.contains('hidden')", 15_000);
+    await page.waitFor("location.pathname === '/finance' && !document.querySelector('#financeWorkspace')?.classList.contains('hidden') && document.querySelectorAll('#financeTransactionList .finance-transaction').length >= 8", 15_000, "popstate finance hydrated");
+    await delay(120);
     await settle();
-    const restoredY = await page.evaluate("window.scrollY");
-    assert.ok(restoredY >= 200, `Popstate back must restore finance scroll (>=200), got ${restoredY}`);
-    return { scrolledY, toolsScrollY, restoredY };
+    const financeAfter = await page.evaluate("({ scrollY: window.scrollY, scrollHeight: document.documentElement.scrollHeight, clientHeight: document.documentElement.clientHeight })");
+    const maxScrollY = Math.max(0, financeAfter.scrollHeight - financeAfter.clientHeight);
+    const expectedScrollY = Math.min(financeBefore.scrollY, maxScrollY);
+    assert.ok(Math.abs(financeAfter.scrollY - expectedScrollY) <= 2, `Popstate scroll mismatch: got ${financeAfter.scrollY}, expected ${expectedScrollY} (${JSON.stringify(financeAfter)})`);
+
+    await page.evaluate("history.forward()");
+    await page.waitFor("location.pathname === '/tools' && !document.querySelector('#toolsPanel')?.classList.contains('hidden')", 15_000);
+    await settle();
+    const forwardToolsScrollY = await page.evaluate("window.scrollY");
+    assert.ok(forwardToolsScrollY <= 2, `Forward history navigation must reset/keep tools at top, got ${forwardToolsScrollY}`);
+    return { scrolledY: financeBefore.scrollY, maxScrollY, expectedScrollY, restoredY: financeAfter.scrollY, toolsScrollY, forwardToolsScrollY };
   });
 
   // Scenario 2: Vector icon migration (#v3Sidebar & #accountModal) + contrast across admin -> account switch
@@ -314,6 +366,26 @@ try {
     assert.equal(iconMetrics.acctIconCount, 3);
     assert.equal(iconMetrics.acctChevronCount, 3);
     assert.ok(iconMetrics.scrollY <= 4);
+    const r02Account = await page.evaluate(`(() => ({
+      title: document.querySelector('#changeSecretForm .account-settings-title')?.textContent || '',
+      curLabel: document.querySelector('label[for="currentSecretInput"]')?.textContent || '',
+      newLabel: document.querySelector('label[for="newSecretInput"]')?.textContent || '',
+      confirmLabel: document.querySelector('label[for="newSecretConfirmInput"]')?.textContent || '',
+      genBtn: document.getElementById('generateOwnSecretBtn')?.textContent || '',
+      deleteLabel: document.querySelector('label[for="deleteSecretInput"]')?.textContent || '',
+      adminSecretTitle: document.querySelector('#adminEditModal .admin-editor-section:nth-of-type(2) h3')?.textContent || '',
+      adminCopyBtn: document.getElementById('copyAdminSecretBtn')?.textContent || '',
+      hasLegacyTerm: (document.getElementById('accountModal')?.textContent || '').includes('登录密钥') || (document.getElementById('adminEditModal')?.textContent || '').includes('登录密钥'),
+    }))()`);
+    assert.equal(r02Account.title, "修改登录密码");
+    assert.equal(r02Account.curLabel, "当前密码");
+    assert.ok(r02Account.newLabel.startsWith("新密码"));
+    assert.equal(r02Account.confirmLabel, "再次输入新密码");
+    assert.equal(r02Account.genBtn, "生成安全密码");
+    assert.equal(r02Account.deleteLabel, "当前密码");
+    assert.equal(r02Account.adminSecretTitle, "登录密码");
+    assert.equal(r02Account.adminCopyBtn, "复制新密码");
+    assert.equal(r02Account.hasLegacyTerm, false);
     await runAxe("i08-account-light");
     await shot("1440-i08-account-icons-light.png");
     await setViewport(390, 844);

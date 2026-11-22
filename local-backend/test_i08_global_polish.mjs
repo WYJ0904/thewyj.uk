@@ -20,11 +20,17 @@ test("I08 CSS layer, vector icon markup, Kill Switch warning, and SW invariants"
   assert.equal((html.match(/class="account-setting-chevron"/g) || []).length, 3, "All 3 account setting rows must have SVG chevron");
   assert.equal((html.match(/class="home-quick-arrow"/g) || []).length, 4, "All 4 quick access links must have SVG arrow");
   assert.ok(html.includes('id="featureFlagKillWarning"'), "Missing #featureFlagKillWarning");
+  assert.equal(html.includes("登录密钥"), false, "R02: index.html must not expose '登录密钥'");
+  assert.ok(html.includes("<span>登录密码</span>"), "R02: login form must label 登录密码");
+  assert.ok(html.includes('for="currentSecretInput">当前密码</label>'), "R02: account form must label 当前密码");
+  assert.ok(html.includes('for="newSecretConfirmInput">再次输入新密码</label>'), "R02: account form must label 再次输入新密码");
 
   const appJs = fs.readFileSync(path.join(ROOT, "app.js"), "utf8");
+  assert.match(appJs, /function syncShellInteractivity\(/);
   assert.match(appJs, /function applyWorkspaceRouteScroll\(pushHistory\)/);
   assert.ok(appJs.includes('pushRoute("/admin")'), "showAdminPanel must use pushRoute('/admin')");
   assert.ok((appJs.match(/applyWorkspaceRouteScroll\(pushHistory\)/g) || []).length >= 8, "All workspace routes must apply scroll governance");
+  assert.equal(appJs.includes("登录密钥"), false, "R02: app.js must not expose '登录密钥'");
 
   const swSource = fs.readFileSync(path.join(ROOT, "sw.js"), "utf8");
   const context = {

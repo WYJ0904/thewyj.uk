@@ -2533,7 +2533,7 @@ class VocabHandler(BaseHTTPRequestHandler):
                 register_limited(self, record=True)
                 payload = self.read_json()
                 if str(payload.get("secret", "")) != str(payload.get("confirm_secret", "")):
-                    raise AccountError("两次输入的登录密钥不一致", 400, "secret_mismatch")
+                    raise AccountError("两次输入的登录密码不一致", 400, "secret_mismatch")
                 user = ACCOUNT_STORE.register(payload.get("username"), payload.get("secret"))
                 json_response(
                     self,
@@ -2653,7 +2653,7 @@ class VocabHandler(BaseHTTPRequestHandler):
             if request_path == "/api/account/secret":
                 payload = self.read_json()
                 if "confirm_secret" in payload and str(payload.get("new_secret", "")) != str(payload.get("confirm_secret", "")):
-                    raise AccountError("两次输入的新登录密钥不一致", 400, "secret_mismatch")
+                    raise AccountError("两次输入的新密码不一致", 400, "secret_mismatch")
                 ACCOUNT_STORE.change_own_secret(
                     self.account_user["id"], payload.get("current_secret"), payload.get("new_secret")
                 )
