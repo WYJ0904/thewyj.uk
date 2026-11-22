@@ -190,7 +190,7 @@ if (doDeploy) {
   const dep = spawnSync(
     process.execPath,
     [WRANGLER, "pages", "deploy", "./pages-output", "--project-name", PROJECT, "--branch", PREVIEW_BRANCH, "--commit-hash", commit, "--commit-dirty=false"],
-    { cwd: STAGE_ROOT, encoding: "utf8", timeout: 180_000 },
+    { cwd: STAGE_ROOT, encoding: "utf8", timeout: 360_000 },
   );
   assert.equal(dep.status, 0, `Wrangler deploy failed:\n${dep.stdout}\n${dep.stderr}`);
   const projectPattern = new RegExp(`https:\\/\\/[a-z0-9-]+\\.${PROJECT.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&")}\\.pages\\.dev`, "g");
