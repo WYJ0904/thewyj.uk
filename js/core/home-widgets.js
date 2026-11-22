@@ -250,7 +250,7 @@ export function createHomeWidgets({
 
     if (saveStatusEl) {
       let tone = "neutral";
-      let statusText = "默认布局（本地按账户隔离）";
+      let statusText = "标准视图";
       if (persistState === "failed") {
         tone = "error";
         statusText = lastPersistMessage || "保存失败：已保留上次已保存布局";
@@ -262,7 +262,7 @@ export function createHomeWidgets({
         statusText = "已恢复默认布局（支持撤销）";
       } else if (savedConfig.customized) {
         tone = "success";
-        statusText = "已保存 · 仅当前账户本地生效";
+        statusText = "已保存";
       }
       saveStatusEl.dataset.tone = tone;
       saveStatusEl.dataset.saveState = persistState === "failed" ? "failed" : hasUnsaved ? "dirty" : persistState;

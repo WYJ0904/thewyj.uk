@@ -1,0 +1,191 @@
+{
+  "passed": true,
+  "p0a_auth_home": {
+    "authGeom": {
+      "heroBorderW": "0px",
+      "persistenceBadgeDisplay": "none",
+      "summaryTop": 236,
+      "bentoCols": 2,
+      "firstCardBg": "rgba(0, 0, 0, 0)"
+    },
+    "compactCols": 1
+  },
+  "p0b_preview_scroll": {
+    "desktopJumps": [
+      {
+        "tabId": "#publicToolsTab",
+        "before": 480,
+        "after": 480,
+        "delta": 0
+      },
+      {
+        "tabId": "#publicFinanceTab",
+        "before": 480,
+        "after": 480,
+        "delta": 0
+      },
+      {
+        "tabId": "#publicFilesTab",
+        "before": 480,
+        "after": 480,
+        "delta": 0
+      },
+      {
+        "tabId": "#publicLearningTab",
+        "before": 480,
+        "after": 480,
+        "delta": 0
+      }
+    ],
+    "mobileJumps": [
+      {
+        "tabId": "#publicToolsTab",
+        "before": 387,
+        "after": 387,
+        "delta": 0
+      },
+      {
+        "tabId": "#publicFinanceTab",
+        "before": 387,
+        "after": 387,
+        "delta": 0
+      },
+      {
+        "tabId": "#publicFilesTab",
+        "before": 387,
+        "after": 387,
+        "delta": 0
+      },
+      {
+        "tabId": "#publicLearningTab",
+        "before": 387,
+        "after": 387,
+        "delta": 0
+      }
+    ]
+  },
+  "p0c_finance_currencies": {
+    "topPrefsEditable": {
+      "dispDisabled": false,
+      "acctDisabled": false,
+      "defDisabled": false
+    },
+    "curBeforeKey": "JPY",
+    "curAfterArrow": "GBP",
+    "modalTransform": "none",
+    "persistedRowCount": 6
+  },
+  "p0d_finance_register": {
+    "summaryOutlineAfterClick": "none",
+    "emptyFilterRecovered": true
+  },
+  "p0e_tools_workflows": {
+    "toolsGeom": {
+      "searchWidth": 820,
+      "kbdHeight": 24,
+      "catalogCols": 3
+    },
+    "workbenchOpen": true,
+    "wfTrace": {
+      "stepsCount": 3,
+      "statusNodes": 3,
+      "runnerCols": 2
+    }
+  },
+  "viewports": [
+    {
+      "width": 375,
+      "height": 812,
+      "theme": "light",
+      "overflowX": 0
+    },
+    {
+      "width": 375,
+      "height": 812,
+      "theme": "dark",
+      "overflowX": 0
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "overflowX": 0
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "overflowX": 0
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "overflowX": 0
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "overflowX": 0
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "theme": "light",
+      "overflowX": 0
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "theme": "dark",
+      "overflowX": 0
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "theme": "light",
+      "overflowX": 0
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "theme": "dark",
+      "overflowX": 0
+    }
+  ],
+  "motion": {
+    "reducedMotionDuration": "1e-06s",
+    "frameCount": 429
+  },
+  "screenshots": [
+    "rework-guest-home-1440-light.png",
+    "rework-auth-home-1440-light.png",
+    "rework-auth-home-compact-1440.png",
+    "rework-finance-1440-light.png",
+    "rework-finance-modal-1440.png",
+    "rework-finance-register-loaded-1440.png",
+    "rework-tools-1440-light.png",
+    "rework-workflows-1440-light.png",
+    "rework-workflows-runner-1440.png",
+    "rework-admin-1440-light.png",
+    "rework-finance-390-light.png",
+    "rework-tools-390-light.png"
+  ],
+  "recording": {
+    "format": "keyframes",
+    "frames": 429,
+    "picked": [
+      "recording-step-01.jpg",
+      "recording-step-02.jpg",
+      "recording-step-03.jpg",
+      "recording-step-04.jpg",
+      "recording-step-05.jpg",
+      "recording-step-06.jpg",
+      "recording-step-07.jpg",
+      "recording-step-08.jpg",
+      "recording-step-09.jpg"
+    ]
+  },
+  "runtimeErrors": []
+}

@@ -1076,11 +1076,30 @@ export function createFinanceController({
       const query = safeText(element("financeSearchInput")?.value, 24);
       filterSummary.textContent = [month, direction, status, query ? `“${query}”` : ""].filter(Boolean).join(" · ");
     }
+    const totalAllStatusMatches = Object.values(store.transactions).filter((item) => {
+      const targetStatus = filters.status || "active";
+      return targetStatus === "all" || (item.status || "active") === targetStatus;
+    }).length;
+    const totalAllMonthsActive = Object.values(store.transactions).filter((item) => (item.status || "active") === "active").length;
+    const hasSearchOrTypeFilter = Boolean(filters.query || filters.direction || filters.category_id);
+    let emptyHtml;
+    if (!store.last_sync_at && !store.pending?.length && store.last_error) {
+      emptyHtml = `<div class="finance-empty"><strong>云端账目读取失败</strong><p>${escapeHtml(safeText(store.last_error, 120) || "请检查网络或服务状态后重试。")}</p><div class="action-row compact"><button class="button-secondary" type="button" data-finance-action="sync">重试读取</button><button class="button-ghost" type="button" data-finance-action="add">新增账目</button></div></div>`;
+    } else if (!store.last_sync_at && Object.keys(store.transactions).length === 0) {
+      emptyHtml = '<div class="finance-empty"><strong>尚未从云端读取账目</strong><p>点击“立即同步”拉取账户历史记录，或直接记一笔新账。</p><div class="action-row compact"><button class="button-secondary" type="button" data-finance-action="sync">立即同步</button><button class="button-ghost" type="button" data-finance-action="add">新增账目</button></div></div>';
+    } else if (hasSearchOrTypeFilter && totalAllStatusMatches > 0) {
+      emptyHtml = `<div class="finance-empty"><strong>当前筛选条件下无匹配账目</strong><p>本账户仍保留 ${totalAllMonthsActive} 笔有效历史账目，未做任何删除。</p><div class="action-row compact"><button class="button-secondary" type="button" data-finance-action="clear-filters">清空筛选条件</button></div></div>`;
+    } else if (!ledgerAllMonths && totalAllMonthsActive > 0) {
+      emptyHtml = `<div class="finance-empty"><strong>${escapeHtml(currentMonth())} 暂无账目，其他月份共有 ${totalAllMonthsActive} 笔历史记录</strong><p>切换至全部月份或选择历史月份即可查看。</p><div class="action-row compact"><button class="button-secondary" type="button" data-finance-action="all-months">查看全部月份（${totalAllMonthsActive}）</button><button class="button-ghost" type="button" data-finance-action="add">新增账目</button></div></div>`;
+    } else {
+      emptyHtml = '<div class="finance-empty"><strong>当前账户暂无账目记录</strong><p>点击“新增账目”记一笔，或从导出与加密备份导入已有数据。</p><div class="action-row compact"><button class="button-secondary" type="button" data-finance-action="add">新增账目</button></div></div>';
+    }
+
     const visible = filtered.slice(0, ledgerLimit);
     reconcileKeyedRows(list, visible, {
       key: item => item.id,
       signature: item => JSON.stringify([item, categoryName(item.category_id)]),
-      empty: '<div class="finance-empty"><strong>暂无符合条件的账目</strong><p>可以新增一笔，或调整月份和筛选条件。</p></div>',
+      empty: emptyHtml,
       render: (item) => {
       const title = item.merchant || item.counterparty || (item.source_kind === "automatic" ? "未识别商户" : categoryName(item.category_id));
       const sign = item.direction === "expense" ? "-" : "+";
@@ -1761,6 +1780,16 @@ export function createFinanceController({
     else if (button.dataset.financeCategoryDelete) deleteCategory(button.dataset.financeCategoryDelete);
     else if (button.dataset.financeBudgetEdit) editBudget(button.dataset.financeBudgetEdit);
     else if (button.dataset.financeBudgetDelete) deleteBudget(button.dataset.financeBudgetDelete);
+    else if (button.dataset.financeAction === "sync") syncNow();
+    else if (button.dataset.financeAction === "add") openTransactionEditor();
+    else if (button.dataset.financeAction === "all-months") { ledgerAllMonths = true; renderAll(); }
+    else if (button.dataset.financeAction === "clear-filters") {
+      if (element("financeSearchInput")) element("financeSearchInput").value = "";
+      if (element("financeDirectionFilter")) element("financeDirectionFilter").value = "";
+      if (element("financeCategoryFilter")) element("financeCategoryFilter").value = "";
+      if (element("financeStatusFilter")) element("financeStatusFilter").value = "active";
+      renderTransactions();
+    }
     else if (button.dataset.financeClose) closeLayer(button.dataset.financeClose);
   }
 

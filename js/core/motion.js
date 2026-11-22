@@ -1880,6 +1880,14 @@ export function createTabSkeletonSwitcher({
   let activePanel = null;
   let activeAbort = null;
   let pendingResolve = null;
+  let lockedMinHeight = "";
+
+  function restorePanelHeight(panel = activePanel) {
+    if (panel?.style && lockedMinHeight !== "") {
+      panel.style.minHeight = lockedMinHeight;
+      lockedMinHeight = "";
+    }
+  }
 
   function clearPending() {
     if (timerId && view?.clearTimeout) {
@@ -1895,6 +1903,7 @@ export function createTabSkeletonSwitcher({
       pendingResolve = null;
       done(false);
     }
+    restorePanelHeight();
     if (activePanel) {
       activePanel.removeAttribute?.("data-skeleton-loading");
       activePanel.removeAttribute?.("aria-busy");
@@ -1927,10 +1936,12 @@ export function createTabSkeletonSwitcher({
       throw error;
     }
     if (token !== generation || abortCtrl?.signal?.aborted) {
+      restorePanelHeight(panel);
       return false;
     }
     panel.removeAttribute?.("data-skeleton-loading");
     panel.removeAttribute?.("aria-busy");
+    restorePanelHeight(panel);
     animateEntrance(panel);
     return true;
   }
@@ -1951,6 +1962,11 @@ export function createTabSkeletonSwitcher({
       return finalizeRender(panel, renderContent, token, abortCtrl);
     }
 
+    const prevHeight = panel.getBoundingClientRect?.().height || 0;
+    if (panel.style && prevHeight > 0) {
+      lockedMinHeight = panel.style.minHeight || "";
+      panel.style.minHeight = `${Math.ceil(prevHeight)}px`;
+    }
     panel.setAttribute?.("data-skeleton-loading", "true");
     panel.setAttribute?.("aria-busy", "true");
 
@@ -2429,4 +2445,114 @@ export function installMotionSystem(doc = globalThis.document) {
   };
   installed.set(doc, dispose);
   return dispose;
+}
+
+const activeRouteEntrances = new WeakMap();
+
+/**
+ * Play a transform-only route view entrance (keeps opacity: 1 for WCAG contrast)
+ * while interrupting cleanly on rapid route switching and respecting reduced motion.
+ */
+export function animateRouteViewEntrance(element, {
+  view = globalThis.window,
+  distanceY = 8,
+  duration = MOTION.page,
+} = {}) {
+  if (!element || typeof element.animate !== "function" || prefersReducedMotion(view)) return null;
+  const prev = activeRouteEntrances.get(element);
+  if (prev) {
+    try { prev.cancel(); } catch (_) {}
+  }
+  const animation = element.animate(
+    [
+      { transform: `translate3d(0, ${distanceY}px, 0)` },
+      { transform: "translate3d(0, 0, 0)" },
+    ],
+    {
+      duration: Math.max(140, Math.min(260, Number(duration) || 200)),
+      easing: MOTION.easing,
+      fill: "none",
+    },
+  );
+  activeRouteEntrances.set(element, animation);
+  animation.finished?.then?.(() => {
+    if (activeRouteEntrances.get(element) === animation) activeRouteEntrances.delete(element);
+  }, () => {
+    if (activeRouteEntrances.get(element) === animation) activeRouteEntrances.delete(element);
+  });
+  return animation;
+}
+
+const RELEASE_SEARCH = (() => {
+  try {
+    return new URL(import.meta.url).search || "";
+  } catch (_) {
+    return "";
+  }
+})();
+
+export const DEFAULT_PREFETCH_ROUTES = Object.freeze({
+  tools: [`/tools.js${RELEASE_SEARCH}`],
+  workflows: [`/workflows.js${RELEASE_SEARCH}`, `/tools.js${RELEASE_SEARCH}`],
+  finance: [`/js/finance/app.js${RELEASE_SEARCH}`, `/js/finance/candidates.js${RELEASE_SEARCH}`],
+  language: [`/learning-sync.js${RELEASE_SEARCH}`],
+  changelog: [`/changelog.js${RELEASE_SEARCH}`],
+  account: [`/js/account/security-center.js${RELEASE_SEARCH}`],
+});
+
+/**
+ * Low-priority static module/asset prefetcher for likely next routes.
+ * Respects offline status, Save-Data, slow 2G connections, and never touches private API data.
+ */
+export function createAssetPrefetcher({
+  doc = globalThis.document,
+  view = globalThis.window,
+  routes = DEFAULT_PREFETCH_ROUTES,
+} = {}) {
+  const prefetched = new Set();
+  function networkAllowsPrefetch() {
+    const nav = view?.navigator || globalThis.navigator;
+    if (nav?.onLine === false) return false;
+    const conn = nav?.connection || nav?.mozConnection || nav?.webkitConnection;
+    if (conn?.saveData === true) return false;
+    const eff = String(conn?.effectiveType || "").toLowerCase();
+    if (eff === "slow-2g" || eff === "2g") return false;
+    return true;
+  }
+  function prefetchUrl(url) {
+    if (!doc?.head || !url || prefetched.has(url) || !networkAllowsPrefetch()) return false;
+    prefetched.add(url);
+    const link = doc.createElement("link");
+    link.rel = "prefetch";
+    link.href = url;
+    link.crossOrigin = "same-origin";
+    doc.head.append(link);
+    return true;
+  }
+  function prefetchRoute(routeKey) {
+    const assets = routes?.[routeKey];
+    if (!Array.isArray(assets) || !networkAllowsPrefetch()) return 0;
+    let count = 0;
+    for (const url of assets) {
+      if (prefetchUrl(url)) count += 1;
+    }
+    return count;
+  }
+  function scheduleIdleWarmup(keys = ["tools", "changelog"]) {
+    if (!networkAllowsPrefetch()) return;
+    const run = () => {
+      for (const key of keys) prefetchRoute(key);
+    };
+    if (typeof view?.requestIdleCallback === "function") {
+      view.requestIdleCallback(run, { timeout: 2200 });
+    } else if (typeof view?.setTimeout === "function") {
+      view.setTimeout(run, 1400);
+    }
+  }
+  return Object.freeze({
+    prefetchRoute,
+    prefetchUrl,
+    scheduleIdleWarmup,
+    count: () => prefetched.size,
+  });
 }
