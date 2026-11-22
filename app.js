@@ -5388,6 +5388,7 @@ async function ensureBackendConnection() {
 
 function setView(id) {
   if (id === "quizView" && !state.roundActive) id = "setupView";
+  const enteringQuiz = id === "quizView" && !$("quizView")?.classList.contains("active");
   const leavingQuiz = id !== "quizView" && $("quizView")?.classList.contains("active");
   if (leavingQuiz) {
     if (judgeController) judgeController.abort();
@@ -5396,8 +5397,15 @@ function setView(id) {
   document.querySelectorAll(".view").forEach((view) => view.classList.toggle("active", view.id === id));
   document.querySelectorAll(".tabs button").forEach((tab) => tab.classList.toggle("active", tab.dataset.view === id));
   if (id === "quizView" && state.roundActive) {
+    if (enteringQuiz && typeof window.scrollTo === "function") {
+      try {
+        window.scrollTo({ left: 0, top: 0, behavior: "instant" });
+      } catch (_) {
+        window.scrollTo(0, 0);
+      }
+    }
     if (state.pendingAdvance) resumeQuestionTransition();
-    else $("answerInput")?.focus();
+    else $("answerInput")?.focus({ preventScroll: true });
   }
   if (id === "wrongView") renderWrongBook({ force: true });
   if (id === "achievementsView") renderAchievements();
@@ -6191,7 +6199,7 @@ function showWord(options = {}) {
   }
   $("acceptedChips").innerHTML = "";
   const quizVisible = $("quizView")?.classList.contains("active") && !$("workspace")?.classList.contains("hidden");
-  if (options.focus !== false && quizVisible && !preserveTransition) $("answerInput").focus();
+  if (options.focus !== false && quizVisible && !preserveTransition) $("answerInput").focus({ preventScroll: true });
   if (dictation && !preserveTransition) speakCurrentWord();
 }
 

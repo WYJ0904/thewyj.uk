@@ -28,6 +28,8 @@ test("I06 CSS layer, HTML markers, zero !important, and PWA shell invariants are
   const i06Layer = spatial.slice(commentEnd >= 0 ? commentEnd + 2 : idx).replace(/\/\*[\s\S]*?\*\//g, "");
   assert.equal(i06Layer.includes("!important"), false, "I06 Module Experience Layer must have 0 !important declarations");
   assert.match(i06Layer, /html:not\(\[data-p07-ui="enabled"\]\)\s*:is\(\.quiz-progress-track/);
+  assert.match(i06Layer, /#quizView\s+#submitBtn[\s\S]*?flex-basis:\s*auto/);
+  assert.match(i06Layer, /#adminFeatureFlagsView\s+\.feature-directory-list\s+\.feature-directory-item[\s\S]*?grid-template-columns:/);
 
   const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
   for (const marker of [

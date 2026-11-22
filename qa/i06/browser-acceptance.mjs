@@ -449,23 +449,63 @@ try {
     await pointerClick("#startBtn");
     await page.waitFor("document.querySelector('#quizView')?.classList.contains('active')", 10_000, "quiz active");
     await settle();
-    const quizBox = await page.evaluate(`(() => {
-      const qv = document.getElementById('quizView');
-      const fill = document.getElementById('quizProgressFill');
-      const crumb = document.querySelector('#workspaceBreadcrumb li[aria-current="page"]')?.textContent?.trim() || '';
-      return {
-        width: qv.getBoundingClientRect().width,
-        fillWidth: fill.style.width,
-        crumb,
-        overflow: document.documentElement.scrollWidth - window.innerWidth,
-      };
-    })()`);
+    const checkQuizGeometry = async (label) => {
+      const box = await page.evaluate(`(() => {
+        const qv = document.getElementById('quizView');
+        const fill = document.getElementById('quizProgressFill');
+        const word = document.getElementById('wordLabel').getBoundingClientRect();
+        const input = document.getElementById('answerInput').getBoundingClientRect();
+        const submit = document.getElementById('submitBtn').getBoundingClientRect();
+        const skip = document.getElementById('skipBtn').getBoundingClientRect();
+        const nav = document.getElementById('accountBar')?.getBoundingClientRect();
+        const crumb = document.querySelector('#workspaceBreadcrumb li[aria-current="page"]')?.textContent?.trim() || '';
+        return {
+          width: qv.getBoundingClientRect().width,
+          fillWidth: fill.style.width,
+          crumb,
+          scrollY: window.scrollY,
+          navBottom: nav ? nav.bottom : 0,
+          wordTop: word.top,
+          wordBottom: word.bottom,
+          inputBottom: input.bottom,
+          submitHeight: submit.height,
+          submitBottom: submit.bottom,
+          skipBottom: skip.bottom,
+          vh: window.innerHeight,
+          overflow: document.documentElement.scrollWidth - window.innerWidth,
+        };
+      })()`);
+      assert.ok(box.submitHeight >= 44 && box.submitHeight <= 56, `${label} #submitBtn height out of range (expected ~48px): ${JSON.stringify(box)}`);
+      assert.ok(box.wordTop >= box.navBottom - 1, `${label} #wordLabel occluded by sticky header: ${JSON.stringify(box)}`);
+      assert.ok(box.submitBottom <= box.vh, `${label} primary submit button below initial viewport: ${JSON.stringify(box)}`);
+      assert.ok(box.overflow <= 1, `${label} horizontal overflow: ${JSON.stringify(box)}`);
+      return box;
+    };
+
+    const quizBox = await checkQuizGeometry("1440-light");
+    assert.ok(quizBox.scrollY <= 4, `Start quiz should reset scroll cleanly to top: ${JSON.stringify(quizBox)}`);
     assert.ok(quizBox.width <= 765, `Quiz focus canvas exceeded 760px: ${JSON.stringify(quizBox)}`);
     assert.equal(quizBox.fillWidth, "50%", `Quiz progress fill mismatch: ${JSON.stringify(quizBox)}`);
     assert.equal(quizBox.crumb, "答题", `Breadcrumb should show active language tab 答题: ${JSON.stringify(quizBox)}`);
-    assert.ok(quizBox.overflow <= 1);
-    await page.evaluate("window.scrollTo(0, 0)");
+    assert.ok(quizBox.skipBottom <= quizBox.vh, `Desktop 1440x900 should fit secondary quiz actions cleanly: ${JSON.stringify(quizBox)}`);
     await shot("1440-i06-language-quiz-light.png");
+
+    await setTheme("dark");
+    const quiz1440Dark = await checkQuizGeometry("1440-dark");
+    await setViewport(390, 844);
+    await setTheme("light");
+    await page.evaluate("window.scrollTo(0, 0)");
+    await settle();
+    const quiz390Light = await checkQuizGeometry("390-light");
+    await shot("390-i06-language-quiz-light.png");
+    await setViewport(375, 812);
+    await setTheme("dark");
+    await page.evaluate("window.scrollTo(0, 0)");
+    await settle();
+    const quiz375Dark = await checkQuizGeometry("375-dark");
+    await shot("375-i06-language-quiz-dark.png");
+    await setTheme("light");
+    await setViewport(1440, 900);
 
     // Skip to populate current wrong book, advance via #nextNowBtn, then inspect wrong-review FSRS badges
     await pointerClick("#skipBtn");
@@ -486,7 +526,7 @@ try {
       };
     })()`);
     assert.ok(wrongInfo.count >= 1 && wrongInfo.borderLeft === "0px", `Wrong list should be continuous hairline rows: ${JSON.stringify(wrongInfo)}`);
-    return { quizBox, wrongInfo };
+    return { quizBox, quiz1440Dark, quiz390Light, quiz375Dark, wrongInfo };
   });
 
   // Module 2: /finance — borderless ledger + slide-over edit drawer (1440 & 390 dark)
@@ -624,6 +664,24 @@ try {
     assert.equal(initialFold.open, false, `Transfer config disclosure should start collapsed: ${JSON.stringify(initialFold)}`);
     assert.ok(initialFold.summary.includes("1 天") && initialFold.summary.includes("5 次"));
 
+    // Verify 375x812 mobile default /transfer shows primary #transferSelectFilesBtn above the fold with 0 overflow
+    await setViewport(375, 812);
+    await page.evaluate("window.scrollTo(0, 0)");
+    await settle();
+    const mobileTransferDefault = await page.evaluate(`(() => {
+      const btn = document.getElementById('transferSelectFilesBtn').getBoundingClientRect();
+      return {
+        selectFilesTop: btn.top,
+        selectFilesBottom: btn.bottom,
+        vh: window.innerHeight,
+        overflow: document.documentElement.scrollWidth - window.innerWidth,
+      };
+    })()`);
+    assert.ok(mobileTransferDefault.selectFilesBottom <= mobileTransferDefault.vh, `/transfer 375px default should keep 选择文件 visible above the fold: ${JSON.stringify(mobileTransferDefault)}`);
+    assert.ok(mobileTransferDefault.overflow <= 1, `/transfer 375px overflow: ${JSON.stringify(mobileTransferDefault)}`);
+    await shot("375-i06-transfer-light.png");
+    await setViewport(1440, 900);
+
     await pointerClick("#transferConfigDisclosure > summary");
     await page.evaluate(`(() => {
       const sel = document.getElementById('transferExpiry');
@@ -689,12 +747,12 @@ try {
     assert.ok(preNodes.dirCount >= 1);
     assert.ok(preNodes.cb1[0] <= 24 && preNodes.cb2[0] <= 24);
 
-    // Create new flag via Task 27 step-up and inspect structured audit timeline
-    const flagKey = `i06_flag_${Date.now().toString(36).slice(-5)}`;
+    // Create new long-key flag via Task 27 step-up + second mutation so timeline has >= 2 visible nodes
+    const flagKey = `i06_long_flag_alignment_${Date.now().toString(36).slice(-5)}`;
     await pointerClick("#newFeatureFlagBtn");
     const newCapsule = await page.evaluate("document.getElementById('featureFlagStateCapsule')?.dataset.state || ''");
     assert.equal(newCapsule, "new");
-    await page.setFields({ "#featureFlagKey": flagKey, "#featureFlagDescription": "I06 capsule timeline check", "#featureFlagPercentage": "50" });
+    await page.setFields({ "#featureFlagKey": flagKey, "#featureFlagDescription": "I06 capsule timeline & mobile alignment check", "#featureFlagPercentage": "50" });
     await pointerClick("#featureFlagEnabled");
     const liveOnState = await page.evaluate("document.getElementById('featureFlagStateCapsule')?.dataset.state || ''");
     assert.equal(liveOnState, "on", "Live toggle should immediately update status capsule to 'on'");
@@ -704,8 +762,24 @@ try {
     await pointerClick("#task27Prompt button[type='submit']");
     await page.waitFor("document.querySelector('#featureConsoleStatus')?.textContent?.includes('设置已保存')", 15_000, "flag saved");
 
-    // Open audit timeline details
-    await page.evaluate("document.querySelector('#adminFeatureFlagsView details summary')?.click()");
+    // Perform a second mutation (select the created flag, update rollout to 75%, handle step-up) to produce >= 2 audit timeline rows
+    await pointerClick(`#featureFlagSummaryList [data-flag-key="${flagKey}"]`);
+    await page.setFields({ "#featureFlagPercentage": "75" });
+    await page.evaluate("const s = document.getElementById('featureConsoleStatus'); if (s) s.textContent = '';");
+    await pointerClick("#saveFeatureFlagBtn");
+    await page.waitFor("Boolean(document.querySelector('#task27Prompt:not(.hidden) input[name=\"password\"]')) || document.querySelector('#featureConsoleStatus')?.textContent?.includes('设置已保存')", 15_000, "second mutation step-up or save");
+    if (await page.evaluate("Boolean(document.querySelector('#task27Prompt:not(.hidden) input[name=\"password\"]'))")) {
+      await page.setFields({ "#task27Prompt input[name='password']": password });
+      await pointerClick("#task27Prompt button[type='submit']");
+    }
+    await page.waitFor("document.querySelector('#featureConsoleStatus')?.textContent?.includes('设置已保存') && document.querySelectorAll('#featureFlagAuditTimeline .feature-audit-item').length >= 2", 15_000, "second audit timeline entry");
+
+    // Open audit timeline details and frame multiple timeline nodes
+    await page.evaluate(`(() => {
+      const details = document.querySelector('#adminFeatureFlagsView details');
+      if (details && !details.open) details.open = true;
+      document.getElementById('featureFlagAuditTimeline')?.scrollIntoView({ block: 'center', behavior: 'instant' });
+    })()`);
     await settle();
     const afterSave = await page.evaluate(`({
       sameForm: window.__i06FlagForm === document.getElementById('featureFlagForm'),
@@ -719,17 +793,77 @@ try {
     assert.equal(afterSave.sameCb, true);
     assert.equal(afterSave.removedCount, 0);
     assert.equal(afterSave.auditHasKey, true);
-    assert.ok(afterSave.timelineCount >= 1 && afterSave.timelineHasKey, `Structured audit timeline missing flag: ${JSON.stringify(afterSave)}`);
+    assert.ok(afterSave.timelineCount >= 2 && afterSave.timelineHasKey, `Structured audit timeline missing >=2 entries: ${JSON.stringify(afterSave)}`);
     await shot("1440-i06-admin-flags-timeline-light.png");
+
+    // Verify mobile 390 dark and 375 light directory column alignment, touch targets, selection switching, and form proximity
+    const checkFlagsMobile = async (label) => {
+      await page.evaluate(`(() => {
+        const strip = document.getElementById('featureFlagCapsuleStrip');
+        const nav = document.getElementById('accountBar');
+        const y = window.scrollY + (strip?.getBoundingClientRect().top || 0) - (nav?.getBoundingClientRect().bottom || 0) - 8;
+        window.scrollTo(0, Math.max(0, y));
+      })()`);
+      await settle();
+      const stats = await page.evaluate(`(() => {
+        const list = document.getElementById('featureFlagSummaryList');
+        const items = [...list.querySelectorAll('.feature-directory-item')];
+        const pillRights = items.map(el => el.querySelector('.feature-capsule')?.getBoundingClientRect().right || 0);
+        const minHeight = Math.min(...items.map(el => el.getBoundingClientRect().height));
+        const listRect = list.getBoundingClientRect();
+        const formRect = document.getElementById('featureFlagForm').getBoundingClientRect();
+        return {
+          count: items.length,
+          minHeight,
+          pillRightSpread: Math.max(...pillRights) - Math.min(...pillRights),
+          listHeight: listRect.height,
+          formTop: formRect.top,
+          vh: window.innerHeight,
+          overflow: document.documentElement.scrollWidth - window.innerWidth,
+        };
+      })()`);
+      assert.ok(stats.count >= 2, `${label} expected multiple flags: ${JSON.stringify(stats)}`);
+      assert.ok(stats.minHeight >= 44, `${label} flag directory touch target < 44px: ${JSON.stringify(stats)}`);
+      assert.ok(stats.pillRightSpread <= 2, `${label} ON/OFF pills misaligned horizontally: ${JSON.stringify(stats)}`);
+      assert.ok(stats.listHeight <= 230, `${label} mobile directory should stay compact (<=230px): ${JSON.stringify(stats)}`);
+      assert.ok(stats.formTop < stats.vh - 180, `${label} edit form pushed too far down (${stats.formTop}): ${JSON.stringify(stats)}`);
+      assert.ok(stats.overflow <= 1, `${label} horizontal overflow: ${JSON.stringify(stats)}`);
+      return stats;
+    };
 
     await setViewport(390, 844);
     await setTheme("dark");
-    const mobileOverflow = await page.evaluate("document.documentElement.scrollWidth - window.innerWidth");
-    assert.ok(mobileOverflow <= 1, `Admin flags 390 dark overflow: ${mobileOverflow}`);
+    // Switch selection to the newly created ON long-key flag and verify form + capsule sync
+    await pointerClick(`#featureFlagSummaryList [data-flag-key="${flagKey}"]`);
+    const switchedOn = await page.evaluate(`({
+      ariaCurrent: document.querySelector('#featureFlagSummaryList [data-flag-key="${flagKey}"]')?.getAttribute('aria-current'),
+      formKey: document.getElementById('featureFlagKey')?.value || '',
+      capsuleState: document.getElementById('featureFlagStateCapsule')?.dataset.state || '',
+    })`);
+    assert.equal(switchedOn.ariaCurrent, "true");
+    assert.equal(switchedOn.formKey, flagKey);
+    assert.equal(switchedOn.capsuleState, "on");
+    const mobileFlags390 = await checkFlagsMobile("390-dark");
     await shot("390-i06-admin-flags-dark.png");
+
+    // Switch back to an OFF flag on 375px light
+    await setViewport(375, 812);
+    await setTheme("light");
+    await pointerClick('#featureFlagSummaryList [data-flag-key="adaptive_learning"]');
+    const switchedOff = await page.evaluate(`({
+      ariaCurrent: document.querySelector('#featureFlagSummaryList [data-flag-key="adaptive_learning"]')?.getAttribute('aria-current'),
+      formKey: document.getElementById('featureFlagKey')?.value || '',
+      capsuleState: document.getElementById('featureFlagStateCapsule')?.dataset.state || '',
+    })`);
+    assert.equal(switchedOff.ariaCurrent, "true");
+    assert.equal(switchedOff.formKey, "adaptive_learning");
+    assert.equal(switchedOff.capsuleState, "off");
+    const mobileFlags375 = await checkFlagsMobile("375-light");
+    await shot("375-i06-admin-flags-light.png");
+
     await setTheme("light");
     await setViewport(1440, 900);
-    return { preNodes, newCapsule, liveOnState, afterSave, mobileOverflow };
+    return { preNodes, newCapsule, liveOnState, afterSave, mobileFlags390, mobileFlags375, switchedOn, switchedOff };
   });
 
   // Cross-module axe-core a11y + P07 OFF + runtime/5xx clean
