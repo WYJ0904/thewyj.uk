@@ -147,7 +147,10 @@ async function pointerClick(selector, target = page) {
   const hit = await target.evaluate(`(() => {
     const el = document.querySelector(${JSON.stringify(selector)});
     if (!el) return { ok: false, reason: 'missing: ' + ${JSON.stringify(selector)} };
-    el.scrollIntoView({ block: 'center', inline: 'center' });
+    const r0 = el.getBoundingClientRect();
+    if (r0.top < 0 || r0.bottom > window.innerHeight) {
+      el.scrollIntoView({ block: 'center', inline: 'center' });
+    }
     const r = el.getBoundingClientRect();
     if (r.width <= 0 || r.height <= 0) return { ok: false, reason: 'zero-size' };
     const cx = r.left + r.width / 2;
@@ -181,7 +184,8 @@ try {
   page = await openPage({ cdpUrl: `http://127.0.0.1:${port}`, baseUrl, width: 1440, height: 900, mobile: false });
 
   // Reset admin mfa_broadcast_at / receipts so post-login security notice triggers for admin, while normalUser tests no-prompt login!
-  runD1(`DELETE FROM admin_message_receipts WHERE message_id = 'task27-mfa-advice-v1' AND user_id IN (SELECT id FROM task12_users WHERE username_normalized = '${adminUser.toLowerCase()}'); UPDATE task27_security SET mfa_broadcast_at = '' WHERE user_id IN (SELECT id FROM task12_users WHERE username_normalized = '${adminUser.toLowerCase()}'); INSERT INTO admin_message_receipts (message_id, user_id, first_seen_at, dismissed_at, acknowledged_at) SELECT 'task27-mfa-advice-v1', id, '${new Date().toISOString()}', '${new Date().toISOString()}', '' FROM task12_users WHERE username_normalized = '${normalUser.toLowerCase()}' ON CONFLICT(message_id, user_id) DO UPDATE SET dismissed_at = excluded.dismissed_at; UPDATE task27_security SET mfa_broadcast_at = '${new Date().toISOString()}' WHERE user_id IN (SELECT id FROM task12_users WHERE username_normalized = '${normalUser.toLowerCase()}');`);
+  const nowIso = new Date().toISOString();
+  runD1(`DELETE FROM admin_message_receipts WHERE message_id = 'task27-mfa-advice-v1' AND user_id IN (SELECT id FROM task12_users WHERE username_normalized = '${adminUser.toLowerCase()}'); UPDATE task27_security SET mfa_broadcast_at = '' WHERE user_id IN (SELECT id FROM task12_users WHERE username_normalized = '${adminUser.toLowerCase()}'); UPDATE task27_security SET mfa_broadcast_at = '${nowIso}' WHERE user_id IN (SELECT id FROM task12_users WHERE username_normalized = '${normalUser.toLowerCase()}'); INSERT INTO admin_message_receipts (message_id, user_id, first_seen_at, dismissed_at, acknowledged_at, updated_at) SELECT 'task27-mfa-advice-v1', u.id, '${nowIso}', '${nowIso}', '', '${nowIso}' FROM task12_users u WHERE u.username_normalized = '${normalUser.toLowerCase()}' AND EXISTS (SELECT 1 FROM admin_messages WHERE id = 'task27-mfa-advice-v1') ON CONFLICT(message_id, user_id) DO UPDATE SET dismissed_at = excluded.dismissed_at, updated_at = excluded.updated_at;`);
 
   // 1. Login page R02 copy + R01 full flow: Login -> pending "完善账户安全" -> close -> click sidebar "学习" -> /language
   await page.navigate("/login");
