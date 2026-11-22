@@ -1,0 +1,104 @@
+{
+  "scope": "Isolated local Miniflare D1/R2 + headless Chrome CDP (I08 Global Polish, Icons, Controls & Route Scroll)",
+  "gitSha": "ac9bf53d21c23268a566948e4c02239887e0fe7f",
+  "gitBranch": "hydrogen/i08-global-polish",
+  "worktreeDirty": false,
+  "checkedAt": "2026-11-22T11:41:41.996Z",
+  "scenarios": [
+    {
+      "name": "i08_r01_post_login_notice_inert_and_nav",
+      "status": "PASS",
+      "ms": 7212,
+      "detail": {
+        "noticeTitle": "完善账户安全",
+        "lockState": {
+          "appShellInert": false,
+          "frameInert": false,
+          "modalOpen": false
+        },
+        "mobileNavOk": true
+      }
+    },
+    {
+      "name": "i08_route_scroll_governance",
+      "status": "PASS",
+      "ms": 5047,
+      "detail": {
+        "scrolledY": 420,
+        "maxScrollY": 996,
+        "expectedScrollY": 420,
+        "restoredY": 420,
+        "toolsScrollY": 0,
+        "forwardToolsScrollY": 0
+      }
+    },
+    {
+      "name": "i08_vector_icons_and_sidebar_contrast",
+      "status": "PASS",
+      "ms": 10205,
+      "detail": {
+        "sideSvgCount": 10,
+        "sideMinW": 16,
+        "acctIconCount": 3,
+        "acctChevronCount": 3,
+        "scrollY": 0
+      }
+    },
+    {
+      "name": "i08_kill_switch_and_checkbox_contracts",
+      "status": "PASS",
+      "ms": 10751,
+      "detail": {
+        "transferCb": {
+          "checked": true,
+          "width": 20,
+          "height": 20
+        },
+        "killState": {
+          "checked": true,
+          "cb1": [
+            20,
+            20
+          ],
+          "cb2": [
+            20,
+            20
+          ],
+          "killActive": "true",
+          "capsuleState": "kill",
+          "warnVisible": true
+        }
+      }
+    },
+    {
+      "name": "i08_primary_link_alignment_and_p07_off",
+      "status": "PASS",
+      "ms": 11203,
+      "detail": {
+        "aHeight": 44,
+        "bHeight": 44,
+        "topDiff": 0
+      }
+    }
+  ],
+  "axeScans": [
+    {
+      "label": "i08-account-light",
+      "violationCount": 0,
+      "passes": 46
+    },
+    {
+      "label": "i08-admin-kill-switch",
+      "violationCount": 0,
+      "passes": 49
+    }
+  ],
+  "screenshots": [
+    "1440-i08-account-icons-light.png",
+    "390-i08-account-icons-light.png",
+    "1440-i08-admin-kill-switch-light.png"
+  ],
+  "apiErrors": [],
+  "runtimeErrors": [],
+  "status": "PASS"
+}

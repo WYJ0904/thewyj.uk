@@ -45,6 +45,6 @@ export async function settleLoginError(context,ticket,error) {
   if(!['invalid_credentials','password_reset_required'].includes(String(error?.code || '')))await release(context.env.WYJ_DB,ticket.slots);
 }
 export function publicLoginError(error) {
-  if(error?.code==='password_reset_required')return new Task12Error('用户名或登录密钥错误',403,'invalid_credentials');
+  if(error?.code==='password_reset_required')return new Task12Error('用户名或登录密码错误',403,'invalid_credentials');
   return error;
 }

@@ -2429,7 +2429,7 @@ async function main() {
       expectSessionInvalidationSync();
       try {
         await click("#changeSecretForm button[type=submit]");
-        await waitFor("document.querySelector('#accountMessage')?.textContent.includes('密钥已修改')", 10_000, "own secret change");
+        await waitFor("document.querySelector('#accountMessage')?.textContent.includes('密码已修改')", 10_000, "own secret change");
         await waitFor("location.pathname === '/login'", 5_000, "logout after secret change");
       } finally {
         finishSessionInvalidationSync();
