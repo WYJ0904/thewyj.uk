@@ -6745,12 +6745,12 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #adminFeatureFlagsView .f
   }
 }
 
-html[data-p07-ui="enabled"] .admin-view.active {
+html[data-p07-ui="enabled"] :is(.auth-panel, .admin-panel, .admin-view.active, .view.active) {
   animation: adminViewSlideIn var(--ds-duration-fast) var(--ds-ease-standard) both;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html[data-p07-ui="enabled"] .admin-view.active {
+  html[data-p07-ui="enabled"] :is(.auth-panel, .admin-panel, .admin-view.active, .view.active) {
     animation: none;
   }
 }
@@ -7178,6 +7178,10 @@ html[data-p07-ui="enabled"] .task27-inbox-list > article {
 html[data-p07-ui="enabled"] .task27-inbox-list > article.is-unread {
   border-color: var(--ds-brand-border);
   background: var(--ds-brand-soft);
+}
+
+html[data-p07-ui="enabled"] #task30PrivacyModal :is(.sc-privacy-tab, .sc-privacy-panel button) {
+  min-height: 45px;
 }
 
 /* Mobile 375px / 390px readability & touch-safe wrapping across all modules */

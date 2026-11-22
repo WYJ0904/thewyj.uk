@@ -5299,8 +5299,9 @@ progress {
   gap: 8px;
   margin-bottom: 14px;
 }
+.task27-modal .sc-privacy-tab,
 .sc-privacy-tab {
-  min-height: 44px;
+  min-height: 45px;
   padding: 8px 14px;
   border-radius: 10px;
   border: 1px solid var(--border, rgba(133, 133, 133, 0.35));
@@ -5402,9 +5403,10 @@ progress {
   min-width: 0;
   line-height: 1.5;
 }
+.task27-modal .sc-privacy-panel button,
 .sc-privacy-panel button,
 .sc-privacy-panel input[type="text"] {
-  min-height: 44px;
+  min-height: 45px;
 }
 .sc-privacy-json {
   margin: 8px 0 0;
