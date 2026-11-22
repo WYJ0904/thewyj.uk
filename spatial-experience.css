@@ -6586,3 +6586,10 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #transferPage .transfer-c
   opacity: 0.65;
   cursor: not-allowed;
 }
+
+/* Preserve >= 4.5:1 WCAG AA text contrast on busy sidebar nav items */
+html[data-p07-ui="enabled"] .v3-sidebar-nav a[aria-busy="true"] {
+  opacity: 1;
+  color: var(--ds-text);
+  background: var(--ds-surface-subtle);
+}

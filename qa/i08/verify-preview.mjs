@@ -212,7 +212,7 @@ try {
 
   // 2. R03: /finance 420 -> /tools 0 -> popstate -> exact min(420, maxScrollY)
   await pointerClick("#v3Sidebar [data-v3-nav='finance']");
-  await page.waitFor("!document.querySelector('#financeWorkspace')?.classList.contains('hidden') && document.querySelectorAll('#financeTransactionList .finance-transaction').length >= 8", 20_000, "hosted finance hydrated");
+  await page.waitFor("!document.querySelector('#financeWorkspace')?.classList.contains('hidden') && document.querySelectorAll('#financeTransactionList .finance-transaction').length >= 8 && !document.querySelector('#v3Sidebar [aria-busy=\"true\"]')", 20_000, "hosted finance hydrated");
   await settle();
   await page.evaluate("window.scrollTo(0, 420)");
   await settle();
@@ -221,7 +221,7 @@ try {
   assert.ok(Math.abs(finBefore.scrollY - 420) <= 2);
 
   await pointerClick("#v3Sidebar [data-v3-nav='tools']");
-  await page.waitFor("!document.querySelector('#toolsPanel')?.classList.contains('hidden') && document.querySelectorAll('#toolCatalog .tool-card').length > 0", 20_000, "hosted tools hydrated");
+  await page.waitFor("!document.querySelector('#toolsPanel')?.classList.contains('hidden') && document.querySelectorAll('#toolCatalog .tool-card').length > 0 && !document.querySelector('#v3Sidebar [aria-busy=\"true\"]')", 20_000, "hosted tools hydrated");
   await settle();
   const toolsY = await page.evaluate("window.scrollY");
   assert.ok(toolsY <= 2);
