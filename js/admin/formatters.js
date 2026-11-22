@@ -1,7 +1,7 @@
 export function loginReasonLabel(reason) {
   return {
     success: "登录成功",
-    invalid_credentials: "用户名或密钥错误",
+    invalid_credentials: "用户名或登录密码错误",
     account_banned: "账户已封禁",
     login_rate_limited: "请求过于频繁",
   }[reason] || reason || "登录失败";

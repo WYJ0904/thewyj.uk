@@ -1,13 +1,17 @@
 // Presentation only: preserve unaffected rows, focus and scroll position.
 // Durable entities, ordering and lifecycle decisions remain with each caller.
-import { rowRenderRoot } from "./parked-rows.js?release=20261118-aeris-task30-web-release";
+import { rowRenderRoot } from "./parked-rows.js?release=20261121-aeris-i05-preview";
+import { captureFlipSnapshot, playFlipSnapshot } from "./motion.js?release=20261121-aeris-i05-preview";
 
 const lists = new WeakMap();
 const focusable = 'button,input,select,textarea,a[href],[tabindex]';
 
-export function reconcileKeyedRows(container, items, { key, signature, render, empty = '' }) {
-  if (!container) return;
+export function reconcileKeyedRows(container, items, { key, signature, render, empty = '', flip = false } = {}) {
+  if (!container) return null;
   const target = rowRenderRoot(container);
+  const flipOptions = flip === true ? {} : (flip && typeof flip === "object" ? flip : null);
+  const beforeFlip = flipOptions ? captureFlipSnapshot(target, flipOptions) : null;
+
   let cache = lists.get(container);
   if (!cache) { cache = new Map(); lists.set(container, cache); }
   const wanted = new Set(items.map(item => String(key(item))));
@@ -22,7 +26,7 @@ export function reconcileKeyedRows(container, items, { key, signature, render, e
       template.innerHTML = empty;
       target.replaceChildren(template.content);
     }
-    return;
+    return flipOptions ? playFlipSnapshot(target, beforeFlip, flipOptions) : null;
   }
   for (const node of [...target.children]) {
     if (!node.dataset.workspaceKey || !wanted.has(node.dataset.workspaceKey)) node.remove();
@@ -50,4 +54,5 @@ export function reconcileKeyedRows(container, items, { key, signature, render, e
     if (entry.node !== cursor) target.insertBefore(entry.node, cursor);
     cursor = entry.node.nextElementSibling;
   }
+  return flipOptions ? playFlipSnapshot(target, beforeFlip, flipOptions) : null;
 }

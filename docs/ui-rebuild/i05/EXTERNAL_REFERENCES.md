@@ -1,0 +1,23 @@
+# External Architecture & Design References (`I05`)
+
+All public documentation and open-source repositories below were reviewed for information architecture, console density, grouped settings hierarchy, and mobile ergonomics. **Zero third-party packages, stylesheets, components, or GPL/AGPL code were imported into Aeris.** All Aeris styles and scripts remain 100% vanilla HTML/CSS/JS built on I02 tokens (`design-system.css`) and I07 motion primitives (`js/core/motion.js`).
+
+## 1. Design Systems & Live Consoles Reviewed
+
+| Reference | Reviewed Sources | Patterns Adopted in I05 | Patterns Rejected / Not Adopted |
+|---|---|---|---|
+| **Cloudflare Dashboard** | `https://dash.cloudflare.com/` (publicly documented dashboard/zone patterns) | Unified left sidebar section grouping (`.v3-sidebar-group-title`), sticky breadcrumb context bar (`#workspaceBreadcrumb`), consolidated hairline KPI strip (`#adminKpiStrip`) instead of floating shadow cards, aligned table headers (`.admin-list-head`), crisp error/action hierarchy. | Logged-in private tenant dashboards; React/internal design libraries; multi-tier billing chrome outside Aeris scope. |
+| **Samsung One UI Guidelines** | `https://developer.samsung.com/one-ui/index.html`, `/layout/basic.html`, `/comp/list.html` | Grouped settings rows inside a subtle surface container separated by 1px hairlines (`.account-settings-list` in `/account`), comfortable vertical rhythm and bottom-reachable mobile interactions, dark/light contrast parity, single-column stacking at `<= 768px`. | Android View-specific rounded pill cards >16px radius (kept Aeris `4–8px` console radii), native Kotlin components. |
+
+## 2. Open-Source Module References & License Audit
+
+License metadata verified via GitHub API (`gh api repos/<owner>/<repo>`) and upstream `LICENSE` files:
+
+| Repository | Verified License | Reviewed Patterns | Adopted Concept in Aeris I05 | Why Code/Dependencies Were Not Imported |
+|---|---|---|---|---|
+| [`actualbudget/actual`](https://github.com/actualbudget/actual) | `MIT` | Ledger header filter strip, monospaced `tabular-nums` balance/flow alignment, compact category/month toolbar density. | Enforced `tabular-nums` across `/finance` totals & rows, unified filter/toolbar spacing. | React/Redux Electron/web stack incompatible with vanilla static shell & Cloudflare Pages bundle size; borderless drawer edit reserved for I06. |
+| [`ankitects/anki`](https://github.com/ankitects/anki) | `NOASSERTION` on API; `LICENSE` header declares `AGPL-3.0-or-later` (with BSD-3 & listed vendored MIT/Apache-2/BSD-3/CC-BY-4.0 components) | Compact deck/study statistics summary alignment, clear separation of study setup vs active exercise controls. | Unified `/language` panel padding, borders, and summary statistics hierarchy. | Strong copyleft (`AGPL-3.0-or-later`) incompatible with proprietary/mixed distribution if copied; FSRS study UI reserved for I06. |
+| [`CorentinTh/it-tools`](https://github.com/CorentinTh/it-tools) | `GPL-3.0` | High-density categorized tool index cards (`4–8px` corners, hairline borders, compact descriptions) and clear active tool header context. | Dense `/tools` catalog grid + `/tools/:tool_id` & `/tools/workflows` breadcrumb context. | `GPL-3.0` copyleft + Vue 3 / Naive UI dependency overhead; dual-pane instant search reserved for I06. |
+| [`schlagmichdoch/PairDrop`](https://github.com/schlagmichdoch/PairDrop) | `GPL-3.0` | Compact queue status strip, long-filename wrapping in narrow mobile viewports, clear pending/active transfer indicators without modal clutter. | Unified `/transfer` queue hairline separation & 390px long-filename overflow containment. | `GPL-3.0` copyleft + WebRTC peer signaling model differs from Aeris Task 28 D1/R2 encrypted transfer; drag/progress rewrite reserved for I06. |
+| [`Flagsmith/flagsmith`](https://github.com/Flagsmith/flagsmith) | `BSD-3-Clause` | Admin left-nav separation, dense flag table hierarchy, clear warning separation for kill switches / overrides, monospaced keys & timestamps. | `#adminRoleContext` + `#adminKpiStrip` + `.admin-list-head` density and audit log `tabular-nums`. | Django/React stack not applicable; capsule flag badges & visual timeline reserved for I06. |
+| [`Unleash/unleash`](https://github.com/Unleash/unleash) | `AGPL-3.0` | Environment/channel scoping (`Stable` / `Beta` / `Experimental`), percentage rollout clarity, destructive action confirmation boundaries. | Clearer form grouping inside existing `#featureFlagForm` while keeping native checkbox sizes (`<= 24px`). | `AGPL-3.0` copyleft + TypeScript/React monolith; server evaluation remains Aeris Task 25. |

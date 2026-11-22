@@ -388,7 +388,7 @@ body[data-experience="public"] .site-nav-links .site-nav-card > a.active {
   border-color: var(--ds-stage-action-hover);
   color: var(--ds-stage-on-action);
   background: var(--ds-stage-action-hover);
-  box-shadow: 0 8px 24px color-mix(in srgb, var(--ds-stage-brand) 24%, transparent);
+  box-shadow: var(--ds-shadow-card);
 }
 
 .public-hero .public-actions .button-secondary {
@@ -1363,7 +1363,7 @@ html:has(body[data-experience="public"]),body[data-experience="public"] {min-wid
 .home-widget-workspace {min-width:0;}
 #publicHome .public-hero-scene {position:relative;inset:auto;z-index:auto;width:100%;height:536px;overflow:visible;pointer-events:auto;}
 .home-widget-slot {display:contents;}
-#publicHome .hero-scene-card {position:absolute;inset:0 auto auto 0;width:254px;height:180px;min-height:0;display:block;padding:0;margin:0;border-radius:10px;opacity:1;color:var(--ds-text);background:var(--ds-surface);border:1px solid var(--ds-border);box-shadow:0 6px 16px rgba(15,23,42,.08),0 1px 3px rgba(15,23,42,.04);transform:translate(var(--widget-x,12px),var(--widget-y,12px)) rotate(var(--widget-angle,0deg));transition:box-shadow 120ms ease;}
+#publicHome .hero-scene-card {--widget-x:12px;--widget-y:12px;--widget-angle:0deg;--widget-width:272px;position:absolute;inset:0 auto auto 0;width:254px;height:180px;min-height:0;display:block;padding:0;margin:0;border-radius:10px;opacity:1;color:var(--ds-text);background:var(--ds-surface);border:1px solid var(--ds-border);box-shadow:0 6px 16px rgba(15,23,42,.08),0 1px 3px rgba(15,23,42,.04);transform:translate(var(--widget-x,12px),var(--widget-y,12px)) rotate(var(--widget-angle,0deg));transition:box-shadow 120ms ease;}
 #publicHome .hero-scene-card[data-size=small] {width:218px;height:144px;}
 #publicHome .hero-scene-card[data-size=large] {width:286px;height:236px;}
 .home-widget-main {display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:9px;padding:22px;width:100%;height:100%;text-align:left;white-space:normal;border:0;border-radius:10px;background:transparent;color:inherit;font-weight:400;box-shadow:none;}
@@ -1453,15 +1453,16 @@ html:has(body[data-experience="public"]),body[data-experience="public"] {min-wid
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-height: 40px;
+  min-height: var(--ds-touch-min);
   min-width: 0;
-  padding: 7px 10px;
+  padding: 4px 12px;
   border: 1px solid var(--ds-border);
-  border-radius: 8px;
+  border-radius: var(--ds-radius-md);
   color: var(--ds-text-secondary);
-  background: transparent;
+  background: var(--ds-surface);
   font-size: 0.8125rem;
-  line-height: 1.5;
+  font-weight: 500;
+  line-height: 1.4;
   text-decoration: none;
 }
 .site-release-actions > a:hover,
@@ -1470,8 +1471,8 @@ html:has(body[data-experience="public"]),body[data-experience="public"] {min-wid
   background: var(--ds-surface-subtle);
 }
 .site-release-actions > a:focus-visible {
-  outline: 2px solid var(--ds-text-secondary);
-  outline-offset: 3px;
+  outline: 2px solid var(--ds-focus);
+  outline-offset: 2px;
 }
 .site-release-actions svg {
   flex: 0 0 16px;
@@ -1485,11 +1486,23 @@ html:has(body[data-experience="public"]),body[data-experience="public"] {min-wid
 .changelog-entry-header > a { color: inherit; text-decoration: none; }
 .changelog-entry-header > a:hover,
 .changelog-entry-header > a:focus-visible { text-decoration: underline; }
-@media (max-width: 1100px) {
-  .site-release-actions { flex-basis: 100%; order: 10; padding-bottom: 8px; }
+@media (min-width: 721px) and (max-width: 1080px) {
+  .v3-topbar-context { display: none !important; }
+  .site-release-actions > a { padding: 4px 10px; font-size: 0.78125rem; white-space: nowrap; }
+  .account-badge { max-width: 12ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 }
-@media (max-width: 600px) {
-  .site-release-actions > a { flex: 1 1 0; min-height: 44px; }
+@media (min-width: 721px) and (max-width: 860px) {
+  .site-nav { padding-inline: 16px; }
+  .site-nav-bar { gap: 6px; }
+  .site-nav-toggle span,
+  .theme-toggle span,
+  .site-brand-copy small { display: none; }
+  .site-nav-toggle,
+  .theme-toggle { width: var(--ds-touch-min); padding: 0; }
+}
+@media (max-width: 720px) {
+  .site-release-actions { flex-basis: 100%; order: 10; padding: 2px 0 8px; border-top: 1px solid var(--ds-divider); }
+  .site-release-actions > a { flex: 1 1 0; min-height: var(--ds-touch-min); }
 }
 @media (max-width: 320px) {
   html, body { min-width: 0; }
@@ -1606,5 +1619,508 @@ html:has(#entryScreen) .site-help-footer { display: none; }
   outline: 2px solid var(--ds-focus);
   outline-offset: 4px;
   border-radius: 3px;
+}
+
+/* ==========================================================================
+ * Aeris I03 Six Public Pages — Clean Hero, Single Interactive Preview Window,
+ * Seamless 12-Col Bento Wall, Compact Trial, Clear Download/Changelog & Auth
+ * (Works cleanly in both P07 ON and P07 OFF fallback)
+ * ========================================================================== */
+#publicHome .public-hero {
+  height: auto;
+  min-height: 0;
+  display: block;
+  overflow: visible;
+  padding: clamp(28px, 4vw, 52px) clamp(16px, 3vw, 32px) clamp(18px, 2.5vw, 28px);
+  background: transparent;
+  opacity: 1;
+  transform: none;
+}
+
+#publicHome .public-hero::after {
+  display: none;
+}
+
+#publicHome .public-hero .public-intro-copy {
+  width: min(760px, 100%);
+  max-width: 760px;
+  margin-inline: auto;
+  text-align: center;
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  opacity: 1;
+  transform: none;
+}
+
+#publicHome .home-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  text-align: left;
+}
+
+#publicHome .home-brand-copy {
+  display: grid;
+  gap: 4px;
+}
+
+#publicHome .home-purpose {
+  margin: 0;
+  width: fit-content;
+  color: var(--ds-brand-hover);
+  font-size: var(--ds-text-xs);
+  font-weight: 700;
+}
+
+#publicHome #publicHomeTitle {
+  margin: 0;
+  font-size: clamp(1.85rem, 3vw, 2.5rem);
+  font-weight: 800;
+  line-height: 1.08;
+  color: var(--ds-text);
+}
+
+#publicHome .v3-hero-headline {
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+
+#publicHome .v3-hero-headline strong {
+  display: block;
+  color: var(--ds-text);
+  font-size: clamp(1.85rem, 3.4vw, 3rem);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.15;
+}
+
+#publicHome .v3-hero-headline span {
+  display: block;
+  max-width: 58ch;
+  margin-inline: auto;
+  color: var(--ds-text-secondary);
+  font-size: clamp(0.95rem, 1.3vw, 1.125rem);
+  line-height: 1.58;
+}
+
+#publicHome .public-actions {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+#publicHome .public-preview-stage {
+  width: min(calc(100% - 32px), var(--ds-container-default));
+  margin: 12px auto 0;
+  perspective: 1200px;
+}
+
+#publicHome .scroll-preview-wrap {
+  width: 100%;
+  opacity: 1;
+}
+
+#publicHome .preview-shell {
+  width: 100%;
+  margin: 0;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-raised);
+  overflow: hidden;
+}
+
+#publicHome .preview-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+  padding: 16px 22px;
+  border-bottom: 1px solid var(--ds-border);
+  background: var(--ds-surface-subtle);
+}
+
+#publicHome .preview-window-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+#publicHome .preview-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+#publicHome .preview-dots i {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: var(--ds-border-strong);
+  display: block;
+}
+
+#publicHome .preview-window-meta h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ds-text);
+}
+
+#publicHome .preview-window-meta p {
+  margin: 2px 0 0;
+  font-size: var(--ds-text-xs);
+  color: var(--ds-text-muted);
+}
+
+#publicHome .preview-toolbar .aeris-product-tabs {
+  margin: 0;
+  border: 1px solid var(--ds-border);
+  border-radius: 11px;
+  padding: 3px;
+  background: var(--ds-surface-muted);
+  display: inline-grid;
+  grid-template-columns: repeat(4, minmax(0, auto));
+  gap: 2px;
+}
+
+#publicHome .preview-toolbar .aeris-product-tabs > button {
+  position: relative;
+  z-index: 1;
+  min-height: 50px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 8px;
+  font-size: var(--ds-text-sm);
+  font-weight: 600;
+  color: var(--ds-text-secondary);
+  background: transparent;
+  white-space: nowrap;
+}
+
+#publicHome .preview-toolbar .aeris-product-tabs > button[aria-selected="true"] {
+  color: var(--ds-text);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+}
+
+#publicHome .preview-body.aeris-window-content {
+  position: relative;
+  min-height: 356px;
+  padding: clamp(20px, 3vw, 30px);
+  background: var(--ds-surface);
+}
+
+.i03-skeleton-shimmer {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: grid;
+  align-content: center;
+  gap: 14px;
+  padding: 28px;
+  background: var(--ds-surface);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms var(--ds-ease-standard);
+}
+
+.aeris-window-content[data-skeleton-loading="true"] .i03-skeleton-shimmer {
+  opacity: 1;
+}
+
+.aeris-window-content[data-skeleton-loading="true"] .aeris-product-panel.active {
+  opacity: 0.14;
+}
+
+.i03-skeleton-shimmer span,
+.i03-skeleton-line {
+  display: block;
+  height: 16px;
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-skeleton);
+}
+
+.i03-skeleton-shimmer span:first-child { width: 42%; height: 22px; }
+.i03-skeleton-shimmer span:nth-child(2) { width: 78%; }
+.i03-skeleton-shimmer span:last-child,
+.i03-skeleton-line.short { width: 58%; }
+
+/* Seamless 12-Col Apple Bento Wall */
+#publicHome .public-bento-section {
+  width: min(calc(100% - 32px), var(--ds-container-default));
+  margin: clamp(44px, 6vw, 72px) auto 0;
+  padding-top: 0;
+}
+
+#publicHome .apple-bento-wall {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 0;
+  margin-top: 24px;
+  border-top: 1px solid var(--ds-border);
+  border-left: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-lg);
+  overflow: hidden;
+  background: var(--ds-surface);
+}
+
+#publicHome .bento-tile {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  transform: none;
+  border-right: 1px solid var(--ds-border);
+  border-bottom: 1px solid var(--ds-border);
+  background: var(--ds-surface);
+}
+
+#publicHome .bento-span-7 { grid-column: span 7; }
+#publicHome .bento-span-5 { grid-column: span 5; }
+#publicHome .bento-span-12 { grid-column: span 12; }
+
+#publicHome .bento-tile > .tile-inner {
+  height: 100%;
+  min-height: 210px;
+  display: grid;
+  gap: 12px;
+  align-content: space-between;
+  padding: clamp(22px, 2.8vw, 30px);
+  transform: translate3d(0, var(--ds-parallax-y, 0px), 0);
+  will-change: transform;
+}
+
+#publicHome .bento-tile-compact > .tile-inner {
+  min-height: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+#publicHome .bento-index {
+  color: var(--ds-brand-hover);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-text-xs);
+  font-weight: 700;
+}
+
+#publicHome .bento-tile h3 {
+  margin: 0;
+  color: var(--ds-text);
+  font-size: 1.25rem;
+  letter-spacing: -0.02em;
+}
+
+#publicHome .bento-tile p {
+  margin: 0;
+  color: var(--ds-text-secondary);
+  font-size: var(--ds-text-sm);
+  line-height: 1.65;
+}
+
+#publicHome .bento-tile .button-link {
+  width: fit-content;
+  min-height: 44px;
+}
+
+#publicHome .home-product-details,
+#publicHome .aeris-privacy-section,
+#publicHome .aeris-plans-section,
+#publicHome .aeris-final-cta {
+  width: min(calc(100% - 32px), var(--ds-container-default));
+  margin-left: auto;
+  margin-right: auto;
+}
+
+#publicHome .home-product-details {
+  margin-top: 32px;
+  padding: 14px 18px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-surface);
+}
+
+#publicHome .home-product-details > summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--ds-text);
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+
+#publicHome .authenticated-home-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  padding-top: 14px;
+}
+
+/* Compact /trial Segmented Switcher & Select Padding */
+.trial-tool-tabs {
+  display: inline-grid;
+  grid-template-columns: repeat(5, minmax(0, auto));
+  gap: 4px;
+  margin-top: var(--ds-space-6);
+  padding: 4px;
+  border: 1px solid var(--ds-border);
+  border-radius: 12px;
+  background: var(--ds-surface-muted);
+  max-width: 100%;
+}
+
+.trial-tool-tab {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--ds-text-secondary);
+  font-size: var(--ds-text-sm);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.trial-tool-tab.active,
+.trial-tool-tab[aria-selected="true"] {
+  color: var(--ds-text);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+}
+
+#trialPage,
+#trialPage .trial-workbench,
+#trialPage .trial-workbench > *,
+#trialPage .trial-image-fields > label,
+#trialPage .trial-quiz-setup > label,
+#trialPage .trial-large-field,
+#trialPage .trial-image-result,
+#trialPage .trial-image-result > div {
+  min-width: 0;
+  max-width: 100%;
+}
+
+#trialPage .trial-image-fields input[type="file"],
+#trialPage .trial-workbench input:not([type="checkbox"]):not([type="radio"]),
+#trialPage .trial-workbench select,
+#trialPage .trial-workbench textarea,
+#trialPage .trial-image-result img {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.trial-workbench select,
+select {
+  padding-right: 36px;
+}
+
+/* Download Page Hierarchy & Monospace SHA-256 */
+#downloadPage .download-meta dd {
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.download-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.download-card-head small {
+  color: var(--ds-text-muted);
+}
+
+.download-sha {
+  grid-column: 1 / -1;
+}
+
+.download-sha code {
+  display: block;
+  padding: 10px 12px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-surface-subtle);
+  color: var(--ds-text);
+  font-family: var(--ds-font-mono);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+
+.changelog-loading {
+  display: grid;
+  gap: 12px;
+  padding: 24px 0;
+}
+
+@media (max-width: 900px) {
+  #publicHome .bento-span-7,
+  #publicHome .bento-span-5 {
+    grid-column: span 6;
+  }
+
+  #publicHome .preview-toolbar {
+    padding: 14px 16px;
+  }
+
+  #publicHome .preview-toolbar .aeris-product-tabs {
+    width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .trial-tool-tabs {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  #publicHome .bento-span-7,
+  #publicHome .bento-span-5,
+  #publicHome .bento-span-12 {
+    grid-column: span 12;
+  }
+
+  #publicHome .preview-body.aeris-window-content {
+    min-height: 360px;
+    padding: 18px 16px;
+  }
+
+  .trial-tool-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .trial-tool-tab {
+    padding-inline: 10px;
+  }
+
+  .changelog-list article {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #publicHome .scroll-preview-wrap,
+  #publicHome .bento-tile > .tile-inner,
+  .i03-skeleton-shimmer {
+    transition: none;
+    transform: none;
+  }
 }
 

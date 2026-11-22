@@ -1,4 +1,4 @@
-import { createSecurityCenter } from './js/account/security-center.js?release=20261118-aeris-task30-web-release';
+import { createSecurityCenter } from './js/account/security-center.js?release=20261121-aeris-i05-preview';
 let task27Ui = null;
 import {
   AI_TIMEOUT_MS,
@@ -11,27 +11,27 @@ import {
   BUSINESS_TIME_ZONE,
   STATUS_RETRY_BASE_DELAYS_MS,
   STATUS_TIMEOUT_MS,
-} from "./js/core/config.js?release=20261118-aeris-task30-web-release";
-import { reconcileKeyedRows } from "./js/core/keyed-list.js?release=20261118-aeris-task30-web-release";
+} from "./js/core/config.js?release=20261121-aeris-i05-preview";
+import { reconcileKeyedRows } from "./js/core/keyed-list.js?release=20261121-aeris-i05-preview";
 import {
   capabilityProblems,
   detectCapabilities,
   randomId,
-} from "./js/core/capabilities.js?release=20261118-aeris-task30-web-release";
+} from "./js/core/capabilities.js?release=20261121-aeris-i05-preview";
 import {
   createApiClient,
   fetchWithTimeout,
   isCanonicalSessionFailure,
   retryDelayWithJitter,
   waitForDelay,
-} from "./js/core/api.js?release=20261118-aeris-task30-web-release";
+} from "./js/core/api.js?release=20261121-aeris-i05-preview";
 import {
   createChangelogSelection,
   loadCloudChangelog,
   mergeChangelogEntries,
   staticChangelogEntries,
-} from "./js/core/changelog.js?release=20261118-aeris-task30-web-release";
-import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation, nativeAppRoute } from "./js/core/router.js?release=20261118-aeris-task30-web-release";
+} from "./js/core/changelog.js?release=20261121-aeris-i05-preview";
+import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation, nativeAppRoute } from "./js/core/router.js?release=20261121-aeris-i05-preview";
 import {
   ACCOUNT_CACHE_KEY,
   NATIVE_ACCOUNT_SESSION,
@@ -44,31 +44,31 @@ import {
   requestNativeSessionRefresh,
   restoreAccountSession,
   subscribeAccountSessionChanges,
-} from "./js/core/session.js?release=20261118-aeris-task30-web-release";
-import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?release=20261118-aeris-task30-web-release";
-import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?release=20261118-aeris-task30-web-release";
-import { initDesignSystem, setExperienceMode, setInterfaceEnhancementsEnabled, dialogFocusTargets, focusDialog } from "./js/core/design-system.js?release=20261118-aeris-task30-web-release";
-import { createPublicUiPolicyController } from "./js/core/public-ui-policy.js?release=20261118-aeris-task30-web-release";
-import { completeStartupSplash, canPresentWorkspace, waitForPresentation } from "./js/core/startup.js?release=20261118-aeris-task30-web-release";
-import { installMotionSystem, motionDuration, prefersReducedMotion } from "./js/core/motion.js?release=20261118-aeris-task30-web-release";
-import { initPublicExperience, renderPublicPlanCatalog } from "./js/core/public-experience.js?release=20261118-aeris-task30-web-release";
-import { createAndroidDownloadController } from "./js/core/download.js?release=20261118-aeris-task30-web-release";
-import { createFeatureController } from "./js/core/feature-flags.js?release=20261118-aeris-task30-web-release";
-import { createFeatureConsole } from "./js/core/feature-console.js?release=20261118-aeris-task30-web-release";
-import { createMasteryController } from "./js/language/mastery.js?release=20261118-aeris-task30-web-release";
-import { createWrongReviewController } from './js/language/wrong-review-sync.js?release=20261118-aeris-task30-web-release';
-import { wrongEntryWord, wrongEntryKey, findWrongEntry } from './js/language/wrong-book.js?release=20261118-aeris-task30-web-release';
-import { orderWrongReview, wrongReviewView, mergeWrongReview, wrongReviewDigest, wrongReviewSource, reviewDictationOptions } from './js/language/wrong-review.js?release=20261118-aeris-task30-web-release';
-import { clearMasteryJournalAccount } from "./js/language/mastery-journal.js?release=20261118-aeris-task30-web-release";
-import { masteryStorageKey, parseIssuedQuestion } from "./js/language/mastery-state.js?release=20261118-aeris-task30-web-release";
-import { speakText, stopSpeech } from "./js/language/speech.js?release=20261118-aeris-task30-web-release";
+} from "./js/core/session.js?release=20261121-aeris-i05-preview";
+import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?release=20261121-aeris-i05-preview";
+import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?release=20261121-aeris-i05-preview";
+import { initDesignSystem, setExperienceMode, setInterfaceEnhancementsEnabled, dialogFocusTargets, focusDialog, workspaceRouteMeta, syncWorkspaceShell, syncSidebarActiveIndicator, syncSystemNoticeLayout } from "./js/core/design-system.js?release=20261121-aeris-i05-preview";
+import { createPublicUiPolicyController } from "./js/core/public-ui-policy.js?release=20261121-aeris-i05-preview";
+import { completeStartupSplash, canPresentWorkspace, waitForPresentation } from "./js/core/startup.js?release=20261121-aeris-i05-preview";
+import { installMotionSystem, motionDuration, prefersReducedMotion, attachSheetAdapter, syncModalScrollLock, setControlFeedbackState, getSharedToastManager, showToast, dismissToastByKey, invalidateToastContext } from "./js/core/motion.js?release=20261121-aeris-i05-preview";
+import { initPublicExperience, renderPublicPlanCatalog } from "./js/core/public-experience.js?release=20261121-aeris-i05-preview";
+import { createAndroidDownloadController } from "./js/core/download.js?release=20261121-aeris-i05-preview";
+import { createFeatureController } from "./js/core/feature-flags.js?release=20261121-aeris-i05-preview";
+import { createFeatureConsole } from "./js/core/feature-console.js?release=20261121-aeris-i05-preview";
+import { createMasteryController } from "./js/language/mastery.js?release=20261121-aeris-i05-preview";
+import { createWrongReviewController } from './js/language/wrong-review-sync.js?release=20261121-aeris-i05-preview';
+import { wrongEntryWord, wrongEntryKey, findWrongEntry } from './js/language/wrong-book.js?release=20261121-aeris-i05-preview';
+import { orderWrongReview, wrongReviewView, mergeWrongReview, wrongReviewDigest, wrongReviewSource, reviewDictationOptions } from './js/language/wrong-review.js?release=20261121-aeris-i05-preview';
+import { clearMasteryJournalAccount } from "./js/language/mastery-journal.js?release=20261121-aeris-i05-preview";
+import { masteryStorageKey, parseIssuedQuestion } from "./js/language/mastery-state.js?release=20261121-aeris-i05-preview";
+import { speakText, stopSpeech } from "./js/language/speech.js?release=20261121-aeris-i05-preview";
 import {
   loadSpeechRate,
   saveSpeechRate,
-} from "./js/language/speech-rate.js?release=20261118-aeris-task30-web-release";
-import { formatFinanceMoney } from "./js/finance/format.js?release=20261118-aeris-task30-web-release";
-import { createLazyController, installLazyTools, createRetryableImport } from "./js/core/lazy-controller.js?release=20261118-aeris-task30-web-release";
-import { createDashboardView } from "./js/core/dashboard.js?release=20261118-aeris-task30-web-release";
+} from "./js/language/speech-rate.js?release=20261121-aeris-i05-preview";
+import { formatFinanceMoney } from "./js/finance/format.js?release=20261121-aeris-i05-preview";
+import { createLazyController, installLazyTools, createRetryableImport } from "./js/core/lazy-controller.js?release=20261121-aeris-i05-preview";
+import { createDashboardView } from "./js/core/dashboard.js?release=20261121-aeris-i05-preview";
 import {
   INTERACTION_STAGES,
   beginInteraction,
@@ -76,15 +76,15 @@ import {
   interactionTraceApi,
   withInteractionFeedback,
   withInteractionFeedbackQuiet,
-} from "./js/core/perf.js?release=20261118-aeris-task30-web-release";
-import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?release=20261118-aeris-task30-web-release";
+} from "./js/core/perf.js?release=20261121-aeris-i05-preview";
+import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?release=20261121-aeris-i05-preview";
 import {
   calculateStudyStreak,
   formatDuration,
   localDayKey,
   sanitizeStudyRecords,
   studyDaySeries,
-} from "./js/language/history.js?release=20261118-aeris-task30-web-release";
+} from "./js/language/history.js?release=20261121-aeris-i05-preview";
 import {
   DEFAULT_PROFILE,
   LANGUAGE_LABELS,
@@ -121,16 +121,16 @@ import {
   trimRubricCache,
   wordIdentity,
   wordMatchesLanguage,
-} from "./js/language/quiz.js?release=20261118-aeris-task30-web-release";
-import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?release=20261118-aeris-task30-web-release";
-import { createWrongBookPdf } from "./js/language/pdf.js?release=20261118-aeris-task30-web-release";
+} from "./js/language/quiz.js?release=20261121-aeris-i05-preview";
+import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?release=20261121-aeris-i05-preview";
+import { createWrongBookPdf } from "./js/language/pdf.js?release=20261121-aeris-i05-preview";
 import {
   filterWrongBookByLanguage as filterWrongBookByLanguageModel,
   mergeWrongBooks,
   removeLanguageFromWrongBook as removeLanguageFromWrongBookModel,
   sanitizeWrongBook,
   updateWrongEntry as updateWrongEntryModel,
-} from "./js/language/wrong-book.js?release=20261118-aeris-task30-web-release";
+} from "./js/language/wrong-book.js?release=20261121-aeris-i05-preview";
 import {
   accountEntitlements as accountEntitlementsModel,
   accountMembershipSummary as accountMembershipSummaryModel,
@@ -139,7 +139,7 @@ import {
   isAdmin as isAdminModel,
   isSuperAdmin as isSuperAdminModel,
   membershipLabel,
-} from "./js/membership/account.js?release=20261118-aeris-task30-web-release";
+} from "./js/membership/account.js?release=20261121-aeris-i05-preview";
 import {
   MEMBERSHIP_GOALS,
   MEMBERSHIP_PLAN_ORDER,
@@ -147,20 +147,20 @@ import {
   membershipGoalForPlan,
   normalizedMembershipGoal,
   planDetails as planDetailsModel,
-} from "./js/membership/plans.js?release=20261118-aeris-task30-web-release";
+} from "./js/membership/plans.js?release=20261121-aeris-i05-preview";
 import {
   DEFAULT_PAYMENT_METHODS,
   normalizedPaymentMethod as normalizedPaymentMethodModel,
   paymentMethodLabel as paymentMethodLabelModel,
   paymentStatusLabel,
   rechargeStatusLabel,
-} from "./js/membership/recharge.js?release=20261118-aeris-task30-web-release";
+} from "./js/membership/recharge.js?release=20261121-aeris-i05-preview";
 import {
   createAdminEmailCenter,
   loginLocationLabel,
   loginReasonLabel,
   membershipDateValue as membershipDateValueModel,
-} from "./js/admin/formatters.js?release=20261118-aeris-task30-web-release";
+} from "./js/admin/formatters.js?release=20261121-aeris-i05-preview";
 
 const localStorage = getSafeStorage("localStorage");
 const sessionStorage = getSafeStorage("sessionStorage");
@@ -310,6 +310,7 @@ let adminMessageTargetSearchSequence = 0;
 let adminRoleUserSearchTimer = null;
 let adminRoleUserSearchSequence = 0;
 let confirmAction = null;
+let confirmErrorTarget = null;
 let pendingSiteMessages = [];
 let activeSiteMessage = null;
 let siteMessageLoadPromise = null;
@@ -328,6 +329,7 @@ let startupMounted = false;
 let startupRevealed = false;
 let authTransitionSequence = 0;
 let backendRecoveryTimer = null;
+let hadNetworkDisconnectToast = false;
 let achievementFilter = "all";
 let achievementToastTimer = null;
 let achievementToastHideTimer = null;
@@ -363,7 +365,24 @@ let learningSyncStatus = {
 
 const restoredSession = restoreAccountSession();
 sessionRestorePending = Boolean(restoredSession);
-const { pushRoute } = createRouter({ onRouteChange: () => { routeGeneration += 1; renderAccountUi(); } });
+let pendingOutgoingScroll = null;
+const { pushRoute } = createRouter({
+  onRouteChange: () => {
+    routeGeneration += 1;
+    pendingOutgoingScroll = null;
+    invalidateToastContext({ includeErrors: false }, document);
+    renderAccountUi();
+  },
+  getScrollPosition: () => {
+    const path = currentRoutePath();
+    if (pendingOutgoingScroll && pendingOutgoingScroll.path === path) {
+      const captured = pendingOutgoingScroll;
+      pendingOutgoingScroll = null;
+      return captured;
+    }
+    return { scrollX: window.scrollX || 0, scrollY: window.scrollY || 0 };
+  },
+});
 const learningSyncAdapter = createLearningSyncAdapter(() => window.WYJLearningSync);
 
 function migrateProjectPreferences() {
@@ -1135,8 +1154,9 @@ function resetSiteMessageQueue() {
 
 function showNextSiteMessage() {
   if (activeSiteMessage || !state.session || !state.account) return;
+  if (document.body.classList.contains("auth-transition-active")) return;
   // A background broadcast must not interrupt an existing dialog or its proof.
-  if (document.querySelector('.modal-layer:not(.hidden):not(#siteMessageModal)')) return;
+  if (activeBlockingModals(document).some((layer) => layer.id !== "siteMessageModal")) return;
   const next = pendingSiteMessages.find((message) => !siteMessageSessionDismissed.has(message.id));
   pendingSiteMessages = pendingSiteMessages.filter((message) => message.id !== next?.id);
   if (!next) return;
@@ -1185,17 +1205,37 @@ function schedulePendingSiteMessages() {
   window.setTimeout(() => { void loadPendingSiteMessages(); }, 0);
 }
 
+function setInlineFeedback(target, feedbackState = "idle", text = "") {
+  const el = typeof target === "string" ? $(target) : target;
+  if (!el) return;
+  const cleanText = String(text || "");
+  el.textContent = cleanText;
+  if (el.dataset) el.dataset.feedbackState = cleanText ? feedbackState : "idle";
+  el.classList?.toggle("is-pending", feedbackState === "pending" && Boolean(cleanText));
+  el.classList?.toggle("is-success", feedbackState === "success" && Boolean(cleanText));
+  el.classList?.toggle("is-info", feedbackState === "info" && Boolean(cleanText));
+  if (el.id === "accountMessage" || el.id === "adminEditMessage" || el.id === "adminError" || el.id === "siteMessageError") {
+    el.classList?.toggle("error", feedbackState === "error" || feedbackState === "idle");
+  }
+}
+
 function renderSiteMessageSaveStatus() {
   const notice = $('siteMessageSaveStatus');
   if (!notice) return;
   const failures = [...siteMessagePendingDismissals.values()].filter(item => item.status === 'failed');
   const saving = [...siteMessagePendingDismissals.values()].some(item => item.status === 'saving');
   notice.classList.toggle('hidden', !siteMessagePendingDismissals.size);
+  if (notice.dataset) {
+    notice.dataset.feedbackState = failures.length ? 'error' : saving ? 'pending' : 'idle';
+  }
   $('siteMessageSaveText').textContent = failures.length
     ? `通知已在本页收起，但 ${failures.length} 条关闭状态未保存，刷新后可能再次显示。${failures[0].error}`
     : '通知已收起，正在保存关闭状态…';
-  $('siteMessageRetryBtn').classList.toggle('hidden', !failures.length);
-  $('siteMessageRetryBtn').disabled = saving;
+  const retryBtn = $('siteMessageRetryBtn');
+  retryBtn.classList.toggle('hidden', !failures.length);
+  retryBtn.disabled = saving;
+  setControlFeedbackState(retryBtn, saving ? 'pending' : failures.length ? 'error' : 'idle');
+  syncSystemNoticeLayout(document);
 }
 
 async function saveSiteMessageDismissal(messageId, owner = siteMessageOwner()) {
@@ -1239,20 +1279,27 @@ async function acknowledgeActiveSiteMessage() {
   const owner = siteMessageOwner();
   const button = $("siteMessageAcknowledgeBtn");
   button.disabled = true;
-  $("siteMessageError").textContent = "";
+  setControlFeedbackState(button, "pending");
+  setInlineFeedback("siteMessageError", "idle", "");
   try {
     await api("/api/messages/receipt", { message_id: message.id, action: "acknowledge" });
     if (owner !== siteMessageOwner()) return;
     siteMessageSessionDismissed.add(message.id);
+    setControlFeedbackState(button, "success");
     if (activeSiteMessage === message) {
       activeSiteMessage = null;
       closeModal("siteMessageModal", true);
     }
     window.setTimeout(showNextSiteMessage, 0);
   } catch (error) {
-    if (owner === siteMessageOwner() && activeSiteMessage === message) $("siteMessageError").textContent = `确认失败：${error.message}`;
+    if (owner === siteMessageOwner() && activeSiteMessage === message) {
+      const cancelled = error?.message === "操作已取消";
+      setControlFeedbackState(button, cancelled ? "idle" : "error");
+      setInlineFeedback("siteMessageError", cancelled ? "info" : "error", cancelled ? "已取消确认，消息状态保持未读。" : `确认失败：${error.message}`);
+    }
   } finally {
     button.disabled = false;
+    if (button.getAttribute("aria-busy") === "true") setControlFeedbackState(button, "idle");
   }
 }
 
@@ -1289,6 +1336,35 @@ function accountWordLimit(language = state.quizLanguage) {
   if (language === "japanese" && hasAccountEntitlement("language_japanese_access", account)) return Infinity;
   if (language === "english" && hasAccountEntitlement("language_english_access", account)) return Infinity;
   return 15;
+}
+
+function refreshWorkspaceShell() {
+  const path = currentRoutePath();
+  const authenticated = Boolean(state.session && state.account);
+  const toolTitle = path.startsWith("/tools/") && path !== "/tools/workflows"
+    ? ($("toolWorkbenchTitle")?.textContent.trim() || "")
+    : "";
+  const adminSection = path === "/admin"
+    ? (document.querySelector(".admin-tabs button.active:not(.hidden)")?.textContent.trim() || "")
+    : "";
+  const languageSection = path.startsWith("/language") && !$("projectApp")?.classList.contains("hidden") && !$("workspace")?.classList.contains("hidden")
+    ? (document.querySelector("#workspace > .tabs button.active:not(.hidden)")?.textContent.trim() || "")
+    : "";
+  syncWorkspaceShell(document, workspaceRouteMeta(path, { authenticated, toolTitle, adminSection, languageSection }));
+}
+
+function setAdminKpi(id, value, status = "ready") {
+  const el = $(id);
+  if (!el) return;
+  const text = String(value);
+  if (el.textContent !== text) el.textContent = text;
+  el.dataset.state = status;
+}
+
+function resetAdminKpis() {
+  for (const id of ["adminKpiUsers", "adminKpiRecharge", "adminKpiAudit", "adminKpiLoginFailed"]) {
+    setAdminKpi(id, "—", "pending");
+  }
 }
 
 function renderAccountUi() {
@@ -1366,10 +1442,12 @@ function renderAccountUi() {
   if ($("v3SidebarAdminLink")) {
     $("v3SidebarAdminLink").hidden = !Boolean(account && isAdmin(account));
   }
+  refreshWorkspaceShell();
+  if (!account) resetAdminKpis();
   if ($("v3TopbarContext")) {
     $("v3TopbarContext").textContent = account
       ? `${account.username} · 已连接空间`
-      : location.hostname.endsWith(".thewyj-p07-ui-rc.pages.dev")
+      : (location.hostname.endsWith(".pages.dev") && location.hostname !== "thewyj.uk")
         ? "隔离预览 · 演示数据"
         : "公开空间 · 演示数据";
   }
@@ -1498,10 +1576,14 @@ function changelogSectionMarkup(label, items) {
   return `<section><h3>${escapeHtml(label)}</h3><ul>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></section>`;
 }
 
+let changelogError = "";
+
 function renderChangelog() {
   const list = $("changelogList");
   const entries = changelogEntries();
   if (!list) return;
+  const error = changelogError;
+  list.setAttribute("aria-busy", "false");
   list.innerHTML = entries.map((entry) => `<article id="${escapeHtml(changelogArticleId(entry.build))}">
     <header class="changelog-entry-header"><time datetime="${escapeHtml(entry.date)}">${escapeHtml(String(entry.date || "").replaceAll("-", "/"))}</time><a href="#${encodeURIComponent(changelogArticleId(entry.build))}" data-changelog-select="${escapeHtml(entry.build)}">v${escapeHtml(entry.version)}</a></header>
     <div class="changelog-entry-content"><h2>${escapeHtml(entry.title)}</h2><div class="changelog-sections">
@@ -1510,7 +1592,7 @@ function renderChangelog() {
       ${changelogSectionMarkup("修复", entry.fixes)}
       ${changelogSectionMarkup("安全更新", entry.security)}
     </div></div>
-  </article>`).join("") || '<p class="dashboard-empty">暂无更新记录。</p>';
+  </article>`).join("") || `<p class="dashboard-empty">${escapeHtml(error ? `更新日志读取失败：${error}` : "暂无更新记录。")}</p>`;
   list.querySelectorAll("[data-changelog-select]").forEach((link) => link.addEventListener("click", (event) => {
     event.preventDefault();
     if (!changelogSelection.choose(link.dataset.changelogSelect, changelogEntries())) return;
@@ -1520,6 +1602,7 @@ function renderChangelog() {
   const latest = latestChangelog();
   if ($("changelogCurrentVersion")) $("changelogCurrentVersion").textContent = latest ? `v${latest.version}` : APP_VERSION;
   if ($("siteVersionLabel")) $("siteVersionLabel").textContent = latest ? `v${latest.version}` : APP_VERSION;
+  if ($("v3SidebarVersion")) $("v3SidebarVersion").textContent = latest ? `v${latest.version} · Aeris` : "Aeris · V6.3";
 }
 
 function renderLatestUpdate() {
@@ -1537,12 +1620,14 @@ function maybeShowVersionNotice() {
   $("versionNoticeTitle").textContent = `已更新至 v${latest.version}`;
   $("versionNoticeMessage").textContent = latest.title;
   notice.classList.remove("hidden");
+  syncSystemNoticeLayout(document);
 }
 
 function dismissVersionNotice() {
   const latest = latestChangelog();
   if (latest) safeStorageSet(localStorage, CHANGELOG_SEEN_KEY, latest.build);
   $("versionNotice")?.classList.add("hidden");
+  syncSystemNoticeLayout(document);
 }
 
 function renderDashboard() { dashboardView?.render(); }
@@ -1682,6 +1767,44 @@ async function voteForFeature(feedbackId, voted) {
   }
 }
 
+function activeBlockingModals(doc = document) {
+  return [...doc.querySelectorAll(".modal-layer:not(.hidden)")]
+    .filter((layer) => layer.dataset?.sheetWorkspace !== "true" && layer.getAttribute("aria-hidden") !== "true");
+}
+
+function syncShellInteractivity() {
+  const authTransitionActive = document.body.classList.contains("auth-transition-active")
+    && Boolean(document.getElementById("authTransitionScreen"));
+  const blockingModals = activeBlockingModals(document);
+  const hasBlockingModal = blockingModals.length > 0;
+  syncModalScrollLock(document);
+  if (!hasBlockingModal) document.body.classList.remove("ds-sheet-scaling");
+  const appShell = $("appShell");
+  if (appShell) appShell.inert = hasBlockingModal;
+  const frame = $("v3AppFrame");
+  if (frame) frame.inert = authTransitionActive || hasBlockingModal;
+  syncSystemNoticeLayout(document);
+  return { authTransitionActive, hasBlockingModal, blockingModals };
+}
+
+function focusWorkspaceFallback() {
+  const candidates = [
+    !$("sessionRecovery")?.classList.contains("hidden") ? $("retrySessionRecoveryBtn") : null,
+    !$("publicHome")?.classList.contains("hidden") ? $("publicHome")?.querySelector("h1") : null,
+    !$("projectPicker")?.classList.contains("hidden") ? $("projectPicker")?.querySelector("h1, h2") : null,
+    !$("projectApp")?.classList.contains("hidden") ? $("projectApp")?.querySelector("h1, h2") : null,
+    !$("toolsPanel")?.classList.contains("hidden") ? $("toolsPanel")?.querySelector("h1, h2") : null,
+    !$("financePage")?.classList.contains("hidden") ? $("financePage")?.querySelector("h1, h2") : null,
+    !$("transferPage")?.classList.contains("hidden") ? $("transferPage")?.querySelector("h1, h2") : null,
+    !$("adminPanel")?.classList.contains("hidden") ? $("adminPanel")?.querySelector("h1, h2") : null,
+    $("pageContent"),
+  ];
+  const target = candidates.find((el) => el && el.isConnected && el.getClientRects().length && !el.closest("[inert], .hidden"));
+  if (!target) return;
+  if (!target.matches("button, a, input, select, textarea, [tabindex]")) target.setAttribute("tabindex", "-1");
+  target.focus({ preventScroll: true });
+}
+
 function openModal(id) {
   if (id === "membershipModal") {
     void showMembership(true);
@@ -1705,10 +1828,15 @@ function openModal(id) {
   }
   const openLayers = [...document.querySelectorAll(".modal-layer:not(.hidden)")].filter((layer) => layer !== modal);
   modal.style.zIndex = String(Math.max(9000, ...openLayers.map((layer) => Number(getComputedStyle(layer).zIndex) || 9000)) + 1);
+  delete modal.dataset.sheetWorkspace;
+  modal.inert = false;
   modal.classList.remove("hidden", "is-closing");
   modal.setAttribute("aria-hidden", "false");
-  document.body.classList.add("modal-open");
-  if ($("appShell")) $("appShell").inert = true;
+  attachSheetAdapter(modal, {
+    dismissible: id !== "deleteAccountModal" && id !== "confirmModal" && id !== "rejudgeResultModal",
+    onRequestClose: () => (id === "siteMessageModal" ? void dismissActiveSiteMessage() : closeModal(id, true)),
+  }).onOpened();
+  syncShellInteractivity();
   document.querySelectorAll(".modal-layer:not(.hidden)").forEach((layer) => { layer.inert = layer !== modal; });
   focusDialog(modal);
 }
@@ -1723,7 +1851,9 @@ function closeModal(id, immediate = false) {
     releasePaymentQr();
     modal.classList.add("hidden");
     modal.setAttribute("aria-hidden", "true");
+    modal.inert = false;
     if (id === "accountModal") clearOwnSecretEditor();
+    syncShellInteractivity();
     if (location.pathname === "/recharge" || location.pathname === "/account") {
       const context = history.state?.aerisWorkspace;
       const requested = context?.id === id ? nativeAppRoute(context.returnTo, location.origin) : null;
@@ -1733,16 +1863,11 @@ function closeModal(id, immediate = false) {
     }
     return;
   }
+  if (!immediate && modal.classList.contains("is-closing") && modalCloseTimers.has(id)) return;
   const pendingClose = modalCloseTimers.get(id);
   if (pendingClose) {
     window.clearTimeout(pendingClose);
     modalCloseTimers.delete(id);
-  }
-  if (id === "membershipModal") {
-    membershipModalLoadSequence += 1;
-    membershipModalController?.abort();
-    membershipModalController = null;
-    releasePaymentQr();
   }
   const finish = () => {
     modalCloseTimers.delete(id);
@@ -1751,19 +1876,21 @@ function closeModal(id, immediate = false) {
     modal.setAttribute("aria-hidden", "true");
     modal.inert = false;
     modal.style.removeProperty("z-index");
+    attachSheetAdapter(modal).onClosed();
     const remaining = [...document.querySelectorAll(".modal-layer:not(.hidden)")];
     remaining.forEach((layer, index) => { layer.inert = index !== remaining.length - 1; });
     if (id === "accountModal") clearOwnSecretEditor();
     if (id === "adminEditModal") clearAdminSecretEditor();
-    if (!document.querySelector(".modal-layer:not(.hidden)")) {
-      document.body.classList.remove("modal-open");
-      if ($("appShell")) $("appShell").inert = false;
-    }
+    const { hasBlockingModal } = syncShellInteractivity();
     const returnFocus = modalReturnFocus.get(id);
     modalReturnFocus.delete(id);
-    if (returnFocus?.isConnected && returnFocus.getClientRects().length && !returnFocus.closest("[inert], .modal-layer.hidden")) {
+    if (returnFocus?.isConnected && returnFocus.getClientRects().length && !returnFocus.closest("[inert], .modal-layer.hidden, .hidden")) {
       returnFocus.focus({ preventScroll: true });
-    } else if (remaining.length) focusDialog(remaining.at(-1));
+    } else if (remaining.length) {
+      focusDialog(remaining.at(-1));
+    } else if (!hasBlockingModal) {
+      focusWorkspaceFallback();
+    }
     window.setTimeout(showNextSiteMessage, 0);
     if ((id === "membershipModal" && location.pathname === "/recharge") || (id === "accountModal" && location.pathname === "/account")) {
       if (state.session && state.account) {
@@ -2407,11 +2534,14 @@ async function changeOwnSecret(event) {
   const newSecret = $("newSecretInput").value;
   const confirmation = $("newSecretConfirmInput").value;
   if (newSecret !== confirmation) {
-    message.textContent = "两次输入的新登录密钥不一致";
+    setInlineFeedback(message, "error", "两次输入的新密码不一致");
+    setControlFeedbackState(button, "error");
     $("newSecretConfirmInput").focus();
     return;
   }
   button.disabled = true;
+  setControlFeedbackState(button, "pending");
+  setInlineFeedback(message, "pending", "正在验证并修改登录密码…");
   try {
     const securityProof=await task27Ui.isSupported()?{grant:await task27Ui.stepup('password_change',$("currentSecretInput").value)}:{current_secret:$("currentSecretInput").value};
     await api("/api/account/secret", {
@@ -2419,16 +2549,24 @@ async function changeOwnSecret(event) {
       new_secret: newSecret,
       confirm_secret: confirmation,
     });
-    message.textContent = "密钥已修改，请使用新密钥重新登录";
+    setControlFeedbackState(button, "success");
+    setInlineFeedback(message, "success", "密码已修改，请使用新密码重新登录");
     window.setTimeout(() => {
       closeModal("accountModal", true);
       clearSession();
-      showAuth("密钥已修改，请重新登录");
+      showAuth("密码已修改，请重新登录");
     }, 700);
   } catch (error) {
-    message.textContent = error.message;
+    const cancelled = error?.message === "操作已取消";
+    setControlFeedbackState(button, cancelled ? "idle" : "error");
+    setInlineFeedback(
+      message,
+      cancelled ? "info" : "error",
+      cancelled ? "已取消身份验证，登录密码未修改（已保留输入内容）。" : (error.message || "修改失败，请重试"),
+    );
   } finally {
     button.disabled = false;
+    if (button.getAttribute("aria-busy") === "true") setControlFeedbackState(button, "idle");
   }
 }
 
@@ -2498,7 +2636,7 @@ function secureRandomIndex(maximum) {
     throw new Error("随机范围无效");
   }
   if (!globalThis.crypto?.getRandomValues) {
-    throw new Error("当前浏览器不支持安全随机数，请手动设置新密钥");
+    throw new Error("当前浏览器不支持安全随机数，请手动设置新密码");
   }
   const values = new Uint32Array(1);
   const range = 0x100000000;
@@ -2530,11 +2668,11 @@ function generateAdminSecretForEditor() {
     input.value = generateSecureSecret();
     clearAdminSecretResult();
     setAdminSecretVisibility(true);
-    $("adminEditMessage").textContent = "已生成安全密钥；保存后请把它交给该用户。";
+    setInlineFeedback("adminEditMessage", "info", "已生成安全密码；保存后请把它交给该用户。");
     input.focus();
     input.select();
   } catch (error) {
-    $("adminEditMessage").textContent = error.message;
+    setInlineFeedback("adminEditMessage", "error", error.message);
   }
 }
 
@@ -2557,6 +2695,8 @@ function clearOwnSecretEditor() {
   });
   setSecretFieldsVisibility(["currentSecretInput"], "toggleCurrentSecretBtn", false);
   setSecretFieldsVisibility(["newSecretInput", "newSecretConfirmInput"], "toggleNewSecretBtn", false);
+  setInlineFeedback("accountMessage", "idle", "");
+  setControlFeedbackState($("changeSecretForm")?.querySelector('button[type="submit"]'), "idle");
 }
 
 function generateOwnSecret() {
@@ -2566,11 +2706,11 @@ function generateOwnSecret() {
     $('newSecretInput').dispatchEvent(new Event('input',{bubbles:true}));
     $("newSecretConfirmInput").value = secret;
     setSecretFieldsVisibility(["newSecretInput", "newSecretConfirmInput"], "toggleNewSecretBtn", true);
-    $("accountMessage").textContent = "已生成安全密钥；保存前请确认你已记住或安全保存。";
+    setInlineFeedback("accountMessage", "info", "已生成安全密码；保存前请确认你已记住或安全保存。");
     $("newSecretInput").focus();
     $("newSecretInput").select();
   } catch (error) {
-    $("accountMessage").textContent = error.message;
+    setInlineFeedback("accountMessage", "error", error.message);
   }
 }
 
@@ -2619,6 +2759,7 @@ function renderAdminUsers(data = null, { append = false } = {}) {
   if (count) count.textContent = adminUserPage.query
     ? `找到 ${adminUserPage.total} 个用户，已显示 ${adminUsers.length} 个`
     : `共 ${adminUserPage.total} 个用户，已显示 ${adminUsers.length} 个`;
+  if (!adminUserPage.query) setAdminKpi("adminKpiUsers", adminUserPage.total);
   reconcileKeyedRows(list, adminUsers, {
     key: user => user.id,
     signature: user => JSON.stringify([user, isSuperAdmin(), state.account?.id]),
@@ -2642,8 +2783,8 @@ function renderAdminUsers(data = null, { append = false } = {}) {
     return `<article class="admin-user-card" data-user-id="${escapeHtml(user.id)}">
       <div class="admin-user-identity"><h2>${escapeHtml(user.username)}</h2><p class="admin-user-id">${escapeHtml(user.id)}</p><p><span class="status-badge">${escapeHtml(roleLabel)}</span></p><p class="${stateClass}">${user.banned ? "已永久封禁" : "正常"}</p></div>
       <div class="admin-user-facts"><p><span>最高等级</span><strong>${escapeHtml(summary.name)}</strong></p><p><span>有效会员</span><strong>${escapeHtml(memberships)}</strong></p><p><span>合并权益</span><strong>${escapeHtml(entitlements)}</strong></p></div>
-      <div class="admin-user-security"><p><span class="admin-field-name">登录密钥</span><span class="secret-value">不可读取 · 可安全重置</span></p><p class="admin-last-login">最后登录：${escapeHtml(formatLocalDateTime(user.last_login_at, "从未"))}</p></div>
-      <div class="action-row compact admin-user-actions"><button data-admin-edit type="button" ${protectedUser ? "disabled" : ""}>编辑</button></div>
+      <div class="admin-user-security"><p><span class="admin-field-name">登录密码</span><span class="secret-value">不可读取 · 可安全重置</span></p><p class="admin-last-login">最后登录：${escapeHtml(formatLocalDateTime(user.last_login_at, "从未"))}</p></div>
+      <div class="action-row compact admin-user-actions"><button class="button-secondary" data-admin-edit type="button" ${protectedUser ? "disabled" : ""}>编辑</button></div>
     </article>`;
     },
   });
@@ -2699,8 +2840,10 @@ function markAdminUserSearchPending() {
 }
 
 function renderAdminRecharge(requests) {
+  const items = Array.isArray(requests) ? requests : [];
+  setAdminKpi("adminKpiRecharge", items.filter((item) => item?.status === "user_paid").length);
   const list = $("adminRechargeList");
-  list.innerHTML = (requests || []).map((request) => {
+  list.innerHTML = items.map((request) => {
     const statusTone = ["activated", "approved"].includes(request.status) ? "success"
       : ["pending", "pending_payment", "user_paid", "processing"].includes(request.status) ? "pending"
       : request.status === "rejected" ? "error" : "neutral";
@@ -2708,9 +2851,9 @@ function renderAdminRecharge(requests) {
     <div class="admin-user-identity"><h2>${escapeHtml(request.username)}</h2><p class="admin-user-id">${escapeHtml(request.order_number || request.id)}</p><p class="admin-last-login">申请：${escapeHtml(formatLocalDateTime(request.requested_at, "未知"))}</p></div>
     <div class="admin-user-facts"><p><span>套餐</span><strong>${escapeHtml(request.plan_name || membershipLabel(request.plan_code || request.plan))}</strong></p><p><span>支付方式</span><strong>${escapeHtml(paymentMethodLabel(request.payment_method))}</strong></p><p><span>金额</span><strong>${escapeHtml(`${(Number(request.amount_cents || 0) / 100).toFixed(2)} ${request.currency || "CNY"}`)}</strong></p><p><span>付款备注</span><strong>${escapeHtml(request.payment_note || "-")}</strong></p></div>
     <div class="admin-request-status"><div class="admin-request-status-heading"><span>状态</span><strong class="admin-request-badge" data-tone="${statusTone}">${escapeHtml(rechargeStatusLabel(request.status))}</strong></div>${request.user_confirmed_at ? `<div class="admin-request-confirmed"><span>用户确认时间</span><time datetime="${escapeHtml(request.user_confirmed_at)}">${escapeHtml(formatLocalDateTime(request.user_confirmed_at))}</time></div>` : ""}</div>
-    <div class="action-row compact admin-user-actions">${request.status === "user_paid" ? '<button data-recharge-approve type="button">确认付款并开通</button><button data-recharge-reject type="button">拒绝</button>' : ""}</div>
+    <div class="action-row compact admin-user-actions">${request.status === "user_paid" ? '<button class="primary" data-recharge-approve type="button">确认付款并开通</button><button class="button-ghost danger-text" data-recharge-reject type="button">拒绝</button>' : ""}</div>
   </article>`;
-  }).join("") || "<p>暂无充值申请</p>";
+  }).join("") || '<p class="admin-empty-state">暂无充值申请</p>';
   list.querySelectorAll("[data-recharge-approve], [data-recharge-reject]").forEach((button) => button.addEventListener("click", () => {
     const requestId = button.closest("[data-request-id]").dataset.requestId;
     const action = button.hasAttribute("data-recharge-approve") ? "approve" : "reject";
@@ -2735,23 +2878,26 @@ function renderAdminRecharge(requests) {
 }
 
 function renderAdminAudit(logs) {
+  const items = Array.isArray(logs) ? logs : [];
+  setAdminKpi("adminKpiAudit", items.length);
   const list = $("adminAuditList");
-  list.innerHTML = (logs || []).map((log) => {
+  list.innerHTML = items.map((log) => {
     const success = log.success !== false && Number(log.success ?? 1) !== 0;
     const target = log.target_username || log.target_label || log.target_id || "-";
     const detail = log.note || log.error_code || (log.after && Object.keys(log.after).length ? JSON.stringify(log.after) : "无备注");
-    return `<article class="admin-log-card">
-      <div><strong>${escapeHtml(log.action)}</strong><time>${escapeHtml(formatLocalDateTime(log.created_at))}</time></div>
-      <p>管理员：${escapeHtml(log.actor_username || "-")} · 角色：${escapeHtml(log.actor_role === "super_admin" ? "站点所有者" : log.actor_role === "admin" ? "管理员" : "-")} · 对象：${escapeHtml(target)}</p>
-      <p><span class="status-badge" data-tone="${success ? "success" : "error"}">${success ? "成功" : "失败"}</span> ${escapeHtml(detail)}</p>
-      ${log.request_id ? `<p class="meta-line">请求 ID：${escapeHtml(log.request_id)}</p>` : ""}
+    return `<article class="admin-log-card admin-audit-card">
+      <div class="admin-log-col-primary"><strong>${escapeHtml(log.action)}</strong><time>${escapeHtml(formatLocalDateTime(log.created_at))}</time></div>
+      <div class="admin-log-col-actor"><p>管理员：${escapeHtml(log.actor_username || "-")} · 角色：${escapeHtml(log.actor_role === "super_admin" ? "站点所有者" : log.actor_role === "admin" ? "管理员" : "-")}</p><p class="meta-line">对象：${escapeHtml(target)}</p></div>
+      <div class="admin-log-col-detail"><p><span class="status-badge" data-tone="${success ? "success" : "error"}">${success ? "成功" : "失败"}</span> ${escapeHtml(detail)}</p>${log.request_id ? `<p class="meta-line">请求 ID：${escapeHtml(log.request_id)}</p>` : ""}</div>
     </article>`;
-  }).join("") || "<p>暂无审计记录</p>";
+  }).join("") || '<p class="admin-empty-state">暂无审计记录</p>';
 }
 
 function renderAdminLoginLogs(logs) {
+  const items = Array.isArray(logs) ? logs : [];
+  setAdminKpi("adminKpiLoginFailed", items.filter((log) => !log?.success).length);
   const list = $("adminLoginList");
-  list.innerHTML = (logs || []).map((log) => {
+  list.innerHTML = items.map((log) => {
     const success = Boolean(log.success);
     const username = log.username || "未知账号";
     const source = { cloudflare_pages: "网站代理", cloudflare: "Cloudflare", direct: "直接连接" }[log.source] || log.source || "未知来源";
@@ -2765,7 +2911,7 @@ function renderAdminLoginLogs(logs) {
 
 function renderAdminToolStats(tools) {
   const list = $("adminToolStatsList");
-  list.innerHTML = (tools || []).map((item) => `<article class="admin-log-card"><div><strong>${escapeHtml(item.tool_id)}</strong><span>${escapeHtml(item.uses || 0)} 次 · ${escapeHtml(item.users || 0)} 人</span></div><p>最近使用：${escapeHtml(formatLocalDateTime(item.last_used_at, "无"))}</p></article>`).join("") || "<p>暂无工具使用记录</p>";
+  list.innerHTML = (tools || []).map((item) => `<article class="admin-log-card admin-tool-stat-card"><div class="admin-log-col-primary"><strong>${escapeHtml(item.tool_id)}</strong></div><div class="admin-log-col-metrics"><span>${escapeHtml(item.uses || 0)} 次 · ${escapeHtml(item.users || 0)} 人</span></div><p class="admin-log-col-time">最近使用：${escapeHtml(formatLocalDateTime(item.last_used_at, "无"))}</p></article>`).join("") || '<p class="admin-empty-state">暂无工具使用记录</p>';
 }
 
 function siteMessageTypeLabel(type) {
@@ -2868,21 +3014,26 @@ async function sendAdminMessage(event) {
   askConfirmation(`确认向${targetDescription}发送“${payload.title}”？发送后只能撤回，不能修改。`, async () => {
     const button = $("sendAdminMessageBtn");
     button.disabled = true;
-    $("adminMessageFormStatus").textContent = "正在发送…";
+    setControlFeedbackState(button, "pending");
+    setInlineFeedback("adminMessageFormStatus", "pending", "正在发送站内消息…");
     try {
       await api("/api/admin/messages", payload);
       $("adminMessageForm").reset();
       $("adminMessageScope").value = "single";
       adminMessageSelectedUserIds.clear();
       renderAdminMessageTargets();
-      $("adminMessageFormStatus").textContent = "站内消息已发送";
+      setControlFeedbackState(button, "success");
+      setInlineFeedback("adminMessageFormStatus", "success", "站内消息已发送");
       await loadAdminData();
     } catch (error) {
-      $("adminMessageFormStatus").textContent = error.message;
+      const cancelled = error?.message === "操作已取消";
+      setControlFeedbackState(button, cancelled ? "idle" : "error");
+      setInlineFeedback("adminMessageFormStatus", cancelled ? "info" : "error", cancelled ? "已取消身份验证，站内消息未发送。" : error.message);
     } finally {
       button.disabled = false;
+      if (button.getAttribute("aria-busy") === "true") setControlFeedbackState(button, "idle");
     }
-  });
+  }, { errorTarget: $("adminMessageFormStatus") });
 }
 
 function renderAdminRoles(data = null) {
@@ -2983,7 +3134,7 @@ function renderAdminFeedback(items = null) {
     </div>
     <div class="admin-feedback-merge">
       <label><span>合并到建议 ID</span><input data-feedback-merge-target maxlength="64" placeholder="目标反馈 ID" /></label>
-      <button data-feedback-admin-merge type="button" ${["feature_suggestion", "new_tool"].includes(item.type) ? "" : "disabled"}>合并重复建议</button>
+      <button class="button-secondary" data-feedback-admin-merge type="button" ${["feature_suggestion", "new_tool"].includes(item.type) ? "" : "disabled"}>合并重复建议</button>
       <button class="danger-button" data-feedback-admin-delete type="button">删除垃圾反馈</button>
     </div>
   </article>`).join("") || '<p class="admin-empty-state">没有符合条件的反馈。</p>';
@@ -3088,6 +3239,13 @@ async function loadAdminData() {
         return;
       }
       failures.push(`${request.label}：${result.reason?.message || "加载失败"}`);
+      const kpiFailureTargets = {
+        "用户": "adminKpiUsers",
+        "充值申请": "adminKpiRecharge",
+        "审计日志": "adminKpiAudit",
+        "登录记录": "adminKpiLoginFailed",
+      };
+      if (kpiFailureTargets[request.label]) setAdminKpi(kpiFailureTargets[request.label], "加载失败", "error");
       const target = $(request.target);
       const missingUsers = request.label === "用户" && !adminUsers.length;
       if (target && (!target.children.length || missingUsers)) target.innerHTML = `<p class="admin-empty-state">${request.label}尚未加载，请点击刷新重试。</p>`;
@@ -3105,7 +3263,7 @@ async function loadAdminData() {
   }
 }
 
-async function showAdminPanel(pushHistory = true) {
+async function showAdminPanel(pushHistory = true, generation = routeGeneration) {
   if (!state.session || !state.account) {
     showAuth("请先登录管理员账户", { path: "/login", replace: true });
     return;
@@ -3115,14 +3273,20 @@ async function showAdminPanel(pushHistory = true) {
     showModulePicker(false, "当前账户没有管理员权限，已返回功能选择。");
     return;
   }
-  if (pushHistory && location.pathname !== "/admin") history.pushState({}, "", "/admin");
+  if (pushHistory) { pushRoute("/admin"); generation = routeGeneration; }
   $("adminRolesTab")?.classList.toggle("hidden", !isSuperAdmin());
   hidePrimaryScreens();
   $("adminPanel").classList.remove("hidden");
   $("adminPanel").setAttribute("aria-hidden", "false");
   renderAccountUi();
+  const reapplyPopScroll = applyWorkspaceRouteScroll(pushHistory);
+  if ($("adminRoleContext")) {
+    $("adminRoleContext").textContent = `当前身份：${isSuperAdmin() ? "站点所有者" : "管理员"}`;
+  }
   await loadAdminData();
+  if (!isRouteGenerationCurrent(generation)) return;
   await featureConsole?.load();
+  if (isRouteGenerationCurrent(generation)) reapplyPopScroll();
 }
 
 function leaveAdminPanel() {
@@ -3206,7 +3370,7 @@ function openAdminEditor(userId) {
   $("adminPreserveJapanese").checked = false;
   clearAdminSecretEditor();
   $("adminToggleBanBtn").textContent = user.banned ? "解除封禁" : "永久封禁";
-  $("adminEditMessage").textContent = "";
+  setInlineFeedback("adminEditMessage", "idle", "");
   renderAdminCurrentMemberships(user);
   updateAdminMembershipFields(false);
   openModal("adminEditModal");
@@ -3222,6 +3386,8 @@ async function saveAdminMembership() {
   const actionLabel = { grant: "开通或覆盖", extend: "续期", cancel: "取消所选会员", cancel_all: "降级为普通用户" }[action] || action;
   askConfirmation(`确认对“${user?.username || userId}”执行“${actionLabel}”？`, async () => {
     button.disabled = true;
+    setControlFeedbackState(button, "pending");
+    setInlineFeedback("adminEditMessage", "pending", "正在保存会员设置…");
     try {
       const data = await api("/api/admin/membership/manage", {
         user_id: userId,
@@ -3236,13 +3402,17 @@ async function saveAdminMembership() {
       await loadAdminData();
       const refreshed = adminUserById(userId) || data.user;
       renderAdminCurrentMemberships(refreshed);
-      $("adminEditMessage").textContent = "会员设置已保存并立即生效";
+      setControlFeedbackState(button, "success");
+      setInlineFeedback("adminEditMessage", "success", "会员设置已保存并立即生效");
     } catch (error) {
-      $("adminEditMessage").textContent = error.message;
+      const cancelled = error?.message === "操作已取消";
+      setControlFeedbackState(button, cancelled ? "idle" : "error");
+      setInlineFeedback("adminEditMessage", cancelled ? "info" : "error", cancelled ? "已取消身份验证，会员设置未变更。" : error.message);
     } finally {
       button.disabled = false;
+      if (button.getAttribute("aria-busy") === "true") setControlFeedbackState(button, "idle");
     }
-  });
+  }, { errorTarget: $("adminEditMessage") });
 }
 
 function updateAdminToolsOverride(allowed) {
@@ -3252,6 +3422,7 @@ function updateAdminToolsOverride(allowed) {
     ? `确认仅取消“${user?.username || userId}”的在线工具箱权限？语言会员不会受影响。`
     : `确认移除“${user?.username || userId}”的工具权限覆盖，并恢复按会员方案计算？`;
   askConfirmation(message, async () => {
+    setInlineFeedback("adminEditMessage", "pending", "正在更新工具权限覆盖…");
     await api("/api/admin/entitlement", {
       user_id: userId,
       entitlement: "tools_access",
@@ -3260,21 +3431,23 @@ function updateAdminToolsOverride(allowed) {
     });
     await loadAdminData();
     renderAdminCurrentMemberships(adminUserById(userId));
-    $("adminEditMessage").textContent = allowed === false ? "已单独取消工具权限" : "已恢复按会员方案计算工具权限";
-  });
+    setInlineFeedback("adminEditMessage", "success", allowed === false ? "已单独取消工具权限" : "已恢复按会员方案计算工具权限");
+  }, { errorTarget: $("adminEditMessage") });
 }
 
 async function saveAdminSecret() {
   const supported=await task27Ui.isSupported();
   const legacySecret=$('adminNewSecretInput').value;
-  if(!supported&&!legacySecret){$('adminEditMessage').textContent='请先输入或生成新的登录密钥';return;}
+  if(!supported&&!legacySecret){setInlineFeedback('adminEditMessage', 'error', '请先输入或生成新的登录密码');return;}
   const saveButton = $("saveAdminSecretBtn");
   const generateButton = $("generateAdminSecretBtn");
   const userId = $("adminEditUserId").value;
   const user = adminUserById(userId);
-  askConfirmation(`确认重置“${user?.username || userId}”的登录密钥并退出其全部会话？`, async () => {
+  askConfirmation(`确认重置“${user?.username || userId}”的登录密码并退出其全部会话？`, async () => {
     saveButton.disabled = true;
     generateButton.disabled = true;
+    setControlFeedbackState(saveButton, "pending");
+    setInlineFeedback("adminEditMessage", "pending", "正在重置登录密码…");
     try {
       const result = await api("/api/admin/secret", { user_id: userId, ...(supported?{grant:await task27Ui.stepup(`admin_reset:${userId}`)}:{secret:legacySecret}) });
       await loadAdminData();
@@ -3282,29 +3455,45 @@ async function saveAdminSecret() {
       setAdminSecretVisibility(false);
       $("adminSecretResultValue").textContent = supported?result.temporary_password:legacySecret;
       $("adminSecretResult").classList.remove("hidden");
-      $("adminEditMessage").textContent = supported?"已生成随机 20 位临时密码，仅本次显示。旧会话已撤销，原 MFA 保留，用户须在首次登录时设置新密码。":"密钥已修改，旧密钥和旧会话均已失效。请立即复制新密钥。";
+      setControlFeedbackState(saveButton, "success");
+      setInlineFeedback("adminEditMessage", "success", supported?"已生成随机 20 位临时密码，仅本次显示。旧会话已撤销，原 MFA 保留，用户须在首次登录时设置新密码。":"密码已修改，旧密码和旧会话均已失效。请立即复制新密码。");
+    } catch (error) {
+      const cancelled = error?.message === "操作已取消";
+      setControlFeedbackState(saveButton, cancelled ? "idle" : "error");
+      setInlineFeedback("adminEditMessage", cancelled ? "info" : "error", cancelled ? "已取消身份验证，用户密码未重置。" : error.message);
     } finally {
       saveButton.disabled = false;
       generateButton.disabled = false;
+      if (saveButton.getAttribute("aria-busy") === "true") setControlFeedbackState(saveButton, "idle");
     }
-  });
+  }, { errorTarget: $("adminEditMessage") });
 }
 
-function askConfirmation(message, action) {
+function askConfirmation(message, action, options = {}) {
   $("confirmMessage").textContent = message;
   confirmAction = action;
+  confirmErrorTarget = options.errorTarget || null;
   openModal("confirmModal");
 }
 
 async function runConfirmedAction() {
   const action = confirmAction;
+  const target = confirmErrorTarget;
   confirmAction = null;
+  confirmErrorTarget = null;
   $("acceptConfirmBtn").disabled = true;
   try {
     closeModal("confirmModal");
     if (action) await action();
   } catch (error) {
-    $("adminEditMessage").textContent = error.message;
+    const cancelled = error?.message === "操作已取消";
+    const resolvedTarget = target
+      || ($("adminEditModal") && !$("adminEditModal").classList.contains("hidden") ? $("adminEditMessage") : $("adminError"));
+    if (resolvedTarget) {
+      setInlineFeedback(resolvedTarget, cancelled ? "info" : "error", cancelled ? "已取消操作，未保存任何更改。" : error.message);
+    } else {
+      showToast({ tone: cancelled ? "info" : "error", message: error.message || "操作未完成" }, {}, document);
+    }
   } finally {
     $("acceptConfirmBtn").disabled = false;
   }
@@ -3315,16 +3504,18 @@ function adminUserAction(kind) {
   const user = adminUserById(userId);
   if (!user || user.is_admin || (!isSuperAdmin() && user.id === state.account?.id)) return;
   const configs = {
-    ban: [user.banned ? "确认解除该用户的永久封禁？" : "确认永久封禁该用户并立即退出其所有会话？", "/api/admin/ban", { user_id: userId, banned: !user.banned }],
-    logout: ["确认强制退出该用户的全部登录会话？", "/api/admin/logout-user", { user_id: userId }],
-    delete: ["确认删除该用户、会员资格、充值申请和全部会话？此操作不可恢复。", "/api/admin/delete-user", { user_id: userId }],
+    ban: [user.banned ? "确认解除该用户的永久封禁？" : "确认永久封禁该用户并立即退出其所有会话？", "/api/admin/ban", { user_id: userId, banned: !user.banned }, user.banned ? "已解除封禁" : "已永久封禁用户并撤回会话"],
+    logout: ["确认强制退出该用户的全部登录会话？", "/api/admin/logout-user", { user_id: userId }, "已强制退出该用户全部会话"],
+    delete: ["确认删除该用户、会员资格、充值申请和全部会话？此操作不可恢复。", "/api/admin/delete-user", { user_id: userId }, "已删除用户及关联数据"],
   };
-  const [message, path, payload] = configs[kind];
+  const [message, path, payload, doneMessage] = configs[kind];
   askConfirmation(message, async () => {
+    setInlineFeedback("adminEditMessage", "pending", "正在提交账户操作…");
     await api(path, payload);
     await loadAdminData();
     closeModal("adminEditModal");
-  });
+    setInlineFeedback("adminError", "success", doneMessage);
+  }, { errorTarget: $("adminEditMessage") });
 }
 
 function wordDraftKey(language = state.quizLanguage, profile = state.profile) {
@@ -3868,11 +4059,16 @@ function setTrialTool(value) {
   document.querySelectorAll("[data-trial-tool]").forEach((button) => {
     const active = button.dataset.trialTool === tool;
     button.classList.toggle("active", active);
-    button.setAttribute("aria-pressed", String(active));
+    button.setAttribute("aria-selected", String(active));
+    button.tabIndex = active ? 0 : -1;
   });
   document.querySelectorAll("[data-trial-panel]").forEach((panel) => {
     const panelName = tool.startsWith("image-") ? "image" : tool;
-    panel.classList.toggle("hidden", panel.dataset.trialPanel !== panelName);
+    const isTarget = panel.dataset.trialPanel === panelName;
+    panel.classList.toggle("hidden", !isTarget);
+    if (isTarget) {
+      panel.removeAttribute("hidden");
+    }
   });
   if (tool.startsWith("image-")) {
     trialState.imageMode = tool === "image-format" ? "format" : "compress";
@@ -3889,6 +4085,88 @@ function setTrialTool(value) {
   renderAccountUi();
 }
 
+let pendingPopScroll = null;
+let pendingPopReset = false;
+
+function applyPublicRouteScroll(pushHistory) {
+  const target = !pushHistory && pendingPopScroll && Number.isFinite(pendingPopScroll.scrollY)
+    ? pendingPopScroll
+    : null;
+  const resetToTop = Boolean(pushHistory || (!target && pendingPopReset));
+  if (target || pushHistory || pendingPopReset) {
+    pendingPopScroll = null;
+    pendingPopReset = false;
+  }
+  const scrollToClamped = (left, top) => {
+    const maxX = Math.max(0, (document.documentElement?.scrollWidth || 0) - (window.innerWidth || 0));
+    const maxY = Math.max(0, (document.documentElement?.scrollHeight || 0) - (window.innerHeight || 0));
+    window.scrollTo({
+      left: Math.min(Math.max(0, left), maxX),
+      top: Math.min(Math.max(0, top), maxY),
+      behavior: "instant",
+    });
+  };
+  const restore = () => {
+    if (target) scrollToClamped(target.scrollX || 0, target.scrollY);
+    else if (resetToTop) window.scrollTo({ left: 0, top: 0, behavior: "instant" });
+    window.WYJPublicScroll?.refresh?.();
+  };
+  restore();
+  window.requestAnimationFrame(() => window.requestAnimationFrame(() => window.WYJPublicScroll?.refresh?.()));
+  if (!target) return () => {};
+  return () => {
+    scrollToClamped(target.scrollX || 0, target.scrollY);
+    window.WYJPublicScroll?.refresh?.();
+    window.requestAnimationFrame(() => {
+      scrollToClamped(target.scrollX || 0, target.scrollY);
+      window.WYJPublicScroll?.refresh?.();
+    });
+  };
+}
+
+function applyWorkspaceRouteScroll(pushHistory) {
+  const target = !pushHistory && pendingPopScroll && Number.isFinite(pendingPopScroll.scrollY)
+    ? pendingPopScroll
+    : null;
+  const resetToTop = Boolean(pushHistory || (!target && pendingPopReset));
+  if (target || pushHistory || pendingPopReset) {
+    pendingPopScroll = null;
+    pendingPopReset = false;
+  }
+  if (!resetToTop && !target) return () => {};
+  const scrollToPos = (left, top) => {
+    if (typeof window.scrollTo !== "function") return;
+    try {
+      window.scrollTo({ left, top, behavior: "instant" });
+    } catch (_) {
+      window.scrollTo(left, top);
+    }
+  };
+  const apply = () => {
+    if (target) {
+      const maxX = Math.max(0, (document.documentElement?.scrollWidth || 0) - (window.innerWidth || 0));
+      const maxY = Math.max(0, (document.documentElement?.scrollHeight || 0) - (window.innerHeight || 0));
+      scrollToPos(
+        Math.min(Math.max(0, target.scrollX || 0), maxX),
+        Math.min(Math.max(0, target.scrollY), maxY),
+      );
+    } else if (resetToTop) {
+      scrollToPos(0, 0);
+    }
+  };
+  apply();
+  if (typeof window.requestAnimationFrame === "function") {
+    window.requestAnimationFrame(() => apply());
+  }
+  if (!target) return () => {};
+  return () => {
+    apply();
+    if (typeof window.requestAnimationFrame === "function") {
+      window.requestAnimationFrame(() => apply());
+    }
+  };
+}
+
 function showPublicHome(pushHistory = true) {
   stopProjectActivity();
   currentProject = "";
@@ -3899,16 +4177,27 @@ function showPublicHome(pushHistory = true) {
   $("publicHome").setAttribute("aria-hidden", "false");
   document.body.classList.remove("project-picker-active");
   if (pushHistory) pushRoute("/");
+  const homeGen = routeGeneration;
   renderAccountUi();
+  const reapplyPopScroll = applyPublicRouteScroll(pushHistory);
   // Share the existing catalog owner/promise; never block the public page.
-  void loadMembershipPlans().then(plans=>renderPublicPlanCatalog(document,plans)).catch(error=>renderPublicPlanCatalog(document,[],error.message));
+  void loadMembershipPlans()
+    .then(plans => renderPublicPlanCatalog(document, plans))
+    .catch(error => renderPublicPlanCatalog(document, [], error.message))
+    .finally(() => { if (isRouteGenerationCurrent(homeGen)) reapplyPopScroll(); });
 }
 
-function resetChangelogScroll() {
+function resetChangelogScroll(pushHistory = true) {
   const goToLatest = () => {
     if (currentRoutePath() !== "/changelog" || $("changelogPage")?.classList.contains("hidden")) return;
     const selected = changelogSelection.current(changelogEntries());
     const article = selected ? document.getElementById(changelogArticleId(selected)) : null;
+    if (!article && !pushHistory && pendingPopScroll && Number.isFinite(pendingPopScroll.scrollY)) {
+      const target = pendingPopScroll;
+      pendingPopScroll = null;
+      window.scrollTo({ left: target.scrollX || 0, top: target.scrollY, behavior: "instant" });
+      return;
+    }
     const headerHeight = $("accountBar")?.getBoundingClientRect().height || 0;
     const top = article ? Math.max(0, window.scrollY + article.getBoundingClientRect().top - headerHeight - 16) : 0;
     window.scrollTo({ left: 0, top, behavior: "instant" });
@@ -3932,7 +4221,7 @@ function showChangelog(pushHistory = true) {
     history.replaceState(history.state, "", location.pathname + location.search);
   }
   renderAccountUi();
-  resetChangelogScroll();
+  resetChangelogScroll(pushHistory);
 }
 
 let androidDownloadController = null;
@@ -3949,6 +4238,7 @@ function showDownload(pushHistory = true) {
   androidDownloadController?.show();
   if (pushHistory) pushRoute("/download");
   renderAccountUi();
+  applyPublicRouteScroll(pushHistory);
 }
 
 function showTrial(pushHistory = true, tool = "") {
@@ -3963,6 +4253,7 @@ function showTrial(pushHistory = true, tool = "") {
   setTrialTool(tool || trialState.tool);
   if (pushHistory) pushRoute("/trial");
   renderAccountUi();
+  applyPublicRouteScroll(pushHistory);
 }
 
 function presentationState() {
@@ -4024,6 +4315,19 @@ function showLanguageGate() {
 }
 
 function hidePrimaryScreens() {
+  const outgoingPath = currentRoutePath();
+  if (!pendingOutgoingScroll || pendingOutgoingScroll.path !== outgoingPath) {
+    pendingOutgoingScroll = {
+      path: outgoingPath,
+      scrollX: window.scrollX || 0,
+      scrollY: window.scrollY || 0,
+    };
+    const token = pendingOutgoingScroll;
+    queueMicrotask(() => {
+      if (pendingOutgoingScroll === token) pendingOutgoingScroll = null;
+    });
+  }
+  dashboardView?.hide();
   setExperienceMode("workspace");
   const leavingTrial = Boolean($("trialPage") && !$("trialPage").classList.contains("hidden"));
   ["sessionRecovery", "publicHome", "changelogPage", "downloadPage", "trialPage", "modulePicker", "projectPicker", "projectApp", "toolsPanel", "financePage", "transferPage", "shareViewer", "adminPanel", "membershipModal", "accountModal"].forEach((id) => {
@@ -4042,10 +4346,7 @@ function hidePrimaryScreens() {
   membershipModalLoadSequence += 1;
   membershipModalController?.abort(); membershipModalController = null;
   releasePaymentQr();
-  if (!document.querySelector('.modal-layer:not(.hidden)')) {
-    document.body.classList.remove("modal-open");
-    if ($("appShell")) $("appShell").inert = false;
-  }
+  syncShellInteractivity();
   window.WYJTools?.hide?.();
   financeController?.hide?.();
   financeCandidatesController?.hide?.();
@@ -4089,6 +4390,7 @@ function showProjectPicker(pushHistory = true) {
   document.body.classList.add("project-picker-active");
   if (pushHistory) pushRoute("/language");
   renderAccountUi();
+  applyWorkspaceRouteScroll(pushHistory);
 }
 
 function showMainShell() {
@@ -4138,6 +4440,7 @@ function enterProject(value, pushHistory = true) {
   applyPendingScreen();
   if (pushHistory) pushRoute(`/language/${language}`);
   renderAccountUi();
+  applyWorkspaceRouteScroll(pushHistory);
   if (!state.roundActive) {
     if ($("wordText")) $("wordText").textContent = "-";
     if ($("wordReading")) {
@@ -4194,8 +4497,10 @@ function showAuth(message = "", options = {}) {
   $("offlineReviewBtn").classList.add("hidden");
   document.body.classList.add("project-picker-active");
   const path = options.path || (mode === "register" ? "/register" : "/login");
+  const isRoutePush = !options.skipRoute && location.pathname !== path;
   if (!options.skipRoute) pushRoute(path, Boolean(options.replace));
   renderAccountUi();
+  if (isRoutePush || pendingPopScroll) applyPublicRouteScroll(Boolean(isRoutePush && !options.replace));
 }
 
 function showWorkspace() {
@@ -4257,6 +4562,7 @@ async function showTools(path = "/tools", pushHistory = true, generation = route
   if (pushHistory) { pushRoute(path); generation = routeGeneration; }
   document.body.classList.remove("project-picker-active");
   renderAccountUi();
+  const reapplyPopScroll = applyWorkspaceRouteScroll(pushHistory);
   try {
     const preparing = Promise.resolve(window.WYJTools.prepare()).catch(error => ({ error }));
     if (!access) {
@@ -4272,6 +4578,7 @@ async function showTools(path = "/tools", pushHistory = true, generation = route
     if (prepared?.error) throw prepared.error;
     if (!isRouteGenerationCurrent(generation)) return;
     await window.WYJTools.show(path, { access, offline });
+    if (isRouteGenerationCurrent(generation)) reapplyPopScroll();
   } catch (error) {
     await handleToolsAccessFailure(error, generation);
   }
@@ -4307,18 +4614,23 @@ async function showMembership(pushHistory = true, options = {}) {
   }
   stopProjectActivity();
   const context = workspaceEntry('membershipModal', '/recharge', pushHistory, options);
+  const generation = routeGeneration;
   currentProject = "";
   state.quizLanguage = "";
   hidePrimaryScreens();
   const page = $("membershipModal");
   if (page) {
+    page.dataset.sheetWorkspace = "true";
+    page.inert = false;
     page.classList.remove("hidden", "is-closing");
     page.setAttribute("aria-hidden", "false");
   }
-  document.body.classList.remove("modal-open", "project-picker-active");
-  if ($("appShell")) $("appShell").inert = false;
+  document.body.classList.remove("project-picker-active");
+  syncShellInteractivity();
   renderAccountUi();
+  const reapplyPopScroll = applyWorkspaceRouteScroll(pushHistory);
   await loadMembershipWorkspace({ ...options, goal: context.goal });
+  if (isRouteGenerationCurrent(generation)) reapplyPopScroll();
 }
 
 function showAccount(pushHistory = true) {
@@ -4333,12 +4645,15 @@ function showAccount(pushHistory = true) {
   hidePrimaryScreens();
   const page = $("accountModal");
   if (page) {
+    page.dataset.sheetWorkspace = "true";
+    page.inert = false;
     page.classList.remove("hidden", "is-closing");
     page.setAttribute("aria-hidden", "false");
   }
-  document.body.classList.remove("modal-open", "project-picker-active");
-  if ($("appShell")) $("appShell").inert = false;
+  document.body.classList.remove("project-picker-active");
+  syncShellInteractivity();
   renderAccountUi();
+  applyWorkspaceRouteScroll(pushHistory);
   renderAccountDetails();
 }
 
@@ -4356,11 +4671,13 @@ async function showFinance(pushHistory = true, generation = routeGeneration) {
   document.body.classList.remove("project-picker-active");
   if (pushHistory) { pushRoute("/finance"); generation = routeGeneration; }
   renderAccountUi();
+  const reapplyPopScroll = applyWorkspaceRouteScroll(pushHistory);
   try {
     const financeVisible = await financeController?.show?.();
     if (!isRouteGenerationCurrent(generation)) return;
     if (financeVisible) await financeCandidatesController?.show?.();
     else financeCandidatesController?.hide?.();
+    if (isRouteGenerationCurrent(generation)) reapplyPopScroll();
   } catch (error) {
     if (!isRouteGenerationCurrent(generation)) return;
     const message = $("financeMessage");
@@ -4368,6 +4685,7 @@ async function showFinance(pushHistory = true, generation = routeGeneration) {
       message.textContent = error?.message || "财务账本暂时无法加载，本机数据仍然保留。";
       message.dataset.tone = "error";
     }
+    reapplyPopScroll();
   }
 }
 
@@ -4381,8 +4699,10 @@ async function showTransfer(pushHistory = true, generation = routeGeneration) {
   document.body.classList.remove("project-picker-active");
   if (pushHistory) { pushRoute("/transfer"); generation = routeGeneration; }
   renderAccountUi();
+  const reapplyPopScroll = applyWorkspaceRouteScroll(pushHistory);
   try {
     await transferController?.show?.();
+    if (isRouteGenerationCurrent(generation)) reapplyPopScroll();
   } catch (error) {
     if (!isRouteGenerationCurrent(generation)) return;
     const message = $("transferMessage");
@@ -4390,6 +4710,7 @@ async function showTransfer(pushHistory = true, generation = routeGeneration) {
       message.textContent = error?.message || "文件传输暂时无法加载。";
       message.dataset.tone = "error";
     }
+    reapplyPopScroll();
   }
 }
 
@@ -4541,8 +4862,8 @@ async function renderCurrentRoute(path, generation = routeGeneration) {
     }
     if (["/", "/login", "/register", "/select"].includes(path)) {
       showPublicHome(false);
-      // /select remains a native/deep-link alias for this exact same DOM.
-      if (path !== "/") pushRoute("/" + location.search, true);
+      // Preserve /select deep-link route identity while /login & /register normalize back to root when already signed in.
+      if (path === "/login" || path === "/register") pushRoute("/" + location.search, true);
       return;
     }
     if (path === "/language") {
@@ -4701,7 +5022,22 @@ function unlockAchievement(id) {
   renderAchievements();
 }
 
-function showAchievementToast(message) {
+function showAchievementToast(message, options = {}) {
+  if (document.documentElement.dataset.p07Ui === "enabled") {
+    const tone = options.tone || "success";
+    showToast({
+      tone,
+      message,
+      dedupeKey: options.dedupeKey || `${tone}:${message}`,
+      scoped: options.scoped !== false,
+      contextToken: options.contextToken,
+      actionLabel: options.actionLabel,
+      onAction: options.onAction,
+      sticky: options.sticky,
+      duration: options.duration,
+    }, {}, document);
+    return;
+  }
   const toast = $("achievementToast");
   if (!toast) return;
   clearTimeout(achievementToastTimer);
@@ -5049,14 +5385,14 @@ async function apiGet(path,options={}) {
 }
 
 installLazyTools({
-  loadTools: createRetryableImport(new URL("./tools.js?release=20261118-aeris-task30-web-release", import.meta.url)),
-  loadWorkflows: createRetryableImport(new URL("./workflows.js?release=20261118-aeris-task30-web-release", import.meta.url)),
+  loadTools: createRetryableImport(new URL("./tools.js?release=20261121-aeris-i05-preview", import.meta.url)),
+  loadWorkflows: createRetryableImport(new URL("./workflows.js?release=20261121-aeris-i05-preview", import.meta.url)),
   onReady: () => renderDashboard(),
 });
 
-const loadFinanceModule = createRetryableImport(new URL("./js/finance/app.js?release=20261118-aeris-task30-web-release", import.meta.url));
-const loadCandidateModule = createRetryableImport(new URL("./js/finance/candidates.js?release=20261118-aeris-task30-web-release", import.meta.url));
-const loadTransferModule = createRetryableImport(new URL("./js/transfer/app.js?release=20261118-aeris-task30-web-release", import.meta.url));
+const loadFinanceModule = createRetryableImport(new URL("./js/finance/app.js?release=20261121-aeris-i05-preview", import.meta.url));
+const loadCandidateModule = createRetryableImport(new URL("./js/finance/candidates.js?release=20261121-aeris-i05-preview", import.meta.url));
+const loadTransferModule = createRetryableImport(new URL("./js/transfer/app.js?release=20261121-aeris-i05-preview", import.meta.url));
 
 financeController = createLazyController({
   methods: ["syncNow", "verifyTransaction", "render"],
@@ -5184,7 +5520,15 @@ dashboardView = createDashboardView({
   state: () => state, finance: () => financeController, pending: () => financeCandidatesController,
   transfer: () => transferController, online: () => backendAvailable, ai: () => aiAvailable,
   openTool: id => showTools(`/tools/${encodeURIComponent(id)}`, true),
-  openHomeModule: target => { dashboardView?.hide();return target.startsWith('/tools/') ? showTools(target,true) : navigateFromSiteNav(target==='learning'?'language':target); },
+  openHomeModule: target => {
+    dashboardView?.hide();
+    const normalized = String(target || "").replace(/^\/+/, "");
+    if (normalized.startsWith("tools/")) return showTools(`/${normalized}`, true);
+    if (normalized === "recharge") return showMembership(true);
+    return navigateFromSiteNav(normalized === "learning" ? "language" : normalized);
+  },
+  openModal,
+  closeModal,
   learningStatus: () => learningSyncStatus,
   accountMembershipSummary,
   accountEntitlements,
@@ -5282,6 +5626,7 @@ async function ensureBackendConnection() {
 
 function setView(id) {
   if (id === "quizView" && !state.roundActive) id = "setupView";
+  const enteringQuiz = id === "quizView" && !$("quizView")?.classList.contains("active");
   const leavingQuiz = id !== "quizView" && $("quizView")?.classList.contains("active");
   if (leavingQuiz) {
     if (judgeController) judgeController.abort();
@@ -5290,13 +5635,21 @@ function setView(id) {
   document.querySelectorAll(".view").forEach((view) => view.classList.toggle("active", view.id === id));
   document.querySelectorAll(".tabs button").forEach((tab) => tab.classList.toggle("active", tab.dataset.view === id));
   if (id === "quizView" && state.roundActive) {
+    if (enteringQuiz && typeof window.scrollTo === "function") {
+      try {
+        window.scrollTo({ left: 0, top: 0, behavior: "instant" });
+      } catch (_) {
+        window.scrollTo(0, 0);
+      }
+    }
     if (state.pendingAdvance) resumeQuestionTransition();
-    else $("answerInput")?.focus();
+    else $("answerInput")?.focus({ preventScroll: true });
   }
   if (id === "wrongView") renderWrongBook({ force: true });
   if (id === "achievementsView") renderAchievements();
   if (id === "studyView") renderStudyDashboard();
   if (currentProject && state.roundActive) saveProjectRuntime();
+  refreshWorkspaceShell();
 }
 
 function updateStats() {
@@ -6037,6 +6390,28 @@ function showWord(options = {}) {
   $("progressLabel").setAttribute("aria-valuemin", "0");
   $("progressLabel").setAttribute("aria-valuemax", String(state.words.length));
   $("progressLabel").setAttribute("aria-valuenow", String(state.index + 1));
+  const progressFill = $("quizProgressFill");
+  if (progressFill) {
+    const pct = Math.min(100, Math.round(((state.index + 1) / Math.max(1, state.words.length)) * 100));
+    progressFill.style.width = `${pct}%`;
+  }
+  const reviewContextEl = $("quizReviewContext");
+  if (reviewContextEl) {
+    if (reviewInfo && wrongReviewController?.allowed()) {
+      const entryKey = state.reviewKeys[state.index] || word;
+      const review = wrongReviewView(reviewInfo, Date.now(), wrongReviewController.confirmed(entryKey, reviewInfo));
+      const statusLabel = review.mastered ? "已掌握" : review.due ? "待复习" : "已安排";
+      const nextLabel = review.mastered ? "持续巩固" : review.due ? "本次到期" : `下次 ${formatLocalDateTime(review.next_review_at)}`;
+      reviewContextEl.innerHTML = `<span class="wrong-review-pill" data-review-status="${escapeHtml(review.status)}">${statusLabel}</span>` +
+        `<span>连对 <strong class="tabular-nums">${review.streak}/5</strong></span>` +
+        `<span>掌握度 <strong class="tabular-nums">${review.score}%</strong></span>` +
+        `<span>${escapeHtml(nextLabel)}</span>`;
+      reviewContextEl.classList.remove("hidden");
+    } else {
+      reviewContextEl.innerHTML = "";
+      reviewContextEl.classList.add("hidden");
+    }
+  }
   $("scoreLabel").textContent = `得分 ${state.score}`;
   $("quizLanguageLabel").textContent = quizLanguageLabel(state.quizLanguage);
   $("practiceModeLabel").textContent = state.mode.startsWith("review-")
@@ -6062,7 +6437,7 @@ function showWord(options = {}) {
   }
   $("acceptedChips").innerHTML = "";
   const quizVisible = $("quizView")?.classList.contains("active") && !$("workspace")?.classList.contains("hidden");
-  if (options.focus !== false && quizVisible && !preserveTransition) $("answerInput").focus();
+  if (options.focus !== false && quizVisible && !preserveTransition) $("answerInput").focus({ preventScroll: true });
   if (dictation && !preserveTransition) speakCurrentWord();
 }
 
@@ -6854,6 +7229,19 @@ function renderWrongBook(options = {}) {
     node.querySelector("strong").textContent = `历史 ${info.wrong_count || 0}次`;
     const rejudgeStatus = node.querySelector(".wrong-rejudge-status");
     const review=wrongReviewView(info,Date.now(),wrongReviewController?.confirmed(entryKey,info));
+    const wrongArticle = node.querySelector(".wrong-item");
+    if (wrongArticle) wrongArticle.dataset.reviewStatus = review.status;
+    const pill = node.querySelector(".wrong-review-pill");
+    if (pill) {
+      if (wrongReviewController?.allowed()) {
+        const label = review.mastered ? "已掌握" : review.due ? "待复习" : "已安排";
+        pill.textContent = `${label} · ${review.score}%`;
+        pill.dataset.reviewStatus = review.status;
+        pill.classList.remove("hidden");
+      } else {
+        pill.classList.add("hidden");
+      }
+    }
     const progress=wrongReviewController?.allowed()?` · ${wrongReviewController.confirmed(entryKey,info)?'已确认':'本地'} · ${review.mastered?'已掌握':review.due?'待复习':`下次 ${formatLocalDateTime(review.next_review_at)}`}`:'';
     const persistedStatus = `${info.question_type==='dictation'?'听写':'释义'}${progress}${info.rejudge_result==='correct'?' · 原错误已纠正':''}；可重新判定`;
     rejudgeStatus.textContent = persistedStatus;
@@ -7215,13 +7603,13 @@ function showAuthTransition(message = "正在验证身份与权限…") {
     overlay.setAttribute("aria-label", message);
     overlay.setAttribute("aria-hidden", "false");
     overlay.innerHTML = '<div class="entry-content">' +
-      '<img class="entry-logo" src="/icon-192.png?release=20261118-aeris-task30-web-release" width="76" height="76" alt="" />' +
+      '<img class="entry-logo" src="/icon-192.png?release=20261121-aeris-i05-preview" width="76" height="76" alt="" />' +
       '<strong>Aeris</strong>' +
       '<span class="entry-progress" aria-hidden="true"></span>' +
       '</div>';
     document.body.appendChild(overlay);
   document.body.classList.add('auth-transition-active');
-  $('v3AppFrame').inert = true;
+  syncShellInteractivity();
   return { overlay, sequence: ++authTransitionSequence };
 }
 
@@ -7230,11 +7618,11 @@ function finishAuthTransition(transition, owner) {
   transition.overlay.remove();
   if (transition.sequence !== authTransitionSequence) return;
   document.body.classList.remove('auth-transition-active');
-  const frame = $('v3AppFrame');
-  frame.inert = Boolean(document.querySelector('.modal-layer:not(.hidden)'));
-  if (state.session === owner && !frame.inert) {
+  const { hasBlockingModal } = syncShellInteractivity();
+  if (state.session === owner && !hasBlockingModal) {
     const target = !$('sessionRecovery').classList.contains('hidden') ? $('retrySessionRecoveryBtn') : $('publicHome')?.querySelector('h1');
     if (target) { if (!target.matches('button')) target.setAttribute('tabindex', '-1'); target.focus({ preventScroll: true }); }
+    window.setTimeout(showNextSiteMessage, 0);
   }
 }
 
@@ -7295,10 +7683,20 @@ async function login(event) {
 
 async function performBackendRefresh() {
   const owner = state.session;
+  const wasDisconnected = !backendAvailable;
   try {
     const data = await checkBackendStatus();
     if (owner !== state.session) return;
     applyBackendStatus(data);
+    if (wasDisconnected && backendAvailable && hadNetworkDisconnectToast && document.documentElement.dataset.bootState === "ready") {
+      hadNetworkDisconnectToast = false;
+      dismissToastByKey("network:connectivity", document);
+      showAchievementToast("网络连接已恢复，正在同步状态", {
+        tone: "info",
+        dedupeKey: "network:recovered",
+        scoped: false,
+      });
+    }
 
     if (owner) {
       const healthResponse = await fetchWithTimeout(
@@ -7389,6 +7787,14 @@ function markBackendDisconnected(message = "设备当前没有网络连接，联
   if ($("modelLabel")) $("modelLabel").textContent = "离线模式";
   $("statusDot")?.classList.remove("online");
   renderDashboard();
+  if (document.documentElement.dataset.bootState === "ready" && document.documentElement.dataset.p07Ui === "enabled") {
+    hadNetworkDisconnectToast = true;
+    showAchievementToast("网络已断开，当前处于离线只读保护", {
+      tone: "warning",
+      dedupeKey: "network:connectivity",
+      scoped: false,
+    });
+  }
 }
 
 function scheduleBackendRecovery(baseDelayMs = 250) {
@@ -7406,7 +7812,8 @@ function closeAccountMenu() {
 }
 
 function dismissTopOverlay() {
-  if ($("homeWidgetEditor")?.open) { $("homeWidgetEditor").close(); return true; }
+  const homeWidgetEditor = document.getElementById("homeWidgetEditor");
+  if (homeWidgetEditor?.open) { homeWidgetEditor.close(); return true; }
   const modal = [...document.querySelectorAll(".modal-layer:not(.hidden)")].at(-1);
   if (modal) {
     if (modal.hasAttribute("data-confirm-only")) modal.querySelector("button")?.focus({ preventScroll: true });
@@ -7566,9 +7973,30 @@ function auditRuntimeCapabilities() {
 }
 
 async function boot() {
+  if (typeof history !== "undefined" && "scrollRestoration" in history) {
+    try { history.scrollRestoration = "manual"; } catch (_) {}
+  }
   document.documentElement.dataset.bootState='initializing';
   document.documentElement.dataset.workspaceMount = 'pending';
   initDesignSystem();
+  if (typeof MutationObserver === "function") {
+    const toolTitleEl = $("toolWorkbenchTitle");
+    if (toolTitleEl) {
+      new MutationObserver(() => refreshWorkspaceShell()).observe(toolTitleEl, {
+        childList: true,
+        characterData: true,
+        subtree: true,
+      });
+    }
+    const adminTabsEl = document.querySelector(".admin-tabs");
+    if (adminTabsEl) {
+      new MutationObserver(() => refreshWorkspaceShell()).observe(adminTabsEl, {
+        attributes: true,
+        subtree: true,
+        attributeFilter: ["class"],
+      });
+    }
+  }
   applyInterfacePolicy();
   void publicUiPolicyController?.refresh();
   $('retryInterfacePolicyBtn').addEventListener('click', () => {
@@ -7657,6 +8085,119 @@ async function boot() {
   // Capability anchors use the existing site-nav dispatcher in both sessions.
   $("publicRegisterBtn")?.addEventListener("click", () => navigateFromSiteNav('language'));
   $("homeSearchBtn")?.addEventListener("click", async event => {await withInteractionFeedback(event.currentTarget,'home-tool-search',()=>navigateFromSiteNav('tools'));if(!$("toolsDashboard")?.classList.contains('hidden'))$("toolSearchInput")?.focus();else if(!$("trialPage")?.classList.contains('hidden'))$("trialTextInput")?.focus();});
+  let cmdActiveIndex = 0;
+  let cmdFilteredItems = [];
+  function buildCommandPaletteItems() {
+    const authed = Boolean(state.session && state.account);
+    const items = [
+      { id: "home", label: authed ? "前往个人工作台" : "前往公开首页", hint: "G W", keywords: "home workspace 首页 工作台", run: () => navigateFromSiteNav("home") },
+      { id: "language", label: authed ? "打开语言学习" : "语言学习试做 (最多 10 题)", hint: "G L", keywords: "language learn 英语 日语 学习", run: () => navigateFromSiteNav("language") },
+      { id: "trial", label: "打开免费试用", hint: "/trial", keywords: "trial 试用 测验", run: () => showTrial(true, "quiz") },
+      { id: "tools", label: "打开工具箱", hint: "G T", keywords: "tools json image text 工具箱", run: () => navigateFromSiteNav("tools") },
+      { id: "transfer", label: "打开文件传输与分享", hint: "G S", keywords: "transfer share file 文件 传输 分享", run: () => navigateFromSiteNav("transfer") },
+      { id: "finance", label: authed ? "打开财务账本" : "登录后查看财务账本", hint: "G F", keywords: "finance ledger budget 财务 账本", run: () => navigateFromSiteNav("finance") },
+      { id: "download", label: "下载 Android 客户端", hint: "/download", keywords: "download android apk 下载", run: () => navigateFromSiteNav("download") },
+      { id: "changelog", label: "查看更新日志", hint: "/changelog", keywords: "changelog updates 版本 更新", run: () => navigateFromSiteNav("changelog") },
+    ];
+    if (authed) {
+      items.push(
+        { id: "workflows", label: "打开工作流编排", hint: "/tools/workflows", keywords: "workflow 工作流 自动化", run: () => showTools("/tools/workflows", true) },
+        { id: "inbox", label: "打开个人通知收件箱", hint: "G I", keywords: "inbox notifications 通知 收件箱", run: () => $("notificationInboxMenuBtn")?.click() },
+        { id: "security", label: "打开账户安全中心", hint: "Security", keywords: "security 2fa passkey email 安全", run: () => $("securityCenterMenuBtn")?.click() },
+        { id: "account", label: "打开账户设置", hint: "G A", keywords: "account profile settings 账户 设置", run: () => $("accountBtn")?.click() },
+        { id: "membership", label: "管理会员与充值", hint: "G M", keywords: "membership recharge plan 会员 充值", run: () => $("membershipBtn")?.click() },
+        { id: "feedback", label: "反馈与功能投票", hint: "Feedback", keywords: "feedback vote 反馈", run: () => $("feedbackBtn")?.click() },
+      );
+      if (isAdmin(state.account)) {
+        items.push({ id: "admin", label: "进入管理后台 & Feature Flags", hint: "/admin", keywords: "admin flags audit 管理 后台 开关", run: () => $("adminBtn")?.click() });
+      }
+    } else {
+      items.push(
+        { id: "login", label: "登录 Aeris 账户", hint: "/login", keywords: "login sign in 登录", run: () => showAuth("", { mode: "login", path: "/login" }) },
+        { id: "register", label: "注册新账户", hint: "/register", keywords: "register sign up 注册", run: () => showAuth("", { mode: "register", path: "/register" }) },
+      );
+    }
+    items.push({ id: "theme", label: `切换外观模式 (当前: ${$("themeToggleLabel")?.textContent || "系统"})`, hint: "Theme", keywords: "theme dark light system 主题 深色 浅色", run: () => $("themeToggleBtn")?.click() });
+    return items;
+  }
+  function renderCommandPaletteList() {
+    const list = $("commandPaletteList");
+    const hint = $("commandPaletteHint");
+    const input = $("commandPaletteInput");
+    if (!list) return;
+    const query = (input?.value || "").trim().toLowerCase();
+    const tokens = query ? query.split(/\s+/).filter(Boolean) : [];
+    cmdFilteredItems = buildCommandPaletteItems().filter((item) => {
+      if (!tokens.length) return true;
+      const haystack = `${item.label} ${item.hint} ${item.keywords}`.toLowerCase();
+      return tokens.every((tok) => haystack.includes(tok));
+    });
+    if (cmdActiveIndex >= cmdFilteredItems.length) cmdActiveIndex = 0;
+    list.replaceChildren();
+    if (!cmdFilteredItems.length) {
+      const empty = document.createElement("p");
+      empty.className = "meta-line v3-cmd-empty";
+      empty.textContent = "未找到匹配命令或模块，按 Esc 关闭或修改关键字。";
+      list.append(empty);
+      if (hint) hint.textContent = "0 条匹配命令";
+      return;
+    }
+    if (hint) hint.textContent = `${cmdFilteredItems.length} 条可用操作 · ↑ ↓ 选择 · Enter 执行`;
+    cmdFilteredItems.forEach((item, idx) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "v3-cmd-item";
+      btn.setAttribute("role", "option");
+      btn.setAttribute("aria-selected", idx === cmdActiveIndex ? "true" : "false");
+      if (idx === cmdActiveIndex) btn.classList.add("is-active");
+      const nameSpan = document.createElement("span");
+      nameSpan.className = "v3-cmd-item-label";
+      nameSpan.textContent = item.label;
+      const hintKbd = document.createElement("kbd");
+      hintKbd.className = "v3-kbd";
+      hintKbd.textContent = item.hint;
+      btn.append(nameSpan, hintKbd);
+      btn.addEventListener("click", () => {
+        closeModal("commandPaletteModal");
+        void item.run();
+      });
+      list.append(btn);
+    });
+  }
+  function openCommandPalette() {
+    const modal = $("commandPaletteModal");
+    if (!modal) return;
+    cmdActiveIndex = 0;
+    if ($("commandPaletteInput")) $("commandPaletteInput").value = "";
+    renderCommandPaletteList();
+    openModal("commandPaletteModal");
+    window.requestAnimationFrame(() => $("commandPaletteInput")?.focus({ preventScroll: true }));
+  }
+  $("v3CmdTrigger")?.addEventListener("click", openCommandPalette);
+  $("commandPaletteInput")?.addEventListener("input", () => {
+    cmdActiveIndex = 0;
+    renderCommandPaletteList();
+  });
+  $("commandPaletteInput")?.addEventListener("keydown", (event) => {
+    if (event.key === "ArrowDown") {
+      if (!cmdFilteredItems.length) return;
+      event.preventDefault();
+      cmdActiveIndex = (cmdActiveIndex + 1) % cmdFilteredItems.length;
+      renderCommandPaletteList();
+    } else if (event.key === "ArrowUp") {
+      if (!cmdFilteredItems.length) return;
+      event.preventDefault();
+      cmdActiveIndex = (cmdActiveIndex - 1 + cmdFilteredItems.length) % cmdFilteredItems.length;
+      renderCommandPaletteList();
+    } else if (event.key === "Enter") {
+      const activeItem = cmdFilteredItems[cmdActiveIndex];
+      if (!activeItem) return;
+      event.preventDefault();
+      closeModal("commandPaletteModal");
+      void activeItem.run();
+    }
+  });
+  window.addEventListener("resize", () => syncSidebarActiveIndicator(document), { passive: true });
   $("publicLoginBtn")?.addEventListener("click", () => state.session && state.account ? $("accountBtn").click() : showAuth("", { mode: "login", path: "/login" }));
   $("dashboardNotificationsBtn")?.addEventListener("click", () => showFinance(true));
   $("dashboardTransferBtn")?.addEventListener("click", () => showTransfer(true));
@@ -7688,7 +8229,21 @@ async function boot() {
   $("viewVersionDetailsBtn")?.addEventListener("click", () => { dismissVersionNotice(); changelogSelection.clear(); showChangelog(true); });
   $("trialHomeBtn")?.addEventListener("click", () => state.session && state.account ? showModulePicker(true) : showPublicHome(true));
   ["trialRegisterBtn", "trialQuizRegisterBtn"].forEach((id) => $(id)?.addEventListener("click", () => showAuth("注册后可保存词表、错题和学习记录", { mode: "register", path: "/register" })));
-  document.querySelectorAll("[data-trial-tool]").forEach((button) => button.addEventListener("click", () => setTrialTool(button.dataset.trialTool)));
+  const trialTabs = [...document.querySelectorAll("[data-trial-tool]")];
+  trialTabs.forEach((button, idx) => {
+    button.addEventListener("click", () => setTrialTool(button.dataset.trialTool));
+    button.addEventListener("keydown", (event) => {
+      let next = idx;
+      if (event.key === "ArrowRight") next = (idx + 1) % trialTabs.length;
+      else if (event.key === "ArrowLeft") next = (idx + trialTabs.length - 1) % trialTabs.length;
+      else if (event.key === "Home") next = 0;
+      else if (event.key === "End") next = trialTabs.length - 1;
+      else return;
+      event.preventDefault();
+      setTrialTool(trialTabs[next].dataset.trialTool);
+      trialTabs[next].focus({ preventScroll: true });
+    });
+  });
   $("trialQuizStartBtn")?.addEventListener("click", startTrialQuiz);
   $("trialQuizAnswerForm")?.addEventListener("submit", submitTrialQuizAnswer);
   $("trialQuizNextBtn")?.addEventListener("click", nextTrialQuestion);
@@ -7735,7 +8290,39 @@ async function boot() {
     }
     closeModal(modal.id);
   }));
+  let lastGChordAt = 0;
   document.addEventListener("keydown", (event) => {
+    if ((event.ctrlKey || event.metaKey) && !event.altKey && event.key.toLowerCase() === "k") {
+      event.preventDefault();
+      const cmdModal = $("commandPaletteModal");
+      if (cmdModal && !cmdModal.classList.contains("hidden")) closeModal("commandPaletteModal");
+      else openCommandPalette();
+      return;
+    }
+    if (!event.isComposing && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      const activeTag = document.activeElement?.tagName;
+      const inEditable = activeTag === "INPUT" || activeTag === "TEXTAREA" || activeTag === "SELECT" || document.activeElement?.isContentEditable;
+      const anyModalOpen = Boolean(document.querySelector(".modal-layer:not(.hidden)"));
+      if (!inEditable && !anyModalOpen && event.key.length === 1) {
+        const key = event.key.toLowerCase();
+        const now = Date.now();
+        if (now - lastGChordAt <= 900) {
+          lastGChordAt = 0;
+          if (key === "w") { event.preventDefault(); void navigateFromSiteNav("home"); return; }
+          if (key === "l") { event.preventDefault(); void navigateFromSiteNav("language"); return; }
+          if (key === "t") { event.preventDefault(); void navigateFromSiteNav("tools"); return; }
+          if (key === "f") { event.preventDefault(); void navigateFromSiteNav("finance"); return; }
+          if (key === "s") { event.preventDefault(); void navigateFromSiteNav("transfer"); return; }
+          if (key === "a" && state.session && state.account) { event.preventDefault(); $("accountBtn")?.click(); return; }
+          if (key === "m" && state.session && state.account) { event.preventDefault(); $("membershipBtn")?.click(); return; }
+          if (key === "i" && state.session && state.account) { event.preventDefault(); $("notificationInboxMenuBtn")?.click(); return; }
+        } else if (key === "g") {
+          lastGChordAt = now;
+        } else {
+          lastGChordAt = 0;
+        }
+      }
+    }
     if (event.key === "Tab") {
       const modal = [...document.querySelectorAll(".modal-layer:not(.hidden)")].findLast((layer) => !layer.inert);
       if (!modal) return;
@@ -7755,7 +8342,7 @@ async function boot() {
     const modal = openModals[openModals.length - 1];
     if (modal) {
       if (modal.hasAttribute("data-confirm-only")) {
-        modal.querySelector("button")?.focus();
+        modal.querySelector("button")?.focus({ preventScroll: true });
         return;
       }
       if (modal.id === "siteMessageModal") {
@@ -7887,7 +8474,14 @@ async function boot() {
     closeModal("roundSummaryModal", true);
     setView("setupView");
   });
-  window.addEventListener("popstate", () => routeCurrent());
+  window.addEventListener("popstate", (event) => {
+    pendingOutgoingScroll = null;
+    invalidateToastContext({ includeErrors: false }, document);
+    const hasSaved = Boolean(event?.state && Number.isFinite(event.state.scrollY));
+    pendingPopScroll = hasSaved ? event.state : null;
+    pendingPopReset = !hasSaved;
+    routeCurrent();
+  });
   $("offlineReviewBtn").addEventListener("click", () => {
     pendingScreen = "workspace";
     showWorkspace();
@@ -8193,6 +8787,7 @@ async function boot() {
     installMotionSystem();
     installNativeThemeBridge();
     setupResponsiveDisclosures();
+    window.requestAnimationFrame(() => syncSidebarActiveIndicator(document));
     document.documentElement.dataset.bootState = startupMounted ? 'ready' : 'recovering';
   }, whenContentReady);
 }
@@ -8210,4 +8805,12 @@ boot().catch(() => {
 
 // Presentation only; this notice grants no access or feature authority.
 const aerisVisualPreview = document.getElementById("aerisPreviewNotice");
-if (aerisVisualPreview) aerisVisualPreview.hidden = !location.hostname.endsWith(".thewyj-p07-ui-rc.pages.dev");
+if (aerisVisualPreview) {
+  const host = location.hostname;
+  aerisVisualPreview.hidden = !(
+    host === "thewyj-p07-ui-rc.pages.dev"
+    || host.endsWith(".thewyj-p07-ui-rc.pages.dev")
+    || host === "thewyj-p07-design-lab.pages.dev"
+    || host.endsWith(".thewyj-p07-design-lab.pages.dev")
+  );
+}

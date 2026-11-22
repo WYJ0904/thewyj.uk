@@ -1,0 +1,118 @@
+{
+  "previewUrl": "https://i03-public-pages.thewyj-i03-preview.pages.dev",
+  "buildJson": {
+    "schema_version": 1,
+    "environment": "isolated-preview",
+    "stage": "I03+I07-closeout",
+    "source_commit": "ec7646707e2c2ffbff0f063a2f64788a2373ac09",
+    "project_name": "thewyj-i03-preview",
+    "branch": "i03-public-pages",
+    "fixture_path": "/__preview/i07-fixture.html",
+    "remote_check": {
+      "verified": true,
+      "project": "thewyj-i03-preview",
+      "branch": "i03-public-pages",
+      "productionBranch": "release-held",
+      "targetD1Id": "ee869f78-b54a-4018-bc99-871089ecb8cd",
+      "targetD1Name": "p07-ui-rc-isolated",
+      "priorPreviewD1Id": "ee869f78-b54a-4018-bc99-871089ecb8cd",
+      "priorPreviewR2": [],
+      "targetR2Count": 0,
+      "targetAiCount": 0,
+      "bindingConsistent": true
+    },
+    "file_count": 208,
+    "artifact_tree_sha256": "4c73c10bf47259c77273ae37976064ab7684df06cd1ab04262bfc7e4589702cc"
+  },
+  "apiHealth": {
+    "ok": false,
+    "error": "请先登录",
+    "code": "authentication_required",
+    "retryable": false,
+    "request_id": "5f488c7a-9b57-4c2a-b632-31a1156a6a45"
+  },
+  "uiFeatures": {
+    "ok": true,
+    "public_ui": {
+      "schema_version": 1,
+      "flag_key": "p07_accessibility",
+      "enabled": true,
+      "revision": 17,
+      "reason": "public_stable",
+      "observed_at": "2026-11-19T13:29:08.461Z",
+      "expires_at": "2026-11-19T13:29:38.461Z",
+      "max_age_seconds": 30
+    },
+    "request_id": "a40d83f8-c748-4ed5-a940-ea01e5797f43"
+  },
+  "plansCount": 8,
+  "appVersion": "1.3.41",
+  "routes": [
+    {
+      "route": "/",
+      "overflowX": 0
+    },
+    {
+      "route": "/trial",
+      "overflowX": 0
+    },
+    {
+      "route": "/download",
+      "overflowX": 0
+    },
+    {
+      "route": "/changelog",
+      "overflowX": 0
+    },
+    {
+      "route": "/login",
+      "overflowX": 0
+    },
+    {
+      "route": "/register",
+      "overflowX": 0
+    }
+  ],
+  "fixtureChecks": {
+    "switchOverflowCount": 0,
+    "exitRx": -8
+  },
+  "axeScans": [
+    {
+      "label": "hosted-home-1440",
+      "violationCount": 0,
+      "passes": 45,
+      "violations": []
+    },
+    {
+      "label": "hosted-trial-1440",
+      "violationCount": 0,
+      "passes": 46,
+      "violations": []
+    },
+    {
+      "label": "hosted-download-1440",
+      "violationCount": 0,
+      "passes": 42,
+      "violations": []
+    },
+    {
+      "label": "hosted-changelog-1440",
+      "violationCount": 0,
+      "passes": 42,
+      "violations": []
+    },
+    {
+      "label": "hosted-login-1440",
+      "violationCount": 0,
+      "passes": 45,
+      "violations": []
+    },
+    {
+      "label": "hosted-register-1440",
+      "violationCount": 0,
+      "passes": 47,
+      "violations": []
+    }
+  ]
+}

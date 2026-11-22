@@ -1,0 +1,21 @@
+{
+  "suite": "qa/i07/browser-acceptance.mjs",
+  "exit_code": 1,
+  "passed_scenarios": [
+    "controls-buttons-switch-form",
+    "tabs-rapid-skeleton-cancellation",
+    "flip-bidirectional-reversal-density-keyboard",
+    "pointer-drag-sort-and-cancel",
+    "keyed-table-node-identity-and-kill-switch",
+    "toast-5-burst-max-2-queue",
+    "scroll-3d-reversible-and-bento-seam-lock",
+    "desktop-modal-and-mobile-gesture-drawer",
+    "dark-theme-and-performance-telemetry",
+    "real-app-routes-modal-tabs-p07off"
+  ],
+  "observed_failure": {
+    "scenario_index": 11,
+    "assertion": "timeout waiting for document.documentElement.getAttribute('data-aeris-motion-ready') === 'true' in openFixture() at qa/i07/browser-acceptance.mjs:735",
+    "root_cause": "Known Service Worker navigation interception behavior when reopening `/__preview/i07-fixture.html` after scenario 10 registers sw.js on localhost without SW bypass."
+  }
+}

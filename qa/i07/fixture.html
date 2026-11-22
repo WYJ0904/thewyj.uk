@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="zh-CN" data-p07-ui="enabled" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Aeris I07 · 共享动效引擎与交互验收 Fixture</title>
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="stylesheet" href="/design-system.css" />
+    <link rel="stylesheet" href="/__preview/i07-fixture.css" />
+  </head>
+  <body data-experience="workspace">
+    <div class="app-scale-wrap" id="fixtureScaleWrap">
+      <header class="fixture-topbar">
+        <div class="fixture-brand">
+          <img src="/icon-192.png" alt="Aeris" width="32" height="32" />
+          <div>
+            <h1>Aeris I07 · 共享动效引擎与交互验收 Fixture</h1>
+            <p class="fixture-subtitle">隔离测试工作台 · 消费真实 <code>js/core/motion*.js</code> 与 <code>design-system.css</code>，不连接 Production 业务数据。</p>
+          </div>
+        </div>
+        <div class="fixture-env-controls" role="group" aria-label="环境状态控制">
+          <button type="button" class="button-secondary" id="fixtureThemeBtn" aria-pressed="false">主题：浅色</button>
+          <button type="button" class="button-secondary" id="fixtureReducedBtn" aria-pressed="false">减弱动态：OFF</button>
+          <button type="button" class="button-secondary" id="fixtureP07Btn" aria-pressed="true">P07 UI：ON</button>
+          <button type="button" class="button-secondary" id="fixtureOfflineBtn" aria-pressed="false">网络：在线</button>
+          <a class="button-ghost" href="/">返回首页</a>
+        </div>
+      </header>
+
+      <main class="fixture-main" id="fixtureMain">
+        <section class="fixture-telemetry panel" aria-label="实时动效遥测">
+          <div class="telemetry-grid">
+            <div><span>Motion Ready</span><strong id="telMotionReady">-</strong></div>
+            <div><span>FLIP 节点复用</span><strong id="telFlipIdentity">0 / 0</strong></div>
+            <div><span>Table 行重建</span><strong id="telRowRebuilds">0</strong></div>
+            <div><span>Toast 可见/队列</span><strong id="telToastState">0 / 0</strong></div>
+            <div><span>Bento 外框偏移</span><strong id="telBentoDrift">0.00px</strong></div>
+            <div><span>FPS / 帧间隔</span><strong id="telPerf">-</strong></div>
+          </div>
+          <p class="meta-line" id="fixtureStatusLine" role="status" aria-live="polite">就绪：所有交互直接驱动共享 I07 引擎。</p>
+        </section>
+
+        <!-- 1. Controls, Forms & Switches -->
+        <section class="fixture-section panel" id="secControls" aria-labelledby="hControls">
+          <header class="fixture-section-header">
+            <div>
+              <p class="section-kicker">1 · 基础控件与语义反馈</p>
+              <h2 id="hControls">按钮、开关、表单校验与文件拖放</h2>
+            </div>
+          </header>
+          <div class="fixture-action-strip">
+            <button type="button" class="primary" id="btnPrimaryTap">主按钮按压</button>
+            <button type="button" class="button-secondary" id="btnAsyncPending">异步处理中 (真实状态)</button>
+            <button type="button" class="button-secondary" id="btnAsyncFail">模拟失败不虚报</button>
+            <button type="button" class="button-ghost" id="btnGhostTap">幽灵按钮</button>
+            <button type="button" class="danger-button" id="btnDangerTap">危险操作</button>
+            <button type="button" class="primary" id="btnDisabledTap" disabled>禁用按钮</button>
+          </div>
+
+          <div class="fixture-two-col">
+            <form id="fixtureForm" class="fixture-form" novalidate>
+              <h3>表单校验与提交防重入</h3>
+              <label class="fixture-field">
+                <span>测试标题（必填，至少 3 字符）</span>
+                <input id="fixtureInputTitle" name="title" type="text" required minlength="3" placeholder="输入不少于 3 个字符" />
+              </label>
+              <label class="fixture-field">
+                <span>选项类别</span>
+                <select id="fixtureSelectType" name="kind">
+                  <option value="motion">动效调度</option>
+                  <option value="layout">布局重排</option>
+                  <option value="a11y">无障碍兼容</option>
+                </select>
+              </label>
+              <div class="fixture-checks">
+                <label class="fixture-check-row"><input type="checkbox" id="fixtureCheckA" checked /> 复选框（保持 18px 比例）</label>
+                <label class="fixture-check-row"><input type="radio" name="fixtureRadio" value="1" checked /> 单选 A</label>
+                <label class="fixture-check-row"><input type="radio" name="fixtureRadio" value="2" /> 单选 B</label>
+              </div>
+              <p class="error" id="fixtureFormError" aria-live="polite"></p>
+              <div class="fixture-action-strip">
+                <button type="submit" class="primary" id="fixtureFormSubmitBtn">提交校验</button>
+                <button type="button" class="button-secondary" id="fixtureFormResetBtn">重置表单</button>
+              </div>
+            </form>
+
+            <div class="fixture-controls-right">
+              <h3>独立 Switch 状态与文件拖放区</h3>
+              <div class="fixture-switch-row">
+                <label class="switch" for="fixtureSwitchSuccess">
+                  <input type="checkbox" id="fixtureSwitchSuccess" role="switch" aria-checked="false" aria-label="异步同步开关（真实回执）" />
+                  <span class="slider"></span>
+                </label>
+                <div>
+                  <strong>异步同步开关（真实回执）</strong>
+                  <p class="meta-line" id="fixtureSwitchSuccessText">当前：关闭</p>
+                </div>
+              </div>
+              <div class="fixture-switch-row">
+                <label class="switch" for="fixtureSwitchFail">
+                  <input type="checkbox" id="fixtureSwitchFail" role="switch" aria-checked="false" aria-label="模拟服务端失败开关" />
+                  <span class="slider"></span>
+                </label>
+                <div>
+                  <strong>模拟服务端失败开关（回滚不伪报）</strong>
+                  <p class="meta-line" id="fixtureSwitchFailText">当前：关闭（点击后将在 250ms 后模拟失败并回退）</p>
+                </div>
+              </div>
+              <div class="fixture-dropzone" id="fixtureDropZone" tabindex="0">
+                <p>将测试文件拖入此处，或点击选择文件</p>
+                <input type="file" id="fixtureFileInput" aria-label="选择测试文件" />
+                <small id="fixtureFileStatus" class="meta-line">尚未选择文件</small>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2. Tabs & 140ms Skeleton -->
+        <section class="fixture-section panel" id="secTabs" aria-labelledby="hTabs">
+          <header class="fixture-section-header">
+            <div>
+              <p class="section-kicker">2 · Tab 指示条与 140ms 骨架过渡</p>
+              <h2 id="hTabs">连续切换与旧请求取消守卫</h2>
+            </div>
+          </header>
+          <div class="aeris-product-tabs ds-segmented" id="fixtureTabList" role="tablist" aria-label="Fixture 预览切换" data-indicator-style="pill">
+            <button type="button" role="tab" id="tabLearning" aria-selected="true" aria-controls="fixtureTabPanel" data-tab-key="learning">语言学习</button>
+            <button type="button" role="tab" id="tabTools" aria-selected="false" aria-controls="fixtureTabPanel" data-tab-key="tools">工具箱</button>
+            <button type="button" role="tab" id="tabFinance" aria-selected="false" aria-controls="fixtureTabPanel" data-tab-key="finance">账本统计</button>
+            <button type="button" role="tab" id="tabShare" aria-selected="false" aria-controls="fixtureTabPanel" data-tab-key="share">文件传输</button>
+          </div>
+          <div class="fixture-tab-panel" id="fixtureTabPanel" role="tabpanel" aria-labelledby="tabLearning">
+            <strong id="fixtureTabTitle">语言学习 · 140ms 骨架预览</strong>
+            <p id="fixtureTabDesc" class="meta-line">连续快速点击上方全部 Tab，旧 Tab 的延迟渲染将被 generation 令牌自动丢弃。</p>
+          </div>
+        </section>
+
+        <!-- 3. Bidirectional FLIP & Drag Sort & Density -->
+        <section class="fixture-section panel" id="secFlip" aria-labelledby="hFlip">
+          <header class="fixture-section-header">
+            <div>
+              <p class="section-kicker">3 · 双向 FLIP、拖拽排序与密度切换</p>
+              <h2 id="hFlip">上下对称位移、中断逆向与节点身份保持</h2>
+            </div>
+            <div class="fixture-action-strip">
+              <button type="button" class="button-secondary" id="btnFlipDensity">切换：两列 / 单列</button>
+              <button type="button" class="button-secondary" id="btnFlipBurst">连续三次重排</button>
+              <button type="button" class="button-secondary" id="btnFlipReverse">中途反向重排</button>
+              <button type="button" class="button-secondary" id="btnFlipCancel">动画中取消</button>
+              <button type="button" class="button-secondary" id="btnFlipHideAll">隐藏全部</button>
+              <button type="button" class="button-secondary" id="btnFlipRestoreAll">恢复全部</button>
+            </div>
+          </header>
+
+          <div class="fixture-flip-grid" id="fixtureFlipGrid" data-density-mode="two-col">
+            <article class="fixture-flip-card" data-flip-key="card-1" tabindex="0">
+              <div class="flip-card-head">
+                <button type="button" class="button-ghost flip-drag-handle" data-drag-handle aria-label="拖拽或方向键排序 卡片 1">⠿ 卡片 1</button>
+                <div class="flip-card-actions">
+                  <button type="button" class="button-ghost" data-flip-up="card-1" aria-label="上移卡片 1">↑</button>
+                  <button type="button" class="button-ghost" data-flip-down="card-1" aria-label="下移卡片 1">↓</button>
+                  <button type="button" class="button-ghost" data-flip-hide="card-1">隐藏</button>
+                </div>
+              </div>
+              <strong>学习与复习</strong>
+              <p class="meta-line">节点序号 #1 · 支持上下移动、拖拽排序与键盘方向键。</p>
+            </article>
+            <article class="fixture-flip-card" data-flip-key="card-2" tabindex="0">
+              <div class="flip-card-head">
+                <button type="button" class="button-ghost flip-drag-handle" data-drag-handle aria-label="拖拽或方向键排序 卡片 2">⠿ 卡片 2</button>
+                <div class="flip-card-actions">
+                  <button type="button" class="button-ghost" data-flip-up="card-2" aria-label="上移卡片 2">↑</button>
+                  <button type="button" class="button-ghost" data-flip-down="card-2" aria-label="下移卡片 2">↓</button>
+                  <button type="button" class="button-ghost" data-flip-hide="card-2">隐藏</button>
+                </div>
+              </div>
+              <strong>日常工具箱</strong>
+              <p class="meta-line">节点序号 #2 · 保持真实 DOM 引用与焦点不变。</p>
+            </article>
+            <article class="fixture-flip-card" data-flip-key="card-3" tabindex="0">
+              <div class="flip-card-head">
+                <button type="button" class="button-ghost flip-drag-handle" data-drag-handle aria-label="拖拽或方向键排序 卡片 3">⠿ 卡片 3</button>
+                <div class="flip-card-actions">
+                  <button type="button" class="button-ghost" data-flip-up="card-3" aria-label="上移卡片 3">↑</button>
+                  <button type="button" class="button-ghost" data-flip-down="card-3" aria-label="下移卡片 3">↓</button>
+                  <button type="button" class="button-ghost" data-flip-hide="card-3">隐藏</button>
+                </div>
+              </div>
+              <strong>记账与同步</strong>
+              <p class="meta-line">节点序号 #3 · 点击 ↑ 验证向上 FLIP 对称生效。</p>
+            </article>
+            <article class="fixture-flip-card" data-flip-key="card-4" tabindex="0">
+              <div class="flip-card-head">
+                <button type="button" class="button-ghost flip-drag-handle" data-drag-handle aria-label="拖拽或方向键排序 卡片 4">⠿ 卡片 4</button>
+                <div class="flip-card-actions">
+                  <button type="button" class="button-ghost" data-flip-up="card-4" aria-label="上移卡片 4">↑</button>
+                  <button type="button" class="button-ghost" data-flip-down="card-4" aria-label="下移卡片 4">↓</button>
+                  <button type="button" class="button-ghost" data-flip-hide="card-4">隐藏</button>
+                </div>
+              </div>
+              <strong>文件与分片传输</strong>
+              <p class="meta-line">节点序号 #4 · 隐藏全部后展示空态与一键重置。</p>
+            </article>
+          </div>
+          <div class="empty-state hidden" id="fixtureFlipEmpty">
+            <p>所有工作台卡片已隐藏。</p>
+            <button type="button" class="primary" id="btnFlipEmptyRestore">一键恢复默认布局</button>
+          </div>
+        </section>
+
+        <!-- 4. Keyed Table Inline Update & Kill Switch Simulation (Node Identity) -->
+        <section class="fixture-section panel" id="secKeyedTable" aria-labelledby="hKeyedTable">
+          <header class="fixture-section-header">
+            <div>
+              <p class="section-kicker">4 · 局部 DOM 复用与 Kill Switch 联动</p>
+              <h2 id="hKeyedTable">禁止重建 tbody.innerHTML · 保持行节点与焦点</h2>
+            </div>
+            <div class="fixture-action-strip">
+              <button type="button" class="danger-button" id="btnToggleKillSwitch" aria-pressed="false">模拟 Kill Switch：OFF</button>
+              <button type="button" class="button-secondary" id="btnReverseRows">倒序排列行</button>
+            </div>
+          </header>
+          <div class="fixture-kill-banner hidden" id="fixtureKillBanner" role="alert">
+            <strong>紧急熔断（Kill Switch）已激活</strong>
+            <span>受控开关已原地锁定，未触发整表重建。</span>
+          </div>
+          <table class="fixture-table">
+            <thead>
+              <tr><th>合成配置项</th><th>状态</th><th>修订版本</th><th>开关</th></tr>
+            </thead>
+            <tbody id="fixtureKeyedTbody"></tbody>
+          </table>
+        </section>
+
+        <!-- 5. Modal / Drawer & 6. Toast Queue -->
+        <section class="fixture-section panel" id="secSheetToast" aria-labelledby="hSheetToast">
+          <header class="fixture-section-header">
+            <div>
+              <p class="section-kicker">5 · 桌面模态 / 移动抽屉 &amp; 6 · 双条 Toast 队列</p>
+              <h2 id="hSheetToast">平台自适应容器与受控通知调度</h2>
+            </div>
+          </header>
+          <div class="fixture-two-col">
+            <div>
+              <h3>Modal / Gesture Drawer</h3>
+              <div class="fixture-action-strip">
+                <button type="button" class="primary" id="btnOpenFormSheet">打开表单 Sheet（PC 弹簧 / 移动抽屉）</button>
+                <button type="button" class="danger-button" id="btnOpenConfirmDialog">打开危险确认（禁用滑走）</button>
+              </div>
+              <p class="meta-line">手机视口（&lt;= 760px）向上/向下拖动面板可体验阻尼、吸顶回弹与下滑关闭；表单输入不会在取消拖放时丢失。</p>
+            </div>
+            <div>
+              <h3>Toast Queue（最多同时 2 条）</h3>
+              <div class="fixture-action-strip">
+                <button type="button" class="button-secondary" id="btnToastInfo">Info</button>
+                <button type="button" class="button-secondary" id="btnToastSuccess">Success</button>
+                <button type="button" class="button-secondary" id="btnToastWarning">Warning</button>
+                <button type="button" class="danger-button" id="btnToastError">Error (保护)</button>
+                <button type="button" class="primary" id="btnToastBurst5">连发 5 条不同状态</button>
+                <button type="button" class="button-ghost" id="btnToastClear">清空</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 7. Scroll 3D & Seamless Locked-Frame Bento Wall -->
+        <section class="fixture-section panel" id="secScrollBento" aria-labelledby="hScrollBento">
+          <header class="fixture-section-header">
+            <div>
+              <p class="section-kicker">7 · 滚轮 3D 展平与无接缝 Bento 内部视差</p>
+              <h2 id="hScrollBento">向下 / 向上可逆插值 · 外框锁定零撕裂</h2>
+            </div>
+            <div class="fixture-action-strip">
+              <span class="status-badge tabular-nums" id="scrollTelemetryBadge">progress 0.00 · rotateX 12.0deg · scale 0.94</span>
+            </div>
+          </header>
+
+          <div class="fixture-scroll-stage">
+            <div class="scroll-preview-wrap fixture-scroll-card" id="fixtureScroll3dCard" data-scroll-3d="true" data-scroll-start="0.96" data-scroll-end="0.34" data-scroll-exit-start="0.18" data-scroll-exit-end="-0.48" data-scroll-max-rx="12" data-scroll-exit-rx="-10" data-scroll-min-scale="0.94" data-scroll-exit-scale="0.95" data-scroll-max-ty="24" data-scroll-exit-ty="-18" data-scroll-exit-tz="-24">
+              <div class="fixture-scroll-card-inner">
+                <span class="status-badge" data-tone="info">Scroll-Driven 3D</span>
+                <h3>随真实滚轮连续三阶段 3D 演进</h3>
+                <p class="meta-line">进入视口从倾斜逐步展平至 rotateX(0deg) scale(1) 居中可读区，继续下滚平稳俯仰后收，向上回滚完整可逆恢复。</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="apple-bento-wall fixture-bento-wall" id="fixtureBentoWall" data-bento-wall="true" data-parallax-max="14">
+            <article class="bento-tile bento-span-7">
+              <div class="tile-inner" data-parallax-speed="0.8">
+                <span class="status-badge" data-tone="success">Tile A · speed +0.8</span>
+                <h3>外框接缝锁死</h3>
+                <p class="meta-line">外部 12 栅格宽高与 1px 接缝全程静止，只有内部 .tile-inner 轻度位移。</p>
+              </div>
+            </article>
+            <article class="bento-tile bento-span-5">
+              <div class="tile-inner" data-parallax-speed="-0.6">
+                <span class="status-badge" data-tone="info">Tile B · speed -0.6</span>
+                <h3>错速内视差</h3>
+                <p class="meta-line">overflow: hidden 裁切内部位移，零边框撕裂。</p>
+              </div>
+            </article>
+            <article class="bento-tile bento-span-5">
+              <div class="tile-inner" data-parallax-speed="0.5">
+                <span class="status-badge" data-tone="warning">Tile C · speed +0.5</span>
+                <h3>GPU 合成属性</h3>
+                <p class="meta-line">IntersectionObserver 仅计算可见区域。</p>
+              </div>
+            </article>
+            <article class="bento-tile bento-span-7">
+              <div class="tile-inner" data-parallax-speed="-0.4">
+                <span class="status-badge">Tile D · speed -0.4</span>
+                <h3>可直接被 I03 消费</h3>
+                <p class="meta-line">通过 data-bento-wall 与 .tile-inner 无缝复用。</p>
+              </div>
+            </article>
+          </div>
+          <div class="fixture-scroll-tail" aria-hidden="true"></div>
+        </section>
+      </main>
+    </div>
+
+    <!-- Form Modal / Mobile Gesture Drawer -->
+    <div class="modal-layer hidden" id="fixtureSheetModal" aria-hidden="true">
+      <section class="modal-panel fixture-modal-panel" role="dialog" aria-modal="true" aria-labelledby="fixtureSheetTitle">
+        <button class="modal-close" type="button" data-close-fixture-modal="fixtureSheetModal" aria-label="关闭抽屉">关闭</button>
+        <p class="section-kicker">自适应容器</p>
+        <h2 id="fixtureSheetTitle">表单与手势抽屉测试</h2>
+        <p class="meta-line">输入以下字段后尝试轻拉取消，输入值将完整保留；下拉超过阈值释放即可关闭。</p>
+        <form id="fixtureSheetForm" class="stack-form">
+          <label class="fixture-field">
+            <span>保留字段（测试拖拽取消不丢值）</span>
+            <input id="fixtureSheetInput" type="text" placeholder="在此输入任意内容…" />
+          </label>
+          <label class="fixture-field">
+            <span>备注说明</span>
+            <textarea id="fixtureSheetNote" placeholder="多行文本与键盘视口适配"></textarea>
+          </label>
+          <div class="fixture-action-strip">
+            <button type="button" class="button-secondary" data-close-fixture-modal="fixtureSheetModal">取消关闭</button>
+            <button type="submit" class="primary">确认保存</button>
+          </div>
+        </form>
+      </section>
+    </div>
+
+    <!-- Confirm AlertDialog (Non-swipeable) -->
+    <div class="modal-layer hidden" id="fixtureConfirmModal" data-confirm-only aria-hidden="true">
+      <section class="modal-panel fixture-modal-panel" role="alertdialog" aria-modal="true" aria-labelledby="fixtureConfirmTitle" aria-describedby="fixtureConfirmDesc">
+        <h2 id="fixtureConfirmTitle">危险操作二次确认</h2>
+        <p id="fixtureConfirmDesc" class="meta-line">此模态带 data-confirm-only，移动端保持清晰确认焦点，禁止误滑关闭。</p>
+        <div class="fixture-action-strip">
+          <button type="button" class="button-secondary" data-close-fixture-modal="fixtureConfirmModal" data-dialog-initial-focus>取消</button>
+          <button type="button" class="danger-button" id="btnConfirmDangerAction">确认执行</button>
+        </div>
+      </section>
+    </div>
+
+    <script type="module" src="/__preview/i07-fixture.js"></script>
+  </body>
+</html>

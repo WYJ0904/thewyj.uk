@@ -1,4 +1,4 @@
-import { getSafeStorage, safeStorageSet } from "./storage.js?release=20261118-aeris-task30-web-release";
+import { getSafeStorage, safeStorageSet } from "./storage.js?release=20261121-aeris-i05-preview";
 
 export const ACCOUNT_SESSION_KEY = "wyjAccountSession";
 export const ACCOUNT_CACHE_KEY = "wyjAccountCache";

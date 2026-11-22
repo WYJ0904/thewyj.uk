@@ -279,14 +279,14 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn('data-theme="dark"', self.design_styles)
         self.assertEqual(self.html.count('data-capability-panel='), 4)
         self.assertNotIn('id="publicSplitFlap"', self.html)
-        # P3.2 owner correction restores Task 19/P2 cards in the public home.
-        self.assertEqual(self.html.count('class="hero-scene-card hero-scene-'), 3)
-        self.assertEqual(self.html.count('data-core-capability='), 5)
-        for name in ('learning', 'tools', 'finance', 'share', 'account'):
-            self.assertIn(f'product-preview {name}-preview', self.html)
+        # I03 replaces legacy 3 tilted hero cards & 5-panel capability accordion with single interactive window + seamless 12-col Bento wall.
+        self.assertEqual(self.html.count('class="hero-scene-card'), 0)
+        self.assertEqual(self.html.count('class="bento-tile'), 5)
+        self.assertIn('id="publicPreviewScrollWrap"', self.html)
+        self.assertIn('id="publicBentoWall"', self.html)
         self.assertNotIn('aeris-capability-link', self.html)
         self.assertNotIn('aeris-scene-grid', self.html)
-        self.assertEqual(self.html.count('data-public-scene='), 3)
+        self.assertEqual(self.html.count('data-bento-module='), 5)
         self.assertEqual(self.html.count('data-public-capability='), 5)
         for section in ('hero', 'window', 'capabilities', 'privacy', 'plans', 'final'):
             self.assertIn(f'data-public-section="{section}"', self.html)

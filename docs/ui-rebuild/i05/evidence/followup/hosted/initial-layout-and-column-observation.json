@@ -1,0 +1,498 @@
+{
+  "utc": "2026-11-21T15:56:47.906Z",
+  "sourceCommit": "b1c866a4c12febd96dd884d1e715cd6b35441fc0",
+  "gitTree": "754938fe5c0d46ed3789efb571d7f478f6f7b447",
+  "deploymentId": "cdee886e-2b92-4bb9-b135-c9381ba61661",
+  "artifactSha256": "8ef69b82555cbf0c4cd2e1331f8f7a9677b2683873be039926901b589730b42d",
+  "project": "thewyj-i05-preview",
+  "branch": "i05-workspace-density",
+  "database": "9e76a190-42db-4ff1-b0b7-476e4b312792",
+  "scope": "Isolated I05 Hosted Preview",
+  "results": {
+    "A01-A03-B03": {
+      "status": "PASS",
+      "cases": [
+        {
+          "width": 1440,
+          "height": 900,
+          "url": "/select",
+          "rootOverflowPx": -15,
+          "scrollWidth": 1425,
+          "viewport": 1440,
+          "crumb": true
+        },
+        {
+          "width": 1440,
+          "height": 900,
+          "url": "/language",
+          "rootOverflowPx": -15,
+          "scrollWidth": 1425,
+          "viewport": 1440,
+          "crumb": true
+        },
+        {
+          "width": 1440,
+          "height": 900,
+          "url": "/tools",
+          "rootOverflowPx": -15,
+          "scrollWidth": 1425,
+          "viewport": 1440,
+          "crumb": true
+        },
+        {
+          "width": 1440,
+          "height": 900,
+          "url": "/finance",
+          "rootOverflowPx": -15,
+          "scrollWidth": 1425,
+          "viewport": 1440,
+          "crumb": true
+        },
+        {
+          "width": 1440,
+          "height": 900,
+          "url": "/transfer",
+          "rootOverflowPx": -15,
+          "scrollWidth": 1425,
+          "viewport": 1440,
+          "crumb": true
+        },
+        {
+          "width": 1440,
+          "height": 900,
+          "url": "/account",
+          "rootOverflowPx": -15,
+          "scrollWidth": 1425,
+          "viewport": 1440,
+          "crumb": true
+        },
+        {
+          "width": 1440,
+          "height": 900,
+          "url": "/admin",
+          "rootOverflowPx": -15,
+          "scrollWidth": 1425,
+          "viewport": 1440,
+          "crumb": true
+        },
+        {
+          "width": 1440,
+          "height": 900,
+          "url": "/recharge",
+          "rootOverflowPx": -15,
+          "scrollWidth": 1425,
+          "viewport": 1440,
+          "crumb": true,
+          "content": {
+            "left": 232,
+            "top": 191.75,
+            "width": 1169,
+            "height": 595.109375
+          },
+          "crumbBoundary": {
+            "left": 232,
+            "top": 146.84375,
+            "width": 114.125,
+            "height": 20.796875
+          },
+          "plans": 7
+        },
+        {
+          "width": 1440,
+          "height": 900,
+          "url": "/tools/workflows",
+          "rootOverflowPx": -15,
+          "scrollWidth": 1425,
+          "viewport": 1440,
+          "crumb": true,
+          "sidebarOverflowPx": 0,
+          "importInput": {
+            "left": 248,
+            "top": 784.203125,
+            "width": 1,
+            "height": 1
+          },
+          "fileChooserOpened": true
+        },
+        {
+          "width": 1440,
+          "height": 900,
+          "url": "/admin#feature-flags",
+          "flags": [
+            {
+              "id": "newFeatureFlagBtn",
+              "width": 98,
+              "height": 44,
+              "textRows": 1
+            },
+            {
+              "id": "refreshFeatureFlagsBtn",
+              "width": 98,
+              "height": 44,
+              "textRows": 1
+            }
+          ],
+          "rootOverflow": -15
+        },
+        {
+          "width": 375,
+          "height": 812,
+          "url": "/select",
+          "rootOverflowPx": 0,
+          "scrollWidth": 375,
+          "viewport": 375,
+          "crumb": true
+        },
+        {
+          "width": 375,
+          "height": 812,
+          "url": "/language",
+          "rootOverflowPx": 0,
+          "scrollWidth": 375,
+          "viewport": 375,
+          "crumb": true
+        },
+        {
+          "width": 375,
+          "height": 812,
+          "url": "/tools",
+          "rootOverflowPx": 0,
+          "scrollWidth": 375,
+          "viewport": 375,
+          "crumb": true
+        },
+        {
+          "width": 375,
+          "height": 812,
+          "url": "/finance",
+          "rootOverflowPx": 0,
+          "scrollWidth": 375,
+          "viewport": 375,
+          "crumb": true
+        },
+        {
+          "width": 375,
+          "height": 812,
+          "url": "/transfer",
+          "rootOverflowPx": 0,
+          "scrollWidth": 375,
+          "viewport": 375,
+          "crumb": true
+        },
+        {
+          "width": 375,
+          "height": 812,
+          "url": "/account",
+          "rootOverflowPx": 0,
+          "scrollWidth": 375,
+          "viewport": 375,
+          "crumb": true
+        },
+        {
+          "width": 375,
+          "height": 812,
+          "url": "/admin",
+          "rootOverflowPx": 0,
+          "scrollWidth": 375,
+          "viewport": 375,
+          "crumb": true
+        },
+        {
+          "width": 375,
+          "height": 812,
+          "url": "/recharge",
+          "rootOverflowPx": 0,
+          "scrollWidth": 375,
+          "viewport": 375,
+          "crumb": true,
+          "content": {
+            "left": 14,
+            "top": 268.34375,
+            "width": 347,
+            "height": 1017.578125
+          },
+          "crumbBoundary": {
+            "left": 14,
+            "top": 227.4375,
+            "width": 114.125,
+            "height": 20.796875
+          },
+          "plans": 7
+        },
+        {
+          "width": 375,
+          "height": 812,
+          "url": "/tools/workflows",
+          "rootOverflowPx": 0,
+          "scrollWidth": 375,
+          "viewport": 375,
+          "crumb": true,
+          "sidebarOverflowPx": 0,
+          "importInput": {
+            "left": 30,
+            "top": 979.1875,
+            "width": 1,
+            "height": 1
+          }
+        },
+        {
+          "width": 375,
+          "height": 812,
+          "url": "/admin#feature-flags",
+          "flags": [
+            {
+              "id": "newFeatureFlagBtn",
+              "width": 153.5,
+              "height": 44,
+              "textRows": 1
+            },
+            {
+              "id": "refreshFeatureFlagsBtn",
+              "width": 153.5,
+              "height": 44,
+              "textRows": 1
+            }
+          ],
+          "rootOverflow": 0
+        },
+        {
+          "width": 390,
+          "height": 844,
+          "url": "/select",
+          "rootOverflowPx": 0,
+          "scrollWidth": 390,
+          "viewport": 390,
+          "crumb": true
+        },
+        {
+          "width": 390,
+          "height": 844,
+          "url": "/language",
+          "rootOverflowPx": 0,
+          "scrollWidth": 390,
+          "viewport": 390,
+          "crumb": true
+        },
+        {
+          "width": 390,
+          "height": 844,
+          "url": "/tools",
+          "rootOverflowPx": 0,
+          "scrollWidth": 390,
+          "viewport": 390,
+          "crumb": true
+        },
+        {
+          "width": 390,
+          "height": 844,
+          "url": "/finance",
+          "rootOverflowPx": 0,
+          "scrollWidth": 390,
+          "viewport": 390,
+          "crumb": true
+        },
+        {
+          "width": 390,
+          "height": 844,
+          "url": "/transfer",
+          "rootOverflowPx": 0,
+          "scrollWidth": 390,
+          "viewport": 390,
+          "crumb": true
+        },
+        {
+          "width": 390,
+          "height": 844,
+          "url": "/account",
+          "rootOverflowPx": 0,
+          "scrollWidth": 390,
+          "viewport": 390,
+          "crumb": true
+        },
+        {
+          "width": 390,
+          "height": 844,
+          "url": "/admin",
+          "rootOverflowPx": 0,
+          "scrollWidth": 390,
+          "viewport": 390,
+          "crumb": true
+        },
+        {
+          "width": 390,
+          "height": 844,
+          "url": "/recharge",
+          "rootOverflowPx": 0,
+          "scrollWidth": 390,
+          "viewport": 390,
+          "crumb": true,
+          "content": {
+            "left": 14,
+            "top": 268.34375,
+            "width": 362,
+            "height": 1001.59375
+          },
+          "crumbBoundary": {
+            "left": 14,
+            "top": 227.4375,
+            "width": 114.125,
+            "height": 20.796875
+          },
+          "plans": 7
+        },
+        {
+          "width": 390,
+          "height": 844,
+          "url": "/tools/workflows",
+          "rootOverflowPx": 0,
+          "scrollWidth": 390,
+          "viewport": 390,
+          "crumb": true,
+          "sidebarOverflowPx": 0,
+          "importInput": {
+            "left": 30,
+            "top": 979.1875,
+            "width": 1,
+            "height": 1
+          }
+        },
+        {
+          "width": 390,
+          "height": 844,
+          "url": "/admin#feature-flags",
+          "flags": [
+            {
+              "id": "newFeatureFlagBtn",
+              "width": 161,
+              "height": 44.00006103515625,
+              "textRows": 1
+            },
+            {
+              "id": "refreshFeatureFlagsBtn",
+              "width": 161,
+              "height": 44.00006103515625,
+              "textRows": 1
+            }
+          ],
+          "rootOverflow": 0
+        }
+      ]
+    },
+    "A04-A06": {
+      "status": "FAIL",
+      "reason": "Misaligned data columns users: 26"
+    },
+    "admin-session-cleanup": {
+      "status": "PASS",
+      "httpStatus": 200
+    }
+  },
+  "errors": [],
+  "screenshots": [
+    {
+      "name": "hosted-1440-recharge.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "642ccf84811800bb0ed5b04b34824996c7ff18d04acf107be68c702734aeb447"
+    },
+    {
+      "name": "hosted-1440-workflows.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "24d07323c3b7b311ca07f7299872253ed8c623ff4d0172878b15467bb8f376e9"
+    },
+    {
+      "name": "hosted-1440-admin-flags.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "842d45478aa8c35b38d18994e3230e03b4fa27c090f6ebdc45ff282697ff3625"
+    },
+    {
+      "name": "hosted-375-recharge.png",
+      "width": 375,
+      "height": 812,
+      "sha256": "86fa60f64b3abbc52ad7fcd6ce9bff0cb7045aaa3fadd6e6eb32f7f2197bd794"
+    },
+    {
+      "name": "hosted-375-workflows.png",
+      "width": 375,
+      "height": 812,
+      "sha256": "778f91accfdb95452932a5f82236fc3b5ef2a658f0d6f8fb159f51f58dde0925"
+    },
+    {
+      "name": "hosted-375-admin-flags.png",
+      "width": 375,
+      "height": 812,
+      "sha256": "c78a836ccc5b4d7620ced805b323fa240fb9aeb2baee0d0dfbcf3506834a72fe"
+    },
+    {
+      "name": "hosted-390-recharge.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "f8f26716237c71348e195f92215c8ab037b4d2f7c8eae0c86f890751776be546"
+    },
+    {
+      "name": "hosted-390-workflows.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "cf4ca7f7f736a0401c57d964734b97c7312b07ef6ff90cf63a120c819394d1cd"
+    },
+    {
+      "name": "hosted-390-admin-flags.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "f5574b53b3c080633eb7a0c95693d3cf470c8268de9b32dc480ded447e554ed7"
+    },
+    {
+      "name": "hosted-1440-admin-sticky.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "f1c5639889eb51452a453fc06694234ca1fe798ff3498a869c4938e65d5b04b9"
+    }
+  ],
+  "axes": [
+    {
+      "id": "recharge-1440",
+      "scope": "#membershipModal",
+      "violations": [
+        {
+          "id": "landmark-complementary-is-top-level",
+          "impact": "moderate",
+          "nodes": 1
+        }
+      ]
+    },
+    {
+      "id": "workflows-1440",
+      "scope": "#workflowWorkspace",
+      "violations": []
+    },
+    {
+      "id": "workflows-375",
+      "scope": "#workflowWorkspace",
+      "violations": []
+    },
+    {
+      "id": "recharge-390",
+      "scope": "#membershipModal",
+      "violations": [
+        {
+          "id": "landmark-complementary-is-top-level",
+          "impact": "moderate",
+          "nodes": 1
+        }
+      ]
+    },
+    {
+      "id": "admin-flags-390",
+      "scope": "#adminFeatureFlagsView",
+      "violations": []
+    }
+  ],
+  "dbRecheck": {
+    "foreignKeyViolations": 0,
+    "existingUiFlagEnabled": true
+  },
+  "status": "FAIL",
+  "fatal": "One or more Hosted checks failed"
+}

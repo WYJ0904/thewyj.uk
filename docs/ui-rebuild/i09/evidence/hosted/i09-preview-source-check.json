@@ -1,0 +1,58 @@
+{
+  "status": "PASS",
+  "mode": "source-only",
+  "previewUrl": "https://i09-system-feedback.thewyj-i09-preview.pages.dev",
+  "headCommit": "bc13f316b30284fb77b6c35e562b6d3c8e9a1dfd",
+  "verifiedAssets": [
+    {
+      "assetPath": "design-system.css",
+      "sha256": "52e257719f872edd864a3207b65fef19fd6e42b5194f577bd8740be11e9d83d0",
+      "bytes": 59090
+    },
+    {
+      "assetPath": "spatial-experience.css",
+      "sha256": "826f20bf80b628b3e115e779eeb9f023e32be5ffb86720dd19a1dd2316ec3dcc",
+      "bytes": 199336
+    },
+    {
+      "assetPath": "product-ui.css",
+      "sha256": "e7634e714769f75cbc32571106b88021ef6a7ce3f487443accd3d6f220c841b7",
+      "bytes": 124683
+    },
+    {
+      "assetPath": "app.js",
+      "sha256": "6a3308b4422270c1bb21da133662a5f2f990b4d17e9e9f115fefb8221731b852",
+      "bytes": 393795
+    },
+    {
+      "assetPath": "js/core/design-system.js",
+      "sha256": "20a6a56b33cee457f43b3013220685515e7ed629bee47f02d6bdbfc5831cdced",
+      "bytes": 20751
+    },
+    {
+      "assetPath": "js/core/motion.js",
+      "sha256": "3222b4809574a81db4b3c7e1a5c66e60473fef2d32943fdb6bc0b18d6010f6cd",
+      "bytes": 88590
+    },
+    {
+      "assetPath": "js/core/feature-console.js",
+      "sha256": "624847bc725eaa62306c819a1505c2bf3a580a82f7291dc6a2365f275ec7f409",
+      "bytes": 16937
+    },
+    {
+      "assetPath": "js/core/feature-flags.js",
+      "sha256": "8ebff675c8ffa1866fc6a67e2e9af4f04c4c6c4bd67922c89f6569e94f9d15d8",
+      "bytes": 9504
+    },
+    {
+      "assetPath": "js/core/router.js",
+      "sha256": "687ec289a97cc6949103f9d5ca12b5132e034accdbf9ab83d011e1f4f9aebf63",
+      "bytes": 3783
+    },
+    {
+      "assetPath": "js/finance/app.js",
+      "sha256": "1d5fae3ab17aabed4aaf49104bc56f51e6b40441159208c28d0ad2225d6ff2b0",
+      "bytes": 92896
+    }
+  ]
+}

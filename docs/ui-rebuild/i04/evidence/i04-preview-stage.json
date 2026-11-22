@@ -1,0 +1,29 @@
+{
+  "buildJson": {
+    "schema_version": 1,
+    "environment": "isolated-preview",
+    "stage": "I04-authenticated-workspace",
+    "source_commit": "bbe7a367733048c6671b576b82f6c7d6fa3be514",
+    "project_name": "thewyj-i04-preview",
+    "branch": "i04-workspace",
+    "remote_check": {
+      "verified": true,
+      "project": "thewyj-i04-preview",
+      "branch": "i04-workspace",
+      "productionBranch": "release-held",
+      "targetD1Id": "bd1c84a6-dc4d-4814-836e-2b6ce477a641",
+      "targetD1Name": "aeris-i04-preview",
+      "priorPreviewD1Id": "bd1c84a6-dc4d-4814-836e-2b6ce477a641",
+      "priorPreviewR2": [],
+      "targetR2Count": 0,
+      "targetAiCount": 0,
+      "bindingConsistent": true
+    },
+    "file_count": 205,
+    "artifact_tree_sha256": "1221dcbfa3dc8fb73ecf18abd5666e767fa05aea6b6dc5ed6de6429bbb268f10"
+  },
+  "deployResult": {
+    "deployedUrl": "https://8f236819.thewyj-i04-preview.pages.dev",
+    "aliasUrl": "https://i04-workspace.thewyj-i04-preview.pages.dev"
+  }
+}

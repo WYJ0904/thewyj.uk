@@ -824,13 +824,13 @@ class AccountStore:
     def validate_secret(secret):
         value = str(secret or "")
         if not value:
-            raise AccountError("登录密钥不能为空", 400, "secret_required")
+            raise AccountError("登录密码不能为空", 400, "secret_required")
         if len(value) < MIN_SECRET_LENGTH:
-            raise AccountError(f"登录密钥不能少于 {MIN_SECRET_LENGTH} 个字符", 400, "secret_too_short")
+            raise AccountError(f"登录密码不能少于 {MIN_SECRET_LENGTH} 个字符", 400, "secret_too_short")
         if len(value) > 128:
-            raise AccountError("登录密钥不能超过 128 个字符", 400, "secret_too_long")
+            raise AccountError("登录密码不能超过 128 个字符", 400, "secret_too_long")
         if "\n" in value or "\r" in value:
-            raise AccountError("登录密钥不能包含换行", 400, "secret_invalid")
+            raise AccountError("登录密码不能包含换行", 400, "secret_invalid")
         return value
 
     def sync_text(self):
@@ -1057,7 +1057,7 @@ class AccountStore:
         secret_text = str(secret or "")
         row = self.get_user_by_name(username_text, include_deleted=True)
         if not row or row["deleted"]:
-            raise AccountError("用户名或登录密钥错误", 403, "invalid_credentials")
+            raise AccountError("用户名或登录密码错误", 403, "invalid_credentials")
         if row["banned"]:
             raise AccountError("账户已被封禁", 403, "account_banned")
         if row["username_normalized"] == ADMIN_USERNAME:
@@ -1065,7 +1065,7 @@ class AccountStore:
         else:
             valid = verify_secret(secret_text, row["secret"])
         if not valid:
-            raise AccountError("用户名或登录密钥错误", 403, "invalid_credentials")
+            raise AccountError("用户名或登录密码错误", 403, "invalid_credentials")
         now = iso_now()
         token = secrets.token_urlsafe(32)
         stored_token = session_storage_key(token)
@@ -1441,9 +1441,9 @@ class AccountStore:
         if not row:
             raise AccountError("账户不存在", 404, "user_not_found")
         if self.is_super_admin(row):
-            raise AccountError("固定管理员密钥不能在此修改", 403, "admin_protected")
+            raise AccountError("固定管理员密码不能在此修改", 403, "admin_protected")
         if not verify_secret(current_secret, row["secret"]):
-            raise AccountError("当前登录密钥错误", 403, "invalid_secret")
+            raise AccountError("当前密码错误", 403, "invalid_secret")
         new_secret = self.validate_secret(new_secret)
         with self.lock, self.connect() as connection:
             connection.execute(
@@ -1460,7 +1460,7 @@ class AccountStore:
         if self.is_super_admin(row):
             raise AccountError("固定管理员账户不能注销", 403, "admin_protected")
         if not verify_secret(secret, row["secret"]):
-            raise AccountError("当前登录密钥错误", 403, "invalid_secret")
+            raise AccountError("当前密码错误", 403, "invalid_secret")
         with self.lock, self.connect() as connection:
             connection.execute("DELETE FROM recharge_requests WHERE user_id = ?", (user_id,))
             connection.execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))
@@ -2327,7 +2327,7 @@ class AccountStore:
         if not target:
             raise AccountError("用户不存在", 404, "user_not_found")
         if self.is_super_admin(target):
-            raise AccountError("固定管理员密钥不能修改", 403, "admin_protected")
+            raise AccountError("固定管理员密码不能修改", 403, "admin_protected")
         secret = self.validate_secret(secret)
         before = self._public_snapshot(self.user_payload(target))
         with self.lock, self.connect() as connection:
@@ -2343,7 +2343,7 @@ class AccountStore:
                 target=target,
                 before=before,
                 after=before,
-                note="管理员重置登录密钥并注销全部会话",
+                note="管理员重置登录密码并注销全部会话",
             )
         self._sync_after_write()
 

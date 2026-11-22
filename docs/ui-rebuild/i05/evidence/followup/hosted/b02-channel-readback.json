@@ -1,0 +1,56 @@
+{
+  "utc": "2026-11-21T15:56:47.899Z",
+  "sourceCommit": "b1c866a4c12febd96dd884d1e715cd6b35441fc0",
+  "gitTree": "754938fe5c0d46ed3789efb571d7f478f6f7b447",
+  "deploymentId": "cdee886e-2b92-4bb9-b135-c9381ba61661",
+  "artifactSha256": "8ef69b82555cbf0c4cd2e1331f8f7a9677b2683873be039926901b589730b42d",
+  "project": "thewyj-i05-preview",
+  "branch": "i05-workspace-density",
+  "database": "9e76a190-42db-4ff1-b0b7-476e4b312792",
+  "scope": "Isolated I05 Hosted Preview",
+  "results": {
+    "member-session-cleanup": {
+      "status": "PASS",
+      "httpStatus": 200
+    },
+    "B02": {
+      "status": "PASS",
+      "actor": "isolated ordinary test account",
+      "initial": {
+        "channel": "stable",
+        "revision": 0,
+        "status": 200
+      },
+      "saveHttp": 200,
+      "changed": {
+        "channel": "beta",
+        "revision": 1,
+        "status": 200
+      },
+      "afterReload": "beta",
+      "restoreHttp": 200,
+      "restored": {
+        "channel": "stable",
+        "revision": 2,
+        "status": 200
+      },
+      "restoredReload": "stable",
+      "nonAdminUsers": 403
+    }
+  },
+  "errors": [],
+  "screenshots": [
+    {
+      "name": "hosted-1440-account-channel.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "4dd078ba7345a0e97025bb883d4ff5728d98a9871ca578b26701cb37f12bb202"
+    }
+  ],
+  "axes": [],
+  "dbRecheck": {
+    "foreignKeyViolations": 0,
+    "existingUiFlagEnabled": true
+  },
+  "status": "PASS"
+}

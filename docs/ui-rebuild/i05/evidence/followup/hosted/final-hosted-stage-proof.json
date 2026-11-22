@@ -1,0 +1,35 @@
+{
+  "deployResult": {
+    "deployedUrl": "https://ae3e538d.thewyj-i05-preview.pages.dev",
+    "deploymentId": "ae3e538d-8bbc-4fe1-9a30-ff6cc336045e",
+    "deployedR2Count": 0,
+    "deployedAiEnabled": "false",
+    "aliasUrl": "https://i05-workspace-density.thewyj-i05-preview.pages.dev",
+    "deployedD1Id": "9e76a190-42db-4ff1-b0b7-476e4b312792"
+  },
+  "buildJson": {
+    "schema_version": 1,
+    "environment": "isolated-preview",
+    "stage": "I05-workspace-admin-density",
+    "source_commit": "f85438a876f3c209d96c1a257420417b16df3cb0",
+    "source_tree": "fcdc954413c7d31a465613f307c391d070cc8246",
+    "project_name": "thewyj-i05-preview",
+    "branch": "i05-workspace-density",
+    "remote_check": {
+      "verified": true,
+      "project": "thewyj-i05-preview",
+      "branch": "i05-workspace-density",
+      "productionBranch": "release-held",
+      "targetD1Id": "9e76a190-42db-4ff1-b0b7-476e4b312792",
+      "targetD1Name": "aeris-i05-preview",
+      "targetR2Count": 0,
+      "targetAiCount": 0,
+      "bindingConsistent": true
+    },
+    "file_count": 105,
+    "artifact_tree_sha256": "d4f77e9a972b4aaca7e7d9da7825a5350dfb2d235a44c16133b6757dc3e25e3e",
+    "standard_allowlist_file_count": 203,
+    "standard_allowlist_sha256": "f2b0c1b5397d4989c1e0976e434a05e415ad46d1d6e4bf139bb5bf56193bac9e",
+    "compiled_worker_sha256": "7884b6e78d52e8d0ec2a7372440d40b5f78f31335a75be9b02d245933a9896df"
+  }
+}

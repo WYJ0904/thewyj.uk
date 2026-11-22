@@ -35,12 +35,12 @@ export function validateUsername(username) {
 export function validateSecret(secret) {
   if (typeof secret!=='string') throw new Task12Error('登录密码必须为文本',400,'secret_invalid');
   const value = secret;
-  if (!value) throw new Task12Error("登录密钥不能为空", 400, "secret_required");
+  if (!value) throw new Task12Error("登录密码不能为空", 400, "secret_required");
   if ([...value].length < MIN_SECRET_LENGTH) {
-    throw new Task12Error(`登录密钥不能少于 ${MIN_SECRET_LENGTH} 个字符`, 400, "secret_too_short");
+    throw new Task12Error(`登录密码不能少于 ${MIN_SECRET_LENGTH} 个字符`, 400, "secret_too_short");
   }
-  if ([...value].length > 128) throw new Task12Error("登录密钥不能超过 128 个字符", 400, "secret_too_long");
-  if (/\r|\n/.test(value)) throw new Task12Error("登录密钥不能包含换行", 400, "secret_invalid");
+  if ([...value].length > 128) throw new Task12Error("登录密码不能超过 128 个字符", 400, "secret_too_long");
+  if (/\r|\n/.test(value)) throw new Task12Error("登录密码不能包含换行", 400, "secret_invalid");
   const issues=passwordIssues(value);
   if(issues.length)throw new Task12Error(`新密码要求：${issues.map(issue=>issue.label).join('；')}`,400,'secret_policy_failed');
   return value;

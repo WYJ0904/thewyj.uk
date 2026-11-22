@@ -60,7 +60,7 @@ function requireVisibleControl(element) {
     throw new Error('UI control is hidden or occluded; no click performed');
   }
 }
-let user, token, native, deviceId, actor, fixtureUsername, fixtureSecret, accountDeleted = false, failure = null, cleanup = true, stage = 'preflight', diagnostic = null, controlSelector = null, controlPage = null;
+let user, token, native, deviceId, actor, fixtureUsername, fixtureSecret, accountDeleted = false, failure = null, cleanup = true, stage = 'preflight', diagnostic = null, controlSelector = null, controlPage = null, beforeClickState = null, afterClickState = null;
 const pages = [];
 try {
   const status = api('/api/status', undefined, '');
@@ -151,15 +151,33 @@ try {
     } while (Date.now() < deadline);
     throw new Error('UI control remains blocked; no click performed');
   };
+  const snapshotControlState = (page, selector) => page.evaluate(`(() => {
+    const el = document.querySelector(${JSON.stringify(selector)});
+    const rect = el ? el.getBoundingClientRect() : null;
+    return {
+      route: location.pathname + location.search,
+      scroll: { x: window.scrollX, y: window.scrollY },
+      boot_state: document.documentElement.dataset.bootState || null,
+      p07_ui: document.documentElement.dataset.p07Ui || null,
+      active_element_id: document.activeElement?.id || null,
+      release_channel_select: document.getElementById('releaseChannelSelect')?.value || null,
+      control_disabled: el ? Boolean(el.disabled) : null,
+      control_rect: rect ? { x: rect.x, y: rect.y, width: rect.width, height: rect.height } : null,
+      visible_modal_ids: Array.from(document.querySelectorAll('.modal-layer:not(.hidden)')).map(element => element.id),
+    };
+  })()`);
   const visibleClick = async (page, selector) => {
     stage = 'UI_visible_control_' + selector;
     controlSelector = selector;
     controlPage = page;
+    beforeClickState = await snapshotControlState(page, selector).catch(() => null);
     await waitVisibleControl(page, selector);
-    return page.evaluate(`(() => {
+    const clicked = await page.evaluate(`(() => {
       const button = document.querySelector(${JSON.stringify(selector)});
       (${requireVisibleControl.toString()})(button); button.click(); return true;
     })()`);
+    afterClickState = await snapshotControlState(page, selector).catch(() => null);
+    return clicked;
   };
   await adminPage.navigate('/admin');
   await adminPage.evaluate("document.getElementById('dismissVersionNoticeBtn')?.click()");
@@ -302,21 +320,71 @@ try {
 } catch (error) {
   failure = error.name;
   try {
-    if (pages[0]) diagnostic = await (controlPage || pages[0]).evaluate(`(() => ({
-      console_status: document.getElementById('featureConsoleStatus')?.textContent,
-      boot_state: document.documentElement.dataset.bootState,
-      audit_open: document.getElementById('featureFlagAudit')?.closest('details')?.open,
-      audit_has_fixture: ${JSON.stringify(fixtureKeys)}.some(key => document.getElementById('featureFlagAudit')?.textContent.includes(key)),
-      selected_is_fixture: ${JSON.stringify(fixtureKeys)}.includes(document.getElementById('featureFlagSelect')?.value),
-      form_revision: document.getElementById('featureFlagForm')?.dataset.revision,
-      evaluate_channel: document.getElementById('featureEvaluateChannel')?.value,
-      fixture_evaluation: document.getElementById('featureEvaluationResult')?.textContent.split('\\n').filter(line => ${JSON.stringify(fixtureKeys)}.some(key => line.startsWith(key + ': '))),
-      visible_modal_ids: Array.from(document.querySelectorAll('.modal-layer:not(.hidden)')).map(element => element.id),
-      control: (() => { const element = document.querySelector(${JSON.stringify(controlSelector)}); if (!element) return null;
-        const rect = element.getBoundingClientRect(), style = getComputedStyle(element), hit = document.elementFromPoint(rect.x + rect.width/2, rect.y + rect.height/2);
-        return { selector: ${JSON.stringify(controlSelector)}, inert: Boolean(element.closest('[inert]')), visibility: style.visibility,
-          x: rect.x, y: rect.y, width: rect.width, height: rect.height, hit_id: hit?.id, hit_tag: hit?.tagName }; })()
-    }))()`);
+    if (pages[0]) diagnostic = await (controlPage || pages[0]).evaluate(`(() => {
+      const domPath = (el) => {
+        if (!el || el.nodeType !== 1) return null;
+        const parts = [];
+        for (let cur = el; cur && cur.nodeType === 1; cur = cur.parentElement) {
+          let seg = cur.tagName.toLowerCase();
+          if (cur.id) seg += '#' + cur.id;
+          else if (cur.className && typeof cur.className === 'string') {
+            const cls = cur.className.trim().split(/\\s+/).slice(0, 2).join('.');
+            if (cls) seg += '.' + cls;
+          }
+          parts.unshift(seg);
+        }
+        return parts.join(' > ');
+      };
+      const inspectEl = (el) => {
+        if (!el) return null;
+        const r = el.getBoundingClientRect(), s = getComputedStyle(el);
+        return {
+          dom_path: domPath(el),
+          id: el.id || '',
+          tag: el.tagName,
+          class_name: typeof el.className === 'string' ? el.className : '',
+          inert: Boolean(el.closest('[inert]')),
+          style: { position: s.position, zIndex: s.zIndex, transform: s.transform, opacity: s.opacity, pointerEvents: s.pointerEvents, visibility: s.visibility },
+          rect: { x: r.x, y: r.y, width: r.width, height: r.height },
+        };
+      };
+      return {
+        route: location.pathname + location.search,
+        scroll: { x: window.scrollX, y: window.scrollY },
+        viewport: { width: window.innerWidth, height: window.innerHeight },
+        p07_ui: document.documentElement.dataset.p07Ui || null,
+        stylesheets: Array.from(document.querySelectorAll('link[rel="stylesheet"]')).map(link => ({ href: link.getAttribute('href'), loaded: Boolean(link.sheet) })),
+        console_status: document.getElementById('featureConsoleStatus')?.textContent,
+        boot_state: document.documentElement.dataset.bootState,
+        audit_open: document.getElementById('featureFlagAudit')?.closest('details')?.open,
+        audit_has_fixture: ${JSON.stringify(fixtureKeys)}.some(key => document.getElementById('featureFlagAudit')?.textContent.includes(key)),
+        selected_is_fixture: ${JSON.stringify(fixtureKeys)}.includes(document.getElementById('featureFlagSelect')?.value),
+        form_revision: document.getElementById('featureFlagForm')?.dataset.revision,
+        evaluate_channel: document.getElementById('featureEvaluateChannel')?.value,
+        fixture_evaluation: document.getElementById('featureEvaluationResult')?.textContent.split('\\n').filter(line => ${JSON.stringify(fixtureKeys)}.some(key => line.startsWith(key + ': '))),
+        visible_modal_ids: Array.from(document.querySelectorAll('.modal-layer:not(.hidden)')).map(element => element.id),
+        before_click: ${JSON.stringify(beforeClickState)},
+        after_click: ${JSON.stringify(afterClickState)},
+        control: (() => {
+          const element = document.querySelector(${JSON.stringify(controlSelector)});
+          if (!element) return null;
+          const rect = element.getBoundingClientRect(), style = getComputedStyle(element);
+          const cx = rect.x + rect.width / 2, cy = rect.y + rect.height / 2;
+          const hit = document.elementFromPoint(cx, cy);
+          const stack = (document.elementsFromPoint ? document.elementsFromPoint(cx, cy) : []).slice(0, 8).map(inspectEl);
+          return {
+            selector: ${JSON.stringify(controlSelector)},
+            inert: Boolean(element.closest('[inert]')),
+            visibility: style.visibility,
+            x: rect.x, y: rect.y, width: rect.width, height: rect.height,
+            hit_id: hit?.id, hit_tag: hit?.tagName,
+            control_detail: inspectEl(element),
+            occluding_detail: inspectEl(hit),
+            hit_stack: stack,
+          };
+        })(),
+      };
+    })()`);
     if (environment === 'development' && controlPage) {
       const screenshot = await controlPage.send('Page.captureScreenshot', { format: 'png' });
       fs.mkdirSync(path.dirname(arg('output')), { recursive: true });

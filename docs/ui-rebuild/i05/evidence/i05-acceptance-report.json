@@ -1,0 +1,990 @@
+{
+  "scope": "Isolated local Miniflare D1/R2 + headless Chrome CDP (I05)",
+  "gitSha": "b5ebd1dadb523e442166be6dde7518f19ef9e5ef",
+  "browserVersion": "Chrome/158.0.8127.36",
+  "scenarios": [
+    {
+      "name": "a_seven_route_sidebar_shell",
+      "status": "PASS",
+      "ms": 17134,
+      "detail": {
+        "selectCrumb": "个人工作台",
+        "routes": [
+          {
+            "route": "home",
+            "pathname": "/",
+            "crumbText": "个人工作台",
+            "crumbVisible": true,
+            "overflow": -15,
+            "headingOk": true,
+            "headingTag": "H2",
+            "maxRadius": 8
+          },
+          {
+            "route": "language",
+            "pathname": "/language",
+            "crumbText": "语言学习",
+            "crumbVisible": true,
+            "overflow": -15,
+            "headingOk": true,
+            "headingTag": "H1",
+            "maxRadius": 0
+          },
+          {
+            "route": "tools",
+            "pathname": "/tools",
+            "crumbText": "工具箱",
+            "crumbVisible": true,
+            "overflow": -15,
+            "headingOk": true,
+            "headingTag": "H1",
+            "maxRadius": 0
+          },
+          {
+            "route": "finance",
+            "pathname": "/finance",
+            "crumbText": "财务账本",
+            "crumbVisible": true,
+            "overflow": -15,
+            "headingOk": true,
+            "headingTag": "H1",
+            "maxRadius": 0
+          },
+          {
+            "route": "transfer",
+            "pathname": "/transfer",
+            "crumbText": "文件传输",
+            "crumbVisible": true,
+            "overflow": -15,
+            "headingOk": true,
+            "headingTag": "H1",
+            "maxRadius": 0
+          },
+          {
+            "route": "account",
+            "pathname": "/account",
+            "crumbText": "账户与安全",
+            "crumbVisible": true,
+            "overflow": -15,
+            "headingOk": true,
+            "headingTag": "H1",
+            "maxRadius": 0
+          },
+          {
+            "route": "admin",
+            "pathname": "/admin",
+            "crumbText": "用户",
+            "crumbVisible": true,
+            "overflow": -15,
+            "headingOk": true,
+            "headingTag": "H1",
+            "maxRadius": 0
+          }
+        ]
+      }
+    },
+    {
+      "name": "b_history_back_forward",
+      "status": "PASS",
+      "ms": 3574,
+      "detail": {
+        "back1Crumb": "工具箱",
+        "back2Crumb": "语言学习",
+        "fwdCrumb": "工具箱"
+      }
+    },
+    {
+      "name": "c_tools_search_and_workbench",
+      "status": "PASS",
+      "ms": 2462,
+      "detail": {
+        "searchState": {
+          "focusedId": "toolSearchInput",
+          "value": "json",
+          "count": 6
+        },
+        "opened": {
+          "pathname": "/tools/json-format",
+          "title": "JSON 格式化",
+          "crumb": "JSON 格式化"
+        }
+      }
+    },
+    {
+      "name": "d_finance_filters_modal_tabular_mobile",
+      "status": "PASS",
+      "ms": 7674,
+      "detail": {
+        "tabular": "tabular-nums",
+        "restoredFocusId": "financeAddTransactionBtn",
+        "mobileOverflow": 0
+      }
+    },
+    {
+      "name": "e_transfer_queue_and_mobile",
+      "status": "PASS",
+      "ms": 9834,
+      "detail": {
+        "mobileOverflow": 0,
+        "queueHasFile": true
+      }
+    },
+    {
+      "name": "f_account_security_and_release_channel",
+      "status": "PASS",
+      "ms": 2279,
+      "detail": {
+        "saveHit": {
+          "ok": true,
+          "cx": 604.4432067871094,
+          "cy": 518.5078125,
+          "width": 410.61590576171875,
+          "height": 43.22265625,
+          "hitTag": "BUTTON",
+          "hitId": "saveReleaseChannelBtn",
+          "hitClass": ""
+        },
+        "statusText": "体验通道已保存"
+      }
+    },
+    {
+      "name": "g_admin_kpis_flags_dom_identity_and_offline",
+      "status": "PASS",
+      "ms": 15199,
+      "detail": {
+        "kpiCheck": {
+          "kpiText": "2",
+          "status": 200,
+          "apiTotal": 2
+        },
+        "tabCount": 10,
+        "cbSizes": {
+          "enabledBox": [
+            20,
+            20
+          ],
+          "killBox": [
+            20,
+            20
+          ]
+        },
+        "flagKey": "i05_fixture_qcu9y4",
+        "domIntegrity": {
+          "sameForm": true,
+          "sameCb": true,
+          "removedCount": 0,
+          "auditHasKey": true
+        },
+        "offlineStatus": "正在保存…"
+      }
+    },
+    {
+      "name": "h_non_admin_isolation",
+      "status": "PASS",
+      "ms": 18821,
+      "detail": {
+        "adminHidden": true,
+        "apiStatus": 403,
+        "postState": {
+          "pathname": "/",
+          "adminHidden": true
+        }
+      }
+    },
+    {
+      "name": "i_responsive_theme_matrix",
+      "status": "PASS",
+      "ms": 37644,
+      "detail": {
+        "totalChecks": 70
+      }
+    },
+    {
+      "name": "j_reduced_motion",
+      "status": "PASS",
+      "ms": 5071,
+      "detail": {
+        "reducedMotionOperable": true
+      }
+    },
+    {
+      "name": "k_p07_off_fallback",
+      "status": "PASS",
+      "ms": 17958,
+      "detail": {
+        "p07Ui": "disabled",
+        "breadcrumbDisplay": "none",
+        "kpiDisplay": "none",
+        "sidebarDisplay": "none",
+        "usersVisible": true
+      }
+    },
+    {
+      "name": "l_css_failure_fallback",
+      "status": "PASS",
+      "ms": 15319,
+      "detail": {
+        "barHeight": 103.390625,
+        "tabHit": {
+          "ok": true,
+          "cx": 91.9453125,
+          "cy": 561.8283081054688,
+          "width": 133.890625,
+          "height": 44,
+          "hitTag": "BUTTON",
+          "hitId": "adminUsersTab",
+          "hitClass": "active"
+        }
+      }
+    },
+    {
+      "name": "m_axe_a11y_and_runtime_clean",
+      "status": "PASS",
+      "ms": 25995,
+      "detail": {
+        "routes": [
+          {
+            "route": "home",
+            "passes": 45,
+            "minorOrMod": 0
+          },
+          {
+            "route": "language",
+            "passes": 42,
+            "minorOrMod": 0
+          },
+          {
+            "route": "tools",
+            "passes": 46,
+            "minorOrMod": 0
+          },
+          {
+            "route": "finance",
+            "passes": 46,
+            "minorOrMod": 0
+          },
+          {
+            "route": "transfer",
+            "passes": 47,
+            "minorOrMod": 0
+          },
+          {
+            "route": "account",
+            "passes": 46,
+            "minorOrMod": 0
+          },
+          {
+            "route": "admin",
+            "passes": 50,
+            "minorOrMod": 0
+          }
+        ]
+      }
+    }
+  ],
+  "viewportMatrix": [
+    {
+      "width": 1440,
+      "height": 900,
+      "theme": "light",
+      "route": "home",
+      "overflow": -15,
+      "sidebarVisible": true,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "theme": "light",
+      "route": "home",
+      "overflow": -15,
+      "sidebarVisible": true,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "route": "home",
+      "overflow": -15,
+      "sidebarVisible": false,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "route": "home",
+      "overflow": 0,
+      "sidebarVisible": false,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 375,
+      "height": 812,
+      "theme": "light",
+      "route": "home",
+      "overflow": 0,
+      "sidebarVisible": false,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "theme": "light",
+      "route": "language",
+      "overflow": -15,
+      "sidebarVisible": true,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "theme": "light",
+      "route": "language",
+      "overflow": -15,
+      "sidebarVisible": true,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "route": "language",
+      "overflow": -15,
+      "sidebarVisible": false,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "route": "language",
+      "overflow": 0,
+      "sidebarVisible": false,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 375,
+      "height": 812,
+      "theme": "light",
+      "route": "language",
+      "overflow": 0,
+      "sidebarVisible": false,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "theme": "light",
+      "route": "tools",
+      "overflow": -15,
+      "sidebarVisible": true,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "theme": "light",
+      "route": "tools",
+      "overflow": -15,
+      "sidebarVisible": true,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "route": "tools",
+      "overflow": -15,
+      "sidebarVisible": false,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "route": "tools",
+      "overflow": 0,
+      "sidebarVisible": false,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 375,
+      "height": 812,
+      "theme": "light",
+      "route": "tools",
+      "overflow": 0,
+      "sidebarVisible": false,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "theme": "light",
+      "route": "finance",
+      "overflow": -15,
+      "sidebarVisible": true,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "theme": "light",
+      "route": "finance",
+      "overflow": -15,
+      "sidebarVisible": true,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "route": "finance",
+      "overflow": -15,
+      "sidebarVisible": false,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "route": "finance",
+      "overflow": 0,
+      "sidebarVisible": false,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 375,
+      "height": 812,
+      "theme": "light",
+      "route": "finance",
+      "overflow": 0,
+      "sidebarVisible": false,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "theme": "light",
+      "route": "transfer",
+      "overflow": -15,
+      "sidebarVisible": true,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "theme": "light",
+      "route": "transfer",
+      "overflow": -15,
+      "sidebarVisible": true,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "route": "transfer",
+      "overflow": -15,
+      "sidebarVisible": false,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "route": "transfer",
+      "overflow": 0,
+      "sidebarVisible": false,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 375,
+      "height": 812,
+      "theme": "light",
+      "route": "transfer",
+      "overflow": 0,
+      "sidebarVisible": false,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "theme": "light",
+      "route": "account",
+      "overflow": -15,
+      "sidebarVisible": true,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "theme": "light",
+      "route": "account",
+      "overflow": -15,
+      "sidebarVisible": true,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "route": "account",
+      "overflow": -15,
+      "sidebarVisible": false,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "route": "account",
+      "overflow": 0,
+      "sidebarVisible": false,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 375,
+      "height": 812,
+      "theme": "light",
+      "route": "account",
+      "overflow": 0,
+      "sidebarVisible": false,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "theme": "light",
+      "route": "admin",
+      "overflow": -15,
+      "sidebarVisible": true,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "theme": "light",
+      "route": "admin",
+      "overflow": -15,
+      "sidebarVisible": true,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "route": "admin",
+      "overflow": -15,
+      "sidebarVisible": false,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "route": "admin",
+      "overflow": 0,
+      "sidebarVisible": false,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 375,
+      "height": 812,
+      "theme": "light",
+      "route": "admin",
+      "overflow": 0,
+      "sidebarVisible": false,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "theme": "dark",
+      "route": "home",
+      "overflow": -15,
+      "sidebarVisible": true,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "theme": "dark",
+      "route": "home",
+      "overflow": -15,
+      "sidebarVisible": true,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "route": "home",
+      "overflow": -15,
+      "sidebarVisible": false,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "route": "home",
+      "overflow": 0,
+      "sidebarVisible": false,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 375,
+      "height": 812,
+      "theme": "dark",
+      "route": "home",
+      "overflow": 0,
+      "sidebarVisible": false,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "theme": "dark",
+      "route": "language",
+      "overflow": -15,
+      "sidebarVisible": true,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "theme": "dark",
+      "route": "language",
+      "overflow": -15,
+      "sidebarVisible": true,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "route": "language",
+      "overflow": -15,
+      "sidebarVisible": false,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "route": "language",
+      "overflow": 0,
+      "sidebarVisible": false,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 375,
+      "height": 812,
+      "theme": "dark",
+      "route": "language",
+      "overflow": 0,
+      "sidebarVisible": false,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "theme": "dark",
+      "route": "tools",
+      "overflow": -15,
+      "sidebarVisible": true,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "theme": "dark",
+      "route": "tools",
+      "overflow": -15,
+      "sidebarVisible": true,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "route": "tools",
+      "overflow": -15,
+      "sidebarVisible": false,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "route": "tools",
+      "overflow": 0,
+      "sidebarVisible": false,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 375,
+      "height": 812,
+      "theme": "dark",
+      "route": "tools",
+      "overflow": 0,
+      "sidebarVisible": false,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "theme": "dark",
+      "route": "finance",
+      "overflow": -15,
+      "sidebarVisible": true,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "theme": "dark",
+      "route": "finance",
+      "overflow": -15,
+      "sidebarVisible": true,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "route": "finance",
+      "overflow": -15,
+      "sidebarVisible": false,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "route": "finance",
+      "overflow": 0,
+      "sidebarVisible": false,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 375,
+      "height": 812,
+      "theme": "dark",
+      "route": "finance",
+      "overflow": 0,
+      "sidebarVisible": false,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "theme": "dark",
+      "route": "transfer",
+      "overflow": -15,
+      "sidebarVisible": true,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "theme": "dark",
+      "route": "transfer",
+      "overflow": -15,
+      "sidebarVisible": true,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "route": "transfer",
+      "overflow": -15,
+      "sidebarVisible": false,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "route": "transfer",
+      "overflow": 0,
+      "sidebarVisible": false,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 375,
+      "height": 812,
+      "theme": "dark",
+      "route": "transfer",
+      "overflow": 0,
+      "sidebarVisible": false,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "theme": "dark",
+      "route": "account",
+      "overflow": -15,
+      "sidebarVisible": true,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "theme": "dark",
+      "route": "account",
+      "overflow": -15,
+      "sidebarVisible": true,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "route": "account",
+      "overflow": -15,
+      "sidebarVisible": false,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "route": "account",
+      "overflow": 0,
+      "sidebarVisible": false,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 375,
+      "height": 812,
+      "theme": "dark",
+      "route": "account",
+      "overflow": 0,
+      "sidebarVisible": false,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "theme": "dark",
+      "route": "admin",
+      "overflow": -15,
+      "sidebarVisible": true,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "theme": "dark",
+      "route": "admin",
+      "overflow": -15,
+      "sidebarVisible": true,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "route": "admin",
+      "overflow": -15,
+      "sidebarVisible": false,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "route": "admin",
+      "overflow": 0,
+      "sidebarVisible": false,
+      "breadcrumbVisible": true
+    },
+    {
+      "width": 375,
+      "height": 812,
+      "theme": "dark",
+      "route": "admin",
+      "overflow": 0,
+      "sidebarVisible": false,
+      "breadcrumbVisible": true
+    }
+  ],
+  "axeScans": [
+    {
+      "route": "home",
+      "violationCount": 0,
+      "seriousOrCriticalCount": 0,
+      "passes": 45,
+      "violations": []
+    },
+    {
+      "route": "language",
+      "violationCount": 0,
+      "seriousOrCriticalCount": 0,
+      "passes": 42,
+      "violations": []
+    },
+    {
+      "route": "tools",
+      "violationCount": 0,
+      "seriousOrCriticalCount": 0,
+      "passes": 46,
+      "violations": []
+    },
+    {
+      "route": "finance",
+      "violationCount": 0,
+      "seriousOrCriticalCount": 0,
+      "passes": 46,
+      "violations": []
+    },
+    {
+      "route": "transfer",
+      "violationCount": 0,
+      "seriousOrCriticalCount": 0,
+      "passes": 47,
+      "violations": []
+    },
+    {
+      "route": "account",
+      "violationCount": 0,
+      "seriousOrCriticalCount": 0,
+      "passes": 46,
+      "violations": []
+    },
+    {
+      "route": "admin",
+      "violationCount": 0,
+      "seriousOrCriticalCount": 0,
+      "passes": 50,
+      "violations": []
+    }
+  ],
+  "screenshots": [
+    "1440-route-home.png",
+    "1440-route-language.png",
+    "1440-route-tools.png",
+    "1440-route-finance.png",
+    "1440-route-transfer.png",
+    "1440-route-account.png",
+    "1440-route-admin.png",
+    "1440-admin-flags-before.png",
+    "1440-admin-flags-after.png",
+    "1440-select-light.png",
+    "390-select-light.png",
+    "390-account-light.png",
+    "1440-admin-flags-light.png",
+    "390-finance-dark.png",
+    "390-admin-flags-dark.png",
+    "1440-admin-users-dark.png"
+  ],
+  "apiErrors": [],
+  "runtimeErrors": [],
+  "android_physical_device": "NOT_TESTED",
+  "production_release": "NOT_TOUCHED"
+}

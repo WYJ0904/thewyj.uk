@@ -1,3 +1,5 @@
+import { setControlFeedbackState } from "./motion.js?release=20261121-aeris-i05-preview";
+
 export const RELEASE_CHANNEL_LABELS = Object.freeze({ stable: 'Stable', beta: 'Beta', experimental: 'Experimental' });
 
 /** Unknown, expired, malformed and other-account decisions are always OFF. */
@@ -24,16 +26,27 @@ export function snapshotFeatureEnabled(snapshot, key, accountId, now = Date.now(
 }
 
 export function createFeatureController({ getAccount, apiGet, api, document = globalThis.document, onAvailable = () => {}, onChange = () => {} }) {
-  let available = false, availabilityKnown = false, accountId = '', snapshot = null, sequence = 0, timer = null, renewalTimer = null, busy = false, status = '', phase = 'pending';
+  let available = false, availabilityKnown = false, accountId = '', snapshot = null, sequence = 0, timer = null, renewalTimer = null, busy = false, status = '', phase = 'pending', selectDirty = false;
   const node = id => document.getElementById(id);
   const currentId = () => String(getAccount()?.id || '');
-  function render(message) {
+  function render(message, explicitTone = null) {
     if (message !== undefined) status = message;
     node('releaseChannelSection')?.classList.toggle('hidden', !available || !accountId);
     node('releaseChannelSelect')?.toggleAttribute('disabled', busy || !snapshot);
     node('saveReleaseChannelBtn')?.toggleAttribute('disabled', busy || !snapshot);
-    if (snapshot && node('releaseChannelSelect')) node('releaseChannelSelect').value = snapshot.channel;
-    if (node('releaseChannelStatus')) node('releaseChannelStatus').textContent = status || (snapshot ? `当前通道：${RELEASE_CHANNEL_LABELS[snapshot.channel]}` : '正在读取体验设置…');
+    if (snapshot && node('releaseChannelSelect') && !selectDirty) node('releaseChannelSelect').value = snapshot.channel;
+    const statusEl = node('releaseChannelStatus');
+    if (statusEl) {
+      statusEl.textContent = status || (snapshot ? `当前通道：${RELEASE_CHANNEL_LABELS[snapshot.channel]}` : '正在读取体验设置…');
+      if (statusEl.dataset) {
+        const tone = explicitTone
+          || (busy || phase === 'pending' && !snapshot ? 'pending'
+            : phase === 'error' ? 'error'
+              : status === '体验通道已保存' ? 'success'
+                : 'idle');
+        statusEl.dataset.feedbackState = tone;
+      }
+    }
     node('experimentalFeatureBadge')?.classList.toggle('hidden', !snapshotFeatureEnabled(snapshot, 'aeris_experimental_badge', accountId));
     onChange();
   }
@@ -71,31 +84,65 @@ export function createFeatureController({ getAccount, apiGet, api, document = gl
   }
   function updateAccount() {
     const next = currentId(); if (next === accountId) return;
-    accountId = next; sequence++; busy = false; clear(); onAvailable(available && Boolean(accountId));
+    accountId = next; sequence++; busy = false; selectDirty = false; clear(); onAvailable(available && Boolean(accountId));
     if (node('releaseChannelSelect')) node('releaseChannelSelect').value = 'stable';
     if (accountId) void refresh();
   }
   function setAvailable(enabled) {
     if (availabilityKnown && available === (enabled === true)) return;
-    availabilityKnown = true; available = enabled === true; sequence++; busy = false; clear('', available ? 'pending' : 'disabled'); onAvailable(available && Boolean(accountId));
+    availabilityKnown = true; available = enabled === true; sequence++; busy = false; selectDirty = false; clear('', available ? 'pending' : 'disabled'); onAvailable(available && Boolean(accountId));
     if (available) void refresh();
   }
+  node('releaseChannelSelect')?.addEventListener('change', () => {
+    selectDirty = true;
+    setControlFeedbackState(node('saveReleaseChannelBtn'), 'idle');
+  });
   node('saveReleaseChannelBtn')?.addEventListener('click', async () => {
     if (busy || !snapshot) return;
     const owner = accountId, ticket = ++sequence, channel = node('releaseChannelSelect').value;
     const expected_revision = snapshot.channelRevision;
-    busy = true; clear('正在保存…');
+    const saveBtn = node('saveReleaseChannelBtn');
+    busy = true;
+    phase = 'pending';
+    setControlFeedbackState(saveBtn, 'pending');
+    render('正在保存体验通道…', 'pending');
     try {
       const response = await api('/api/release-channel', { channel, expected_revision });
       if (owner !== currentId() || ticket !== sequence) return;
-      snapshot = parseFeatureSnapshot(response.snapshot, owner);
-      if (!snapshot) throw new Error('体验设置响应无效');
+      const nextSnapshot = parseFeatureSnapshot(response.snapshot, owner);
+      if (!nextSnapshot) throw new Error('体验设置响应无效');
+      snapshot = nextSnapshot;
       phase = 'decided';
-      render('体验通道已保存'); scheduleExpiry();
-    } catch (error) { if (owner === currentId() && ticket === sequence) clear(error.message, 'error'); }
-    finally { if (ticket === sequence) { busy = false; render(); } }
+      selectDirty = false;
+      setControlFeedbackState(saveBtn, 'success');
+      render('体验通道已保存', 'success');
+      scheduleExpiry();
+    } catch (error) {
+      if (owner === currentId() && ticket === sequence) {
+        phase = 'error';
+        setControlFeedbackState(saveBtn, 'error');
+        // Keep current valid snapshot & unsaved channel selection so user can retry immediately.
+        if (snapshot && snapshot.expiresAt <= Date.now()) {
+          clear(error.message || '保存失败，请重试', 'error');
+        } else {
+          render(error.message || '保存失败，请重试', 'error');
+        }
+      }
+    } finally {
+      if (ticket === sequence) {
+        busy = false;
+        if (saveBtn?.getAttribute?.('aria-busy') === 'true') setControlFeedbackState(saveBtn, 'idle');
+        render();
+      }
+    }
   });
-  node('refreshReleaseChannelBtn')?.addEventListener('click', () => void refresh());
+  node('refreshReleaseChannelBtn')?.addEventListener('click', async () => {
+    const refreshBtn = node('refreshReleaseChannelBtn');
+    setControlFeedbackState(refreshBtn, 'pending');
+    selectDirty = false;
+    await refresh();
+    setControlFeedbackState(refreshBtn, phase === 'error' ? 'error' : 'idle');
+  });
   document.addEventListener('visibilitychange', () => {
     sequence++; busy = false; if (document.hidden) render(); else void refresh();
   });

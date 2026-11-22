@@ -27,7 +27,7 @@ for(const width of [390,1366,1920]){
   await p.navigate('/login');await p.waitFor("!document.getElementById('entryScreen')");
   await p.setFields({'#usernameInput':process.env.WYJ_TEST_ADMIN_USER||'wyj','#secretInput':process.env.WYJ_TEST_ADMIN_SECRET});await p.click('#loginSubmitBtn');
   await p.waitFor("location.pathname==='/'&&document.querySelector('#publicHome').dataset.sessionMode==='authenticated'");
-  assert.equal(await p.evaluate("document.querySelectorAll('#publicHome .hero-scene-card').length"),3);
+  assert.equal(await p.evaluate("document.querySelectorAll('#publicHome .hero-scene-card').length"),0);
   await p.navigate('/select');await p.waitFor("!document.getElementById('entryScreen')&&!document.querySelector('#publicHome').classList.contains('hidden')");
   assert.equal(await p.evaluate("document.querySelector('#publicHome').dataset.sessionMode"),'authenticated');
   await p.navigate('/?native-navigation=1');await p.waitFor("!document.getElementById('entryScreen')&&!!window.WYJAndroidNavigation");
@@ -35,9 +35,9 @@ for(const width of [390,1366,1920]){
   await p.evaluate("Promise.all(Array.from({length:60},(_,i)=>WYJAndroidNavigation.navigate(['/tools','/language','/finance'][i%3]))).then(()=>true)");
   await p.waitFor("location.pathname==='/finance'&&!document.querySelector('#financePage').classList.contains('hidden')");
   assert.equal(await p.evaluate("window.__p6Document"),'preserved');
-  const restored=await p.evaluate("({homeScenes:document.querySelectorAll('#publicHome .hero-scene-card').length,sessionPresent:!!localStorage.getItem('wyjAccountSession'),path:location.pathname})");
+  const restored=await p.evaluate("({bentoTiles:document.querySelectorAll('#publicHome .bento-tile').length,sessionPresent:!!localStorage.getItem('wyjAccountSession'),path:location.pathname})");
   await p.navigate('/');await p.waitFor("!document.getElementById('entryScreen')&&document.querySelector('#publicHome').dataset.sessionMode==='authenticated'");
-  assert.equal(await p.evaluate("document.querySelectorAll('#publicHome .hero-scene-card').length"),3);
+  assert.equal(await p.evaluate("document.querySelectorAll('#publicHome .hero-scene-card').length"),0);
   assert.deepEqual(p.runtimeErrors,[]);
   results.push({width,surfaces,authenticatedHome:true,selectAlias:true,rapidNavigation:60,sameDocument:true,sessionRestore:restored,errors:[]});
   console.log(`P6 experience PASS width=${width} guest surfaces=${surfaces.length} rapid routes=60`);

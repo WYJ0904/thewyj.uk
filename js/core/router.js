@@ -5,10 +5,19 @@ export const APP_ROUTE_MANIFEST = Object.freeze([
   "/share/clipboard/:code", "/share/qr/:id", "/share/room/:id", "/transfer",
 ]);
 
-export function createRouter({ onRouteChange = () => {} } = {}) {
+export function createRouter({ onRouteChange = () => {}, getScrollPosition = null } = {}) {
   function pushRoute(path, replace = false, state = {}) {
     const target = String(path || "/");
     if (location.pathname === target) return;
+    if (!replace && typeof globalThis.history?.replaceState === "function" && typeof globalThis.window?.scrollY === "number") {
+      try {
+        const prevState = (globalThis.history.state && typeof globalThis.history.state === "object") ? globalThis.history.state : {};
+        const pos = typeof getScrollPosition === "function" ? getScrollPosition() : null;
+        const scrollX = Number.isFinite(pos?.scrollX) ? pos.scrollX : (globalThis.window.scrollX || 0);
+        const scrollY = Number.isFinite(pos?.scrollY) ? pos.scrollY : (globalThis.window.scrollY || 0);
+        globalThis.history.replaceState({ ...prevState, scrollX, scrollY }, "", globalThis.location.href);
+      } catch (_) {}
+    }
     history[replace ? "replaceState" : "pushState"](state, "", target);
     onRouteChange(target);
   }

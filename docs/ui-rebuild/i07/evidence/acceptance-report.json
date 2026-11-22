@@ -1,0 +1,256 @@
+{
+  "scope": "Isolated Miniflare D1/R2 + real headless Chrome CDP",
+  "gitSha": "df4ef2ed1992b12485952d8c15c5c5cee8ff6390",
+  "browserVersion": "Chrome/157.0.8103.79",
+  "scenarios": [
+    {
+      "name": "controls-buttons-switch-form",
+      "status": "PASS",
+      "detail": {
+        "pressedAttr": "true",
+        "failSwitchState": {
+          "checked": false,
+          "text": "保存失败，已回滚至：关闭"
+        }
+      }
+    },
+    {
+      "name": "tabs-rapid-skeleton-cancellation",
+      "status": "PASS",
+      "detail": {
+        "title": "文件传输 · 140ms 骨架预览",
+        "staleDroppedCount": 2
+      }
+    },
+    {
+      "name": "flip-bidirectional-reversal-density-keyboard",
+      "status": "PASS",
+      "detail": {
+        "midDownTransform": "matrix(1, 0, 0, 1, -201.58, 0)",
+        "midUpTransform": "matrix(1, 0, 0, 1, -192.528, 65.5987)",
+        "flipIdentity": "4 / 4"
+      }
+    },
+    {
+      "name": "pointer-drag-sort-and-cancel",
+      "status": "PASS",
+      "detail": {
+        "orderAfterDrop": [
+          "card-2",
+          "card-1",
+          "card-3",
+          "card-4"
+        ],
+        "orderAfterCancel": [
+          "card-2",
+          "card-1",
+          "card-3",
+          "card-4"
+        ]
+      }
+    },
+    {
+      "name": "keyed-table-node-identity-and-kill-switch",
+      "status": "PASS",
+      "detail": {
+        "sameRef": true,
+        "rowRebuilds": 0,
+        "lockedDisabled": true
+      }
+    },
+    {
+      "name": "toast-5-burst-max-2-queue",
+      "status": "PASS",
+      "detail": {
+        "visible": [
+          {
+            "id": "toast-6",
+            "tone": "error",
+            "message": "队列 #1 (Error)：保留优先提示",
+            "count": 1
+          },
+          {
+            "id": "toast-7",
+            "tone": "info",
+            "message": "队列 #2 (Info)：首屏第 2 条",
+            "count": 1
+          }
+        ],
+        "queued": [
+          {
+            "id": "toast-8",
+            "tone": "success",
+            "message": "队列 #3 (Success)：排队等待",
+            "count": 1
+          },
+          {
+            "id": "toast-9",
+            "tone": "warning",
+            "message": "队列 #4 (Warning)：排队等待",
+            "count": 1
+          },
+          {
+            "id": "toast-10",
+            "tone": "info",
+            "message": "队列 #5 (Info)：排队等待",
+            "count": 1
+          }
+        ],
+        "maxVisible": 2,
+        "disposed": false
+      }
+    },
+    {
+      "name": "scroll-3d-reversible-and-bento-seam-lock",
+      "status": "PASS",
+      "detail": {
+        "entryState": {
+          "stage": "enter",
+          "rx": 11.97,
+          "scale": 0.9402,
+          "tz": 0,
+          "transform": "matrix3d(0.9402, 0, 0, 0, 0, 0.919757, 0.194997, -0.000162498, 0, -0.2074, 0.978256, -0.000815214, 0, 23.93, 0, 1)"
+        },
+        "flatState": {
+          "stage": "level",
+          "rx": 0,
+          "scale": 1,
+          "tz": 0,
+          "transform": "matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, -0.000833333, 0, 0, 0, 1)"
+        },
+        "exitState": {
+          "stage": "exit",
+          "rx": -3.66,
+          "scale": 0.9817,
+          "tz": -8.78,
+          "transform": "matrix3d(0.9817, 0, 0, 0, 0, 0.979698, -0.0626674, 5.22229e-05, 0, 0.0638356, 0.99796, -0.000831634, 0, -6.58, -8.78, 1.00732)"
+        },
+        "reversedState": {
+          "stage": "before",
+          "rx": 12,
+          "scale": 0.94,
+          "tz": 0,
+          "transform": "matrix3d(0.94, 0, 0, 0, 0, 0.919459, 0.195437, -0.000162864, 0, -0.207912, 0.978148, -0.000815123, 0, 24, 0, 1)"
+        },
+        "maxSeamDrift": 0
+      }
+    },
+    {
+      "name": "desktop-modal-and-mobile-gesture-drawer",
+      "status": "PASS",
+      "detail": {
+        "desktopModal": "PASS",
+        "mobileDrawerSnapAndDismiss": "PASS",
+        "formValuePreserved": true
+      }
+    },
+    {
+      "name": "dark-theme-and-performance-telemetry",
+      "status": "PASS",
+      "detail": {
+        "worstFrameMs": 146.9,
+        "longTaskCount": 1,
+        "maxSeamDriftPx": 0.4208984375
+      }
+    },
+    {
+      "name": "real-app-routes-modal-tabs-p07off",
+      "status": "PASS",
+      "detail": {
+        "realAppMotionReady": true,
+        "feedbackMobileMode": "drawer",
+        "deleteMode": "modal",
+        "p07Off": {
+          "p07": "disabled",
+          "modalOperable": true,
+          "overflowX": 0
+        }
+      }
+    }
+  ],
+  "axeScans": [
+    {
+      "label": "fixture-desktop-light",
+      "violationCount": 0,
+      "passes": 46,
+      "violations": []
+    },
+    {
+      "label": "fixture-mobile-375-dark",
+      "violationCount": 0,
+      "passes": 46,
+      "violations": []
+    },
+    {
+      "label": "fixture-desktop-dark",
+      "violationCount": 0,
+      "passes": 46,
+      "violations": []
+    },
+    {
+      "label": "real-app-public-home",
+      "violationCount": 0,
+      "passes": 45,
+      "violations": []
+    },
+    {
+      "label": "real-app-admin-flags",
+      "violationCount": 0,
+      "passes": 46,
+      "violations": []
+    }
+  ],
+  "viewportMatrix": [
+    {
+      "width": 1440,
+      "overflowX": 0,
+      "badSwitches": 0
+    },
+    {
+      "width": 768,
+      "overflowX": 0,
+      "badSwitches": 0
+    },
+    {
+      "width": 390,
+      "overflowX": 0,
+      "badSwitches": 0
+    },
+    {
+      "width": 375,
+      "overflowX": 0,
+      "badSwitches": 0
+    }
+  ],
+  "performance": {
+    "worstFrameMs": 146.9,
+    "longTaskCount": 1,
+    "maxSeamDriftPx": 0.4208984375
+  },
+  "screenshots": [
+    "fixture-desktop-1440-light.png",
+    "switch-fixed-desktop-light.png",
+    "flip-seq-1-initial.png",
+    "flip-seq-2-mid-down.png",
+    "flip-seq-3-mid-up.png",
+    "flip-seq-4-single-col.png",
+    "drag-seq-1-lifting.png",
+    "drag-seq-2-settled.png",
+    "toast-seq-1-burst.png",
+    "scroll-seq-1-entry.png",
+    "scroll-seq-2-flattened.png",
+    "scroll-seq-3-exit-stage.png",
+    "scroll-seq-4-reversed.png",
+    "desktop-modal-open.png",
+    "mobile-drawer-seq-1-open.png",
+    "mobile-drawer-seq-2-dragging.png",
+    "fixture-mobile-375-light.png",
+    "fixture-mobile-375-dark-reduced.png",
+    "fixture-desktop-1440-dark.png",
+    "real-app-feedback-modal-tabs.png",
+    "real-app-admin-flags.png",
+    "real-app-mobile-delete-confirm.png"
+  ],
+  "android_physical_device": "NOT_TESTED — NOT REQUIRED FOR I07 WEB ACCEPTANCE",
+  "production_release": "NOT_TOUCHED"
+}

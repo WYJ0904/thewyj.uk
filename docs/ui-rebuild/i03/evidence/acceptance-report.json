@@ -1,0 +1,237 @@
+{
+  "scope": "Isolated Miniflare D1/R2 + real headless Chrome CDP (I03 6 public routes + P07 OFF)",
+  "gitSha": "df4ef2ed1992b12485952d8c15c5c5cee8ff6390",
+  "browserVersion": "Chrome/157.0.8103.79",
+  "scenarios": [
+    {
+      "name": "home-hero-preview-window-and-bento-structure",
+      "status": "PASS",
+      "detail": {
+        "structure": {
+          "heroCards": 0,
+          "hasWidgetEditor": false,
+          "heroOpacity": "1",
+          "logoComplete": true,
+          "logoSize": {
+            "w": 56,
+            "h": 56
+          },
+          "title": "Aeris",
+          "previewHeight": 354.630126953125,
+          "bentoCount": 5,
+          "bentoCols": 12,
+          "bentoOuterTransformNone": true
+        },
+        "toolsCheck": {
+          "sameNode": true,
+          "formatted": true,
+          "status": "JSON 格式合法，已格式化。",
+          "chars": 20,
+          "bodyHeight": 354.707763671875
+        }
+      }
+    },
+    {
+      "name": "home-scroll-3d-multistage-and-bento-parallax",
+      "status": "PASS",
+      "detail": {
+        "topM": {
+          "stage": "enter",
+          "rx": 1.54,
+          "scale": 0.9923,
+          "tz": 0,
+          "outerTransforms": true,
+          "innerShifts": [
+            -8.4,
+            6.6,
+            -6,
+            5.4,
+            -3.6
+          ]
+        },
+        "midM": {
+          "stage": "exit",
+          "rx": -0.74,
+          "scale": 0.9963,
+          "tz": -1.85,
+          "outerTransforms": true,
+          "innerShifts": [
+            -5.89,
+            4.63,
+            -4.21,
+            3.79,
+            -2.52
+          ]
+        },
+        "exitM": {
+          "stage": "settled",
+          "rx": -8,
+          "scale": 0.96,
+          "tz": -20,
+          "outerTransforms": true,
+          "innerShifts": [
+            0.82,
+            -0.64,
+            0.58,
+            -0.52,
+            0.35
+          ]
+        },
+        "revM": {
+          "stage": "enter",
+          "rx": 1.32,
+          "scale": 0.9934,
+          "tz": 0,
+          "outerTransforms": true,
+          "innerShifts": [
+            -8.4,
+            6.6,
+            -6,
+            5.4,
+            -3.6
+          ]
+        }
+      }
+    },
+    {
+      "name": "cross-route-scroll-navigation-and-back-restore",
+      "status": "PASS",
+      "detail": {
+        "homeBottomScroll": 2122,
+        "downloadStartScroll": 0,
+        "changelogStartScroll": 0,
+        "returnedHeroOpacity": "1",
+        "afterTabScroll": 140
+      }
+    },
+    {
+      "name": "all-6-public-routes-matrix-and-auth-continuity",
+      "status": "PASS",
+      "detail": {
+        "routeChecks": 5,
+        "viewports": [
+          1440,
+          768,
+          390,
+          375
+        ],
+        "p07OffChecked": true
+      }
+    }
+  ],
+  "axeScans": [
+    {
+      "label": "home-desktop-light",
+      "violationCount": 0,
+      "passes": 45,
+      "violations": []
+    },
+    {
+      "label": "route-trial-desktop-light",
+      "violationCount": 0,
+      "passes": 46,
+      "violations": []
+    },
+    {
+      "label": "route-download-desktop-light",
+      "violationCount": 0,
+      "passes": 42,
+      "violations": []
+    },
+    {
+      "label": "route-changelog-desktop-light",
+      "violationCount": 0,
+      "passes": 42,
+      "violations": []
+    },
+    {
+      "label": "route-login-desktop-light",
+      "violationCount": 0,
+      "passes": 45,
+      "violations": []
+    },
+    {
+      "label": "route-register-desktop-light",
+      "violationCount": 0,
+      "passes": 47,
+      "violations": []
+    },
+    {
+      "label": "route-home-desktop-dark",
+      "violationCount": 0,
+      "passes": 45,
+      "violations": []
+    },
+    {
+      "label": "route-trial-desktop-dark",
+      "violationCount": 0,
+      "passes": 46,
+      "violations": []
+    },
+    {
+      "label": "route-download-desktop-dark",
+      "violationCount": 0,
+      "passes": 42,
+      "violations": []
+    },
+    {
+      "label": "route-changelog-desktop-dark",
+      "violationCount": 0,
+      "passes": 42,
+      "violations": []
+    },
+    {
+      "label": "route-login-desktop-dark",
+      "violationCount": 0,
+      "passes": 45,
+      "violations": []
+    }
+  ],
+  "viewportMatrix": [
+    {
+      "width": 1440,
+      "checkedRoutes": 6,
+      "overflowX": 0
+    },
+    {
+      "width": 768,
+      "checkedRoutes": 6,
+      "overflowX": 0
+    },
+    {
+      "width": 390,
+      "checkedRoutes": 6,
+      "overflowX": 0
+    },
+    {
+      "width": 375,
+      "checkedRoutes": 6,
+      "overflowX": 0
+    }
+  ],
+  "screenshots": [
+    "home-desktop-1440-light.png",
+    "home-preview-tools-tab.png",
+    "home-scroll-seq-1-top.png",
+    "home-scroll-seq-2-level.png",
+    "home-scroll-seq-3-exit-and-bento.png",
+    "home-scroll-seq-4-reversed.png",
+    "trial-desktop-1440-light.png",
+    "download-desktop-1440-light.png",
+    "changelog-desktop-1440-light.png",
+    "login-desktop-1440-light.png",
+    "register-desktop-1440-light.png",
+    "home-desktop-1440-dark.png",
+    "trial-desktop-1440-dark.png",
+    "download-desktop-1440-dark.png",
+    "changelog-desktop-1440-dark.png",
+    "login-desktop-1440-dark.png",
+    "home-mobile-375-light.png",
+    "download-mobile-375-light.png",
+    "login-mobile-375-light.png",
+    "home-authenticated-1440-light.png",
+    "home-p07-off-1440-light.png"
+  ],
+  "android_physical_device": "NOT_TESTED — NOT REQUIRED FOR I03 WEB ACCEPTANCE",
+  "production_release": "NOT_TOUCHED"
+}

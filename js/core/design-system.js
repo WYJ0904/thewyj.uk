@@ -19,7 +19,56 @@ export function setInterfaceEnhancementsEnabled(enabled) {
   if (!interfaceEnhancementsEnabled) resetFormFeedback();
   refreshContentPolicy();
   syncThemeMeta();
+  syncSidebarActiveIndicator(globalThis.document);
+  if (typeof globalThis.requestAnimationFrame === "function") {
+    globalThis.requestAnimationFrame(() => syncSidebarActiveIndicator(globalThis.document));
+  }
   return interfaceEnhancementsEnabled;
+}
+
+export function syncSystemNoticeLayout(doc = globalThis.document) {
+  if (!doc?.documentElement) return;
+  const root = doc.documentElement;
+  const view = doc.defaultView || globalThis.window;
+  const viewport = view?.visualViewport;
+  const innerH = Number(view?.innerHeight) || 0;
+  const innerW = Number(view?.innerWidth) || 0;
+  const vpH = Number(viewport?.height) || innerH;
+  const vpTop = Number(viewport?.offsetTop) || 0;
+  const kbInset = innerH > 0 ? Math.max(0, Math.round(innerH - (vpH + vpTop))) : 0;
+  root.style.setProperty("--ds-hud-keyboard-inset", `${kbInset}px`);
+
+  const saveEl = doc.getElementById("siteMessageSaveStatus");
+  let saveOffset = 0;
+  if (saveEl && !saveEl.classList?.contains("hidden") && !saveEl.hidden) {
+    const style = view?.getComputedStyle?.(saveEl);
+    if (!style || style.position === "fixed") {
+      const h = Math.ceil(saveEl.getBoundingClientRect?.().height || 0);
+      if (h > 0) saveOffset = h + 10;
+    }
+  }
+  root.style.setProperty("--ds-hud-save-offset", `${saveOffset}px`);
+
+  const verEl = doc.getElementById("versionNotice");
+  let versionOffset = 0;
+  if (verEl && !verEl.classList?.contains("hidden") && !verEl.hidden) {
+    const style = view?.getComputedStyle?.(verEl);
+    if (!style || style.position === "fixed") {
+      const h = Math.ceil(verEl.getBoundingClientRect?.().height || 0);
+      if (h > 0) versionOffset = h + 10;
+    }
+  }
+  root.style.setProperty("--ds-hud-version-offset", `${versionOffset}px`);
+
+  const financeModal = doc.getElementById("financeTransactionModal");
+  const rightDrawerOpen = Boolean(
+    financeModal
+    && !financeModal.classList?.contains("hidden")
+    && financeModal.getAttribute?.("aria-hidden") !== "true"
+    && innerW > 760,
+  );
+  if (rightDrawerOpen) root.dataset.rightDrawerOpen = "true";
+  else delete root.dataset.rightDrawerOpen;
 }
 
 function setupOverlayViewport() {
@@ -36,6 +85,7 @@ function setupOverlayViewport() {
     // Reflow the decorative widget composition when the user enlarges text.
     // The default 16px appearance is unchanged; the user's font size is retained.
     document.documentElement.dataset.largeText = String(parseFloat(getComputedStyle(document.documentElement).fontSize) > 20);
+    syncSystemNoticeLayout(document);
   };
   let frame = 0;
   const schedule = () => {
@@ -47,7 +97,20 @@ function setupOverlayViewport() {
   window.visualViewport?.addEventListener("resize", schedule, { passive: true });
   window.visualViewport?.addEventListener("scroll", schedule, { passive: true });
   const navigation = document.getElementById("accountBar");
-  if (navigation && typeof ResizeObserver === "function") new ResizeObserver(schedule).observe(navigation);
+  const resizeObserver = typeof ResizeObserver === "function" ? new ResizeObserver(schedule) : null;
+  if (navigation && resizeObserver) resizeObserver.observe(navigation);
+  const verEl = document.getElementById("versionNotice");
+  const saveEl = document.getElementById("siteMessageSaveStatus");
+  if (resizeObserver) {
+    if (verEl) resizeObserver.observe(verEl);
+    if (saveEl) resizeObserver.observe(saveEl);
+  }
+  if (typeof MutationObserver === "function") {
+    const obs = new MutationObserver(schedule);
+    [verEl, saveEl, document.getElementById("financeTransactionModal")].filter(Boolean).forEach((el) => {
+      obs.observe(el, { attributes: true, attributeFilter: ["class", "hidden", "aria-hidden"] });
+    });
+  }
 }
 
 /** Use the same focusable set for dialog entry, nested dialogs and Tab wrapping. */
@@ -83,8 +146,10 @@ function setupTheme() {
 
   const apply = () => {
     const resolved = preference === "system" ? (colorScheme?.matches ? "dark" : "light") : preference;
-    document.documentElement.dataset.theme = resolved;
-    document.documentElement.dataset.themePreference = preference;
+    const root = document.documentElement;
+    root.dataset.themeSwitching = "true";
+    root.dataset.theme = resolved;
+    root.dataset.themePreference = preference;
     const visibleLabel = { system: "系统", light: "浅色", dark: "深色" }[preference];
     const description = `外观：${visibleLabel}`;
     if (label) label.textContent = visibleLabel;
@@ -96,19 +161,24 @@ function setupTheme() {
     const themeMeta = document.querySelector('meta[name="theme-color"]');
     if (themeMeta) {
       themeMeta.content = resolved === "dark"
-        ? (interfaceEnhancementsEnabled ? "#0f1217" : "#111318")
-        : (interfaceEnhancementsEnabled ? "#f4f6f9" : "#f3f2ef");
+        ? (interfaceEnhancementsEnabled ? "#0b0e14" : "#111318")
+        : (interfaceEnhancementsEnabled ? "#f6f7f9" : "#f3f2ef");
     }
     // Native shell follows the web preference: one theme source of truth.
     document.dispatchEvent(new CustomEvent("wyj:theme-changed", { detail: { preference, resolved } }));
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        delete root.dataset.themeSwitching;
+      });
+    });
   };
   syncThemeMeta = () => {
     const resolved = document.documentElement.dataset.theme || "light";
     const themeMeta = document.querySelector('meta[name="theme-color"]');
     if (themeMeta) {
       themeMeta.content = resolved === "dark"
-        ? (interfaceEnhancementsEnabled ? "#0f1217" : "#111318")
-        : (interfaceEnhancementsEnabled ? "#f4f6f9" : "#f3f2ef");
+        ? (interfaceEnhancementsEnabled ? "#0b0e14" : "#111318")
+        : (interfaceEnhancementsEnabled ? "#f6f7f9" : "#f3f2ef");
     }
   };
 
@@ -306,11 +376,91 @@ export function setExperienceMode(mode) {
   navigationController?.close();
 }
 
+export function workspaceRouteMeta(pathname, { authenticated = false, toolTitle = "", adminSection = "", languageSection = "" } = {}) {
+  if (!authenticated) return null;
+  const path = String(pathname || "/").replace(/\/+$/, "") || "/";
+  if (path === "/" || path === "/select") return { id: "home", trail: ["个人工作台"] };
+  if (path === "/language") return { id: "language", trail: ["语言学习", languageSection].filter(Boolean) };
+  if (path === "/language/english") return { id: "language", trail: ["语言学习", "英语", languageSection].filter(Boolean) };
+  if (path === "/language/japanese") return { id: "language", trail: ["语言学习", "日语", languageSection].filter(Boolean) };
+  if (path === "/tools") return { id: "tools", trail: ["工具箱"] };
+  if (path === "/tools/workflows") return { id: "tools", trail: ["工具箱", "工作流"] };
+  if (path.startsWith("/tools/")) return { id: "tools", trail: ["工具箱", toolTitle || "工具"] };
+  if (path === "/finance") return { id: "finance", trail: ["财务账本"] };
+  if (path === "/transfer") return { id: "transfer", trail: ["文件传输"] };
+  if (path === "/account") return { id: "account", trail: ["账户与安全"] };
+  if (path === "/admin") return { id: "admin", trail: ["管理后台", adminSection].filter(Boolean) };
+  if (path === "/recharge") return { id: "recharge", trail: ["会员与充值"] };
+  return null;
+}
+
+export function syncSidebarActiveIndicator(doc = globalThis.document) {
+  const sidebar = doc?.getElementById?.("v3Sidebar");
+  const indicator = doc?.getElementById?.("v3SidebarIndicator");
+  if (!sidebar || !indicator) return;
+  const active = sidebar.querySelector('.v3-sidebar-nav [data-v3-nav][aria-current="page"]');
+  if (!active || active.hidden) {
+    indicator.style.opacity = "0";
+    return;
+  }
+  if (!active.offsetHeight) {
+    indicator.style.opacity = "0";
+    if (typeof doc.defaultView?.requestAnimationFrame === "function" && !indicator.dataset.rafQueued) {
+      indicator.dataset.rafQueued = "true";
+      doc.defaultView.requestAnimationFrame(() => {
+        delete indicator.dataset.rafQueued;
+        syncSidebarActiveIndicator(doc);
+      });
+    }
+    return;
+  }
+  const height = Math.max(16, active.offsetHeight - 10);
+  const top = Math.max(0, active.offsetTop + Math.round((active.offsetHeight - height) / 2));
+  indicator.style.height = `${height}px`;
+  indicator.style.transform = `translateY(${top}px)`;
+  indicator.style.opacity = "1";
+}
+
+export function syncWorkspaceShell(doc, meta) {
+  if (meta) doc.body.dataset.workspaceRoute = meta.id;
+  else delete doc.body.dataset.workspaceRoute;
+  const nav = doc.getElementById("workspaceBreadcrumb");
+  if (!nav) {
+    syncSidebarActiveIndicator(doc);
+    return;
+  }
+  nav.hidden = !meta;
+  const list = nav.querySelector("ol");
+  if (!list) {
+    syncSidebarActiveIndicator(doc);
+    return;
+  }
+  const items = meta ? ["Aeris", ...meta.trail] : ["Aeris"];
+  items.forEach((text, i) => {
+    let li = list.children[i];
+    if (!li) {
+      li = doc.createElement("li");
+      list.append(li);
+    }
+    if (li.textContent !== text) li.textContent = text;
+    if (i === items.length - 1 && meta) li.setAttribute("aria-current", "page");
+    else li.removeAttribute("aria-current");
+  });
+  while (list.children.length > items.length) list.lastElementChild.remove();
+  syncSidebarActiveIndicator(doc);
+}
+
 export function initDesignSystem() {
   setupOverlayViewport();
   setupTheme();
   navigationController = setupNavigation();
   setupContentNavigation();
   setupFormFeedback();
+  if (typeof ResizeObserver === "function") {
+    const sidebarNav = document.querySelector("#v3Sidebar .v3-sidebar-nav");
+    if (sidebarNav) {
+      new ResizeObserver(() => syncSidebarActiveIndicator(document)).observe(sidebarNav);
+    }
+  }
   if (!document.body.dataset.experience) setExperienceMode(WORKSPACE_MODE);
 }

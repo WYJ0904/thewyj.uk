@@ -174,14 +174,14 @@ export async function authenticateTask12Password(db, username, secret, options =
   const row = await userByName(db, usernameText);
   if (!row || row.deleted) {
     await consumeVerificationWork(secretText, passwordPepper(options));
-    throw new Task12Error("用户名或登录密钥错误", 403, "invalid_credentials");
+    throw new Task12Error("用户名或登录密码错误", 403, "invalid_credentials");
   }
   if (row.password_scheme !== PASSWORD_HASH_PREFIX || !row.password_hash) {
     await consumeVerificationWork(secretText, passwordPepper(options));
-    throw new Task12Error("此账户需要先重置登录密钥", 403, "password_reset_required");
+    throw new Task12Error("此账户需要先重置登录密码", 403, "password_reset_required");
   }
   const verified = await verifyRowSecret(row, secretText, options);
-  if (!verified.valid) throw new Task12Error("用户名或登录密钥错误", 403, "invalid_credentials");
+  if (!verified.valid) throw new Task12Error("用户名或登录密码错误", 403, "invalid_credentials");
   if (row.banned) throw new Task12Error("账户已被封禁", 403, "account_banned");
   return { row, secretText, verified };
 }
@@ -323,9 +323,9 @@ export async function logoutAllAccounts(db, account) {
 export async function changeOwnSecret(db, account, currentSecret, newSecret, options = {}) {
   const row = await userById(db, account.id);
   if (!row || row.deleted) throw new Task12Error("账户不存在", 404, "user_not_found");
-  if (isSuperAdmin(row)) throw new Task12Error("固定管理员密钥不能在此修改", 403, "admin_protected");
+  if (isSuperAdmin(row)) throw new Task12Error("固定管理员密码不能在此修改", 403, "admin_protected");
   const verified = await verifyRowSecret(row, currentSecret, options);
-  if (!verified.valid) throw new Task12Error("当前登录密钥错误", 403, "invalid_secret");
+  if (!verified.valid) throw new Task12Error("当前密码错误", 403, "invalid_secret");
   const hash = await hashSecret(validateSecret(newSecret), passwordPepper(options));
   const now = isoNow();
   const before = auditSnapshot(row);
@@ -345,7 +345,7 @@ export async function deleteOwnAccount(db, account, secret, options = {}) {
   if (!row || row.deleted) throw new Task12Error("账户不存在", 404, "user_not_found");
   if (isAdmin(row)) throw new Task12Error("管理员角色需由站点所有者撤销后才能注销", 403, "admin_protected");
   const verified = await verifyRowSecret(row, secret, options);
-  if (!verified.valid) throw new Task12Error("当前登录密钥错误", 403, "invalid_secret");
+  if (!verified.valid) throw new Task12Error("当前密码错误", 403, "invalid_secret");
   const now = isoNow();
   const before = auditSnapshot(row);
   const task30Ready = await hasTask30(db);
@@ -484,7 +484,7 @@ export async function adminResetSecret(db, actor, userId, secret, options = {}) 
     db.prepare("UPDATE task12_sessions SET revoked = 1, revoked_at = ?2 WHERE user_id = ?1 AND revoked = 0")
       .bind(target.id, now),
   ]);
-  await accountAudit(db, actor, "password_reset", target, before, auditSnapshot(await userById(db, target.id)), "管理员重置登录密钥并注销全部会话");
+  await accountAudit(db, actor, "password_reset", target, before, auditSnapshot(await userById(db, target.id)), "管理员重置登录密码并注销全部会话");
 }
 
 export async function adminSetBan(db, actor, userId, banned) {
