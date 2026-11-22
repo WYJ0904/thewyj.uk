@@ -120,11 +120,12 @@ export function createFeatureConsole({ api, apiGet, getAccount, refreshFeatures,
     const summaryList = node('featureFlagSummaryList');
     if (summaryList) {
       summaryList.replaceChildren(...flags.map(flag => {
+        const row = document.createElement('li');
+        row.className = 'feature-directory-row';
         const item = document.createElement('button');
         item.type = 'button';
         item.className = 'feature-directory-item';
         item.dataset.flagKey = flag.flag_key;
-        item.setAttribute('role', 'listitem');
         const state = flag.kill_switch ? 'kill' : flag.enabled ? 'on' : 'off';
         const stateLabel = flag.kill_switch ? '紧急关闭' : flag.enabled ? 'ON' : 'OFF';
         const keySpan = document.createElement('code');
@@ -142,7 +143,8 @@ export function createFeatureConsole({ api, apiGet, getAccount, refreshFeatures,
           if (select) { select.value = flag.flag_key; }
           edit(flag);
         });
-        return item;
+        row.append(item);
+        return row;
       }));
     }
     edit(current());
@@ -232,7 +234,7 @@ export function createFeatureConsole({ api, apiGet, getAccount, refreshFeatures,
       if (owner !== ownerId() || !available || !isAdmin()) return;
       await load({ resetDraft: true }); await refreshFeatures();
       setControlFeedbackState(button, 'success');
-      message('设置已保存并已在服务端生效', 'success');
+      message('设置已保存', 'success');
     } catch (error) {
       if (owner === ownerId()) {
         const cancelled = error?.message === '操作已取消';

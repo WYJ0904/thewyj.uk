@@ -6298,7 +6298,16 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #adminFeatureFlagsView .f
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 8px;
+  list-style: none;
   margin: 0 0 16px;
+  padding: 0;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #adminFeatureFlagsView .feature-directory-list .feature-directory-row {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: contents;
 }
 
 html[data-p07-ui="enabled"] body[data-workspace-route] #adminFeatureFlagsView .feature-directory-list .feature-directory-item {
@@ -6337,7 +6346,7 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #adminFeatureFlagsView .f
 html[data-p07-ui="enabled"] body[data-workspace-route] #adminFeatureFlagsView .feature-directory-meta {
   text-align: right;
   white-space: nowrap;
-  color: var(--ds-text-muted);
+  color: var(--ds-text-secondary);
   font-size: 0.75rem;
   font-variant-numeric: tabular-nums;
 }
@@ -6361,6 +6370,10 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #adminFeatureFlagsView .f
     background: var(--ds-surface);
   }
 
+  html[data-p07-ui="enabled"] body[data-workspace-route] #adminFeatureFlagsView .feature-directory-list .feature-directory-row {
+    display: block;
+  }
+
   html[data-p07-ui="enabled"] body[data-workspace-route] #adminFeatureFlagsView .feature-directory-list .feature-directory-item {
     grid-template-columns: minmax(0, 1fr) 74px 64px;
     min-height: 45px;
@@ -6371,7 +6384,7 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #adminFeatureFlagsView .f
     background: transparent;
   }
 
-  html[data-p07-ui="enabled"] body[data-workspace-route] #adminFeatureFlagsView .feature-directory-list .feature-directory-item:last-child {
+  html[data-p07-ui="enabled"] body[data-workspace-route] #adminFeatureFlagsView .feature-directory-list .feature-directory-row:last-child .feature-directory-item {
     border-bottom: 0;
   }
 
@@ -6719,5 +6732,25 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #adminFeatureFlagsView .f
 @media (prefers-reduced-motion: reduce) {
   html[data-p07-ui="enabled"] :is(#accountMessage, #adminEditMessage, #adminError, #siteMessageError, #releaseChannelStatus, #featureConsoleStatus, #adminMessageFormStatus, #adminRoleStatus) {
     transition: none;
+  }
+}
+
+/* Ensure admin tab views render at full opacity immediately so contrast and legibility never dip during entry. */
+@keyframes adminViewSlideIn {
+  from {
+    transform: translateY(4px);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+html[data-p07-ui="enabled"] .admin-view.active {
+  animation: adminViewSlideIn var(--ds-duration-fast) var(--ds-ease-standard) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-p07-ui="enabled"] .admin-view.active {
+    animation: none;
   }
 }

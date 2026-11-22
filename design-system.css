@@ -1065,12 +1065,7 @@ textarea[aria-invalid="true"] {
   background: var(--ds-border-strong);
 }
 
-body.ds-sheet-scaling .app-scale-wrap,
-body.ds-sheet-scaling #v3AppFrame {
-  transform: scale(var(--ds-bg-scale, 1));
-  transform-origin: center top;
-  transition: transform var(--ds-duration-container) var(--ds-ease-spring);
-}
+/* Sheet backdrop scale removed to preserve 1:1 WebView/layout width invariants (Task27). */
 
 .app-scale-wrap,
 #v3AppFrame {

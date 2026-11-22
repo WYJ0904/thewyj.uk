@@ -12,9 +12,9 @@ import {
   attachSheetAdapter,
   syncModalScrollLock,
   createScrollProgressController,
-} from "/js/core/motion.js?release=20261119-aeris-i03-preview";
-import { reconcileKeyedRows } from "/js/core/keyed-list.js?release=20261119-aeris-i03-preview";
-import { focusDialog, dialogFocusTargets } from "/js/core/design-system.js?release=20261119-aeris-i03-preview";
+} from "/js/core/motion.js";
+import { reconcileKeyedRows } from "/js/core/keyed-list.js";
+import { focusDialog, dialogFocusTargets } from "/js/core/design-system.js";
 
 const $ = (id) => document.getElementById(id);
 const statusLine = $("fixtureStatusLine");

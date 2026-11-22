@@ -1203,16 +1203,10 @@ export function getScrollLockCount(doc = globalThis.document) {
   return scrollLocks.get(doc) || 0;
 }
 
-function setBackgroundScale(doc, scaleTarget, ratio, reduced) {
-  if (!scaleTarget?.style || !doc?.body) return;
-  if (reduced || ratio <= 0) {
-    scaleTarget.style.removeProperty("--ds-bg-scale");
-    doc.body.classList?.remove("ds-sheet-scaling");
-    return;
-  }
-  const scale = 1 - 0.018 * Math.max(0, Math.min(1, ratio));
-  scaleTarget.style.setProperty("--ds-bg-scale", scale.toFixed(4));
-  doc.body.classList?.add("ds-sheet-scaling");
+function setBackgroundScale(doc, scaleTarget) {
+  // Never transform:scale #v3AppFrame or WebView root containers (breaks layout geometry & Task 27 width invariants).
+  if (scaleTarget?.style) scaleTarget.style.removeProperty("--ds-bg-scale");
+  doc?.body?.classList?.remove("ds-sheet-scaling");
 }
 
 function rubberBand(offset) {
