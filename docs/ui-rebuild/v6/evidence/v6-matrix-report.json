@@ -1,0 +1,101 @@
+{
+  "passed": true,
+  "viewports": [
+    {
+      "width": 375,
+      "height": 812,
+      "theme": "light",
+      "overflowX": 0
+    },
+    {
+      "width": 375,
+      "height": 812,
+      "theme": "dark",
+      "overflowX": 0
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "theme": "light",
+      "overflowX": 0
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "theme": "dark",
+      "overflowX": 0
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "overflowX": 0
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "overflowX": 0
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "theme": "light",
+      "overflowX": 0
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "theme": "dark",
+      "overflowX": 0
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "theme": "light",
+      "overflowX": 0
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "theme": "dark",
+      "overflowX": 0
+    }
+  ],
+  "checks": {
+    "guestHome": {
+      "mode": "guest",
+      "wsHidden": true,
+      "greeting": "",
+      "bentoCount": 5,
+      "overflowX": 0
+    },
+    "authFirstScreen": {
+      "greeting": "这么晚不睡，wyj，请多注意身体。",
+      "wsTop": 191,
+      "frameTransform": "none",
+      "indicatorOpacity": "1"
+    },
+    "reducedMotionDuration": "0ms",
+    "financePrivacy": {
+      "mask": "true",
+      "pressed": "true"
+    },
+    "toolsKeyboardLaunch": "JSON 合法性检查",
+    "adminFlagsListTag": "UL"
+  },
+  "screenshots": [
+    "v6-guest-home-1440-light.png",
+    "v6-guest-home-1440-dark.png",
+    "v6-guest-home-375-light.png",
+    "v6-auth-home-1440-light.png",
+    "v6-auth-home-1440-dark.png",
+    "v6-auth-home-375-light.png",
+    "v6-command-palette-1440-light.png",
+    "v6-finance-1440-light.png",
+    "v6-finance-375-light.png",
+    "v6-tools-1440-light.png",
+    "v6-admin-flags-1440-light.png"
+  ],
+  "runtimeErrors": []
+}

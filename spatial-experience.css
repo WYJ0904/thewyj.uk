@@ -6811,6 +6811,12 @@ html[data-p07-ui="enabled"] .v3-sidebar-nav {
   position: relative;
 }
 
+/* Replace static per-link ::before bar with shared gliding V6 indicator */
+html[data-p07-ui="enabled"] .v3-sidebar-nav a[aria-current="page"]::before,
+html[data-p07-ui="enabled"] .v3-sidebar-nav a.active::before {
+  content: none;
+}
+
 html[data-p07-ui="enabled"] .v3-nav-indicator {
   position: absolute;
   left: 0;
@@ -6853,6 +6859,12 @@ html[data-p07-ui="enabled"] .v3-cmd-header {
   padding: 10px 14px;
   border-bottom: 1px solid var(--ds-border);
   background: var(--ds-surface);
+}
+
+html[data-p07-ui="enabled"] .v3-cmd-header .modal-close {
+  position: static;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 html[data-p07-ui="enabled"] .v3-cmd-input {
@@ -6974,9 +6986,12 @@ html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"].hidde
   display: none;
 }
 
+html[data-p07-ui="enabled"]:not([data-large-text="true"]) #publicHome[data-session-mode="authenticated"]:not([data-widget-layout="mobile"]) > [data-public-section="hero"],
 html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] > [data-public-section="hero"] {
   order: 1;
   width: min(calc(100% - 40px), var(--ds-container-console));
+  height: auto;
+  min-height: 0;
   margin: 8px auto 0;
   padding: 12px 18px;
   border-radius: var(--ds-radius-md);
@@ -7027,32 +7042,36 @@ html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] > #au
   margin-top: 0;
 }
 
-html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] > .home-workspace-overview {
+html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] > #homeV3SummaryGrid {
   order: 3;
 }
 
-html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] > #homeProductDetails {
+html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] > .home-workspace-overview {
   order: 4;
 }
 
-html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] > [data-public-section="window"] {
+html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] > #homeProductDetails {
   order: 5;
 }
 
-html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] > [data-public-section="capabilities"] {
+html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] > [data-public-section="window"] {
   order: 6;
 }
 
-html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] > [data-public-section="privacy"] {
+html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] > [data-public-section="capabilities"] {
   order: 7;
 }
 
-html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] > [data-public-section="plans"] {
+html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] > [data-public-section="privacy"] {
   order: 8;
 }
 
-html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] > [data-public-section="final"] {
+html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] > [data-public-section="plans"] {
   order: 9;
+}
+
+html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] > [data-public-section="final"] {
+  order: 10;
 }
 
 @media (max-width: 640px) {
@@ -7188,6 +7207,19 @@ html[data-p07-ui="enabled"] #task30PrivacyModal :is(.sc-privacy-tab, .sc-privacy
 @media (max-width: 640px) {
   html[data-p07-ui="enabled"] .tool-search-kbd {
     display: none;
+  }
+
+  html[data-p07-ui="enabled"] #financePage .finance-header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+  }
+
+  html[data-p07-ui="enabled"] #financePage .finance-header-actions > button {
+    white-space: nowrap;
+    flex: 0 1 auto;
   }
 
   html[data-p07-ui="enabled"] #financePage .finance-transaction {

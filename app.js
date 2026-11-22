@@ -8787,6 +8787,7 @@ async function boot() {
     installMotionSystem();
     installNativeThemeBridge();
     setupResponsiveDisclosures();
+    window.requestAnimationFrame(() => syncSidebarActiveIndicator(document));
     document.documentElement.dataset.bootState = startupMounted ? 'ready' : 'recovering';
   }, whenContentReady);
 }

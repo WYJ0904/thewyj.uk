@@ -19,6 +19,10 @@ export function setInterfaceEnhancementsEnabled(enabled) {
   if (!interfaceEnhancementsEnabled) resetFormFeedback();
   refreshContentPolicy();
   syncThemeMeta();
+  syncSidebarActiveIndicator(globalThis.document);
+  if (typeof globalThis.requestAnimationFrame === "function") {
+    globalThis.requestAnimationFrame(() => syncSidebarActiveIndicator(globalThis.document));
+  }
   return interfaceEnhancementsEnabled;
 }
 
@@ -395,8 +399,19 @@ export function syncSidebarActiveIndicator(doc = globalThis.document) {
   const indicator = doc?.getElementById?.("v3SidebarIndicator");
   if (!sidebar || !indicator) return;
   const active = sidebar.querySelector('.v3-sidebar-nav [data-v3-nav][aria-current="page"]');
-  if (!active || active.hidden || !active.offsetHeight) {
+  if (!active || active.hidden) {
     indicator.style.opacity = "0";
+    return;
+  }
+  if (!active.offsetHeight) {
+    indicator.style.opacity = "0";
+    if (typeof doc.defaultView?.requestAnimationFrame === "function" && !indicator.dataset.rafQueued) {
+      indicator.dataset.rafQueued = "true";
+      doc.defaultView.requestAnimationFrame(() => {
+        delete indicator.dataset.rafQueued;
+        syncSidebarActiveIndicator(doc);
+      });
+    }
     return;
   }
   const height = Math.max(16, active.offsetHeight - 10);
@@ -441,5 +456,11 @@ export function initDesignSystem() {
   navigationController = setupNavigation();
   setupContentNavigation();
   setupFormFeedback();
+  if (typeof ResizeObserver === "function") {
+    const sidebarNav = document.querySelector("#v3Sidebar .v3-sidebar-nav");
+    if (sidebarNav) {
+      new ResizeObserver(() => syncSidebarActiveIndicator(document)).observe(sidebarNav);
+    }
+  }
   if (!document.body.dataset.experience) setExperienceMode(WORKSPACE_MODE);
 }
