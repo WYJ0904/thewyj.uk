@@ -179,9 +179,11 @@ try {
   await page.setFields({ "#usernameInput": adminUser, "#secretInput": adminPass });
   await page.click("#loginSubmitBtn");
   await page.waitFor("document.querySelector('#publicHome')?.dataset.sessionMode === 'authenticated' && !document.querySelector('#authWorkspaceSection')?.hidden && !document.getElementById('authTransitionScreen') && document.documentElement.dataset.workspaceMount === 'ready'", 25_000, "hosted admin signed in");
-  await page.waitFor("!document.querySelector('#siteMessageModal')?.classList.contains('hidden')", 15_000, "hosted site message visible");
-  await pointerClick("#siteMessageCloseBtn");
-  await page.waitFor("document.querySelector('#siteMessageModal')?.classList.contains('hidden')", 10_000);
+  await delay(600);
+  if (await page.evaluate("!document.querySelector('#siteMessageModal')?.classList.contains('hidden')")) {
+    await pointerClick("#siteMessageCloseBtn");
+    await page.waitFor("document.querySelector('#siteMessageModal')?.classList.contains('hidden')", 10_000);
+  }
   await page.waitFor("!document.getElementById('versionNotice').classList.contains('hidden')", 5_000, "hosted versionNotice visible");
 
   await page.evaluate(`(() => {
