@@ -2525,7 +2525,7 @@ export function createAssetPrefetcher({
     const link = doc.createElement("link");
     link.rel = "prefetch";
     link.href = url;
-    link.crossOrigin = "same-origin";
+    link.crossOrigin = "anonymous";
     doc.head.append(link);
     return true;
   }

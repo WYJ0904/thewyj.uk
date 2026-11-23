@@ -1062,7 +1062,11 @@
       if (activeRun) activeRun.controller.abort();
       hide({ cancel: true });
       byId("toolsDashboard")?.classList.remove("hidden");
+      document.querySelector("#toolsPanel .tools-header")?.classList.remove("hidden");
+      if (!byId("toolCatalog")?.children.length) root.WYJTools?.prepare?.();
       bridge.navigate("/tools");
+      const openBtn = byId("openWorkflowBtn");
+      (openBtn && !openBtn.disabled ? openBtn : byId("toolSearchInput"))?.focus?.({ preventScroll: true });
     });
     byId("createWorkflowBtn")?.addEventListener("click", () => {
       if (workflows.length >= MAX_WORKFLOWS) return setSaveMessage(`最多保存 ${MAX_WORKFLOWS} 个工作流`, true);
@@ -1095,7 +1099,19 @@
     }));
     byId("cancelWorkflowBtn")?.addEventListener("click", () => activeRun?.controller.abort());
     byId("downloadWorkflowResultBtn")?.addEventListener("click", () => lastOutput && downloadBlob(lastOutput.name || "workflow-result", lastOutput.value));
-    byId("copyWorkflowResultBtn")?.addEventListener("click", () => bridge.copyText(byId("workflowResultText").value));
+    byId("copyWorkflowResultBtn")?.addEventListener("click", async (event) => {
+      const button = event.currentTarget;
+      const copied = await bridge.copyText(byId("workflowResultText").value);
+      if (!button) return;
+      if (!button.dataset.originalLabel) button.dataset.originalLabel = button.textContent;
+      const prevTimer = Number(button.dataset.copyTimer || 0);
+      if (prevTimer) root.clearTimeout(prevTimer);
+      button.textContent = copied ? "已复制" : "复制失败";
+      button.dataset.copyTimer = String(root.setTimeout(() => {
+        delete button.dataset.copyTimer;
+        if (button.isConnected && button.dataset.originalLabel) button.textContent = button.dataset.originalLabel;
+      }, 1200));
+    });
   }
 
   root.WYJWorkflows = Object.freeze({

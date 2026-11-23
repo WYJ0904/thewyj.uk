@@ -101,9 +101,9 @@ const INSTALL_SHELL = REQUIRED_SHELL;
 const TASK26_INTEGRITY = Object.freeze({
   "/": "76cb04fb94f9b10cc84a70ef7d14d879a8d44ad64d5881c134de16962104f43f",
   "/index.html": "76cb04fb94f9b10cc84a70ef7d14d879a8d44ad64d5881c134de16962104f43f",
-  "/app.js?release=20261121-aeris-i05-preview": "807b5e475974a16c10e0185a28d2ff42f8c58e7bc715237b5aa8435ab23ca6d8",
+  "/app.js?release=20261121-aeris-i05-preview": "826e6eb427a53fa44f35dbeb5ab5f6f3b70ccb3f7f52e47b9accff9aa6a15c8d",
   "/learning-sync.js?release=20261121-aeris-i05-preview": "74ced24b8dab7c8ad16dc6b4b68ff81a89e968d18a607bbba6b066a8bee7727d",
-  "/product-ui.css?release=20261121-aeris-i05-preview": "a0cf5e02b738fa85779c65303543a2469f5ea72cc4bea73596d48dd34baa5e14",
+  "/product-ui.css?release=20261121-aeris-i05-preview": "e83c2417585ba7e48f5efa67beeae3735cb7e9e98437b6dfe666db2b41b8d157",
   "/js/language/mastery.js?release=20261121-aeris-i05-preview": "8a45bd65d69445c2f697c0abfb0dbff57c70b0ed4ceaee7f8617b115f676b51b",
   "/js/language/quiz.js?release=20261121-aeris-i05-preview": "cd4546dc7e48876bac503c49e259267bde99b79ab0cf5565cb917c1ed031e3b0",
   "/js/language/wrong-book.js?release=20261121-aeris-i05-preview": "bf37ff363205f1d462cf47ad1ee6000707d13731f0feacd25ffd971dbeeff2fe",
@@ -116,11 +116,11 @@ const TASK26_INTEGRITY = Object.freeze({
   "/js/core/api.js?release=20261121-aeris-i05-preview": "e43598b6e896e541f9a40d8b4b5741217ef7547774c99875c3e9ec4b636e0680",
   "/js/core/router.js?release=20261121-aeris-i05-preview": "1563c9dbbbf1ecc17a2a41129557682838d5c4b00bd74f1db6b51432a7e53edd",
   "/js/account/policy-version.js?release=20261121-aeris-i05-preview": "601fb007c886c38a71c45afc216e79a9923c86ccd7883c26316e638767c8323e",
-  "/js/transfer/app.js?release=20261121-aeris-i05-preview": "7edc17dd15e20d82dd52492dea5efe53f239a5d6924d902a576d4f17f821c6b1",
+  "/js/transfer/app.js?release=20261121-aeris-i05-preview": "44d3b4c8f76376af4b75ad0b43a7503b1da6222ffcdbb106bf26d94570d51bbb",
   "/js/account/password-policy.js?release=20261121-aeris-i05-preview": "48fd3d494120682e5b8baac8c73fb6ff68714cbc89d567318e9ea39549c80c56",
   "/js/account/password-fields.js?release=20261121-aeris-i05-preview": "e67497c31748194bdba244723e45620dbfd9552840c7721b1a9b0530208c2e78"
 });
-const PUBLICATION_HASH = "274bbce216a645178c90eb00218ef623df64a6f498ce9893b084d59afcf4f950";
+const PUBLICATION_HASH = "f6f21340064277c936addb559f7b7274201db7501ffe1cf46561ba741dee4034";
 const PUBLICATION_CACHE = `${CACHE}-task26-${PUBLICATION_HASH.slice(0, 16)}`;
 const PUBLICATION_MARKER = "/__aeris/task26-publication";
 

@@ -3116,7 +3116,7 @@ textarea::placeholder {
   min-height: 48px;
 }
 
-.tool-search > span,
+.tool-search span,
 .tool-form label > span,
 #toolWorkbenchDescription {
   color: var(--color-text-secondary);
