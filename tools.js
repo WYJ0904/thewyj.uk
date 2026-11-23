@@ -34,6 +34,7 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
   "use strict";
   const boundToolRoots = new WeakSet();
   let catalogSearchTimer = 0;
+  let lastOpenedToolId = "";
 
   async function fetchStaticText(url, timeoutMs = 10000) {
     const controller = typeof AbortController === "undefined" ? null : new AbortController();
@@ -195,9 +196,15 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
 
   async function copyText(value, button) {
     const copied = await bridge.copyText(String(value));
-    const original = button.textContent;
+    if (!button) return;
+    if (!button.dataset.originalLabel) button.dataset.originalLabel = button.textContent;
+    const prevTimer = Number(button.dataset.copyTimer || 0);
+    if (prevTimer) window.clearTimeout(prevTimer);
     button.textContent = copied ? "已复制" : "复制失败";
-    window.setTimeout(() => { if (button.isConnected) button.textContent = original; }, 1200);
+    button.dataset.copyTimer = String(window.setTimeout(() => {
+      delete button.dataset.copyTimer;
+      if (button.isConnected && button.dataset.originalLabel) button.textContent = button.dataset.originalLabel;
+    }, 1200));
   }
 
   function renderCategories() {
@@ -547,12 +554,18 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
     if (!tool) return;
     viewRevision++;
     window.WYJWorkflows?.hide?.({ cancel: true });
+    lastOpenedToolId = tool.id;
     currentTool = tool;
+    const dashboardHadFocus = Boolean(byId("toolsDashboard")?.contains(document.activeElement));
     byId("toolsDashboard").classList.add("hidden");
     byId("toolWorkbench").classList.remove("hidden");
     byId("toolWorkbench").setAttribute("aria-hidden", "false");
     renderCurrentTool();
     if (pushRoute) bridge.navigate(`/tools/${tool.id}`);
+    if (pushRoute || dashboardHadFocus) {
+      const target = byId("toolWorkbenchBody")?.querySelector("input:not([type='hidden']):not(:disabled), textarea:not(.hidden):not(:disabled), select:not(:disabled), button:not(:disabled)") || byId("closeToolWorkbenchBtn");
+      target?.focus?.({ preventScroll: true });
+    }
     recordRecentLocally(tool.id);
     syncRecentLatest(tool.id);
   }
@@ -561,12 +574,19 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
     viewRevision++;
     stopRoomPolling();
     cancelActiveUpload(false);
+    const closedToolId = currentTool?.id || lastOpenedToolId;
+    const workbenchHadFocus = Boolean(byId("toolWorkbench")?.contains(document.activeElement));
     currentTool = null;
     currentDownload = null;
     byId("toolWorkbench").classList.add("hidden");
     byId("toolWorkbench").setAttribute("aria-hidden", "true");
     byId("toolsDashboard").classList.remove("hidden");
     if (pushRoute) bridge.navigate("/tools");
+    if ((pushRoute || workbenchHadFocus) && !byId("toolsPanel")?.classList.contains("hidden")) {
+      const escaped = closedToolId && window.CSS?.escape ? window.CSS.escape(closedToolId) : closedToolId;
+      const cardBtn = escaped ? byId("toolCatalog")?.querySelector(`[data-tool-card="${escaped}"] .tool-open`) : null;
+      (cardBtn || byId("toolSearchInput"))?.focus?.({ preventScroll: true });
+    }
   }
 
   async function show(path = "/tools", options = {}) {
@@ -608,6 +628,7 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
 
   function hide() {
     window.clearTimeout(catalogSearchTimer);
+    byId("toolCatalog")?.setAttribute("aria-busy", "false");
     viewRevision++;
     stopRoomPolling();
     cancelActiveUpload(false);
@@ -651,7 +672,18 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
       }
     });
     document.addEventListener("keydown", (event) => {
-      if (event.key !== "/" || event.ctrlKey || event.metaKey || event.altKey || event.isComposing) return;
+      if (event.isComposing) return;
+      if (event.key === "Escape") {
+        const panel = byId("toolsPanel");
+        const workbench = byId("toolWorkbench");
+        if (!panel || panel.classList.contains("hidden") || !workbench || workbench.classList.contains("hidden")) return;
+        if (document.querySelector(".modal-layer:not(.hidden)")) return;
+        if (document.activeElement?.tagName === "SELECT") return;
+        event.preventDefault();
+        closeWorkbench(true);
+        return;
+      }
+      if (event.key !== "/" || event.ctrlKey || event.metaKey || event.altKey) return;
       const dash = byId("toolsDashboard");
       const panel = byId("toolsPanel");
       if (!panel || panel.classList.contains("hidden") || !dash || dash.classList.contains("hidden")) return;

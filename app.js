@@ -8141,6 +8141,7 @@ async function boot() {
     if (cmdActiveIndex >= cmdFilteredItems.length) cmdActiveIndex = 0;
     list.replaceChildren();
     if (!cmdFilteredItems.length) {
+      input?.removeAttribute("aria-activedescendant");
       const empty = document.createElement("p");
       empty.className = "meta-line v3-cmd-empty";
       empty.textContent = "未找到匹配命令或模块，按 Esc 关闭或修改关键字。";
@@ -8149,13 +8150,18 @@ async function boot() {
       return;
     }
     if (hint) hint.textContent = `${cmdFilteredItems.length} 条可用操作 · ↑ ↓ 选择 · Enter 执行`;
+    let activeBtn = null;
     cmdFilteredItems.forEach((item, idx) => {
       const btn = document.createElement("button");
       btn.type = "button";
+      btn.id = `v3CmdOption_${idx}`;
       btn.className = "v3-cmd-item";
       btn.setAttribute("role", "option");
       btn.setAttribute("aria-selected", idx === cmdActiveIndex ? "true" : "false");
-      if (idx === cmdActiveIndex) btn.classList.add("is-active");
+      if (idx === cmdActiveIndex) {
+        btn.classList.add("is-active");
+        activeBtn = btn;
+      }
       const nameSpan = document.createElement("span");
       nameSpan.className = "v3-cmd-item-label";
       nameSpan.textContent = item.label;
@@ -8169,6 +8175,12 @@ async function boot() {
       });
       list.append(btn);
     });
+    if (activeBtn) {
+      input?.setAttribute("aria-activedescendant", activeBtn.id);
+      activeBtn.scrollIntoView?.({ block: "nearest" });
+    } else {
+      input?.removeAttribute("aria-activedescendant");
+    }
   }
   function openCommandPalette() {
     const modal = $("commandPaletteModal");
@@ -8185,6 +8197,7 @@ async function boot() {
     renderCommandPaletteList();
   });
   $("commandPaletteInput")?.addEventListener("keydown", (event) => {
+    if (event.isComposing) return;
     if (event.key === "ArrowDown") {
       if (!cmdFilteredItems.length) return;
       event.preventDefault();

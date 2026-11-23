@@ -1661,7 +1661,7 @@ html[data-p07-ui="enabled"] .account-details :is(dd, code) { overflow-wrap: anyw
 }
 
 html[data-p07-ui="enabled"] [aria-busy="true"] {
-  opacity: 0.76;
+  cursor: progress;
 }
 
 html[data-p07-ui="enabled"] .modal-layer {

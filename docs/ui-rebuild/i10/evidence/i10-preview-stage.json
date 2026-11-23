@@ -1,0 +1,26 @@
+{
+  "buildJson": {
+    "schema_version": 1,
+    "environment": "isolated-preview",
+    "stage": "I10-full-site-interaction-acceptance",
+    "source_commit": "942f40f4cebf4bb0f9988b95292162a2fb679ee0",
+    "project_name": "thewyj-i10-preview",
+    "branch": "i10-interaction-acceptance",
+    "remote_check": {
+      "verified": true,
+      "project": "thewyj-i10-preview",
+      "branch": "i10-interaction-acceptance",
+      "productionBranch": "release-held",
+      "targetD1Id": "dde3e526-eee3-4690-bdd8-a7168c318681",
+      "targetD1Name": "aeris-i10-preview",
+      "targetR2Name": "aeris-i10-preview-storage"
+    },
+    "file_count": 216,
+    "artifact_tree_sha256": "9c81ecffcebef6d90b459d047e5263a000007c81583d7b82793066f745450197"
+  },
+  "deployResult": {
+    "deployedUrl": "https://940d16f0.thewyj-i10-preview.pages.dev",
+    "aliasUrl": "https://i10-interaction-acceptance.thewyj-i10-preview.pages.dev",
+    "deploymentId": "940d16f0-8e9c-4e10-ae48-9cea618ac768"
+  }
+}

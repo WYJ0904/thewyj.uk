@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "environment": "isolated-preview",
+  "project": "thewyj-i10-preview",
+  "branch": "i10-interaction-acceptance",
+  "production_branch": "release-held",
+  "d1_name": "aeris-i10-preview",
+  "d1_id": "dde3e526-eee3-4690-bdd8-a7168c318681",
+  "r2_name": "aeris-i10-preview-storage",
+  "r2_buckets": [
+    "WYJ_STORAGE"
+  ],
+  "ai_bindings": [],
+  "workers_ai_enabled": "false",
+  "email_sending_enabled": "false",
+  "legacy_api_fallback_enabled": "false",
+  "secret_names": [
+    "WYJ_TASK12_PASSWORD_PEPPER",
+    "WYJ_TASK14_TEMPORARY_SECRET",
+    "WYJ_TASK20_DEVICE_SESSION_SECRET"
+  ],
+  "migrated_and_seeded_p07": true,
+  "provisioned_at": "2026-11-23T04:45:17.135Z"
+}

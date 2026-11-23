@@ -1120,7 +1120,8 @@ export function createTransferController({
       ownedShareIds.add(payload.share.id);
       renderQueue();
       renderShare(payload.share);
-      element("transferShareCard")?.scrollIntoView({ block: "start", behavior: "smooth" });
+      const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches === true;
+      element("transferShareCard")?.scrollIntoView({ block: "start", behavior: reducedMotion ? "auto" : "smooth" });
       setMessage(payload.share.access_scope === 'private' ? '私有附件已保存，仅当前账户可获取下载授权。' : "分享已创建。", "success");
       // Publication moves the reservation into stored usage and creates an
       // owner-list entry. Refresh both existing owners without another upload.
@@ -1482,8 +1483,30 @@ export function createTransferController({
     }
     else if (button.id === "transferCopyLinkBtn") {
       const link = element("transferShareLink");
+      const value = link?.value || "";
       link?.select();
-      navigator.clipboard?.writeText(link?.value || "").then(() => setMessage("链接已复制。", "success")).catch(() => setMessage("复制失败，请手动复制。"));
+      const applyCopyUi = (copied) => {
+        setMessage(copied ? "链接已复制。" : "复制失败，请手动复制。", copied ? "success" : "error");
+        if (!button.dataset.originalLabel) button.dataset.originalLabel = button.textContent;
+        const prevTimer = Number(button.dataset.copyTimer || 0);
+        if (prevTimer) window.clearTimeout(prevTimer);
+        button.textContent = copied ? "已复制" : "复制失败";
+        button.dataset.copyTimer = String(window.setTimeout(() => {
+          delete button.dataset.copyTimer;
+          if (button.isConnected && button.dataset.originalLabel) button.textContent = button.dataset.originalLabel;
+        }, 1200));
+      };
+      if (navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(value).then(() => applyCopyUi(true)).catch(() => {
+          let copied = false;
+          try { copied = document.execCommand("copy"); } catch (_) { copied = false; }
+          applyCopyUi(copied);
+        });
+      } else {
+        let copied = false;
+        try { copied = document.execCommand("copy"); } catch (_) { copied = false; }
+        applyCopyUi(copied);
+      }
     }
     else if (button.id === "transferBackBtn") navigate("/select");
     else if (button.dataset.transferPause) pauseItem(button.dataset.transferPause);

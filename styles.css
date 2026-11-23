@@ -1343,7 +1343,7 @@ textarea {
 
 .tool-search span,
 .tool-form label > span {
-  color: #a8bbce;
+  color: var(--ds-text-secondary, #475569);
   font-size: 13px;
 }
 
@@ -1354,7 +1354,7 @@ textarea {
 
 .local-processing-note {
   margin: 10px 0 24px;
-  color: #87a6bc;
+  color: var(--ds-text-muted, #5b687a);
 }
 
 .tool-category-grid {

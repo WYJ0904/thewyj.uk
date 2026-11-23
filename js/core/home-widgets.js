@@ -646,8 +646,8 @@ export function createHomeWidgets({
         (cfg) => ({ ...cfg, density: nextDensity, customized: true }),
         {
           flip: true,
-          flipDuration: 340,
-          flipScale: true,
+          flipDuration: 240,
+          flipScale: false,
           autoPersist: !editing,
           announceText: nextDensity === "compact" ? "已切换为紧凑单列视图" : "已切换为舒适双列视图",
         },

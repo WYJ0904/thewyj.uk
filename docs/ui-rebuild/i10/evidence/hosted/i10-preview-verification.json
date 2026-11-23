@@ -1,0 +1,272 @@
+{
+  "previewUrl": "https://i10-interaction-acceptance.thewyj-i10-preview.pages.dev",
+  "headCommit": "942f40f4cebf4bb0f9988b95292162a2fb679ee0",
+  "checkedAt": "2026-11-23T04:57:40.653Z",
+  "buildInfo": {
+    "schema_version": 1,
+    "environment": "isolated-preview",
+    "stage": "I10-full-site-interaction-acceptance",
+    "source_commit": "942f40f4cebf4bb0f9988b95292162a2fb679ee0",
+    "project_name": "thewyj-i10-preview",
+    "branch": "i10-interaction-acceptance",
+    "remote_check": {
+      "verified": true,
+      "project": "thewyj-i10-preview",
+      "branch": "i10-interaction-acceptance",
+      "productionBranch": "release-held",
+      "targetD1Id": "dde3e526-eee3-4690-bdd8-a7168c318681",
+      "targetD1Name": "aeris-i10-preview",
+      "targetR2Name": "aeris-i10-preview-storage"
+    },
+    "file_count": 216,
+    "artifact_tree_sha256": "9c81ecffcebef6d90b459d047e5263a000007c81583d7b82793066f745450197"
+  },
+  "apiStatus": {
+    "ok": true,
+    "status": "ok",
+    "service": "wyj-cloud-foundation",
+    "environment": "preview",
+    "build": "2026-08-26-task15-cloud-only",
+    "time": "2026-11-23T04:57:33.029Z",
+    "auth": true,
+    "backend_ready": true,
+    "ai_ready": false,
+    "model": "Cloudflare rules only",
+    "bindings": {
+      "d1": true,
+      "r2": true,
+      "workers_ai": false
+    },
+    "task11": {
+      "schema_ready": true,
+      "schema_version": "1"
+    },
+    "task12": {
+      "schema_ready": true,
+      "schema_version": "1",
+      "session_strategy": "invalidate_legacy_sessions",
+      "password_pepper_configured": true
+    },
+    "task13": {
+      "schema_ready": true,
+      "schema_version": "1",
+      "payment_primary": true
+    },
+    "task14": {
+      "schema_ready": true,
+      "schema_version": "1",
+      "temporary_primary": true,
+      "secret_configured": true
+    },
+    "task15": {
+      "schema_ready": true,
+      "schema_version": "1",
+      "cloud_only": true
+    },
+    "task16": {
+      "schema_ready": true,
+      "schema_version": "5",
+      "cloud_reads": true,
+      "cloud_writes": true
+    },
+    "task18": {
+      "schema_ready": true,
+      "schema_version": "1",
+      "enabled": true,
+      "owner_count": 1
+    },
+    "task20": {
+      "schema_ready": true,
+      "schema_version": "1",
+      "enabled": true,
+      "session_secret_configured": true
+    },
+    "task22": {
+      "schema_ready": true,
+      "schema_version": "2",
+      "reads_enabled": true,
+      "writes_enabled": true
+    },
+    "features": {
+      "cloud_foundation": true,
+      "cloud_reads": true,
+      "cloud_writes": true,
+      "task11_cloud_reads": true,
+      "task11_cloud_writes": true,
+      "task12_cloud_accounts": true,
+      "task12_import": true,
+      "task12_password_pepper": true,
+      "task13_cloud_reads": true,
+      "task13_cloud_writes": true,
+      "task13_import": true,
+      "task13_payment_primary": true,
+      "task14_cloud_reads": true,
+      "task14_cloud_writes": true,
+      "task14_import": true,
+      "task14_temporary_primary": true,
+      "task14_legacy_writes_frozen": true,
+      "task14_temporary_secret": true,
+      "workers_ai": false,
+      "task15_cloud_only": true,
+      "task16_cloud_reads": true,
+      "task16_cloud_writes": true,
+      "task16_import": true,
+      "task18_admin_messages": true,
+      "task20_android_app": true,
+      "task22_transfer_reads": true,
+      "task22_transfer_writes": true,
+      "task25_feature_flags": true,
+      "task30_privacy": true,
+      "legacy_api_fallback": false,
+      "payment_cloud_migration": true
+    },
+    "rate_limit": {
+      "enabled": false,
+      "degraded": false,
+      "limit": 120,
+      "window_seconds": 60
+    },
+    "degraded_reasons": [],
+    "request_id": "d6f24178-e678-449b-b23c-699fb13e1b75"
+  },
+  "apiHealth": {
+    "ok": false,
+    "error": "请先登录",
+    "code": "authentication_required",
+    "retryable": false,
+    "request_id": "327b8a28-1d2c-432d-96b3-eb7beaa3e045"
+  },
+  "uiFeatures": {
+    "ok": true,
+    "public_ui": {
+      "schema_version": 1,
+      "flag_key": "p07_accessibility",
+      "enabled": true,
+      "revision": 1,
+      "reason": "public_stable",
+      "observed_at": "2026-11-23T04:57:34.205Z",
+      "expires_at": "2026-11-23T04:58:04.205Z",
+      "max_age_seconds": 30
+    },
+    "request_id": "4cb164cf-670f-4c5e-abe5-230ce16113c2"
+  },
+  "verifiedAssets": [
+    {
+      "assetPath": "styles.css",
+      "sha256": "2b5bf5688b4099b331ca421e6f97091ebf03076ae6c3d83518787cb5bf7b0bf9",
+      "bytes": 66659
+    },
+    {
+      "assetPath": "design-system.css",
+      "sha256": "e2cfd8d856b82e51578ca88956ad14d325909a51d4490c1a4091d28df6e03702",
+      "bytes": 58962
+    },
+    {
+      "assetPath": "product-ui.css",
+      "sha256": "979671278c9c6c490e2183952cd5111bc4c439e2210c75f2c9fbf336c0a50e4a",
+      "bytes": 124754
+    },
+    {
+      "assetPath": "spatial-experience.css",
+      "sha256": "75acf9a09ff22150d60e4be54f772d280c15d0fa006fa9e1cd1595191408772b",
+      "bytes": 239377
+    },
+    {
+      "assetPath": "workspace-experience.css",
+      "sha256": "dad26ebc9542bba3380529cdbe5250069fd66d5941c94addc7f72bd681714580",
+      "bytes": 50227
+    },
+    {
+      "assetPath": "app.js",
+      "sha256": "af1affea5774d3c9a7e48453778513d044eb14d1e33f7b9085f050fd2cb8f071",
+      "bytes": 404208
+    },
+    {
+      "assetPath": "tools.js",
+      "sha256": "84765141988f35d93421e52d8bf5d8ee54cae82538b9e3070fa04c1324f1e1ad",
+      "bytes": 102502
+    },
+    {
+      "assetPath": "workflows.js",
+      "sha256": "1d32756aa435d353bbd52aaaff79c2e19037c18fadad8a2cef3ddc8ad164b1d9",
+      "bytes": 58514
+    },
+    {
+      "assetPath": "js/core/motion.js",
+      "sha256": "44ac0012916d40a06b099bf8e97e312617e6aa58eff1e374e52ae8f067e7b4d2",
+      "bytes": 92722
+    },
+    {
+      "assetPath": "js/core/home-widgets.js",
+      "sha256": "7ad4edafc9cf2b4fa5ec1f62e4eb8448532823c2ebd636dc8aa3a8b5d9bc73ca",
+      "bytes": 28496
+    },
+    {
+      "assetPath": "js/transfer/app.js",
+      "sha256": "7e9301b39682fdbe7cda3b8caa424e0c3bc902ff56affc61baf74f6b36f4b4b9",
+      "bytes": 75688
+    },
+    {
+      "assetPath": "js/finance/app.js",
+      "sha256": "ec07ec42232ee186d483b0d96b2d058c0643278d92b7ac6c048b62f0ab29f320",
+      "bytes": 96719
+    }
+  ],
+  "authenticatedMode": true,
+  "scenarios": {
+    "publicHome": {
+      "yBeforeTab": 0,
+      "yAfterTab": 0,
+      "pubMobileOverflow": 0
+    },
+    "authenticated": {
+      "searchContrast": {
+        "text": "模糊搜索工具",
+        "color": "rgb(71, 85, 105)"
+      },
+      "toolsMobileOverflow": 0,
+      "drawerHud": {
+        "currencies": [
+          "CNY",
+          "USD",
+          "EUR",
+          "HKD",
+          "GBP",
+          "JPY"
+        ],
+        "panelTransform": "none",
+        "toastOverlap": false,
+        "verOverlap": false
+      }
+    }
+  },
+  "axeScans": [
+    {
+      "label": "hosted-i10-public-home-1440-light",
+      "violationCount": 0,
+      "passes": 47,
+      "violations": []
+    },
+    {
+      "label": "hosted-i10-tools-1440-light",
+      "violationCount": 0,
+      "passes": 46,
+      "violations": []
+    },
+    {
+      "label": "hosted-i10-finance-drawer-1440-light",
+      "violationCount": 0,
+      "passes": 37,
+      "violations": []
+    }
+  ],
+  "screenshots": [
+    "hosted-i10-public-home-1440-light.png",
+    "hosted-i10-public-home-390-light.png",
+    "hosted-i10-tools-1440-light.png",
+    "hosted-i10-tools-390-light.png",
+    "hosted-i10-finance-drawer-1440-light.png"
+  ],
+  "runtimeErrors": [],
+  "status": "PASS"
+}
