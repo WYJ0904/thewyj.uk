@@ -1,0 +1,230 @@
+{
+  "scope": "Isolated local Miniflare D1/R2 + headless Chrome CDP (I10 Full-Site Interaction, Motion, A11y & Perf Acceptance)",
+  "gitSha": "942f40f4cebf4bb0f9988b95292162a2fb679ee0",
+  "gitBranch": "hydrogen/i10-full-site-interaction-acceptance",
+  "worktreeDirty": false,
+  "checkedAt": "2026-11-23T04:43:25.365Z",
+  "scenarios": [
+    {
+      "name": "i10_public_home_tabs_scroll_and_viewports",
+      "status": "PASS",
+      "ms": 10211,
+      "detail": {
+        "guestCheck": {
+          "mode": "guest",
+          "greeting": "",
+          "adminHidden": true,
+          "prefetchLinks": [
+            "/tools.js?release=20261121-aeris-i05-preview",
+            "/changelog.js?release=20261121-aeris-i05-preview"
+          ]
+        },
+        "tabTimes": [
+          287,
+          302,
+          688,
+          281
+        ]
+      }
+    },
+    {
+      "name": "i10_hud_layering_drawer_and_bottom_sheet",
+      "status": "PASS",
+      "ms": 9210,
+      "detail": {
+        "hudVerified": true
+      }
+    },
+    {
+      "name": "i10_workspace_bento_edit_and_persistence",
+      "status": "PASS",
+      "ms": 5963,
+      "detail": {
+        "greeting": "i10admin，中午好。",
+        "orderAfter": [
+          "finance",
+          "learning",
+          "tools",
+          "transfer",
+          "activity",
+          "account"
+        ]
+      }
+    },
+    {
+      "name": "i10_finance_six_currencies_drawer_and_jpy",
+      "status": "PASS",
+      "ms": 6423,
+      "detail": {
+        "currencies": [
+          "CNY",
+          "USD",
+          "EUR",
+          "HKD",
+          "GBP",
+          "JPY"
+        ],
+        "drawerCheck": {
+          "panelTransform": "none",
+          "rightDrawerAttr": "true",
+          "verOverlapsDrawer": false,
+          "toastOverlapsDrawer": false,
+          "verOverlapsToast": false
+        },
+        "sheetCheck": {
+          "panelTransform": "none",
+          "toastOverlapsSheet": false,
+          "overflow": 0
+        }
+      }
+    },
+    {
+      "name": "i10_tools_keyboard_esc_contrast_and_workflows",
+      "status": "PASS",
+      "ms": 22008,
+      "detail": {
+        "focusInWorkbench": true,
+        "copyLabel": "复制结果",
+        "focusAfterEsc": true,
+        "wfCopyLabel": "已复制",
+        "wfCloseState": {
+          "activeId": "openWorkflowBtn",
+          "headerHidden": false
+        }
+      }
+    },
+    {
+      "name": "i10_command_palette_and_reduced_motion",
+      "status": "PASS",
+      "ms": 290,
+      "detail": {
+        "activeDesc": "v3CmdOption_1",
+        "restoredId": "v3CmdTrigger"
+      }
+    },
+    {
+      "name": "i10_p07_off_contrast_and_user_isolation",
+      "status": "PASS",
+      "ms": 12794,
+      "detail": {
+        "adminLinkHidden": true,
+        "adminStatus": 403
+      }
+    }
+  ],
+  "axeScans": [
+    {
+      "label": "i10-public-home-1440-light",
+      "violationCount": 0,
+      "passes": 45
+    },
+    {
+      "label": "i10-finance-1440-light",
+      "violationCount": 0,
+      "passes": 46
+    },
+    {
+      "label": "i10-tools-1440-light",
+      "violationCount": 0,
+      "passes": 46
+    }
+  ],
+  "contrastAudits": [
+    {
+      "label": "tools-1440-light-p07-on",
+      "rootSelector": "#toolsPanel",
+      "violationCount": 0
+    },
+    {
+      "label": "tools-390-dark-p07-on",
+      "rootSelector": "#toolsPanel",
+      "violationCount": 0
+    },
+    {
+      "label": "tools-1440-light-p07-off",
+      "rootSelector": "#toolsPanel",
+      "violationCount": 0
+    }
+  ],
+  "viewports": [
+    {
+      "route": "/",
+      "theme": "light",
+      "width": 375,
+      "overflow": 0
+    },
+    {
+      "route": "/",
+      "theme": "light",
+      "width": 390,
+      "overflow": 0
+    },
+    {
+      "route": "/",
+      "theme": "light",
+      "width": 768,
+      "overflow": -15
+    },
+    {
+      "route": "/",
+      "theme": "light",
+      "width": 1024,
+      "overflow": -15
+    },
+    {
+      "route": "/",
+      "theme": "light",
+      "width": 1440,
+      "overflow": -15
+    },
+    {
+      "route": "/",
+      "theme": "dark",
+      "width": 375,
+      "overflow": 0
+    },
+    {
+      "route": "/",
+      "theme": "dark",
+      "width": 390,
+      "overflow": 0
+    },
+    {
+      "route": "/",
+      "theme": "dark",
+      "width": 768,
+      "overflow": -15
+    },
+    {
+      "route": "/",
+      "theme": "dark",
+      "width": 1024,
+      "overflow": -15
+    },
+    {
+      "route": "/",
+      "theme": "dark",
+      "width": 1440,
+      "overflow": -15
+    }
+  ],
+  "performanceMetrics": {
+    "publicTabSwitchMs": [
+      287,
+      302,
+      688,
+      281
+    ],
+    "clsAndLongTasks": {}
+  },
+  "screenshots": [
+    "i10-public-home-1440-light.png",
+    "i10-auth-home-hud-1440-light.png",
+    "i10-finance-drawer-hud-1440-light.png",
+    "i10-finance-sheet-375-light.png",
+    "i10-tools-1440-light.png",
+    "i10-tools-390-dark.png"
+  ],
+  "apiErrors": [],
+  "runtimeErrors": []
+}

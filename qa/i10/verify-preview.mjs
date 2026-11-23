@@ -4,7 +4,7 @@ import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { openPage, delay } from "../../local-backend/browser_harness.mjs";
+import { openPage, delay, registerAndSignIn } from "../../local-backend/browser_harness.mjs";
 
 const root = path.resolve(import.meta.dirname, "../..");
 const evidenceDir = path.join(root, "docs", "ui-rebuild", "i10", "evidence", "hosted");
@@ -88,21 +88,6 @@ if (credsFile) {
   const suffix = randomBytes(4).toString("hex");
   testUser = `i10qa${suffix}`;
   testPass = `I10-Preview-${randomBytes(8).toString("hex")}!`;
-  const regRes = await fetch(`${baseUrl}/api/register`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username: testUser, secret: testPass }),
-  });
-  if (regRes.ok) {
-    const regData = await regRes.json().catch(() => ({}));
-    const userId = regData?.account?.id || "";
-    const ts = new Date().toISOString();
-    if (userId) {
-      const q = (v) => `'${String(v).replaceAll("'", "''")}'`;
-      runD1(`UPDATE task12_users SET role = 'super_admin' WHERE id = ${q(userId)}; INSERT OR IGNORE INTO task13_user_memberships (id, user_id, plan_code, starts_at, expires_at, is_lifetime, status, source, source_ref, created_by, metadata_json, created_at, updated_at) VALUES (${q(`mem_i10_${suffix}`)}, ${q(userId)}, 'all_access_lifetime', ${q(ts)}, '', 1, 'active', 'admin', 'i10-preview-verify', ${q(userId)}, '{}', ${q(ts)}, ${q(ts)});`);
-      authenticatedMode = true;
-    }
-  }
 }
 
 const axeSource = await readFile(path.join(root, "qa", "p07-f", "vendor", "axe.min.js"), "utf8");
@@ -169,7 +154,15 @@ try {
     const hit = await page.evaluate(`(() => {
       const el = document.querySelector(${JSON.stringify(selector)});
       if (!el) return { ok: false, reason: 'missing: ' + ${JSON.stringify(selector)} };
-      el.scrollIntoView({ block: 'center', inline: 'center' });
+      const pre = el.getBoundingClientRect();
+      const navEl = document.getElementById('accountBar');
+      const navStyle = navEl ? getComputedStyle(navEl) : null;
+      const navBottom = (navEl && (navStyle?.position === 'sticky' || navStyle?.position === 'fixed'))
+        ? Math.max(0, navEl.getBoundingClientRect().bottom)
+        : 0;
+      if (pre.top < navBottom || pre.bottom > window.innerHeight || pre.left < 0 || pre.right > window.innerWidth) {
+        el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      }
       const r = el.getBoundingClientRect();
       const cx = r.left + r.width / 2;
       const cy = r.top + r.height / 2;
@@ -191,15 +184,16 @@ try {
 
   // 1. Public home 1440 & 390 + preview tab scroll stability
   await page.navigate("/");
-  await page.waitFor("document.documentElement.dataset.bootState === 'ready' && document.documentElement.dataset.p07Ui === 'enabled' && !document.querySelector('#publicHome')?.classList.contains('hidden')", 25_000);
+  await page.waitFor("document.documentElement.dataset.bootState === 'ready' && document.documentElement.dataset.p07Ui === 'enabled' && document.querySelector('[data-product-window]')?.dataset.initialized === 'true' && !document.querySelector('#publicHome')?.classList.contains('hidden')", 25_000);
   await settle();
-  await page.evaluate("window.scrollTo(0, 620);");
-  await delay(80);
+  await page.evaluate("document.querySelector('[data-product-window]').scrollIntoView({ block: 'center', behavior: 'instant' })");
+  await settle();
   const yBeforeTab = await page.evaluate("window.scrollY");
-  await pointerClick('#publicPreviewWindow [role="tab"][data-preview-pane="tools"]');
+  await pointerClick('[data-public-product="tools"]');
+  await page.waitFor("document.querySelector('[data-product-window]')?.dataset.selected === 'tools'", 5_000);
   await delay(160);
   const yAfterTab = await page.evaluate("window.scrollY");
-  assert.ok(Math.abs(yAfterTab - yBeforeTab) <= 24, `Hosted tab scroll jump: before=${yBeforeTab}, after=${yAfterTab}`);
+  assert.ok(Math.abs(yAfterTab - yBeforeTab) <= 2, `Hosted tab scroll jump: before=${yBeforeTab}, after=${yAfterTab}`);
   await page.evaluate("window.scrollTo(0, 0);");
   await settle();
   await runAxe("hosted-i10-public-home-1440-light");
@@ -212,13 +206,32 @@ try {
   report.scenarios.publicHome = { yBeforeTab, yAfterTab, pubMobileOverflow };
   await setViewport(1440, 900);
 
-  if (authenticatedMode) {
+  if (!authenticatedMode) {
+    await page.evaluate("localStorage.removeItem('wyjSeenChangelogVersion')");
+    await registerAndSignIn(page, { username: testUser, secret: testPass, label: "i10-preview" });
+    const me = await page.evaluate("(() => fetch('/api/me', { headers: { 'X-Session-Token': localStorage.getItem('wyjAccountSession') || '' } }).then(r => r.json()))()");
+    const userId = me?.account?.id || me?.id || "";
+    assert.ok(userId, "Registered preview user ID missing from /api/me");
+    const ts = new Date().toISOString();
+    const q = (v) => `'${String(v).replaceAll("'", "''")}'`;
+    runD1(`INSERT OR IGNORE INTO task13_user_memberships (id, user_id, plan_code, starts_at, expires_at, is_lifetime, status, source, source_ref, created_by, metadata_json, created_at, updated_at) VALUES (${q(`mem_i10_${userId.slice(-8)}`)}, ${q(userId)}, 'all_access_lifetime', ${q(ts)}, '', 1, 'active', 'admin', 'i10-preview-verify', ${q(userId)}, '{}', ${q(ts)}, ${q(ts)});`);
+    await page.evaluate("localStorage.clear()");
+    await page.navigate("/login");
+    await page.waitFor("Boolean(document.querySelector('#loginForm'))", 20_000);
+    await page.setFields({ "#usernameInput": testUser, "#secretInput": testPass });
+    await page.click("#loginSubmitBtn");
+    await page.waitFor("document.querySelector('#publicHome')?.dataset.sessionMode === 'authenticated' && !document.querySelector('#authWorkspaceSection')?.hidden && !document.getElementById('authTransitionScreen')", 25_000);
+    authenticatedMode = true;
+    report.authenticatedMode = true;
+  } else {
     await page.navigate("/login");
     await page.waitFor("Boolean(document.querySelector('#loginForm'))", 20_000);
     await page.evaluate("localStorage.removeItem('wyjSeenChangelogVersion')");
     await page.setFields({ "#usernameInput": testUser, "#secretInput": testPass });
     await page.click("#loginSubmitBtn");
     await page.waitFor("document.querySelector('#publicHome')?.dataset.sessionMode === 'authenticated' && !document.querySelector('#authWorkspaceSection')?.hidden && !document.getElementById('authTransitionScreen')", 25_000);
+  }
+  {
     await delay(500);
     if (await page.evaluate("!document.querySelector('#siteMessageModal')?.classList.contains('hidden')")) {
       await pointerClick("#siteMessageCloseBtn");
@@ -227,7 +240,7 @@ try {
 
     // Toolbox contrast & mobile reflow
     await pointerClick("#v3Sidebar [data-v3-nav='tools']");
-    await page.waitFor("!document.querySelector('#toolsPanel')?.classList.contains('hidden') && document.querySelectorAll('#toolCatalog [data-tool-card]').length >= 100", 20_000);
+    await page.waitFor("!document.querySelector('#toolsPanel')?.classList.contains('hidden') && window.WYJTools?.isReady?.() === true", 20_000);
     await settle();
     const searchContrast = await page.evaluate(`(() => {
       const span = Array.from(document.querySelectorAll('#toolsPanel .tool-search span')).find((el) => el.textContent.trim() === '模糊搜索工具');
@@ -251,7 +264,9 @@ try {
     await page.waitFor("!document.querySelector('#financeWorkspace')?.classList.contains('hidden') && !document.querySelector('#financeAddTransactionBtn')?.disabled", 20_000);
     await pointerClick("#financeAddTransactionBtn");
     await page.waitFor("!document.querySelector('#financeTransactionModal')?.classList.contains('hidden')", 8_000);
+    await delay(460);
     await page.evaluate("window.WYJMotion.showToast({ tone: 'info', message: 'I10 隔离预览右侧 Drawer 与 HUD 避让验证' }, {}, document)");
+    await delay(300);
     await settle();
     const drawerHud = await page.evaluate(`(() => {
       const panel = document.querySelector('#financeTransactionModal .modal-panel').getBoundingClientRect();
@@ -259,7 +274,7 @@ try {
       const ver = document.getElementById('versionNotice')?.classList.contains('hidden') ? null : document.getElementById('versionNotice').getBoundingClientRect();
       const overlaps = (a, b) => Boolean(a && b && a.left < b.right - 0.5 && a.right > b.left + 0.5 && a.top < b.bottom - 0.5 && a.bottom > b.top + 0.5);
       return {
-        currencies: [...document.querySelectorAll('#financeTxCurrencyInput option')].map((o) => o.value),
+        currencies: [...document.querySelectorAll('#financeTransactionCurrency option')].map((o) => o.value),
         panelTransform: getComputedStyle(document.querySelector('#financeTransactionModal .modal-panel')).transform,
         toastOverlap: overlaps(panel, toast),
         verOverlap: overlaps(panel, ver),
