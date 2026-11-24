@@ -893,8 +893,8 @@ async function main() {
           assert.equal(await evaluate("document.getElementById('appShell').inert"),false);
         }
         await click('#siteNavToggle');
-        await waitFor("document.getElementById('siteNavPanel').getBoundingClientRect().height>100",3000,'visible navigation');
-        await click('[data-site-nav="trial"]');
+        await waitFor("document.getElementById('v3Sidebar').getBoundingClientRect().width>100",3000,'visible navigation');
+        await click('#v3Sidebar [data-site-nav="trial"]');
         await waitFor("location.pathname==='/trial'",3000,'trial navigation');
         await navigate('/');
       }

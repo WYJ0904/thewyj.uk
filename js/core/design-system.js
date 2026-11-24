@@ -141,8 +141,19 @@ function readThemePreference() {
 function setupTheme() {
   const button = document.getElementById("themeToggleBtn");
   const label = document.getElementById("themeToggleLabel");
+  const menuButton = document.getElementById("sidebarThemeMenuBtn");
+  const menuLabel = document.getElementById("sidebarThemeMenuLabel");
+  const guestButton = document.getElementById("sidebarGuestThemeBtn");
+  const guestLabel = document.getElementById("sidebarGuestThemeLabel");
   const colorScheme = window.matchMedia?.("(prefers-color-scheme: dark)");
   let preference = readThemePreference();
+
+  const updateMeta = (resolved) => {
+    const themeMeta = document.querySelector('meta[name="theme-color"]');
+    if (themeMeta) {
+      themeMeta.content = resolved === "dark" ? "#212121" : "#fafafa";
+    }
+  };
 
   const apply = () => {
     const resolved = preference === "system" ? (colorScheme?.matches ? "dark" : "light") : preference;
@@ -153,17 +164,15 @@ function setupTheme() {
     const visibleLabel = { system: "系统", light: "浅色", dark: "深色" }[preference];
     const description = `外观：${visibleLabel}`;
     if (label) label.textContent = visibleLabel;
-    if (button) {
-      button.dataset.themePreference = preference;
-      button.setAttribute("aria-label", `${description}，点击切换`);
-      button.title = `${description}，点击切换`;
-    }
-    const themeMeta = document.querySelector('meta[name="theme-color"]');
-    if (themeMeta) {
-      themeMeta.content = resolved === "dark"
-        ? (interfaceEnhancementsEnabled ? "#0b0e14" : "#111318")
-        : (interfaceEnhancementsEnabled ? "#f6f7f9" : "#f3f2ef");
-    }
+    if (menuLabel) menuLabel.textContent = `外观：${visibleLabel}（点击切换）`;
+    if (guestLabel) guestLabel.textContent = description;
+    [button, menuButton, guestButton].forEach((node) => {
+      if (!node) return;
+      node.dataset.themePreference = preference;
+      node.setAttribute("aria-label", `${description}，点击切换`);
+      if (node === button) node.title = `${description}，点击切换`;
+    });
+    updateMeta(resolved);
     // Native shell follows the web preference: one theme source of truth.
     document.dispatchEvent(new CustomEvent("wyj:theme-changed", { detail: { preference, resolved } }));
     window.requestAnimationFrame(() => {
@@ -174,60 +183,238 @@ function setupTheme() {
   };
   syncThemeMeta = () => {
     const resolved = document.documentElement.dataset.theme || "light";
-    const themeMeta = document.querySelector('meta[name="theme-color"]');
-    if (themeMeta) {
-      themeMeta.content = resolved === "dark"
-        ? (interfaceEnhancementsEnabled ? "#0b0e14" : "#111318")
-        : (interfaceEnhancementsEnabled ? "#f6f7f9" : "#f3f2ef");
-    }
+    updateMeta(resolved);
   };
 
-  button?.addEventListener("click", () => {
+  const cycleTheme = () => {
     preference = THEME_ORDER[(THEME_ORDER.indexOf(preference) + 1) % THEME_ORDER.length];
     try { window.localStorage.setItem(THEME_STORAGE_KEY, preference); } catch (_) { /* Appearance remains usable in memory. */ }
     apply();
-  });
+  };
+
+  [button, menuButton, guestButton].forEach((node) => node?.addEventListener("click", cycleTheme));
   colorScheme?.addEventListener?.("change", () => {
     if (preference === "system") apply();
   });
   apply();
 }
 
+const SIDEBAR_COLLAPSED_KEY = "wyj_sidebar_collapsed_v1";
+
+function readSidebarCollapsedPreference() {
+  try {
+    return window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "true";
+  } catch (_) {
+    return false;
+  }
+}
+
 function setupNavigation() {
   const navigation = document.getElementById("accountBar");
   const toggle = document.getElementById("siteNavToggle");
-  const panel = document.getElementById("siteNavPanel");
-  if (!navigation || !toggle || !panel) return null;
+  const sidebar = document.getElementById("v3Sidebar");
+  const collapseBtn = document.getElementById("sidebarCollapseBtn");
+  const backdrop = document.getElementById("v3SidebarBackdrop");
+  const tooltipEl = document.getElementById("v3SidebarTooltip");
+  const accountMenu = document.getElementById("accountMenu");
+  if (!sidebar) return null;
 
-  const setOpen = (open, { restoreFocus = false } = {}) => {
-    const next = Boolean(open);
-    navigation.classList.toggle("nav-open", next);
-    toggle.setAttribute("aria-expanded", String(next));
-    toggle.setAttribute("aria-label", next ? "关闭主导航" : "打开主导航");
-    panel.setAttribute("aria-hidden", String(!next));
-    panel.inert = !next;
-    if (next) document.getElementById("accountMenu")?.removeAttribute("open");
-    if (!next && restoreFocus) toggle.focus();
+  const isDesktopLayout = () => window.matchMedia?.("(min-width: 981px)")?.matches ?? window.innerWidth >= 981;
+  let desktopCollapsed = readSidebarCollapsedPreference();
+  let drawerOpen = false;
+  let tooltipTimer = 0;
+
+  const hideTooltip = () => {
+    window.clearTimeout(tooltipTimer);
+    if (!tooltipEl) return;
+    tooltipEl.hidden = true;
+    tooltipEl.setAttribute("aria-hidden", "true");
+    tooltipEl.dataset.open = "false";
   };
 
-  toggle.addEventListener("click", () => setOpen(toggle.getAttribute("aria-expanded") !== "true"));
-  panel.addEventListener("click", (event) => {
-    if (event.target.closest("a, button")) setOpen(false);
+  const showTooltipFor = (target) => {
+    if (!tooltipEl || !isDesktopLayout() || !desktopCollapsed || !target) return;
+    const text = target.getAttribute("data-v3-tooltip") || target.getAttribute("aria-label") || "";
+    if (!text.trim()) return;
+    window.clearTimeout(tooltipTimer);
+    const rect = target.getBoundingClientRect();
+    tooltipEl.textContent = text;
+    tooltipEl.hidden = false;
+    tooltipEl.setAttribute("aria-hidden", "false");
+    const top = Math.max(8, Math.min(window.innerHeight - 40, Math.round(rect.top + rect.height / 2 - 16)));
+    const left = Math.min(window.innerWidth - 180, Math.round(rect.right + 10));
+    tooltipEl.style.top = `${top}px`;
+    tooltipEl.style.left = `${left}px`;
+    tooltipEl.dataset.open = "true";
+  };
+
+  const positionAccountPopover = () => {
+    const popover = document.getElementById("accountMenuPopover");
+    const summary = accountMenu?.querySelector("summary");
+    if (!popover || !summary || !accountMenu?.open) return;
+    if (isDesktopLayout() && desktopCollapsed) {
+      popover.dataset.placement = "right-end";
+    } else {
+      popover.dataset.placement = "top-start";
+    }
+    const rect = popover.getBoundingClientRect();
+    if (rect.top < 8) {
+      popover.style.maxHeight = `${Math.max(180, window.innerHeight - 24)}px`;
+    } else {
+      popover.style.maxHeight = "";
+    }
+  };
+
+  const applySidebarState = () => {
+    const desktop = isDesktopLayout();
+    const effectiveCollapsed = desktop && desktopCollapsed;
+    sidebar.dataset.collapsed = effectiveCollapsed ? "true" : "false";
+    document.body.dataset.sidebarCollapsed = effectiveCollapsed ? "true" : "false";
+    if (collapseBtn) {
+      collapseBtn.setAttribute("aria-expanded", String(!effectiveCollapsed));
+      collapseBtn.setAttribute("aria-label", effectiveCollapsed ? "展开侧边栏" : "折叠侧边栏");
+      collapseBtn.title = effectiveCollapsed ? "展开侧边栏" : "折叠侧边栏";
+    }
+    if (desktop && drawerOpen) {
+      setDrawerOpen(false);
+    }
+    if (!effectiveCollapsed) hideTooltip();
+    window.requestAnimationFrame(() => syncSidebarActiveIndicator(document));
+  };
+
+  const setDrawerOpen = (open, { restoreFocus = false } = {}) => {
+    const next = Boolean(open) && !isDesktopLayout();
+    drawerOpen = next;
+    sidebar.classList.toggle("mobile-drawer-open", next);
+    document.body.classList.toggle("v3-mobile-drawer-open", next);
+    if (navigation) navigation.classList.toggle("nav-open", next);
+    if (toggle) {
+      toggle.setAttribute("aria-expanded", String(next));
+      toggle.setAttribute("aria-label", next ? "关闭侧边栏导航" : "打开侧边栏导航");
+    }
+    if (backdrop) {
+      backdrop.hidden = !next;
+      backdrop.setAttribute("aria-hidden", String(!next));
+      backdrop.dataset.open = String(next);
+    }
+    if (next && accountMenu?.open) accountMenu.open = false;
+    if (!next && restoreFocus) toggle?.focus();
+  };
+
+  collapseBtn?.addEventListener("click", () => {
+    if (!isDesktopLayout()) {
+      setDrawerOpen(false, { restoreFocus: true });
+      return;
+    }
+    desktopCollapsed = !desktopCollapsed;
+    try { window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(desktopCollapsed)); } catch (_) { /* Keep in memory. */ }
+    if (accountMenu?.open) accountMenu.open = false;
+    applySidebarState();
   });
-  document.addEventListener("pointerdown", (event) => {
-    if (!navigation.contains(event.target)) setOpen(false);
-  });
-  document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && navigation.classList.contains("nav-open")) {
-      event.preventDefault();
-      setOpen(false, { restoreFocus: true });
+
+  toggle?.addEventListener("click", () => setDrawerOpen(!drawerOpen));
+  backdrop?.addEventListener("click", () => setDrawerOpen(false, { restoreFocus: true }));
+
+  sidebar.addEventListener("click", (event) => {
+    if (!isDesktopLayout() && event.target.closest("[data-v3-nav], [data-site-nav], #sidebarGuestLoginBtn, #v3CmdTrigger")) {
+      setDrawerOpen(false);
     }
   });
 
-  setOpen(false);
-  const accountMenu = document.getElementById("accountMenu");
+  sidebar.addEventListener("pointerover", (event) => {
+    const target = event.target.closest?.("[data-v3-tooltip]");
+    if (!target || !sidebar.contains(target)) { hideTooltip(); return; }
+    showTooltipFor(target);
+  });
+  sidebar.addEventListener("pointerout", (event) => {
+    const from = event.target.closest?.("[data-v3-tooltip]");
+    const to = event.relatedTarget?.closest?.("[data-v3-tooltip]");
+    if (from && from !== to) hideTooltip();
+  });
+  sidebar.addEventListener("focusin", (event) => {
+    const target = event.target.closest?.("[data-v3-tooltip]");
+    if (target && sidebar.contains(target)) showTooltipFor(target);
+  });
+  sidebar.addEventListener("focusout", (event) => {
+    if (!event.relatedTarget || !sidebar.contains(event.relatedTarget)) hideTooltip();
+  });
+
+  document.addEventListener("pointerdown", (event) => {
+    if (drawerOpen && !sidebar.contains(event.target) && !toggle?.contains(event.target)) {
+      setDrawerOpen(false);
+    }
+    if (accountMenu?.open && !accountMenu.contains(event.target)) {
+      accountMenu.open = false;
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      hideTooltip();
+      if (drawerOpen) {
+        event.preventDefault();
+        setDrawerOpen(false, { restoreFocus: true });
+      }
+    }
+  });
+
+  // Edge swipe gesture for mobile slide-in drawer without conflicting with horizontal scrolling.
+  let swipeTracking = false;
+  let swipeMode = "";
+  let startX = 0;
+  let startY = 0;
+  const hasHorizontalScroller = (node) => {
+    let cur = node;
+    while (cur && cur !== document.body) {
+      if (cur.nodeType === 1) {
+        if (cur.matches?.("[data-horizontal-scroll], .ds-segmented, .tools-tabs, pre, table, input[type='range']")) return true;
+        if (cur.scrollWidth > cur.clientWidth + 6 && cur !== sidebar) {
+          const ov = window.getComputedStyle(cur).overflowX;
+          if (ov === "auto" || ov === "scroll") return true;
+        }
+      }
+      cur = cur.parentElement;
+    }
+    return false;
+  };
+  document.addEventListener("touchstart", (event) => {
+    swipeTracking = false;
+    if (isDesktopLayout() || event.touches.length !== 1) return;
+    if (document.querySelector(".modal-layer:not(.hidden)")) return;
+    const touch = event.touches[0];
+    if (!drawerOpen && touch.clientX <= 28 && !hasHorizontalScroller(event.target)) {
+      swipeTracking = true; swipeMode = "open"; startX = touch.clientX; startY = touch.clientY;
+    } else if (drawerOpen) {
+      swipeTracking = true; swipeMode = "close"; startX = touch.clientX; startY = touch.clientY;
+    }
+  }, { passive: true });
+  document.addEventListener("touchend", (event) => {
+    if (!swipeTracking || !event.changedTouches.length) return;
+    swipeTracking = false;
+    const touch = event.changedTouches[0];
+    const dx = touch.clientX - startX;
+    const dy = touch.clientY - startY;
+    if (Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy) * 1.4) return;
+    if (swipeMode === "open" && dx > 48) setDrawerOpen(true);
+    else if (swipeMode === "close" && dx < -48) setDrawerOpen(false, { restoreFocus: true });
+  }, { passive: true });
+
+  window.addEventListener("resize", () => {
+    applySidebarState();
+    positionAccountPopover();
+  }, { passive: true });
+
+  setDrawerOpen(false);
+  applySidebarState();
+
   accountMenu?.addEventListener("toggle", (event) => {
-    if (event.target.open) setOpen(false);
+    if (event.target.open) {
+      hideTooltip();
+      if (drawerOpen && !isDesktopLayout()) {
+        // Keep drawer open while popover opens upward at bottom of drawer.
+      }
+      positionAccountPopover();
+    }
     if (!interfaceEnhancementsEnabled) return;
     accountMenu.querySelector("summary")?.setAttribute("aria-expanded", String(accountMenu.open));
   });
@@ -256,7 +443,16 @@ function setupNavigation() {
       : (current < 0 ? items.length - 1 : (current - 1 + items.length) % items.length);
     items[next].focus();
   });
-  return Object.freeze({ close: () => setOpen(false) });
+
+  return Object.freeze({
+    close: () => setDrawerOpen(false),
+    isCollapsed: () => desktopCollapsed,
+    setCollapsed: (val) => {
+      desktopCollapsed = Boolean(val);
+      try { window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(desktopCollapsed)); } catch (_) { /* ignore */ }
+      applySidebarState();
+    },
+  });
 }
 
 function setupContentNavigation() {
@@ -450,12 +646,315 @@ export function syncWorkspaceShell(doc, meta) {
   syncSidebarActiveIndicator(doc);
 }
 
+const ENHANCED_SELECTS = new WeakMap();
+let activeSelectPopover = null;
+let activeSelectCleanup = null;
+
+function closeActiveSelectPopover({ restoreFocus = false } = {}) {
+  if (typeof activeSelectCleanup === "function") {
+    activeSelectCleanup(restoreFocus);
+  }
+}
+
+export function enhanceSelect(selectEl) {
+  if (!selectEl || selectEl.tagName !== "SELECT" || selectEl.multiple) return null;
+  if (selectEl.dataset.dsSelect === "native") return null;
+  const existing = ENHANCED_SELECTS.get(selectEl);
+  if (existing) {
+    existing.sync();
+    return existing;
+  }
+
+  const doc = selectEl.ownerDocument;
+  const host = doc.createElement("div");
+  host.className = "ds-select-host";
+  if (selectEl.className) host.dataset.sourceClass = selectEl.className;
+
+  const trigger = doc.createElement("button");
+  trigger.type = "button";
+  trigger.className = "ds-select-trigger";
+  trigger.setAttribute("role", "combobox");
+  trigger.setAttribute("aria-haspopup", "listbox");
+  trigger.setAttribute("aria-expanded", "false");
+  const triggerText = doc.createElement("span");
+  triggerText.className = "ds-select-value";
+  const chevron = doc.createElementNS("http://www.w3.org/2000/svg", "svg");
+  chevron.setAttribute("viewBox", "0 0 24 24");
+  chevron.setAttribute("width", "16");
+  chevron.setAttribute("height", "16");
+  chevron.setAttribute("fill", "none");
+  chevron.setAttribute("stroke", "currentColor");
+  chevron.setAttribute("stroke-width", "1.7");
+  chevron.setAttribute("stroke-linecap", "round");
+  chevron.setAttribute("stroke-linejoin", "round");
+  chevron.setAttribute("aria-hidden", "true");
+  chevron.classList.add("ds-select-chevron");
+  const path = doc.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute("d", "m6 9 6 6 6-6");
+  chevron.append(path);
+  trigger.append(triggerText, chevron);
+
+  const parent = selectEl.parentNode;
+  if (!parent) return null;
+  parent.insertBefore(host, selectEl);
+  host.append(trigger, selectEl);
+
+  selectEl.classList.add("ds-select-native");
+  selectEl.tabIndex = -1;
+  selectEl.setAttribute("aria-hidden", "true");
+
+  const getOptions = () => [...selectEl.options].filter((opt) => !opt.hidden);
+  const sync = () => {
+    const selected = selectEl.selectedOptions?.[0] || getOptions()[0];
+    triggerText.textContent = selected ? selected.textContent.trim() : "请选择";
+    trigger.disabled = Boolean(selectEl.disabled);
+    const labelledBy = selectEl.getAttribute("aria-labelledby");
+    const labelText = selectEl.getAttribute("aria-label") || selectEl.closest("label")?.querySelector("span")?.textContent?.trim();
+    if (labelledBy) trigger.setAttribute("aria-labelledby", labelledBy);
+    else if (labelText) trigger.setAttribute("aria-label", labelText);
+  };
+
+  const openPopover = () => {
+    if (selectEl.disabled) return;
+    if (activeSelectPopover && activeSelectPopover.select === selectEl) {
+      closeActiveSelectPopover({ restoreFocus: true });
+      return;
+    }
+    closeActiveSelectPopover({ restoreFocus: false });
+
+    const options = getOptions();
+    const searchable = options.length > 5;
+    const popover = doc.createElement("div");
+    popover.className = "ds-select-popover";
+    popover.id = `ds-select-popover-${Math.random().toString(36).slice(2, 8)}`;
+    trigger.setAttribute("aria-controls", popover.id);
+
+    let searchInput = null;
+    if (searchable) {
+      const searchWrap = doc.createElement("div");
+      searchWrap.className = "ds-select-search-wrap";
+      searchInput = doc.createElement("input");
+      searchInput.type = "search";
+      searchInput.className = "ds-select-search";
+      searchInput.placeholder = "搜索选项…";
+      searchInput.setAttribute("aria-label", "搜索选项");
+      searchInput.autocomplete = "off";
+      searchWrap.append(searchInput);
+      popover.append(searchWrap);
+    }
+
+    const listbox = doc.createElement("div");
+    listbox.className = "ds-select-listbox";
+    listbox.setAttribute("role", "listbox");
+    popover.append(listbox);
+    doc.body.append(popover);
+
+    let filtered = options;
+    let activeIndex = Math.max(0, options.findIndex((o) => o.value === selectEl.value));
+    let composing = false;
+
+    const renderList = (query = "") => {
+      const needle = query.trim().toLowerCase();
+      filtered = needle
+        ? options.filter((opt) => opt.textContent.toLowerCase().includes(needle) || String(opt.value).toLowerCase().includes(needle))
+        : options;
+      if (activeIndex >= filtered.length) activeIndex = Math.max(0, filtered.length - 1);
+      listbox.replaceChildren();
+      if (!filtered.length) {
+        const empty = doc.createElement("div");
+        empty.className = "ds-select-empty";
+        empty.textContent = "无匹配选项";
+        listbox.append(empty);
+        return;
+      }
+      filtered.forEach((opt, idx) => {
+        const btn = doc.createElement("button");
+        btn.type = "button";
+        btn.className = "ds-select-option";
+        btn.setAttribute("role", "option");
+        const isSelected = opt.value === selectEl.value;
+        btn.setAttribute("aria-selected", String(isSelected));
+        if (opt.disabled) btn.disabled = true;
+        if (idx === activeIndex) btn.classList.add("is-active");
+        const labelSpan = doc.createElement("span");
+        labelSpan.textContent = opt.textContent.trim();
+        btn.append(labelSpan);
+        if (isSelected) {
+          const check = doc.createElementNS("http://www.w3.org/2000/svg", "svg");
+          check.setAttribute("viewBox", "0 0 24 24");
+          check.setAttribute("width", "15");
+          check.setAttribute("height", "15");
+          check.setAttribute("fill", "none");
+          check.setAttribute("stroke", "currentColor");
+          check.setAttribute("stroke-width", "2");
+          check.setAttribute("aria-hidden", "true");
+          const p = doc.createElementNS("http://www.w3.org/2000/svg", "path");
+          p.setAttribute("d", "m5 12 4.5 4.5L19 7");
+          check.append(p);
+          btn.append(check);
+        }
+        btn.addEventListener("pointerenter", () => {
+          activeIndex = idx;
+          listbox.querySelectorAll(".ds-select-option").forEach((n, i) => n.classList.toggle("is-active", i === idx));
+        });
+        btn.addEventListener("click", () => {
+          if (opt.disabled) return;
+          selectEl.value = opt.value;
+          selectEl.dispatchEvent(new Event("input", { bubbles: true }));
+          selectEl.dispatchEvent(new Event("change", { bubbles: true }));
+          sync();
+          closeActiveSelectPopover({ restoreFocus: true });
+        });
+        listbox.append(btn);
+      });
+    };
+
+    const positionPopover = () => {
+      const rect = trigger.getBoundingClientRect();
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const width = Math.max(Math.round(rect.width), searchable ? 220 : 168);
+      const maxWidth = Math.min(360, vw - 16);
+      const finalWidth = Math.min(width, maxWidth);
+      const spaceBelow = vh - rect.bottom - 10;
+      const spaceAbove = rect.top - 10;
+      const openAbove = spaceBelow < 180 && spaceAbove > spaceBelow;
+      const maxHeight = Math.max(120, Math.min(300, openAbove ? spaceAbove : spaceBelow));
+      popover.style.width = `${finalWidth}px`;
+      popover.style.maxHeight = `${maxHeight}px`;
+      const left = Math.max(8, Math.min(vw - finalWidth - 8, Math.round(rect.left)));
+      popover.style.left = `${left}px`;
+      if (openAbove) {
+        popover.style.top = "auto";
+        popover.style.bottom = `${Math.round(vh - rect.top + 6)}px`;
+        popover.dataset.placement = "top";
+      } else {
+        popover.style.bottom = "auto";
+        popover.style.top = `${Math.round(rect.bottom + 6)}px`;
+        popover.dataset.placement = "bottom";
+      }
+    };
+
+    const handleDocPointer = (event) => {
+      if (!popover.contains(event.target) && !trigger.contains(event.target)) {
+        closeActiveSelectPopover({ restoreFocus: false });
+      }
+    };
+    const handleKeydown = (event) => {
+      if (composing || event.isComposing) return;
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+        closeActiveSelectPopover({ restoreFocus: true });
+        return;
+      }
+      if (!filtered.length) return;
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        event.preventDefault();
+        const step = event.key === "ArrowDown" ? 1 : -1;
+        activeIndex = (activeIndex + step + filtered.length) % filtered.length;
+        const buttons = listbox.querySelectorAll(".ds-select-option");
+        buttons.forEach((n, i) => n.classList.toggle("is-active", i === activeIndex));
+        buttons[activeIndex]?.scrollIntoView?.({ block: "nearest" });
+      } else if (event.key === "Home") {
+        event.preventDefault(); activeIndex = 0;
+        const buttons = listbox.querySelectorAll(".ds-select-option");
+        buttons.forEach((n, i) => n.classList.toggle("is-active", i === activeIndex));
+      } else if (event.key === "End") {
+        event.preventDefault(); activeIndex = filtered.length - 1;
+        const buttons = listbox.querySelectorAll(".ds-select-option");
+        buttons.forEach((n, i) => n.classList.toggle("is-active", i === activeIndex));
+      } else if (event.key === "Enter") {
+        const chosen = filtered[activeIndex];
+        if (chosen && !chosen.disabled) {
+          event.preventDefault();
+          selectEl.value = chosen.value;
+          selectEl.dispatchEvent(new Event("input", { bubbles: true }));
+          selectEl.dispatchEvent(new Event("change", { bubbles: true }));
+          sync();
+          closeActiveSelectPopover({ restoreFocus: true });
+        }
+      }
+    };
+
+    renderList();
+    positionPopover();
+    trigger.setAttribute("aria-expanded", "true");
+    doc.addEventListener("pointerdown", handleDocPointer, true);
+    doc.addEventListener("keydown", handleKeydown, true);
+    window.addEventListener("resize", positionPopover, { passive: true });
+    window.addEventListener("scroll", positionPopover, { passive: true, capture: true });
+
+    if (searchInput) {
+      searchInput.addEventListener("compositionstart", () => { composing = true; });
+      searchInput.addEventListener("compositionend", () => { composing = false; renderList(searchInput.value); });
+      searchInput.addEventListener("input", () => {
+        if (!composing) renderList(searchInput.value);
+      });
+      window.requestAnimationFrame(() => searchInput.focus({ preventScroll: true }));
+    } else {
+      window.requestAnimationFrame(() => {
+        const selectedBtn = listbox.querySelector('[aria-selected="true"]') || listbox.querySelector(".ds-select-option");
+        selectedBtn?.focus({ preventScroll: true });
+      });
+    }
+
+    activeSelectPopover = { select: selectEl, popover };
+    activeSelectCleanup = (restoreFocus = false) => {
+      doc.removeEventListener("pointerdown", handleDocPointer, true);
+      doc.removeEventListener("keydown", handleKeydown, true);
+      window.removeEventListener("resize", positionPopover);
+      window.removeEventListener("scroll", positionPopover, true);
+      popover.remove();
+      trigger.setAttribute("aria-expanded", "false");
+      trigger.removeAttribute("aria-controls");
+      activeSelectPopover = null;
+      activeSelectCleanup = null;
+      if (restoreFocus) trigger.focus({ preventScroll: true });
+    };
+  };
+
+  trigger.addEventListener("click", openPopover);
+  trigger.addEventListener("keydown", (event) => {
+    if (["ArrowDown", "ArrowUp", "Enter", " "].includes(event.key)) {
+      event.preventDefault();
+      openPopover();
+    }
+  });
+  selectEl.addEventListener("change", sync);
+
+  const observer = new MutationObserver(() => sync());
+  observer.observe(selectEl, { childList: true, subtree: true, attributes: true, attributeFilter: ["disabled"] });
+
+  sync();
+  const api = Object.freeze({ sync, open: openPopover, close: () => closeActiveSelectPopover({ restoreFocus: false }) });
+  ENHANCED_SELECTS.set(selectEl, api);
+  return api;
+}
+
+export function enhanceAllSelects(root = globalThis.document) {
+  root?.querySelectorAll?.("select")?.forEach((sel) => enhanceSelect(sel));
+}
+
 export function initDesignSystem() {
   setupOverlayViewport();
   setupTheme();
   navigationController = setupNavigation();
   setupContentNavigation();
   setupFormFeedback();
+  enhanceAllSelects(document);
+  if (typeof MutationObserver === "function") {
+    new MutationObserver((mutations) => {
+      for (const m of mutations) {
+        for (const node of m.addedNodes) {
+          if (node.nodeType === 1) {
+            if (node.tagName === "SELECT") enhanceSelect(node);
+            else if (node.querySelectorAll) enhanceAllSelects(node);
+          }
+        }
+      }
+    }).observe(document.body, { childList: true, subtree: true });
+  }
   if (typeof ResizeObserver === "function") {
     const sidebarNav = document.querySelector("#v3Sidebar .v3-sidebar-nav");
     if (sidebarNav) {

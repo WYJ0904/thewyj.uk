@@ -69,6 +69,8 @@ import {
 import { formatFinanceMoney } from "./js/finance/format.js?release=20261121-aeris-i05-preview";
 import { createLazyController, installLazyTools, createRetryableImport } from "./js/core/lazy-controller.js?release=20261121-aeris-i05-preview";
 import { createDashboardView } from "./js/core/dashboard.js?release=20261121-aeris-i05-preview";
+import { TOOLS, CATEGORY_DEFINITIONS, searchTools } from "./js/tools/catalog.js?release=20261121-aeris-i05-preview";
+import { homeWidgetStorageKey } from "./js/core/home-widget-layout.js?release=20261121-aeris-i05-preview";
 import {
   INTERACTION_STAGES,
   beginInteraction,
@@ -380,7 +382,14 @@ const { pushRoute } = createRouter({
       pendingOutgoingScroll = null;
       return captured;
     }
-    return { scrollX: window.scrollX || 0, scrollY: window.scrollY || 0 };
+    return {
+      scrollX: window.scrollX || 0,
+      scrollY: window.scrollY || 0,
+      aerisViewState: {
+        toolSearch: $("toolSearchInput")?.value || "",
+        plansExpanded: $("publicPlansSection")?.dataset?.plansExpanded || "false",
+      },
+    };
   },
 });
 const learningSyncAdapter = createLearningSyncAdapter(() => window.WYJLearningSync);
@@ -1390,7 +1399,6 @@ function renderAccountUi() {
   if (!account && (state.session || isThewyjAndroidApp())) $("navGuestActions")?.classList.add("hidden");
   $("accountMenu")?.classList.toggle("hidden", !account);
   if (!account && $("accountMenu")) $("accountMenu").open = false;
-  if ($("navHomeLabel")) $("navHomeLabel").textContent = "首页";
   const activeNavigation = location.pathname.startsWith("/language")
     ? "language"
     : location.pathname.startsWith("/tools")
@@ -1439,41 +1447,39 @@ function renderAccountUi() {
     if (active) link.setAttribute("aria-current", "page");
     else link.removeAttribute("aria-current");
   });
+  document.body.classList.toggle("is-authenticated", Boolean(account));
   if ($("v3SidebarAdminLink")) {
     $("v3SidebarAdminLink").hidden = !Boolean(account && isAdmin(account));
   }
+  const hasFinanceAccess = Boolean(account && (isSuperAdmin(account) || hasAccountEntitlement("finance_access", account)));
+  const hasToolsAccess = Boolean(account && (isSuperAdmin(account) || hasAccountEntitlement("tools_access", account)));
+  if ($("sidebarFinanceLock")) $("sidebarFinanceLock").hidden = hasFinanceAccess;
+  if ($("sidebarToolsLock")) $("sidebarToolsLock").hidden = hasToolsAccess;
+  if ($("sidebarWorkflowsLock")) $("sidebarWorkflowsLock").hidden = hasToolsAccess;
+  if ($("sidebarGuestFooter")) $("sidebarGuestFooter").hidden = Boolean(account);
+  if ($("accountAvatarGlyph")) {
+    const labelName = String(account?.display_name || account?.username || "A").trim();
+    $("accountAvatarGlyph").textContent = labelName ? labelName.slice(0, 1).toUpperCase() : "A";
+  }
+  if ($("sidebarAccountPlan")) {
+    $("sidebarAccountPlan").textContent = account ? summary.name : "未登录";
+  }
+  const unreadEl = $("notificationUnreadCount");
+  const menuBadgeEl = $("menuNotificationBadge");
+  if (menuBadgeEl && unreadEl) {
+    const unreadText = unreadEl.textContent?.trim() || "";
+    menuBadgeEl.textContent = unreadText;
+    menuBadgeEl.classList.toggle("hidden", unreadEl.classList.contains("hidden") || !unreadText);
+  }
   refreshWorkspaceShell();
   if (!account) resetAdminKpis();
-  if ($("v3TopbarContext")) {
-    $("v3TopbarContext").textContent = account
-      ? `${account.username} · 已连接空间`
-      : (location.hostname.endsWith(".pages.dev") && location.hostname !== "thewyj.uk")
-        ? "隔离预览 · 演示数据"
-        : "公开空间 · 演示数据";
-  }
-  badge.textContent = account ? `${account.username} · ${summary.name}` : "未登录";
+  badge.textContent = account ? `${account.display_name || account.username}` : "未登录";
   $("membershipBtn")?.classList.toggle("hidden", !account);
   $("feedbackBtn")?.classList.toggle("hidden", !account);
   $("accountBtn")?.classList.toggle("hidden", !account);
   $("logoutBtn")?.classList.toggle("hidden", !account);
   $("adminBtn")?.classList.toggle("hidden", !isAdmin(account));
   $("homeBtn")?.classList.toggle("hidden", !account || ["/", "/select"].includes(location.pathname));
-  if ($("moduleMembershipStatus")) {
-    $("moduleMembershipStatus").textContent = summary.permanent
-      ? `${summary.name} · 永久有效`
-      : `${summary.name}${summary.expires_at ? ` · 到期 ${formatLocalDateTime(summary.expires_at)}` : ""}`;
-  }
-  if ($("toolsMemberBadge")) {
-    $("toolsMemberBadge").textContent = isSuperAdmin(account) || hasAccountEntitlement("tools_access", account)
-      ? "可使用"
-      : "会员功能";
-    $("toolsMemberBadge").classList.toggle("active", Boolean(account && (isSuperAdmin(account) || hasAccountEntitlement("tools_access", account))));
-  }
-  if ($("financeMemberBadge")) {
-    const financeAccess = Boolean(account && (isSuperAdmin(account) || hasAccountEntitlement("finance_access", account)));
-    $("financeMemberBadge").textContent = financeAccess ? "可使用" : "会员功能";
-    $("financeMemberBadge").classList.toggle("active", financeAccess);
-  }
   renderAccountDetails();
   renderHomeSessionUi(account);
   renderDashboard();
@@ -1484,13 +1490,14 @@ function renderHomeSessionUi(account) {
   const home = $("publicHome");
   if (!home) return;
   home.dataset.sessionMode = account ? "authenticated" : "guest";
-  home.querySelectorAll("[data-home-personal]").forEach(node => { node.hidden = !account; });
-  const v3UiActive = document.documentElement.dataset.p07Ui === "enabled";
-  $("publicLoginBtn").textContent = v3UiActive ? (account ? "账户设置" : "登录工作台") : "账户";
-  $("publicRegisterBtn").textContent = "继续学习";
-  const labels = { learning: account ? "打开学习" : "试做最多 10 题", tools: account ? "打开工具箱" : "试用本地工具", finance: account ? "打开账本" : "登录查看账本", files: "文件与分享", account: account ? "管理账户" : "登录账户" };
-  home.querySelectorAll("[data-public-capability]").forEach(node => { node.textContent = labels[node.dataset.publicCapability]; });
-  $("publicPlansBtn").textContent = account ? "管理套餐与权益" : "查看套餐与权益";
+  home.querySelectorAll("[data-home-personal]").forEach((node) => { node.hidden = !account; });
+  home.querySelectorAll("[data-home-guest]").forEach((node) => { node.hidden = Boolean(account); });
+  const guestBtnLogin = $("publicLoginBtn");
+  if (guestBtnLogin) guestBtnLogin.textContent = account ? "账户设置" : "登录继续";
+  const guestBtnReg = $("publicRegisterBtn");
+  if (guestBtnReg) guestBtnReg.textContent = account ? "继续学习" : "创建账户";
+  const plansBtn = $("publicPlansBtn");
+  if (plansBtn) plansBtn.textContent = account ? "管理套餐与权益" : "开通或续费";
   dashboardView?.prepare();
 }
 
@@ -1602,15 +1609,10 @@ function renderChangelog() {
   const latest = latestChangelog();
   if ($("changelogCurrentVersion")) $("changelogCurrentVersion").textContent = latest ? `v${latest.version}` : APP_VERSION;
   if ($("siteVersionLabel")) $("siteVersionLabel").textContent = latest ? `v${latest.version}` : APP_VERSION;
-  if ($("v3SidebarVersion")) $("v3SidebarVersion").textContent = latest ? `v${latest.version} · Aeris` : "Aeris · V6.3";
 }
 
 function renderLatestUpdate() {
-  const latest = latestChangelog();
-  if (!latest) return;
-  if ($("dashboardUpdateDate")) $("dashboardUpdateDate").textContent = `${latest.date.replaceAll("-", "/")} · v${latest.version}`;
-  const highlights = [latest.features?.[0], latest.improvements?.[0], latest.fixes?.[0]].filter(Boolean);
-  if ($("dashboardUpdateSummary")) $("dashboardUpdateSummary").textContent = highlights.join(" ") || latest.title;
+  return latestChangelog();
 }
 
 function maybeShowVersionNotice() {
@@ -1790,7 +1792,7 @@ function syncShellInteractivity() {
 function focusWorkspaceFallback() {
   const candidates = [
     !$("sessionRecovery")?.classList.contains("hidden") ? $("retrySessionRecoveryBtn") : null,
-    !$("publicHome")?.classList.contains("hidden") ? $("publicHome")?.querySelector("h1") : null,
+    !$("publicHome")?.classList.contains("hidden") ? $("pageContent") : null,
     !$("projectPicker")?.classList.contains("hidden") ? $("projectPicker")?.querySelector("h1, h2") : null,
     !$("projectApp")?.classList.contains("hidden") ? $("projectApp")?.querySelector("h1, h2") : null,
     !$("toolsPanel")?.classList.contains("hidden") ? $("toolsPanel")?.querySelector("h1, h2") : null,
@@ -4526,20 +4528,7 @@ async function showTools(path = "/tools", pushHistory = true, generation = route
   const cachedAccess = isSuperAdmin() || hasAccountEntitlement("tools_access");
   let access = null;
   let offline = false;
-  if (!cachedAccess) {
-    // Locked accounts resolve access first, so a non-member sees the upgrade
-    // prompt instead of a flash of a toolbox they cannot use.
-    try {
-      access = await apiGet("/api/tools/access");
-    } catch (error) {
-      await handleToolsAccessFailure(error, generation);
-      return;
-    }
-    if (!isRouteGenerationCurrent(generation)) return;
-  }
-  // Entitled members switch the surface immediately: the verification request
-  // can take seconds on a slow network and must never keep the previous page
-  // on screen after the tab was tapped.
+  // Switch into the workspace shell immediately (<100ms) without flashing locked tool content.
   stopProjectActivity();
   currentProject = "";
   state.quizLanguage = "";
@@ -4547,7 +4536,11 @@ async function showTools(path = "/tools", pushHistory = true, generation = route
   $("toolsPanel")?.classList.remove("hidden");
   $("toolsPanel")?.setAttribute("aria-hidden", "false");
   animateRouteViewEntrance($("toolsPanel"));
-  if (path.startsWith("/tools/workflows")) {
+  if (!cachedAccess) {
+    $("toolsDashboard")?.classList.add("hidden");
+    $("workflowWorkspace")?.classList.add("hidden");
+    $("toolWorkbench")?.classList.add("hidden");
+  } else if (path.startsWith("/tools/workflows")) {
     $("toolsDashboard")?.classList.add("hidden");
     $("toolWorkbench")?.classList.add("hidden");
     $("workflowWorkspace")?.classList.remove("hidden");
@@ -4568,7 +4561,9 @@ async function showTools(path = "/tools", pushHistory = true, generation = route
   renderAccountUi();
   const reapplyPopScroll = applyWorkspaceRouteScroll(pushHistory);
   try {
-    const preparing = Promise.resolve(window.WYJTools.prepare()).catch(error => ({ error }));
+    const preparing = cachedAccess
+      ? Promise.resolve(window.WYJTools.prepare()).catch((error) => ({ error }))
+      : Promise.resolve(null);
     if (!access) {
       try {
         access = await apiGet("/api/tools/access");
@@ -4578,7 +4573,27 @@ async function showTools(path = "/tools", pushHistory = true, generation = route
       }
     }
     if (!isRouteGenerationCurrent(generation)) return;
-    const prepared = await preparing;
+    if (!cachedAccess) {
+      if (path.startsWith("/tools/workflows")) {
+        $("toolsDashboard")?.classList.add("hidden");
+        $("toolWorkbench")?.classList.add("hidden");
+        $("workflowWorkspace")?.classList.remove("hidden");
+        $("workflowWorkspace")?.setAttribute("aria-hidden", "false");
+        $("toolsPanel")?.querySelector(".tools-header")?.classList.add("hidden");
+      } else if (path === "/tools") {
+        $("toolsDashboard")?.classList.remove("hidden");
+        $("workflowWorkspace")?.classList.add("hidden");
+        $("toolWorkbench")?.classList.add("hidden");
+        $("toolsPanel")?.querySelector(".tools-header")?.classList.remove("hidden");
+      } else if (path.startsWith("/tools/")) {
+        $("toolsDashboard")?.classList.add("hidden");
+        $("workflowWorkspace")?.classList.add("hidden");
+        $("toolWorkbench")?.classList.remove("hidden");
+      }
+    }
+    const prepared = cachedAccess
+      ? await preparing
+      : await Promise.resolve(window.WYJTools.prepare()).catch((error) => ({ error }));
     if (prepared?.error) throw prepared.error;
     if (!isRouteGenerationCurrent(generation)) return;
     await window.WYJTools.show(path, { access, offline });
@@ -7626,7 +7641,7 @@ function finishAuthTransition(transition, owner) {
   document.body.classList.remove('auth-transition-active');
   const { hasBlockingModal } = syncShellInteractivity();
   if (state.session === owner && !hasBlockingModal) {
-    const target = !$('sessionRecovery').classList.contains('hidden') ? $('retrySessionRecoveryBtn') : $('publicHome')?.querySelector('h1');
+    const target = !$('sessionRecovery').classList.contains('hidden') ? $('retrySessionRecoveryBtn') : $('pageContent');
     if (target) { if (!target.matches('button')) target.setAttribute('tabindex', '-1'); target.focus({ preventScroll: true }); }
     window.setTimeout(showNextSiteMessage, 0);
   }
@@ -8051,7 +8066,7 @@ async function boot() {
   else window.addEventListener("resize", updateNavHeight, { passive: true });
   updateNavHeight();
   const siteNavigationDestinations = new Set(["home", "changelog", "download", "language", "trial", "tools", "finance", "transfer"]);
-  document.querySelectorAll("[data-site-nav]").forEach((link) => link.addEventListener("click", async (event) => {
+  document.querySelectorAll("[data-site-nav]:not([data-v3-nav])").forEach((link) => link.addEventListener("click", async (event) => {
     const destination = link.dataset.siteNav;
     if (!siteNavigationDestinations.has(destination)) return;
     event.preventDefault();
@@ -8059,97 +8074,219 @@ async function boot() {
     // keeps the pending state until the route is rendered.
     await withInteractionFeedback(link, `site-nav-${destination}`, () => navigateFromSiteNav(destination));
   }));
-  document.querySelectorAll("#v3Sidebar [data-v3-nav]").forEach((link) => link.addEventListener("click", async (event) => {
-    const target = link.dataset.v3Nav;
-    event.preventDefault();
-    await withInteractionFeedback(link, `v3-nav-${target}`, async () => {
-      if (siteNavigationDestinations.has(target)) {
-        await navigateFromSiteNav(target);
-        return;
-      }
-      if (target === "workflows") {
-        if (state.session && state.account) await showTools("/tools/workflows", true);
-        else showAuth("登录后可使用工作流编排", { mode: "login", path: "/login" });
-        return;
-      }
-      if (target === "recharge") {
-        if (state.session && state.account) await showMembership(true);
-        else showAuth("登录后可查看实时套餐并提交充值申请", { mode: "login", path: "/login" });
-        return;
-      }
-      if (target === "account") {
-        if (state.session && state.account) showAccount(true);
-        else showAuth("", { mode: "login", path: "/login" });
-        return;
-      }
-      if (target === "admin" && state.session && state.account && isAdmin(state.account)) {
-        await showAdminPanel(true);
-      }
-    });
-  }));
-  $("publicTrialBtn")?.addEventListener("click", () => showTrial(true, "quiz"));
-  // Capability anchors use the existing site-nav dispatcher in both sessions.
-  $("publicRegisterBtn")?.addEventListener("click", () => navigateFromSiteNav('language'));
-  $("homeSearchBtn")?.addEventListener("click", async event => {await withInteractionFeedback(event.currentTarget,'home-tool-search',()=>navigateFromSiteNav('tools'));if(!$("toolsDashboard")?.classList.contains('hidden'))$("toolSearchInput")?.focus();else if(!$("trialPage")?.classList.contains('hidden'))$("trialTextInput")?.focus();});
-  let cmdActiveIndex = 0;
-  let cmdFilteredItems = [];
-  function buildCommandPaletteItems() {
-    const authed = Boolean(state.session && state.account);
-    const items = [
-      { id: "home", label: authed ? "前往个人工作台" : "前往公开首页", hint: "G W", keywords: "home workspace 首页 工作台", run: () => navigateFromSiteNav("home") },
-      { id: "language", label: authed ? "打开语言学习" : "语言学习试做 (最多 10 题)", hint: "G L", keywords: "language learn 英语 日语 学习", run: () => navigateFromSiteNav("language") },
-      { id: "trial", label: "打开免费试用", hint: "/trial", keywords: "trial 试用 测验", run: () => showTrial(true, "quiz") },
-      { id: "tools", label: "打开工具箱", hint: "G T", keywords: "tools json image text 工具箱", run: () => navigateFromSiteNav("tools") },
-      { id: "transfer", label: "打开文件传输与分享", hint: "G S", keywords: "transfer share file 文件 传输 分享", run: () => navigateFromSiteNav("transfer") },
-      { id: "finance", label: authed ? "打开财务账本" : "登录后查看财务账本", hint: "G F", keywords: "finance ledger budget 财务 账本", run: () => navigateFromSiteNav("finance") },
-      { id: "download", label: "下载 Android 客户端", hint: "/download", keywords: "download android apk 下载", run: () => navigateFromSiteNav("download") },
-      { id: "changelog", label: "查看更新日志", hint: "/changelog", keywords: "changelog updates 版本 更新", run: () => navigateFromSiteNav("changelog") },
-    ];
-    if (authed) {
-      items.push(
-        { id: "workflows", label: "打开工作流编排", hint: "/tools/workflows", keywords: "workflow 工作流 自动化", run: () => showTools("/tools/workflows", true) },
-        { id: "inbox", label: "打开个人通知收件箱", hint: "G I", keywords: "inbox notifications 通知 收件箱", run: () => $("notificationInboxMenuBtn")?.click() },
-        { id: "security", label: "打开账户安全中心", hint: "Security", keywords: "security 2fa passkey email 安全", run: () => $("securityCenterMenuBtn")?.click() },
-        { id: "account", label: "打开账户设置", hint: "G A", keywords: "account profile settings 账户 设置", run: () => $("accountBtn")?.click() },
-        { id: "membership", label: "管理会员与充值", hint: "G M", keywords: "membership recharge plan 会员 充值", run: () => $("membershipBtn")?.click() },
-        { id: "feedback", label: "反馈与功能投票", hint: "Feedback", keywords: "feedback vote 反馈", run: () => $("feedbackBtn")?.click() },
-      );
-      if (isAdmin(state.account)) {
-        items.push({ id: "admin", label: "进入管理后台 & Feature Flags", hint: "/admin", keywords: "admin flags audit 管理 后台 开关", run: () => $("adminBtn")?.click() });
-      }
-    } else {
-      items.push(
-        { id: "login", label: "登录 Aeris 账户", hint: "/login", keywords: "login sign in 登录", run: () => showAuth("", { mode: "login", path: "/login" }) },
-        { id: "register", label: "注册新账户", hint: "/register", keywords: "register sign up 注册", run: () => showAuth("", { mode: "register", path: "/register" }) },
-      );
+  const prefetchedTargets = new Set();
+  const prefetchNavTarget = (target) => {
+    if (!target || prefetchedTargets.has(target)) return;
+    prefetchedTargets.add(target);
+    if ((target === "tools" || target === "workflows") && state.session && state.account) {
+      window.WYJTools?.prepare?.().catch?.(() => {});
+    } else if (target === "finance" && state.session && state.account) {
+      financeController?.prepare?.().catch?.(() => {});
+    } else if (target === "transfer") {
+      transferController?.prepare?.().catch?.(() => {});
     }
-    items.push({ id: "theme", label: `切换外观模式 (当前: ${$("themeToggleLabel")?.textContent || "系统"})`, hint: "Theme", keywords: "theme dark light system 主题 深色 浅色", run: () => $("themeToggleBtn")?.click() });
-    return items;
+  };
+  document.querySelectorAll("#v3Sidebar [data-v3-nav]").forEach((link) => {
+    const target = link.dataset.v3Nav;
+    link.addEventListener("pointerenter", () => prefetchNavTarget(target), { passive: true });
+    link.addEventListener("focus", () => prefetchNavTarget(target), { passive: true });
+    link.addEventListener("click", async (event) => {
+      event.preventDefault();
+      // Strategy C: explicit sidebar click opens destination in its default initial state.
+      if (target === "tools" && $("toolSearchInput")) {
+        $("toolSearchInput").value = "";
+      }
+      if (target === "home" && $("publicPlansSection")) {
+        $("publicPlansSection").dataset.plansExpanded = "false";
+        const toggleBtn = $("toggleAllPublicPlansBtn");
+        if (toggleBtn) { toggleBtn.setAttribute("aria-expanded", "false"); toggleBtn.textContent = "查看所有套餐"; }
+      }
+      await withInteractionFeedback(link, `v3-nav-${target}`, async () => {
+        if (siteNavigationDestinations.has(target)) {
+          await navigateFromSiteNav(target);
+          return;
+        }
+        if (target === "workflows") {
+          if (state.session && state.account) await showTools("/tools/workflows", true);
+          else showAuth("登录后可使用工作流编排", { mode: "login", path: "/login" });
+          return;
+        }
+        if (target === "recharge") {
+          if (state.session && state.account) await showMembership(true);
+          else showAuth("登录后可查看实时套餐并提交充值申请", { mode: "login", path: "/login" });
+          return;
+        }
+        if (target === "account") {
+          if (state.session && state.account) showAccount(true);
+          else showAuth("", { mode: "login", path: "/login" });
+          return;
+        }
+        if (target === "admin" && state.session && state.account && isAdmin(state.account)) {
+          await showAdminPanel(true);
+        }
+      });
+    });
+  });
+  $("sidebarGuestLoginBtn")?.addEventListener("click", () => showAuth("", { mode: "login", path: "/login" }));
+  $("publicTrialBtn")?.addEventListener("click", () => showTrial(true, "quiz"));
+  // Guest Register opens /register; signed-in button jumps to language practice.
+  $("publicRegisterBtn")?.addEventListener("click", () => {
+    if (state.session && state.account) void navigateFromSiteNav("language");
+    else showAuth("", { mode: "register", path: "/register" });
+  });
+  let cmdActiveIndex = 0;
+  let cmdFilterMode = "all";
+  let cmdFilteredItems = [];
+  const TOOL_ENGLISH_ALIASES = Object.freeze({
+    "json-format": "json format prettier beautify parse lint",
+    "json-validate": "json validate schema check",
+    "text-stats": "word count length characters lines stats",
+    "case-convert": "uppercase lowercase camelcase snake title",
+    "base64-text": "base64 encode decode",
+    "url-codec": "url encode decode component",
+    "regex-tester": "regex regexp match pattern",
+    "text-diff": "diff compare lines",
+    "image-compress": "compress image shrink optimize",
+    "image-convert": "convert png jpg webp image",
+    "image-resize": "resize crop image width height",
+    "password-generator": "password random secret gen",
+    "uuid-generator": "uuid guid v4 random",
+    "qr-generator": "qr barcode generate",
+    "qr-decode": "qr scan decode",
+    "temporary-file-share": "temp share file link upload",
+    "temporary-text-share": "pastebin snippet share text",
+  });
+  function readCommandRecents() {
+    const accountId = state.account?.id || "guest";
+    try {
+      const raw = localStorage.getItem(homeWidgetStorageKey(accountId));
+      const parsed = raw ? JSON.parse(raw) : null;
+      return Array.isArray(parsed?.recentCommands) ? parsed.recentCommands : [];
+    } catch (_) {
+      return [];
+    }
+  }
+  function recordCommandRecent(cmdId) {
+    if (!cmdId) return;
+    const accountId = state.account?.id || "guest";
+    try {
+      const key = homeWidgetStorageKey(accountId);
+      const raw = localStorage.getItem(key);
+      const parsed = raw && typeof JSON.parse(raw) === "object" ? JSON.parse(raw) : { version: 2 };
+      const existing = Array.isArray(parsed?.recentCommands) ? parsed.recentCommands : [];
+      const next = [cmdId, ...existing.filter((id) => id !== cmdId)].slice(0, 8);
+      localStorage.setItem(key, JSON.stringify({ ...parsed, recentCommands: next }));
+    } catch (_) {}
+  }
+  function buildCommandPaletteItems(query = "") {
+    const authed = Boolean(state.session && state.account);
+    const hasTools = Boolean(authed && (isSuperAdmin(state.account) || hasAccountEntitlement("tools_access", state.account)));
+    const hasFinance = Boolean(authed && (isSuperAdmin(state.account) || hasAccountEntitlement("finance_access", state.account)));
+    const recents = new Set(readCommandRecents());
+    const toolSummary = window.WYJTools?.getSummary?.() || { favorites: [], recent: [] };
+    const favTools = new Set((toolSummary.favorites || []).map((t) => t.tool_id));
+    const recentTools = new Set((toolSummary.recent || []).map((t) => t.tool_id));
+
+    const moduleItems = [
+      { id: "home", category: "module", label: authed ? "个人首页" : "公开首页", badge: "模块", hint: "G W", keywords: "home workspace launcher 首页 工作台", run: () => navigateFromSiteNav("home") },
+      { id: "language", category: "module", label: authed ? "语言学习" : "语言学习试做 (最多 10 题)", badge: "模块", hint: "G L", keywords: "language learn english japanese 英语 日语 学习 词表", run: () => navigateFromSiteNav("language") },
+      { id: "trial", category: "module", label: "免费试用", badge: "模块", hint: "/trial", keywords: "trial guest quiz json image 试用 测验", run: () => showTrial(true, "quiz") },
+      { id: "tools", category: "module", label: hasTools || !authed ? "在线工具箱" : "在线工具箱 (需要会员)", badge: hasTools ? "模块" : "需授权", hint: "G T", keywords: "tools json image text 工具箱", run: () => navigateFromSiteNav("tools") },
+      { id: "workflows", category: "module", label: hasTools || !authed ? "自动化工作流" : "工作流 (需要会员)", badge: hasTools ? "模块" : "需授权", hint: "/tools/workflows", keywords: "workflow automation 工作流 自动化 编排", run: () => (authed ? showTools("/tools/workflows", true) : showAuth("登录后可使用工作流编排", { mode: "login", path: "/login" })) },
+      { id: "finance", category: "module", label: hasFinance ? "财务账本" : "财务账本 (需要会员)", badge: hasFinance ? "模块" : "需授权", hint: "G F", keywords: "finance ledger budget 财务 账本 记账", run: () => navigateFromSiteNav("finance") },
+      { id: "transfer", category: "module", label: "文件传输与分享", badge: "模块", hint: "G S", keywords: "transfer share file airdrop 文件 传输 分享", run: () => navigateFromSiteNav("transfer") },
+      { id: "download", category: "module", label: "下载 Android 客户端", badge: "资源", hint: "/download", keywords: "download android apk 下载 安卓", run: () => navigateFromSiteNav("download") },
+      { id: "changelog", category: "module", label: "查看更新日志", badge: "资源", hint: "/changelog", keywords: "changelog updates release 版本 更新日志", run: () => navigateFromSiteNav("changelog") },
+    ];
+    const actionItems = authed
+      ? [
+          { id: "inbox", category: "action", label: "个人通知收件箱", badge: "操作", hint: "G I", keywords: "inbox notifications message 通知 收件箱", run: () => $("notificationInboxMenuBtn")?.click() },
+          { id: "security", category: "action", label: "账户安全中心", badge: "操作", hint: "Security", keywords: "security 2fa passkey email 安全 双重验证", run: () => $("securityCenterMenuBtn")?.click() },
+          { id: "account", category: "action", label: "账户设置与学习同步", badge: "操作", hint: "G A", keywords: "account profile settings sync 账户 设置 同步", run: () => $("accountBtn")?.click() },
+          { id: "membership", category: "action", label: "会员方案与充值", badge: "操作", hint: "G M", keywords: "membership recharge plan vip 会员 充值 套餐", run: () => $("membershipBtn")?.click() },
+          { id: "feedback", category: "action", label: "反馈与功能投票", badge: "操作", hint: "Feedback", keywords: "feedback vote bug 反馈 投票", run: () => $("feedbackBtn")?.click() },
+        ]
+      : [
+          { id: "login", category: "action", label: "登录 Aeris 账户", badge: "操作", hint: "/login", keywords: "login sign in 登录", run: () => showAuth("", { mode: "login", path: "/login" }) },
+          { id: "register", category: "action", label: "创建新账户", badge: "操作", hint: "/register", keywords: "register sign up 注册", run: () => showAuth("", { mode: "register", path: "/register" }) },
+        ];
+    if (authed && isAdmin(state.account)) {
+      actionItems.push({ id: "admin", category: "action", label: "管理后台 & Feature Flags", badge: "管理员", hint: "/admin", keywords: "admin flags audit 管理 后台 开关", run: () => $("adminBtn")?.click() });
+    }
+    actionItems.push({ id: "theme", category: "action", label: `切换外观主题（当前：${$("themeToggleLabel")?.textContent || "系统"}）`, badge: "外观", hint: "Theme", keywords: "theme dark light system 主题 深色 浅色 外观", run: () => $("themeToggleBtn")?.click() });
+
+    const catLabels = Object.fromEntries((CATEGORY_DEFINITIONS || []).map((c) => [c.id, c.label]));
+    const cleanQuery = query.trim().toLowerCase();
+    const qTokens = cleanQuery ? cleanQuery.split(/\s+/).filter(Boolean) : [];
+    const primaryMatches = cleanQuery ? searchTools(cleanQuery, TOOLS) : TOOLS;
+    const seenToolIds = new Set(primaryMatches.map((t) => t.id));
+    const aliasMatches = qTokens.length
+      ? TOOLS.filter((t) => {
+          if (seenToolIds.has(t.id)) return false;
+          const hay = `${t.id} ${t.name} ${t.summary} ${catLabels[t.category] || ""} ${TOOL_ENGLISH_ALIASES[t.id] || ""} ${(t.keywords || []).join(" ")}`.toLowerCase();
+          return qTokens.every((tok) => hay.includes(tok));
+        })
+      : [];
+    const matchedCatalog = [...primaryMatches, ...aliasMatches];
+    const toolItems = matchedCatalog.map((tool) => {
+      const cmdId = `tool:${tool.id}`;
+      const isFav = favTools.has(tool.id);
+      const isRecent = recentTools.has(tool.id) || recents.has(cmdId);
+      const catText = catLabels[tool.category] || "工具";
+      const badge = isFav ? `收藏 · ${catText}` : isRecent ? `最近 · ${catText}` : (hasTools ? catText : `${catText} · 需会员`);
+      const aliasText = TOOL_ENGLISH_ALIASES[tool.id] || "";
+      return {
+        id: cmdId,
+        category: "tool",
+        label: tool.name,
+        badge,
+        hint: hasTools ? `/tools/${tool.id}` : "需工具会员",
+        keywords: `${tool.id} ${tool.name} ${tool.summary} ${catText} ${aliasText} ${(tool.keywords || []).join(" ")}`,
+        priority: (isFav ? 30 : 0) + (isRecent ? 20 : 0) + (tool.featured ? 5 : 0),
+        run: () => {
+          if (authed) void showTools(`/tools/${tool.id}`, true);
+          else showTrial(true, tool.category === "image" ? "image-compress" : "text");
+        },
+      };
+    });
+
+    const combined = [...moduleItems, ...actionItems, ...toolItems];
+    return combined.map((item) => ({
+      ...item,
+      priority: (item.priority || 0) + (recents.has(item.id) ? 40 : 0),
+    }));
   }
   function renderCommandPaletteList() {
     const list = $("commandPaletteList");
     const hint = $("commandPaletteHint");
     const input = $("commandPaletteInput");
     if (!list) return;
-    const query = (input?.value || "").trim().toLowerCase();
+    const rawQuery = (input?.value || "").trim();
+    const query = rawQuery.toLowerCase();
     const tokens = query ? query.split(/\s+/).filter(Boolean) : [];
-    cmdFilteredItems = buildCommandPaletteItems().filter((item) => {
-      if (!tokens.length) return true;
-      const haystack = `${item.label} ${item.hint} ${item.keywords}`.toLowerCase();
-      return tokens.every((tok) => haystack.includes(tok));
-    });
+    const baseItems = buildCommandPaletteItems(rawQuery);
+    cmdFilteredItems = baseItems
+      .filter((item) => {
+        if (cmdFilterMode !== "all" && item.category !== cmdFilterMode) return false;
+        if (!tokens.length) return true;
+        if (item.category === "tool") return true; // already fuzzy-scored by searchTools
+        const haystack = `${item.label} ${item.hint} ${item.keywords}`.toLowerCase();
+        return tokens.every((tok) => haystack.includes(tok));
+      })
+      .sort((a, b) => (b.priority || 0) - (a.priority || 0))
+      .slice(0, rawQuery ? 40 : 28);
     if (cmdActiveIndex >= cmdFilteredItems.length) cmdActiveIndex = 0;
     list.replaceChildren();
     if (!cmdFilteredItems.length) {
       input?.removeAttribute("aria-activedescendant");
       const empty = document.createElement("p");
       empty.className = "meta-line v3-cmd-empty";
-      empty.textContent = "未找到匹配命令或模块，按 Esc 关闭或修改关键字。";
+      empty.textContent = "未找到匹配工具、模块或操作，按 Esc 关闭或修改关键词。";
       list.append(empty);
-      if (hint) hint.textContent = "0 条匹配命令";
+      if (hint) hint.textContent = "0 条匹配结果";
       return;
     }
-    if (hint) hint.textContent = `${cmdFilteredItems.length} 条可用操作 · ↑ ↓ 选择 · Enter 执行`;
+    if (hint) hint.textContent = `${cmdFilteredItems.length} 条结果 · ↑ ↓ 选择 · Enter 执行`;
     let activeBtn = null;
     cmdFilteredItems.forEach((item, idx) => {
       const btn = document.createElement("button");
@@ -8162,14 +8299,21 @@ async function boot() {
         btn.classList.add("is-active");
         activeBtn = btn;
       }
+      const leftWrap = document.createElement("span");
+      leftWrap.className = "v3-cmd-item-main";
       const nameSpan = document.createElement("span");
       nameSpan.className = "v3-cmd-item-label";
       nameSpan.textContent = item.label;
+      const badgeSpan = document.createElement("span");
+      badgeSpan.className = "v3-cmd-item-badge";
+      badgeSpan.textContent = item.badge || "";
+      leftWrap.append(nameSpan, badgeSpan);
       const hintKbd = document.createElement("kbd");
       hintKbd.className = "v3-kbd";
       hintKbd.textContent = item.hint;
-      btn.append(nameSpan, hintKbd);
+      btn.append(leftWrap, hintKbd);
       btn.addEventListener("click", () => {
+        recordCommandRecent(item.id);
         closeModal("commandPaletteModal");
         void item.run();
       });
@@ -8186,12 +8330,33 @@ async function boot() {
     const modal = $("commandPaletteModal");
     if (!modal) return;
     cmdActiveIndex = 0;
+    cmdFilterMode = "all";
+    document.querySelectorAll("#commandPaletteFilters [data-cmd-filter]").forEach((btn) => {
+      const active = btn.dataset.cmdFilter === "all";
+      btn.classList.toggle("active", active);
+      btn.setAttribute("aria-selected", String(active));
+    });
     if ($("commandPaletteInput")) $("commandPaletteInput").value = "";
     renderCommandPaletteList();
     openModal("commandPaletteModal");
     window.requestAnimationFrame(() => $("commandPaletteInput")?.focus({ preventScroll: true }));
   }
-  $("v3CmdTrigger")?.addEventListener("click", openCommandPalette);
+  document.querySelectorAll("#commandPaletteFilters [data-cmd-filter]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      cmdFilterMode = btn.dataset.cmdFilter || "all";
+      cmdActiveIndex = 0;
+      document.querySelectorAll("#commandPaletteFilters [data-cmd-filter]").forEach((tab) => {
+        const active = tab === btn;
+        tab.classList.toggle("active", active);
+        tab.setAttribute("aria-selected", String(active));
+      });
+      renderCommandPaletteList();
+      $("commandPaletteInput")?.focus({ preventScroll: true });
+    });
+  });
+  ["v3CmdTrigger", "homeSearchBtn", "homeLauncherSearchBtn", "guestLauncherSearchBtn"].forEach((id) => {
+    $(id)?.addEventListener("click", openCommandPalette);
+  });
   $("commandPaletteInput")?.addEventListener("input", () => {
     cmdActiveIndex = 0;
     renderCommandPaletteList();
@@ -8212,29 +8377,18 @@ async function boot() {
       const activeItem = cmdFilteredItems[cmdActiveIndex];
       if (!activeItem) return;
       event.preventDefault();
+      recordCommandRecent(activeItem.id);
       closeModal("commandPaletteModal");
       void activeItem.run();
     }
   });
   window.addEventListener("resize", () => syncSidebarActiveIndicator(document), { passive: true });
   $("publicLoginBtn")?.addEventListener("click", () => state.session && state.account ? $("accountBtn").click() : showAuth("", { mode: "login", path: "/login" }));
-  $("dashboardNotificationsBtn")?.addEventListener("click", () => showFinance(true));
-  $("dashboardTransferBtn")?.addEventListener("click", () => showTransfer(true));
   $("publicPlansBtn")?.addEventListener("click", () => state.session && state.account ? $("membershipBtn").click() : showAuth("登录后可查看实时套餐并提交充值申请", { mode: "login", path: "/login" }));
   $("publicPlanRetryBtn")?.addEventListener("click", () => {
     void loadMembershipPlans(true).then(plans=>renderPublicPlanCatalog(document,plans)).catch(error=>renderPublicPlanCatalog(document,[],error.message));
   });
   $("changelogTrialBtn")?.addEventListener("click", () => showTrial(true, "quiz"));
-  $("dashboardChangelogBtn")?.addEventListener("click", () => showChangelog(true));
-  document.querySelectorAll(".v3-summary-card").forEach((card) => {
-    card.addEventListener("click", () => {
-      const target = card.dataset.v3Summary;
-      if (target === "learning") navigateFromSiteNav("language");
-      else if (target === "finance") navigateFromSiteNav("finance");
-      else if (target === "transfer") navigateFromSiteNav("transfer");
-      else if (target === "tools") navigateFromSiteNav("tools");
-    });
-  });
   // #7: the learning-sync actions talk to the cloud; the control shows the
   // pending state before the first await instead of looking dead for a round trip.
   $("learningSyncNowBtn")?.addEventListener("click", (event) =>
@@ -8499,7 +8653,25 @@ async function boot() {
     const hasSaved = Boolean(event?.state && Number.isFinite(event.state.scrollY));
     pendingPopScroll = hasSaved ? event.state : null;
     pendingPopReset = !hasSaved;
-    routeCurrent();
+    const restoredViewState = event?.state?.aerisViewState || null;
+    const maybePromise = routeCurrent();
+    if (restoredViewState) {
+      Promise.resolve(maybePromise).finally(() => {
+        if (typeof restoredViewState.toolSearch === "string" && $("toolSearchInput")) {
+          $("toolSearchInput").value = restoredViewState.toolSearch;
+          $("toolSearchInput").dispatchEvent(new Event("input", { bubbles: true }));
+        }
+        if (restoredViewState.plansExpanded && $("publicPlansSection")) {
+          const expanded = restoredViewState.plansExpanded === "true";
+          $("publicPlansSection").dataset.plansExpanded = String(expanded);
+          const btn = $("toggleAllPublicPlansBtn");
+          if (btn) {
+            btn.setAttribute("aria-expanded", String(expanded));
+            btn.textContent = expanded ? "收起部分套餐" : "查看所有套餐";
+          }
+        }
+      });
+    }
   });
   $("offlineReviewBtn").addEventListener("click", () => {
     pendingScreen = "workspace";
@@ -8602,8 +8774,6 @@ async function boot() {
     void withInteractionFeedback(event.currentTarget, "workflow-open", () => showTools("/tools/workflows", true, generation)).catch(() => undefined);
   });
   $("toolsAccountBtn").addEventListener("click", () => showAccount(true));
-  $("dashboardMembershipBtn")?.addEventListener("click", () => showMembership(true));
-  $("dashboardFinanceBtn")?.addEventListener("click", () => showFinance(true));
   $("shareLoginBtn").addEventListener("click", () => state.session && state.account ? showModulePicker(true) : showAuth("", { path: "/login" }));
   $("gradingModeSelect").addEventListener("change", (event) => {
     state.gradingMode = event.target.value;

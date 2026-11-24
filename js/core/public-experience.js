@@ -167,6 +167,17 @@ export function initPublicExperience(doc=globalThis.document) {
 
   if(tabs[0])select(tabs[0],{immediate:true});
 
+  const plansSection = doc.getElementById('publicPlansSection');
+  const togglePlansBtn = doc.getElementById('toggleAllPublicPlansBtn');
+  if (plansSection && togglePlansBtn) {
+    togglePlansBtn.addEventListener('click', () => {
+      const next = plansSection.dataset.plansExpanded !== 'true';
+      plansSection.dataset.plansExpanded = String(next);
+      togglePlansBtn.setAttribute('aria-expanded', String(next));
+      togglePlansBtn.textContent = next ? '收起部分套餐' : '查看所有套餐';
+    });
+  }
+
   const publicHome=doc.getElementById('publicHome');
   if(publicHome&&view&&!view.WYJPublicScroll){
     view.WYJPublicScroll=createScrollProgressController({root:publicHome,doc,view});

@@ -417,7 +417,7 @@ async function main() {
     await evaluate(`(async () => {
       const element = document.querySelector(${JSON.stringify(selector)});
       if (!element) throw new Error('missing touch target ${selector}');
-      const animatedSurface = element.closest('#siteNavPanel') || element;
+      const animatedSurface = element.closest('#v3Sidebar') || element;
       const animations = animatedSurface.getAnimations({ subtree: true })
         .filter((animation) => animation.playState === 'running');
       await Promise.all(animations.map((animation) => animation.finished.catch(() => undefined)));
@@ -685,22 +685,18 @@ async function main() {
       assert.equal(await evaluate("document.querySelector('#publicHome').textContent.includes('留在本机')"), true);
       assert.equal(await evaluate("document.querySelector('#publicSplitFlap')"), null);
       assert.equal(await evaluate("document.querySelectorAll('#publicCapabilityGallery [role=tab]').length"), 4);
-      // Compact navigation remains keyboard accessible on narrow viewports.
-      // Desktop now exposes the five primary destinations inline.
-      assert.equal(await evaluate("document.querySelectorAll('.home-inline-nav a').length"),5);
+      // V6.3 Phase 1 exposes categorized desktop & mobile slide-in sidebar (#v3Sidebar).
+      assert.equal(await evaluate("document.querySelectorAll('#v3Sidebar [data-v3-nav]').length >= 9"), true);
       await send("Emulation.setDeviceMetricsOverride",{width:390,height:900,deviceScaleFactor:1,mobile:true});
       await click("#siteNavToggle");
       assert.equal(await evaluate("document.querySelector('#siteNavToggle').getAttribute('aria-expanded')"), "true");
-      assert.equal(await evaluate("document.querySelectorAll('#siteNavPanel a').length"), 6);
-      const primaryReleaseLinks = await evaluate(`Array.from(document.querySelectorAll('.site-release-actions > a')).map(link => ({
-        destination: link.dataset.siteNav, href: link.getAttribute('href'),
-        outsidePanel: !link.closest('details, #siteNavPanel'),
+      assert.equal(await evaluate("document.querySelector('#v3Sidebar').classList.contains('mobile-drawer-open')"), true);
+      const sidebarTargets = await evaluate(`Array.from(document.querySelectorAll('#v3Sidebar [data-v3-nav]')).filter(l => !l.hidden).map(link => ({
+        destination: link.dataset.v3Nav, href: link.getAttribute('href'),
         visible: link.getBoundingClientRect().width > 0 && link.getBoundingClientRect().height > 0,
       }))`);
-      assert.deepEqual(primaryReleaseLinks, [
-        { destination: "download", href: "/download", outsidePanel: true, visible: true },
-        { destination: "changelog", href: "/changelog", outsidePanel: true, visible: true },
-      ]);
+      assert.ok(sidebarTargets.some((x) => x.destination === "download" && x.href === "/download" && x.visible));
+      assert.ok(sidebarTargets.some((x) => x.destination === "changelog" && x.href === "/changelog" && x.visible));
       assert.equal(await evaluate("document.querySelector('[data-site-nav=download]').getAttribute('href')"), "/download");
       assert.equal(await evaluate("document.querySelector('[data-site-nav=trial]').getAttribute('href')"), "/trial");
       await click("[data-site-nav=trial]");
@@ -709,7 +705,7 @@ async function main() {
       await waitFor("location.pathname === '/' && !document.querySelector('#publicHome')?.classList.contains('hidden')", 4_000, "home after desktop trial navigation");
 
       await click("#siteNavToggle");
-      await evaluate("document.querySelector('#siteNavToggle').focus(); true");
+      await evaluate("document.querySelector('#v3CmdTrigger').focus(); true");
       for (let index = 0; index < 12; index += 1) {
         await pressKey("Tab", "Tab");
         if (await evaluate("document.activeElement?.dataset?.siteNav === 'trial'")) break;
@@ -944,68 +940,66 @@ async function main() {
     let browserFeedbackId = "";
 
     await check("authenticated product home continuity and responsive layout", async () => {
-      if(!await evaluate("document.querySelector('#homeProductDetails').open"))await click('#homeProductDetails>summary');
       assert.equal(await evaluate("document.body.dataset.experience"), "public");
       assert.equal(await evaluate("document.querySelector('#publicHomeTitle').textContent.trim()"), "Aeris");
       assert.ok((await evaluate("document.querySelector('#dashboardGreeting').textContent")).includes(`${USERNAME}`));
       assert.equal(await evaluate("document.querySelector('#publicHome').dataset.sessionMode === 'authenticated'"), true);
-      assert.equal(await evaluate("document.querySelectorAll('#publicHome .public-hero').length"), 1);
+      assert.equal(await evaluate("!document.querySelector('#authHomeLauncher').hidden"), true);
       assert.equal(await evaluate("document.querySelectorAll('.dashboard-metric').length"), 0);
-      assert.equal(await evaluate("document.querySelectorAll('#publicBentoWall .bento-tile').length"), 5);
-      assert.equal(await evaluate("document.querySelectorAll('[data-dashboard-project]').length"), 2);
-      assert.equal(await evaluate("document.querySelectorAll('#publicHome [data-module=language]').length >= 1"), true);
-      assert.equal(await evaluate("document.querySelectorAll('#publicHome [data-module=tools]').length >= 1"), true);
-      assert.equal(await evaluate("Boolean(document.querySelector('#dashboardFinanceBtn'))"), true);
+      assert.equal(await evaluate("document.querySelectorAll('#publicBentoWall .bento-tile').length"), 0);
+      assert.equal(await evaluate("document.querySelectorAll('#homeQuickShortcuts .gpt-shortcut-chip').length >= 4"), true);
       assert.match(await evaluate("document.querySelector('#dashboardAccountStatus').textContent"), /在线|离线/);
-      assert.ok((await evaluate("document.querySelector('#dashboardLatestResult').textContent")).length > 4);
+      await assertReadable("#dashboardGreeting");
       await assertReadable("#dashboardMembershipName");
-      await assertReadable("#dashboardMembershipExpiry");
-      await assertReadable(".dashboard-empty");
       assert.equal(await evaluate("document.documentElement.dataset.themePreference"), "light");
-      await click("#themeToggleBtn");
+      await click("#accountMenu summary");
+      await click("#sidebarThemeMenuBtn");
       assert.equal(await evaluate("document.documentElement.dataset.themePreference"), "dark");
       assert.equal(await evaluate("document.documentElement.dataset.theme"), "dark");
-      await click("#themeToggleBtn");
-      await click("#themeToggleBtn");
+      await click("#sidebarThemeMenuBtn");
+      await click("#sidebarThemeMenuBtn");
       assert.equal(await evaluate("document.documentElement.dataset.themePreference"), "light");
       assert.equal(await evaluate("document.documentElement.dataset.theme"), "light");
+      await evaluate("document.querySelector('#accountMenu').open = false");
       await delay(240);
       assert.deepEqual(await auditVisibleTextContrast("#publicHome"), []);
       await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
       const mobileHome = await evaluate(`({
         viewport: innerWidth,
         scrollWidth: document.documentElement.scrollWidth,
-        cards: document.querySelectorAll('#publicBentoWall .bento-tile').length,
-        bentoCols: getComputedStyle(document.querySelector('#publicBentoWall')).gridTemplateColumns.split(' ').length,
-        heroHeight: document.querySelector('.public-hero').getBoundingClientRect().height,
-        headingVisible: document.querySelector('#publicHomeTitle').getBoundingClientRect().height > 0,
+        shortcuts: document.querySelectorAll('#homeQuickShortcuts .gpt-shortcut-chip').length,
+        heroHeight: document.querySelector('#authHomeLauncher').getBoundingClientRect().height,
+        headingVisible: document.querySelector('#dashboardGreeting').getBoundingClientRect().height > 0,
       })`);
       assert.ok(mobileHome.scrollWidth <= mobileHome.viewport + 1, JSON.stringify(mobileHome));
-      assert.equal(mobileHome.cards, 5);
+      assert.ok(mobileHome.shortcuts >= 4);
       assert.ok(mobileHome.heroHeight >= 180 && mobileHome.heroHeight < 1100, JSON.stringify(mobileHome));
       assert.equal(mobileHome.headingVisible, true);
       const mobileShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
       fs.writeFileSync(path.join(TEST_ROOT, `authenticated-home-390-${RUN_ID}.png`), Buffer.from(mobileShot.data, "base64"));
       await send("Emulation.setDeviceMetricsOverride", { width: 1920, height: 1080, deviceScaleFactor: 1, mobile: false });
       const desktopHome = await evaluate(`({
-        bentoCols: getComputedStyle(document.querySelector('#publicBentoWall')).gridTemplateColumns.split(' ').length,
-        learningButtons: [...document.querySelectorAll('[data-dashboard-project]')].map(e=>{const r=e.getBoundingClientRect();return {width:r.width,height:r.height};}),
+        shortcuts: [...document.querySelectorAll('#homeQuickShortcuts .gpt-shortcut-chip')].map(e=>{const r=e.getBoundingClientRect();return {width:r.width,height:r.height};}),
+        sidebarWidth: document.querySelector('#v3Sidebar').getBoundingClientRect().width,
       })`);
-      assert.equal(desktopHome.bentoCols, 12);
-      assert.equal(desktopHome.learningButtons.length, 2);
-      assert.ok(desktopHome.learningButtons.every(r=>r.width>=44&&r.height>=44));
+      assert.ok(desktopHome.sidebarWidth >= 200);
+      assert.ok(desktopHome.shortcuts.length >= 4);
+      assert.ok(desktopHome.shortcuts.every(r=>r.width>=44&&r.height>=36));
       const wideShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true });
       fs.writeFileSync(path.join(TEST_ROOT, `authenticated-home-1920-${RUN_ID}.png`), Buffer.from(wideShot.data, "base64"));
       await send("Emulation.setDeviceMetricsOverride", { width: 1366, height: 768, deviceScaleFactor: 1, mobile: false });
       const desktopShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true });
       fs.writeFileSync(path.join(TEST_ROOT, `authenticated-home-1366-${RUN_ID}.png`), Buffer.from(desktopShot.data, "base64"));
       await send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
-      await click(".authenticated-service-details > summary");
-      assert.equal(await evaluate("document.querySelector('.authenticated-service-details').open"), true);
+      await click("#v3Sidebar [data-v3-nav='account']");
+      await waitFor("!document.querySelector('#accountModal').classList.contains('hidden')", 3_000, "account modal sync");
     });
 
     await check("learning data sync is local-first and receives a second-device update", async () => {
-      if(!await evaluate("document.querySelector('.authenticated-service-details').open"))await click('.authenticated-service-details>summary');
+      if (await evaluate("document.querySelector('#accountModal').classList.contains('hidden')")) {
+        await click("#v3Sidebar [data-v3-nav='account']");
+        await waitFor("!document.querySelector('#accountModal').classList.contains('hidden')", 3_000, "account modal sync");
+      }
       await waitFor(
         "/已同步|已合并/.test(document.querySelector('#dashboardSyncStatus')?.textContent || '')",
         15_000,
@@ -1082,6 +1076,7 @@ async function main() {
         }
       })()`);
       assert.match(mismatch, /不属于当前登录账号/);
+      await evaluate("closeModal('accountModal', true)");
     });
 
     await check("authenticated feedback submission is private and mobile-safe", async () => {

@@ -204,6 +204,48 @@ export function setWorkspaceModuleHidden(config, moduleId, hidden) {
   return sanitizeWorkspaceBento({ ...clean, hidden: nextHidden, customized: true });
 }
 
+export const HOME_SHORTCUT_CATALOG = Object.freeze([
+  Object.freeze({ id: 'language', label: '语言学习', target: '/language', kind: 'route', icon: 'book' }),
+  Object.freeze({ id: 'finance', label: '财务账本', target: '/finance', kind: 'route', entitlement: 'finance_access', icon: 'wallet' }),
+  Object.freeze({ id: 'tools', label: '在线工具箱', target: '/tools', kind: 'route', entitlement: 'tools_access', icon: 'tool' }),
+  Object.freeze({ id: 'workflows', label: '自动化工作流', target: '/tools/workflows', kind: 'route', entitlement: 'tools_access', icon: 'workflow' }),
+  Object.freeze({ id: 'transfer', label: '文件传输', target: '/transfer', kind: 'route', icon: 'upload' }),
+  Object.freeze({ id: 'tool:json-format', label: 'JSON 格式化', target: 'json-format', kind: 'tool', entitlement: 'tools_access', icon: 'code' }),
+  Object.freeze({ id: 'tool:text-stats', label: '文本统计', target: 'text-stats', kind: 'tool', entitlement: 'tools_access', icon: 'file' }),
+  Object.freeze({ id: 'tool:image-compress', label: '图片压缩', target: 'image-compress', kind: 'tool', entitlement: 'tools_access', icon: 'image' }),
+  Object.freeze({ id: 'tool:password-generator', label: '密码生成', target: 'password-generator', kind: 'tool', entitlement: 'tools_access', icon: 'key' }),
+  Object.freeze({ id: 'account', label: '账户设置', target: '/account', kind: 'route', icon: 'user' }),
+  Object.freeze({ id: 'recharge', label: '会员方案', target: '/recharge', kind: 'route', icon: 'diamond' }),
+]);
+
+const HOME_SHORTCUT_IDS = new Set(HOME_SHORTCUT_CATALOG.map((item) => item.id));
+export const DEFAULT_HOME_SHORTCUTS = Object.freeze(['language', 'finance', 'tools', 'transfer']);
+
+export function defaultHomeShortcuts() {
+  return [...DEFAULT_HOME_SHORTCUTS];
+}
+
+export function sanitizeHomeShortcuts(list) {
+  if (!Array.isArray(list)) return defaultHomeShortcuts();
+  const seen = new Set();
+  const next = [];
+  for (const rawId of list) {
+    const id = String(rawId || '').trim();
+    if (HOME_SHORTCUT_IDS.has(id) && !seen.has(id)) {
+      seen.add(id);
+      next.push(id);
+      if (next.length >= 6) break;
+    }
+  }
+  return next.length ? next : defaultHomeShortcuts();
+}
+
+export function mergeHomeShortcutsRecord(existingRaw, shortcuts) {
+  const base = sanitizeHomeWidgets(existingRaw);
+  const workspace = existingRaw?.workspace ? sanitizeWorkspaceBento(existingRaw.workspace) : defaultWorkspaceBento();
+  return { ...base, workspace, quickShortcuts: sanitizeHomeShortcuts(shortcuts) };
+}
+
 export function diffWorkspaceDraftFields(saved, draft) {
   const a = sanitizeWorkspaceBento(saved);
   const b = sanitizeWorkspaceBento(draft);

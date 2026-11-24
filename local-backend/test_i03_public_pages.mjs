@@ -15,12 +15,15 @@ import {
 const root = path.resolve(import.meta.dirname, "..");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 
-test("I03 index.html removes legacy 3 tilted cards & wave clutter while shipping 6 clean public surfaces", () => {
+test("I03/V6.3 index.html removes legacy tilted cards & bento wall while shipping clean guest/auth home and public surfaces", () => {
   assert.equal((html.match(/class="hero-scene-card/g) || []).length, 0);
   assert.equal(html.includes('id="homeWidgetEditor"'), false);
-  assert.equal((html.match(/class="bento-tile/g) || []).length, 5);
-  assert.ok(html.includes('id="publicPreviewScrollWrap"'));
-  assert.ok(html.includes('id="publicBentoWall"'));
+  assert.equal(html.includes('id="publicBentoWall"'), false);
+  assert.equal((html.match(/class="bento-tile/g) || []).length, 0);
+  assert.ok(html.includes('id="authHomeLauncher"'));
+  assert.ok(html.includes('id="guestHomeLauncher"'));
+  assert.ok(html.includes('id="publicCapabilityGallery"'));
+  assert.ok(html.includes('id="publicPlansSection"'));
   assert.ok(html.includes('id="downloadStatusBadge"'));
   assert.ok(html.includes('class="trial-tool-tabs ds-segmented"'));
   for (const id of [

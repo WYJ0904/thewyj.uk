@@ -6,18 +6,18 @@ import {openPage} from '../../local-backend/browser_harness.mjs';
 const baseUrl=process.env.WYJ_TEST_BASE||'http://127.0.0.1:8894';
 assert.equal(new URL(baseUrl).hostname,'127.0.0.1');
 const results=[];
-const measure=`(()=>{const wall=document.querySelector('#publicBentoWall'),tiles=[...wall.querySelectorAll('.bento-tile')],rect=e=>{const r=e.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height};};return {viewport:innerWidth,overflow:document.documentElement.scrollWidth-innerWidth,heroCards:document.querySelectorAll('.hero-scene-card').length,wallCols:getComputedStyle(wall).gridTemplateColumns.split(' ').length,tileCount:tiles.length,wall:rect(wall),allZeroGap:tiles.every(t=>getComputedStyle(t).transform==='none'),previewMinH:parseFloat(getComputedStyle(document.querySelector('#publicCapabilityGallery .preview-body')).minHeight||'0'),tabs:document.querySelectorAll('#publicCapabilityGallery [role=tab]').length};})()`;
+const measure=`(()=>{const gal=document.querySelector('#publicCapabilityGallery');return {viewport:innerWidth,overflow:document.documentElement.scrollWidth-innerWidth,heroCards:document.querySelectorAll('.hero-scene-card,.bento-tile').length,tabs:document.querySelectorAll('#publicCapabilityGallery [role=tab]').length,galleryH:gal?gal.getBoundingClientRect().height:0};})()`;
 for(const width of [320,390,1366,1920]){
   const page=await openPage({cdpUrl:process.env.WYJ_CDP_URL||'http://127.0.0.1:9225',baseUrl,width,height:900,mobile:width<=390});
   try{
     await page.navigate('/');await page.waitFor("document.documentElement.dataset.aerisMotionReady==='true' && !document.getElementById('entryScreen')");
-    assert.equal(await page.evaluate("document.querySelectorAll('.aeris-scene-grid,.aeris-capability-list,.aeris-capability-link,#publicSplitFlap,.hero-scene-card').length"),0);
+    assert.equal(await page.evaluate("document.querySelectorAll('.aeris-scene-grid,.aeris-capability-list,.aeris-capability-link,#publicSplitFlap,.hero-scene-card,#publicBentoWall').length"),0);
     const ids=await page.evaluate("[...document.querySelectorAll('[id]')].map(e=>e.id)");assert.equal(new Set(ids).size,ids.length);
     for(const theme of ['light','dark']){
       await page.evaluate(`document.documentElement.dataset.theme=${JSON.stringify(theme)}`);
       const g=await page.evaluate(measure);
-      assert.equal(g.viewport,width);assert.equal(g.heroCards,0);assert.equal(g.tileCount,5);assert.equal(g.tabs,4);assert.ok(g.previewMinH>=336);assert.ok(g.overflow<=1);assert.equal(g.allZeroGap,true);
-      await page.click('#publicToolsTab');await page.waitFor("!document.querySelector('#capabilityToolsBody').hidden && !document.querySelector('.aeris-window-content')?.hasAttribute('aria-busy')");
+      assert.equal(g.viewport,width);assert.equal(g.heroCards,0);assert.equal(g.tabs,4);assert.ok(g.galleryH>=220);assert.ok(g.overflow<=1);
+      await page.click('#publicToolsTab');await page.waitFor("!document.querySelector('#capabilityToolsBody').hidden");
       assert.equal(await page.evaluate("document.querySelector('[data-product-window]').dataset.selected"),'tools');
       await page.send('Emulation.setDeviceMetricsOverride',{width:Math.floor(width/2),height:450,deviceScaleFactor:2,mobile:false});
       const reflow=await page.evaluate(measure);assert.equal(reflow.viewport,Math.floor(width/2));assert.ok(reflow.overflow<=1);

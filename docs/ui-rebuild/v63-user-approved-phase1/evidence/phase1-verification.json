@@ -1,0 +1,239 @@
+{
+  "started_at": "2026-11-24T09:25:01.742Z",
+  "checks": [
+    {
+      "id": "guest_home_light_1440",
+      "status": "PASS",
+      "detail": {
+        "p07Ui": "enabled",
+        "theme": "light",
+        "bg": "rgb(250, 250, 250)",
+        "sidebarBg": "rgb(244, 244, 244)",
+        "sidebarVisible": true,
+        "accountBarVisible": true,
+        "guestVisible": true,
+        "authHidden": true,
+        "bentoExists": false,
+        "overflowX": false
+      }
+    },
+    {
+      "id": "normal_user_permissions_and_shell",
+      "status": "PASS",
+      "detail": {
+        "financeLocked": true,
+        "toolsLocked": true,
+        "adminHidden": true,
+        "p07Ui": "enabled",
+        "bodyClass": "is-authenticated",
+        "innerWidth": 1440,
+        "accountBarDisplay": "none",
+        "accountBarHiddenDesktop": true,
+        "bg": "rgb(250, 250, 250)",
+        "sidebarBg": "rgb(244, 244, 244)",
+        "greeting": "v63_normal，下午好。",
+        "groupsGapOk": true
+      }
+    },
+    {
+      "id": "vip_auth_launcher_pure",
+      "status": "PASS",
+      "detail": {
+        "financeUnlocked": true,
+        "toolsUnlocked": true,
+        "adminHidden": true,
+        "greeting": "v63_vip，下午好。",
+        "shortcutsCount": 4,
+        "bentoGridGone": true,
+        "summaryGridGone": true
+      }
+    },
+    {
+      "id": "quick_shortcuts_customization",
+      "status": "PASS"
+    },
+    {
+      "id": "unified_floating_dropdowns",
+      "status": "PASS",
+      "detail": {
+        "smallDropdownInfo": {
+          "open": true,
+          "hasSearch": false,
+          "optionsCount": 3
+        },
+        "largeDropdownInfo": {
+          "open": true,
+          "hasSearch": true,
+          "optionsCount": 6
+        }
+      }
+    },
+    {
+      "id": "command_palette_and_focus",
+      "status": "PASS",
+      "detail": {
+        "cmdSearchHits": [
+          "JSON 格式化"
+        ],
+        "restoredFocusId": "homeLauncherSearchBtn"
+      }
+    },
+    {
+      "id": "strategy_c_memory",
+      "status": "PASS",
+      "detail": {
+        "poppedSearch": "json",
+        "resetSearch": ""
+      }
+    },
+    {
+      "id": "prefers_reduced_motion",
+      "status": "PASS",
+      "detail": {
+        "reducedDur": "1e-06s"
+      }
+    },
+    {
+      "id": "zero_runtime_errors",
+      "status": "PASS"
+    },
+    {
+      "id": "admin_sidebar_entry_visible",
+      "status": "PASS"
+    }
+  ],
+  "responsive": [
+    {
+      "width": 375,
+      "height": 812,
+      "mobile": true,
+      "w": 375,
+      "scrollW": 375,
+      "overflowX": false,
+      "navToggleVisible": true
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "mobile": true,
+      "w": 390,
+      "scrollW": 390,
+      "overflowX": false,
+      "navToggleVisible": true
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "mobile": true,
+      "w": 768,
+      "scrollW": 768,
+      "overflowX": false,
+      "navToggleVisible": true
+    },
+    {
+      "width": 1280,
+      "height": 720,
+      "mobile": false,
+      "w": 1280,
+      "scrollW": 1265,
+      "overflowX": false,
+      "navToggleVisible": false
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "mobile": false,
+      "w": 1440,
+      "scrollW": 1425,
+      "overflowX": false,
+      "navToggleVisible": false
+    },
+    {
+      "width": 1920,
+      "height": 1080,
+      "mobile": false,
+      "w": 1920,
+      "scrollW": 1905,
+      "overflowX": false,
+      "navToggleVisible": false
+    },
+    {
+      "width": 2560,
+      "height": 1080,
+      "mobile": false,
+      "w": 2560,
+      "scrollW": 2545,
+      "overflowX": false,
+      "navToggleVisible": false
+    },
+    {
+      "width": 3440,
+      "height": 1440,
+      "mobile": false,
+      "w": 3440,
+      "scrollW": 3425,
+      "overflowX": false,
+      "navToggleVisible": false
+    },
+    {
+      "width": 3840,
+      "height": 2160,
+      "mobile": false,
+      "w": 3840,
+      "scrollW": 3825,
+      "overflowX": false,
+      "navToggleVisible": false
+    }
+  ],
+  "benchmarks_ms": {
+    "cold_load_ms": 2384.4,
+    "hot_p50_ms": 79.6,
+    "hot_p95_ms": 138.8,
+    "hot_max_ms": 138.8,
+    "slow_3g_p95_ms": 95.3,
+    "slow_3g_max_ms": 95.3,
+    "samples": {
+      "hot": [
+        91.5,
+        75.6,
+        117.6,
+        73.3,
+        79.6,
+        92,
+        86.6,
+        108.8,
+        76.2,
+        126.5,
+        138.8,
+        49.6,
+        52.8,
+        76.5,
+        72.8,
+        90.3
+      ],
+      "slow_3g": [
+        73.5,
+        95.3,
+        58.1
+      ]
+    }
+  },
+  "screenshots": [
+    "after-guest-home-1440.png",
+    "after-guest-home-dark-1440.png",
+    "after-auth-home-1440.png",
+    "after-auth-home-dark-1440.png",
+    "after-sidebar-collapsed-1440.png",
+    "after-account-menu-1440.png",
+    "after-shortcuts-modal-1440.png",
+    "after-account-modal-sync-1440.png",
+    "after-command-palette-1440.png",
+    "after-mobile-home-390.png",
+    "after-mobile-drawer-390.png",
+    "after-ultrawide-2560.png"
+  ],
+  "screencast": {
+    "path": "docs/ui-rebuild/v63-user-approved-phase1/evidence/after/phase1-walkthrough.mp4",
+    "frames": 475
+  }
+}

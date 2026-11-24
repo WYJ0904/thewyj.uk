@@ -82,8 +82,9 @@ class StaticSiteTests(unittest.TestCase):
             "membershipPlanStep", "membershipPlanHeading",
             "navGuestActions", "navLoginBtn", "navRegisterBtn", "accountMenu",
             "dashboardGreeting", "dashboardMembershipName", "dashboardEntitlements",
-            "dashboardStreak", "dashboardWrongCount", "dashboardLatestResult",
-            "dashboardFavoriteTools", "dashboardRecentTools", "dashboardAccountStatus",
+            "dashboardAccountStatus", "v3Sidebar", "sidebarCollapseBtn",
+            "authHomeLauncher", "guestHomeLauncher", "homeLauncherSearchBtn",
+            "homeQuickShortcuts", "homeShortcutsModal", "commandPaletteModal",
             "publicHome", "changelogPage", "trialPage", "trialQuizPanel",
             "trialTextPanel", "trialJsonPanel", "trialImagePanel",
             "siteVersionLabel", "versionNotice", "versionNoticeTitle", "versionNoticeMessage",
@@ -273,26 +274,24 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn(f'href="/public-experience.css?release={release_token}"', self.html)
         self.assertIn(f'href="/workspace-experience.css?release={release_token}"', self.html)
         self.assertIn('id="siteNavToggle"', self.html)
-        self.assertIn('id="siteNavPanel"', self.html)
+        self.assertIn('id="v3Sidebar"', self.html)
+        self.assertIn('id="sidebarCollapseBtn"', self.html)
         self.assertIn('id="themeToggleBtn"', self.html)
         self.assertIn('id="themeToggleLabel"', self.html)
         self.assertIn('data-theme="dark"', self.design_styles)
         self.assertEqual(self.html.count('data-capability-panel='), 4)
         self.assertNotIn('id="publicSplitFlap"', self.html)
-        # I03 replaces legacy 3 tilted hero cards & 5-panel capability accordion with single interactive window + seamless 12-col Bento wall.
+        # V6.3 Phase 1 adopts minimal GPT launcher/workbench & removes legacy card/bento clutter.
         self.assertEqual(self.html.count('class="hero-scene-card'), 0)
-        self.assertEqual(self.html.count('class="bento-tile'), 5)
-        self.assertIn('id="publicPreviewScrollWrap"', self.html)
-        self.assertIn('id="publicBentoWall"', self.html)
+        self.assertEqual(self.html.count('class="bento-tile'), 0)
+        self.assertNotIn('id="publicBentoWall"', self.html)
         self.assertNotIn('aeris-capability-link', self.html)
         self.assertNotIn('aeris-scene-grid', self.html)
-        self.assertEqual(self.html.count('data-bento-module='), 5)
-        self.assertEqual(self.html.count('data-public-capability='), 5)
-        for section in ('hero', 'window', 'capabilities', 'privacy', 'plans', 'final'):
+        for section in ('hero', 'window', 'privacy', 'plans'):
             self.assertIn(f'data-public-section="{section}"', self.html)
-        for name in ('publicModulePlans', 'publicPermanentPlans', 'publicPlanStatus', 'publicPlanRetryBtn'):
+        for name in ('publicModulePlans', 'publicPermanentPlans', 'publicPlanStatus', 'publicPlanRetryBtn', 'toggleAllPublicPlansBtn'):
             self.assertIn(f'id="{name}"', self.html)
-        for name in ("publicTextInput", "publicBudgetIncome", "publicFilesInput", "publicLearningResult", "dashboardNotificationPending", "dashboardTransferCount"):
+        for name in ("publicTextInput", "publicBudgetIncome", "publicFilesInput", "publicLearningResult", "authHomeLauncher", "guestHomeLauncher"):
             self.assertIn(f'id="{name}"', self.html)
         self.assertNotIn('One account. Everyday work.', self.html)
         self.assertIn('.capability-body[hidden]', self.public_styles)
@@ -321,11 +320,9 @@ class StaticSiteTests(unittest.TestCase):
         self.assertNotIn('class="dashboard-metric"', self.html)
         self.assertNotIn('个人工作区', self.html)
         self.assertNotIn('今日概览', self.html)
-        self.assertIn('data-dashboard-project="english"', self.html)
-        self.assertIn('data-dashboard-project="japanese"', self.html)
-        self.assertIn('data-module="tools"', self.html)
-        self.assertIn('id="dashboardFinanceBtn"', self.html)
-        self.assertIn('$("dashboardFinanceBtn")?.addEventListener', self.app)
+        self.assertIn('id="homeQuickShortcuts"', self.html)
+        self.assertIn('id="homeLauncherSearchBtn"', self.html)
+        self.assertIn('id="guestLauncherSearchBtn"', self.html)
         self.assertIn('id="adminUserMatch"', self.html)
         self.assertIn('id="adminUserLoadMoreBtn"', self.html)
         self.assertIn('id="adminRoleUserSearch"', self.html)
@@ -347,8 +344,8 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("Android", android)
 
     def test_dashboard_rejudge_and_readability_contract(self):
-        self.assertIn('data-dashboard-project="english"', self.html)
-        self.assertIn('data-dashboard-project="japanese"', self.html)
+        self.assertIn('id="authHomeLauncher"', self.html)
+        self.assertIn('id="homeQuickShortcuts"', self.html)
         self.assertIn('class="wrong-rejudge-button"', self.html)
         self.assertIn('class="wrong-rejudge-form hidden"', self.html)
         self.assertIn('class="wrong-rejudge-input"', self.html)
@@ -372,9 +369,9 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("toolPreferences:v", self.tools)
 
         required_colors = {
-            "--ds-text": "#18212f",
-            "--ds-text-secondary": "#475569",
-            "--ds-text-muted": "#5b687a",
+            "--ds-text": "#242424",
+            "--ds-text-secondary": "#696969",
+            "--ds-text-muted": "#696969",
         }
         for token, color in required_colors.items():
             self.assertRegex(self.design_styles, rf"{re.escape(token)}:\s*{color}")
@@ -394,7 +391,7 @@ class StaticSiteTests(unittest.TestCase):
             channels = [value / 12.92 if value <= 0.04045 else ((value + 0.055) / 1.055) ** 2.4 for value in values]
             return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]
 
-        background = relative_luminance("#ffffff")
+        background = relative_luminance("#fafafa")
         for color in required_colors.values():
             foreground = relative_luminance(color)
             ratio = (max(background, foreground) + 0.05) / (min(background, foreground) + 0.05)

@@ -4,17 +4,17 @@
     <meta charset="utf-8" />
     <meta name="aeris-task26-publication" content="required-v1" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#f4f6f9" />
-    <title>Aeris — 学习、工具、账本与文件</title>
+    <meta name="theme-color" content="#fafafa" />
+    <title>Aeris: 学习、工具、账本与文件</title>
     <meta name="description" content="Aeris：继续语言学习，处理文本与文件，管理账本和传输。" />
-    <meta property="og:title" content="Aeris — 学习、工具、账本与文件" />
+    <meta property="og:title" content="Aeris: 学习、工具、账本与文件" />
     <meta property="og:description" content="从一件小事开始，登录后接着自己的进度。" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Aeris" />
     <meta property="og:url" content="https://thewyj.uk/" />
     <meta property="og:image" content="https://thewyj.uk/assets/brand/aeris-og.png?release=20261121-aeris-i05-preview" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Aeris — 学习、工具、账本与文件" />
+    <meta name="twitter:title" content="Aeris: 学习、工具、账本与文件" />
     <meta name="twitter:description" content="继续语言学习，处理文本与文件，管理账本和传输。" />
     <meta name="application-name" content="Aeris" />
     <meta name="apple-mobile-web-app-title" content="Aeris" />
@@ -54,63 +54,23 @@
       </section>
       <nav class="site-nav" id="accountBar" aria-label="主导航">
         <div class="site-nav-bar">
-          <a class="site-brand" href="/" data-site-nav="home" aria-label="Aeris 首页">
-            <img src="/icon-192.png?release=20261121-aeris-i05-preview" width="192" height="192" alt="" />
-            <span class="site-brand-copy"><strong>Aeris</strong><small id="siteVersionLabel">v2026.09.12.5</small></span>
-          </a>
-          <div class="home-inline-nav" role="group" aria-label="主要模块">
-            <a href="/" data-site-nav="home">首页</a><a href="/language" data-site-nav="language">学习</a><a href="/tools" data-site-nav="tools">工具箱</a><a href="/finance" data-site-nav="finance">账本</a><a href="/transfer" data-site-nav="transfer">文件</a>
-          </div>
-          <div class="site-release-actions" role="group" aria-label="下载与更新">
-            <a href="/download" data-site-nav="download" id="headerDownloadLink"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true" focusable="false"><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/></svg><span>下载 Android</span></a>
-            <a href="/changelog" data-site-nav="changelog" id="headerChangelogLink"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true" focusable="false"><path d="M3 11a9 9 0 1 1 3 8M3 4v7h7M12 7v5l3 2"/></svg><span>更新日志</span></a>
-          </div>
-          <span class="v3-topbar-context" id="v3TopbarContext" aria-live="polite">公开空间 · 演示数据</span>
-          <button class="home-search button-ghost task27-bell hidden" id="notificationBellBtn" type="button" aria-label="个人通知，无未读消息" title="个人通知"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><span id="notificationUnreadCount" class="task27-unread hidden" aria-live="polite"></span></button>
-          <button class="home-search button-ghost" id="homeSearchBtn" type="button" aria-label="搜索工具" title="搜索工具"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg></button>
-          <button class="site-nav-toggle" id="siteNavToggle" type="button" aria-expanded="false" aria-controls="siteNavPanel" aria-label="打开主导航">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
-            <span>导航</span>
+          <button class="site-nav-toggle" id="siteNavToggle" type="button" aria-expanded="false" aria-controls="v3Sidebar" aria-label="打开侧边栏导航">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/></svg>
           </button>
+          <a class="site-brand" href="/" data-site-nav="home" aria-label="Aeris 首页">
+            <img src="/icon-192.png?release=20261121-aeris-i05-preview" width="24" height="24" alt="" />
+            <span class="site-brand-copy"><strong>Aeris</strong><small class="sr-only" id="siteVersionLabel">v2026.09.12.5</small></span>
+          </a>
+          <div class="site-nav-spacer" aria-hidden="true"></div>
+          <button class="home-search button-ghost task27-bell hidden" id="notificationBellBtn" type="button" aria-label="个人通知，无未读消息" title="个人通知"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><span id="notificationUnreadCount" class="task27-unread hidden" aria-live="polite"></span></button>
+          <button class="home-search button-ghost" id="homeSearchBtn" type="button" aria-label="搜索工具与命令 (Ctrl K)" title="搜索或命令 (Ctrl K)"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg></button>
           <button class="theme-toggle" id="themeToggleBtn" type="button" aria-label="外观：跟随系统" title="外观：跟随系统">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.64 5.64l1.42 1.42M16.94 16.94l1.42 1.42M18.36 5.64l-1.42 1.42M7.06 16.94l-1.42 1.42"/><circle cx="12" cy="12" r="4"/></svg>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.64 5.64l1.42 1.42M16.94 16.94l1.42 1.42M18.36 5.64l-1.42 1.42M7.06 16.94l-1.42 1.42"/><circle cx="12" cy="12" r="4"/></svg>
             <span id="themeToggleLabel">系统</span>
           </button>
           <div class="site-nav-actions" id="navGuestActions">
             <button class="button-ghost" id="navLoginBtn" type="button">登录</button>
             <button class="primary" id="navRegisterBtn" type="button">注册</button>
-          </div>
-          <details class="account-menu hidden" id="accountMenu">
-            <summary aria-label="打开账户菜单" aria-haspopup="menu" aria-controls="accountMenuPopover"><span class="account-badge" id="accountBadge">未登录</span></summary>
-            <div class="account-menu-popover" id="accountMenuPopover" role="menu" aria-label="账户">
-              <button class="hidden" id="homeBtn" type="button" role="menuitem">个人首页</button>
-              <button id="membershipBtn" type="button" role="menuitem">会员与充值</button>
-              <button class="hidden" id="feedbackBtn" type="button" role="menuitem">反馈与功能投票</button>
-              <button class="hidden" id="accountBtn" type="button" role="menuitem">账户设置</button>
-              <button class="hidden" id="securityCenterMenuBtn" type="button" role="menuitem">账户安全</button>
-              <button class="hidden" id="notificationInboxMenuBtn" type="button" role="menuitem">个人通知收件箱</button>
-              <button class="hidden" id="adminBtn" type="button" role="menuitem">管理后台</button>
-              <button class="hidden danger-text" id="logoutBtn" type="button" role="menuitem">退出登录</button>
-            </div>
-          </details>
-        </div>
-        <div class="site-nav-panel" id="siteNavPanel" aria-hidden="true">
-          <div class="site-nav-links site-nav-cards">
-            <div class="site-nav-card">
-              <p>开始</p>
-              <a href="/" data-site-nav="home" id="navHomeLink"><span id="navHomeLabel">首页</span><small>产品概览与入口</small></a>
-            </div>
-            <div class="site-nav-card">
-              <p>学习</p>
-              <a href="/language" data-site-nav="language"><span>语言学习</span><small>英语、日语与错题复习</small></a>
-              <a href="/trial" data-site-nav="trial"><span>免费试用</span><small>无需注册，最多十题</small></a>
-            </div>
-            <div class="site-nav-card">
-              <p>工作</p>
-              <a href="/tools" data-site-nav="tools"><span>在线工具</span><small>文本、文件、图片与临时分享</small></a>
-              <a href="/finance" data-site-nav="finance"><span>财务账本</span><small>交易、预算与跨设备同步</small></a>
-              <a href="/transfer" data-site-nav="transfer"><span>文件传输</span><small>大文件分片续传与链接分享</small></a>
-            </div>
           </div>
         </div>
       </nav>
@@ -120,524 +80,285 @@
         <button id="retryInterfacePolicyBtn" class="hidden" type="button" hidden>重试界面设置</button>
       </section>
       <div class="v3-app-frame" id="v3AppFrame">
-        <aside class="v3-sidebar" id="v3Sidebar" aria-label="工作空间导航">
+        <div class="v3-sidebar-backdrop" id="v3SidebarBackdrop" hidden aria-hidden="true"></div>
+        <aside class="v3-sidebar" id="v3Sidebar" data-collapsed="false" aria-label="工作空间导航">
+          <div class="v3-sidebar-header">
+            <a class="v3-sidebar-brand" href="/" data-v3-nav="home" aria-label="Aeris 首页">
+              <img src="/icon-192.png?release=20261121-aeris-i05-preview" width="24" height="24" alt="" />
+              <span class="v3-sidebar-brand-text">Aeris</span>
+            </a>
+            <button class="v3-sidebar-collapse-btn" id="sidebarCollapseBtn" type="button" aria-expanded="true" aria-controls="v3Sidebar" aria-label="折叠侧边栏" title="折叠侧边栏" data-v3-tooltip="展开或折叠侧边栏">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/></svg>
+            </button>
+          </div>
           <div class="v3-sidebar-top">
-            <button class="v3-cmd-trigger" id="v3CmdTrigger" type="button" aria-label="打开全局命令面板 (Ctrl K)" aria-haspopup="dialog" aria-controls="commandPaletteModal">
+            <button class="v3-cmd-trigger" id="v3CmdTrigger" type="button" aria-label="打开全局命令面板 (Ctrl K)" aria-haspopup="dialog" aria-controls="commandPaletteModal" data-v3-tooltip="搜索工具与命令 (Ctrl K)">
+              <span class="v3-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" focusable="false"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg></span>
               <span class="v3-cmd-label">搜索或命令…</span>
               <kbd class="v3-kbd" aria-hidden="true">Ctrl K</kbd>
             </button>
           </div>
           <nav class="v3-sidebar-nav" aria-label="空间模块">
             <span class="v3-nav-indicator" id="v3SidebarIndicator" aria-hidden="true"></span>
-            <p class="v3-sidebar-group-title">工作区</p>
-            <a href="/" data-v3-nav="home" aria-current="page"><span class="v3-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg></span><span>首页</span></a>
-            <a href="/language" data-v3-nav="language"><span class="v3-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M4 5h6a2 2 0 0 1 2 2v12a1.5 1.5 0 0 0-1.5-1.5H4zM20 5h-6a2 2 0 0 0-2 2v12a1.5 1.5 0 0 1 1.5-1.5H20z"/></svg></span><span>学习</span></a>
-            <a href="/trial" data-v3-nav="trial"><span class="v3-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="m12 3 1.9 4.5L18.5 9l-4.6 1.5L12 15l-1.9-4.5L5.5 9l4.6-1.5zM5 17l.9 2.1L8 20l-2.1.9L5 23l-.9-2.1L2 20l2.1-.9z"/></svg></span><span>免费试用</span></a>
-            <a href="/finance" data-v3-nav="finance"><span class="v3-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M16 14h2"/></svg></span><span>财务</span></a>
-            <a href="/tools" data-v3-nav="tools"><span class="v3-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4l-5.6 5.6a1.5 1.5 0 0 0 2.1 2.1l5.6-5.6a4 4 0 0 0 5.4-5.4l-2.2 2.2-2.1-2.1z"/></svg></span><span>工具箱</span></a>
-            <a href="/tools/workflows" data-v3-nav="workflows"><span class="v3-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="12" r="2.5"/><circle cx="6" cy="18" r="2.5"/><path d="M8.5 6h3.5a3 3 0 0 1 3 3v.5M8.5 18h3.5a3 3 0 0 0 3-3v-.5"/></svg></span><span>工作流</span></a>
-            <a href="/transfer" data-v3-nav="transfer"><span class="v3-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M12 15V4m-4 4 4-4 4 4M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/></svg></span><span>文件</span></a>
-            <p class="v3-sidebar-group-title">账户与系统</p>
-            <a href="/recharge" data-v3-nav="recharge"><span class="v3-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M6 4h12l3 5-9 11L3 9zM3 9h18"/></svg></span><span>会员</span></a>
-            <a href="/account" data-v3-nav="account"><span class="v3-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/></svg></span><span>账户</span></a>
-            <a href="/admin" data-v3-nav="admin" id="v3SidebarAdminLink" hidden><span class="v3-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M12 3 4 6.5v5.5c0 4.5 3.4 8.4 8 9.5 4.6-1.1 8-5 8-9.5V6.5z"/></svg></span><span>管理后台</span></a>
+            <div class="v3-sidebar-group" role="group" aria-label="个人空间">
+              <p class="v3-sidebar-group-title">个人空间</p>
+              <a href="/" data-v3-nav="home" data-v3-tooltip="首页" aria-current="page"><span class="v3-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg></span><span class="v3-nav-label">首页</span></a>
+              <a href="/language" data-v3-nav="language" data-site-nav="language" data-v3-tooltip="语言学习"><span class="v3-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M4 5h6a2 2 0 0 1 2 2v12a1.5 1.5 0 0 0-1.5-1.5H4zM20 5h-6a2 2 0 0 0-2 2v12a1.5 1.5 0 0 1 1.5-1.5H20z"/></svg></span><span class="v3-nav-label">语言学习</span></a>
+              <a href="/trial" data-v3-nav="trial" data-site-nav="trial" data-v3-tooltip="免费试用"><span class="v3-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" focusable="false"><polygon points="6 4 20 12 6 20 6 4"/></svg></span><span class="v3-nav-label">免费试用</span></a>
+              <a href="/finance" data-v3-nav="finance" data-v3-tooltip="财务账本"><span class="v3-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" focusable="false"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M16 14h2"/></svg></span><span class="v3-nav-label">财务账本</span><span class="v3-nav-lock" id="sidebarFinanceLock" hidden aria-label="需要财务会员" title="需要财务会员"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span></a>
+            </div>
+            <div class="v3-sidebar-group" role="group" aria-label="效率工具">
+              <p class="v3-sidebar-group-title">效率工具</p>
+              <a href="/tools" data-v3-nav="tools" data-site-nav="tools" data-v3-tooltip="在线工具箱"><span class="v3-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4l-5.6 5.6a1.5 1.5 0 0 0 2.1 2.1l5.6-5.6a4 4 0 0 0 5.4-5.4l-2.2 2.2-2.1-2.1z"/></svg></span><span class="v3-nav-label">工具箱</span><span class="v3-nav-lock" id="sidebarToolsLock" hidden aria-label="需要工具箱会员" title="需要工具箱会员"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span></a>
+              <a href="/tools/workflows" data-v3-nav="workflows" data-v3-tooltip="自动化工作流"><span class="v3-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" focusable="false"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="12" r="2.5"/><circle cx="6" cy="18" r="2.5"/><path d="M8.5 6h3.5a3 3 0 0 1 3 3v.5M8.5 18h3.5a3 3 0 0 0 3-3v-.5"/></svg></span><span class="v3-nav-label">工作流</span><span class="v3-nav-lock" id="sidebarWorkflowsLock" hidden aria-label="需要工具箱会员" title="需要工具箱会员"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span></a>
+            </div>
+            <div class="v3-sidebar-group" role="group" aria-label="跨设备与资源">
+              <p class="v3-sidebar-group-title">跨设备与资源</p>
+              <a href="/transfer" data-v3-nav="transfer" data-v3-tooltip="文件传输"><span class="v3-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M12 15V4m-4 4 4-4 4 4M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/></svg></span><span class="v3-nav-label">文件传输</span></a>
+              <a href="/download" data-v3-nav="download" data-site-nav="download" data-v3-tooltip="下载 Android"><span class="v3-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M12 3v12m-5-5 5 5 5-5M4 16v4h16v-4"/></svg></span><span class="v3-nav-label">下载 Android</span></a>
+              <a href="/changelog" data-v3-nav="changelog" data-site-nav="changelog" data-v3-tooltip="更新日志"><span class="v3-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M3 11a9 9 0 1 1 3 8M3 4v7h7M12 7v5l3 2"/></svg></span><span class="v3-nav-label">更新日志</span></a>
+            </div>
+            <div class="v3-sidebar-group" role="group" aria-label="账户与系统">
+              <p class="v3-sidebar-group-title">账户与系统</p>
+              <a href="/recharge" data-v3-nav="recharge" data-v3-tooltip="会员方案"><span class="v3-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M6 4h12l3 5-9 11L3 9zM3 9h18"/></svg></span><span class="v3-nav-label">会员方案</span></a>
+              <a href="/account" data-v3-nav="account" data-v3-tooltip="账户设置"><span class="v3-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" focusable="false"><circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/></svg></span><span class="v3-nav-label">账户设置</span></a>
+              <a href="/admin" data-v3-nav="admin" id="v3SidebarAdminLink" data-v3-tooltip="管理后台" hidden><span class="v3-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M12 3 4 6.5v5.5c0 4.5 3.4 8.4 8 9.5 4.6-1.1 8-5 8-9.5V6.5z"/></svg></span><span class="v3-nav-label">管理后台</span></a>
+            </div>
           </nav>
           <div class="v3-sidebar-footer">
-            <p class="v3-shortcut-hints" aria-hidden="true"><span class="v3-shortcut-item"><kbd class="v3-kbd">G W</kbd> 工作台</span><span class="v3-shortcut-item"><kbd class="v3-kbd">G F</kbd> 账本</span><span class="v3-shortcut-item"><kbd class="v3-kbd">G T</kbd> 工具</span></p>
-            <small id="v3SidebarVersion">Aeris · V6.3</small>
+            <div class="v3-sidebar-guest-footer" id="sidebarGuestFooter">
+              <button class="v3-sidebar-utility-btn" id="sidebarGuestThemeBtn" type="button" data-v3-tooltip="切换主题外观">
+                <span class="v3-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.64 5.64l1.42 1.42M16.94 16.94l1.42 1.42M18.36 5.64l-1.42 1.42M7.06 16.94l-1.42 1.42"/></svg></span>
+                <span class="v3-nav-label" id="sidebarGuestThemeLabel">外观：系统</span>
+              </button>
+              <button class="v3-sidebar-login-cta" id="sidebarGuestLoginBtn" type="button" data-v3-tooltip="登录账户">
+                <span class="v3-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg></span>
+                <span class="v3-nav-label">登录或注册</span>
+              </button>
+            </div>
+            <details class="account-menu hidden" id="accountMenu">
+              <summary aria-label="打开账户菜单" aria-haspopup="menu" aria-controls="accountMenuPopover" data-v3-tooltip="账户与设置">
+                <span class="account-avatar-dot" id="accountAvatarGlyph" aria-hidden="true">A</span>
+                <span class="account-menu-identity">
+                  <span class="account-badge" id="accountBadge">未登录</span>
+                  <small class="account-plan-caption" id="sidebarAccountPlan">普通账户</small>
+                </span>
+                <svg class="account-menu-chevron" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 15 5-5 5 5"/></svg>
+              </summary>
+              <div class="account-menu-popover" id="accountMenuPopover" role="menu" aria-label="账户菜单">
+                <button class="hidden" id="homeBtn" type="button" role="menuitem">个人首页</button>
+                <button class="hidden" id="notificationInboxMenuBtn" type="button" role="menuitem"><span>个人通知收件箱</span><span class="account-menu-pill hidden" id="menuNotificationBadge"></span></button>
+                <button id="sidebarThemeMenuBtn" type="button" role="menuitem"><span id="sidebarThemeMenuLabel">外观：跟随系统</span></button>
+                <button class="hidden" id="accountBtn" type="button" role="menuitem">账户设置与同步</button>
+                <button class="hidden" id="securityCenterMenuBtn" type="button" role="menuitem">账户安全</button>
+                <button id="membershipBtn" type="button" role="menuitem">会员方案</button>
+                <button class="hidden" id="feedbackBtn" type="button" role="menuitem">反馈与功能投票</button>
+                <button class="hidden" id="adminBtn" type="button" role="menuitem">管理后台</button>
+                <div class="account-menu-divider" role="separator"></div>
+                <button class="hidden danger-text" id="logoutBtn" type="button" role="menuitem">退出登录</button>
+              </div>
+            </details>
           </div>
         </aside>
+        <div class="v3-sidebar-tooltip" id="v3SidebarTooltip" role="tooltip" hidden aria-hidden="true"></div>
         <div class="v3-main-canvas" id="v3MainCanvas">
       <nav class="workspace-breadcrumb" id="workspaceBreadcrumb" aria-label="当前位置" hidden><ol><li>Aeris</li></ol></nav>
 
-      <div class="aeris-preview-notice" id="aerisPreviewNotice" hidden role="status"><strong>Aeris 隔离 Preview</strong><span>当前为 I01 视觉基础与共享布局预览环境，不影响正式站点数据。</span></div>
       <div id="pageContent" tabindex="-1"></div>
       <section class="public-home hidden" id="publicHome" aria-labelledby="publicHomeTitle" aria-hidden="true">
-        <section class="public-intro public-hero" data-public-section="hero">
-          <div class="public-intro-copy">
-            <div class="home-brand">
-              <img class="aeris-hero-logo" src="/icon-192.png?release=20261121-aeris-i05-preview" alt="Aeris 标志" width="56" height="56" />
-              <div class="home-brand-copy">
-                <p class="home-purpose">学习 · 工具 · 账本 · 文件</p>
-                <h1 id="publicHomeTitle">Aeris</h1>
+        <section class="gpt-home-launcher" id="authHomeLauncher" data-home-personal hidden aria-labelledby="dashboardGreeting">
+          <div class="gpt-launcher-inner">
+            <header class="gpt-home-header">
+              <h1 class="gpt-home-greeting" id="dashboardGreeting">你好</h1>
+              <p class="gpt-home-subtitle" id="dashboardGreetingPrompt" hidden></p>
+              <p class="gpt-home-identity-meta" aria-live="polite"><span id="dashboardMembershipName"></span><span id="dashboardMembershipExpiry"></span></p>
+            </header>
+
+            <button class="gpt-home-search-bar" id="homeLauncherSearchBtn" type="button" aria-haspopup="dialog" aria-controls="commandPaletteModal">
+              <span class="gpt-search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg></span>
+              <span class="gpt-search-placeholder">搜索工具、跳转模块或执行操作…</span>
+              <kbd class="v3-kbd" aria-hidden="true">Ctrl K</kbd>
+            </button>
+
+            <section class="gpt-home-shortcuts-wrap" aria-label="快捷入口">
+              <div class="gpt-home-shortcuts" id="homeQuickShortcuts"></div>
+              <button class="button-ghost gpt-shortcuts-edit-btn" id="customizeShortcutsBtn" type="button" aria-haspopup="dialog" aria-controls="homeShortcutsModal">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                <span>自定义入口</span>
+              </button>
+            </section>
+
+            <div class="dashboard-resume hidden" id="dashboardResumeSection">
+              <span class="gpt-resume-label">未完成的测试</span>
+              <div class="action-row compact">
+                <button class="button-secondary hidden" id="dashboardResumeEnglish" type="button" data-dashboard-resume="english">继续英语测试</button>
+                <button class="button-secondary hidden" id="dashboardResumeJapanese" type="button" data-dashboard-resume="japanese">继续日语测试</button>
               </div>
             </div>
-            <div class="v3-hero-copy">
-              <p class="v3-hero-headline"><strong>一个工作台，安静地把事做好。</strong><span>词表练习、本机实用工具、云端账本与受控分享共用同一账户，未登录也能直接试用核心工具。</span></p>
-            </div>
-            <p class="home-identity" data-home-personal hidden><span id="dashboardGreeting"></span><span class="home-greeting-prompt" id="dashboardGreetingPrompt" hidden></span><span id="dashboardMembershipName"></span><span id="dashboardMembershipExpiry"></span></p>
-            <div class="public-actions">
-              <button class="primary" id="publicLoginBtn" type="button">开始使用</button>
-              <button class="button-secondary" id="publicRegisterBtn" type="button">继续学习</button>
-              <a class="button-link button-secondary" id="publicDownloadBtn" href="/download" data-site-nav="download">下载 Android</a>
-            </div>
-          </div>
-        </section>
 
-        <section class="auth-workspace-shell" id="authWorkspaceSection" data-home-personal hidden aria-labelledby="authWorkspaceTitle">
-          <header class="auth-workspace-header" id="authWorkspaceHeader">
-            <div class="auth-workspace-heading">
-              <div class="auth-workspace-title-row">
-                <h2 id="authWorkspaceTitle">个人工作台</h2>
-                <span class="status-badge workspace-scope-badge" id="workspacePersistenceBadge">本账户隔离配置</span>
-              </div>
-              <p class="auth-workspace-subtitle" id="workspaceSaveStatus" role="status" aria-live="polite" data-tone="neutral" data-save-state="saved">标准视图</p>
-            </div>
-            <div class="workspace-console-toolbar" id="workspaceConsoleToolbar" role="toolbar" aria-label="工作台布局操作">
-              <button class="button-ghost" id="dashboardNotificationsBtn" type="button">通知待核实 <strong class="tabular-nums" id="dashboardNotificationPending">未读取</strong></button>
-              <button class="button-secondary" id="workspaceDensityBtn" type="button" aria-pressed="false">密度：舒适双列</button>
-              <button class="button-secondary" id="workspaceCustomizeBtn" type="button" aria-pressed="false">自定义布局</button>
-              <button class="primary" id="workspaceSaveBtn" type="button" hidden disabled>保存布局</button>
-              <button class="button-ghost" id="workspaceDiscardBtn" type="button" hidden>放弃草稿</button>
-              <button class="button-ghost" id="workspaceResetBtn" type="button" hidden>重置默认</button>
-            </div>
-          </header>
-
-          <div class="home-account-status workspace-status-strip">
             <p class="module-access-message hidden" id="moduleAccessMessage" aria-live="polite"></p>
-            <span class="workspace-notification-note" id="dashboardNotificationStatus"></span>
           </div>
+        </section>
 
-          <div class="workspace-undo-bar" id="workspaceResetUndoBar" role="status" aria-live="polite" hidden>
-            <span>已恢复默认工作台布局（不影响学习、账本与文件数据）。</span>
-            <button class="button-secondary" id="workspaceUndoResetBtn" type="button">撤销重置</button>
-          </div>
+        <section class="gpt-guest-launcher" id="guestHomeLauncher" data-home-guest aria-labelledby="publicHomeTitle">
+          <div class="gpt-guest-hero">
+            <header class="gpt-guest-header" data-public-section="hero">
+              <img class="gpt-guest-logo" src="/icon-192.png?release=20261121-aeris-i05-preview" alt="Aeris" width="40" height="40" />
+              <div class="gpt-guest-heading">
+                <h1 id="publicHomeTitle">Aeris</h1>
+                <p class="gpt-guest-subtitle">学习、工具、账本与文件的统一工作空间，本机功能无需登录即可即时试用。</p>
+              </div>
+            </header>
 
-          <div class="sr-only" id="workspaceLiveRegion" aria-live="polite" aria-atomic="true"></div>
+            <button class="gpt-home-search-bar" id="guestLauncherSearchBtn" type="button" aria-haspopup="dialog" aria-controls="commandPaletteModal">
+              <span class="gpt-search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg></span>
+              <span class="gpt-search-placeholder">搜索工具、词表练习或使用入口…</span>
+              <kbd class="v3-kbd" aria-hidden="true">Ctrl K</kbd>
+            </button>
 
-          <div class="workspace-hidden-bar" id="hiddenWidgetsBar" role="region" aria-label="已隐藏的工作台模块" hidden>
-            <span class="workspace-hidden-label">已隐藏模块</span>
-            <div class="workspace-hidden-list" id="hiddenWidgetsList"></div>
-            <button class="button-ghost" id="restoreAllWidgetsBarBtn" type="button" hidden>恢复全部模块</button>
-          </div>
-
-          <div class="workspace-all-hidden empty-state" id="workspaceAllHiddenState" role="region" aria-labelledby="workspaceAllHiddenTitle" hidden>
-            <strong id="workspaceAllHiddenTitle">当前工作台模块已全部隐藏</strong>
-            <p>已保存的顺序偏好与业务数据均未删除，可点击下方按钮恢复显示。</p>
-            <div class="workspace-empty-restore-list" id="workspaceEmptyRestoreList"></div>
-            <div class="action-row compact">
-              <button class="primary" id="restoreAllWidgetsBtn" type="button">恢复全部模块</button>
-              <button class="button-secondary" id="resetWorkspaceEmptyBtn" type="button">重置默认布局</button>
+            <div class="public-actions gpt-guest-actions">
+              <button class="primary" id="publicLoginBtn" type="button">登录继续</button>
+              <button class="button-secondary" id="publicRegisterBtn" type="button">创建账户</button>
+              <button class="button-ghost" id="publicTrialBtn" type="button">免费试用</button>
+              <a class="button-link button-ghost" id="publicDownloadBtn" href="/download" data-site-nav="download">下载 Android</a>
+              <a class="button-link button-ghost" id="publicChangelogBtn" href="/changelog" data-site-nav="changelog">更新日志</a>
             </div>
           </div>
 
-          <div class="workspace-bento-grid" id="workspaceBentoGrid" data-density="comfortable" data-editing="false" data-sort-axis="auto">
-            <article class="workspace-bento-card" data-workspace-card="learning" data-home-widget="learning" data-flip-key="learning">
-              <header class="workspace-card-head">
-                <div class="workspace-card-title-group">
-                  <h3>语言学习</h3>
-                </div>
-                <span class="status-badge tabular-nums" data-ws-status="learning" data-tone="neutral">学习记录</span>
-                <div class="workspace-card-controls" data-workspace-controls hidden>
-                  <button class="workspace-ctrl-btn workspace-drag-handle" type="button" data-workspace-drag-handle aria-label="拖动或用方向键排序 语言学习" aria-roledescription="可排序模块">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="9" cy="6" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="18" r="1"/></svg>
-                  </button>
-                  <button class="workspace-ctrl-btn" type="button" data-workspace-action="up" aria-label="上移 语言学习">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M12 19V5m-6 6 6-6 6 6"/></svg>
-                  </button>
-                  <button class="workspace-ctrl-btn" type="button" data-workspace-action="down" aria-label="下移 语言学习">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M12 5v14m6-6-6 6-6-6"/></svg>
-                  </button>
-                  <button class="workspace-ctrl-btn workspace-hide-btn" type="button" data-workspace-action="hide" aria-label="隐藏 语言学习">隐藏</button>
-                </div>
-              </header>
-              <div class="workspace-card-body">
-                <strong class="workspace-card-metric tabular-nums" data-ws-value>暂无记录</strong>
-                <p class="workspace-card-detail" data-ws-detail>完成测试后显示进度</p>
-                <p class="workspace-card-extra tabular-nums" data-ws-extra>0 天连续 · 错题 0 个</p>
-              </div>
-              <footer class="workspace-card-footer">
-                <button class="button-ghost workspace-preview-btn" type="button" data-workspace-preview="learning">详情预览</button>
-                <a class="button-secondary workspace-route-link" href="/language" data-workspace-route="/language">进入学习</a>
-              </footer>
-            </article>
-
-            <article class="workspace-bento-card" data-workspace-card="finance" data-home-widget="finance" data-flip-key="finance">
-              <header class="workspace-card-head">
-                <div class="workspace-card-title-group">
-                  <h3>本月账本</h3>
-                </div>
-                <span class="status-badge tabular-nums" data-ws-status="finance" data-tone="info">账户账本</span>
-                <div class="workspace-card-controls" data-workspace-controls hidden>
-                  <button class="workspace-ctrl-btn workspace-drag-handle" type="button" data-workspace-drag-handle aria-label="拖动或用方向键排序 本月账本" aria-roledescription="可排序模块">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="9" cy="6" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="18" r="1"/></svg>
-                  </button>
-                  <button class="workspace-ctrl-btn" type="button" data-workspace-action="up" aria-label="上移 本月账本">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M12 19V5m-6 6 6-6 6 6"/></svg>
-                  </button>
-                  <button class="workspace-ctrl-btn" type="button" data-workspace-action="down" aria-label="下移 本月账本">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M12 5v14m6-6-6 6-6-6"/></svg>
-                  </button>
-                  <button class="workspace-ctrl-btn workspace-hide-btn" type="button" data-workspace-action="hide" aria-label="隐藏 本月账本">隐藏</button>
-                </div>
-              </header>
-              <div class="workspace-card-body">
-                <strong class="workspace-card-metric tabular-nums" data-ws-value>尚未读取</strong>
-                <p class="workspace-card-detail" data-ws-detail>本月收支余额</p>
-                <p class="workspace-card-extra tabular-nums" data-ws-extra>打开账本查看真实收支。</p>
-              </div>
-              <footer class="workspace-card-footer">
-                <button class="button-ghost workspace-preview-btn" type="button" data-workspace-preview="finance">详情预览</button>
-                <a class="button-secondary workspace-route-link" href="/finance" data-workspace-route="/finance">打开账本</a>
-              </footer>
-            </article>
-
-            <article class="workspace-bento-card" data-workspace-card="tools" data-home-widget="tools" data-flip-key="tools">
-              <header class="workspace-card-head">
-                <div class="workspace-card-title-group">
-                  <h3>实用工具箱</h3>
-                </div>
-                <span class="status-badge tabular-nums" data-ws-status="tools" data-tone="neutral">工具箱</span>
-                <div class="workspace-card-controls" data-workspace-controls hidden>
-                  <button class="workspace-ctrl-btn workspace-drag-handle" type="button" data-workspace-drag-handle aria-label="拖动或用方向键排序 实用工具箱" aria-roledescription="可排序模块">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="9" cy="6" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="18" r="1"/></svg>
-                  </button>
-                  <button class="workspace-ctrl-btn" type="button" data-workspace-action="up" aria-label="上移 实用工具箱">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M12 19V5m-6 6 6-6 6 6"/></svg>
-                  </button>
-                  <button class="workspace-ctrl-btn" type="button" data-workspace-action="down" aria-label="下移 实用工具箱">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M12 5v14m6-6-6 6-6-6"/></svg>
-                  </button>
-                  <button class="workspace-ctrl-btn workspace-hide-btn" type="button" data-workspace-action="hide" aria-label="隐藏 实用工具箱">隐藏</button>
-                </div>
-              </header>
-              <div class="workspace-card-body">
-                <strong class="workspace-card-metric tabular-nums" data-ws-value>暂无最近工具</strong>
-                <p class="workspace-card-detail" data-ws-detail>文本、JSON、图片本机即开即用</p>
-                <p class="workspace-card-extra tabular-nums" data-ws-extra>0 项收藏 · 0 项最近使用</p>
-              </div>
-              <footer class="workspace-card-footer">
-                <button class="button-ghost workspace-preview-btn" type="button" data-workspace-preview="tools">详情预览</button>
-                <button class="button-ghost" type="button" data-workspace-tool-continue data-workspace-route="/tools" hidden>继续最近</button>
-                <a class="button-secondary workspace-route-link" href="/tools" data-workspace-route="/tools">打开工具箱</a>
-              </footer>
-            </article>
-
-            <article class="workspace-bento-card" data-workspace-card="transfer" data-home-widget="transfer" data-flip-key="transfer">
-              <header class="workspace-card-head">
-                <div class="workspace-card-title-group">
-                  <h3>文件传输</h3>
-                </div>
-                <span class="status-badge tabular-nums" data-ws-status="transfer" data-tone="neutral">文件传输</span>
-                <div class="workspace-card-controls" data-workspace-controls hidden>
-                  <button class="workspace-ctrl-btn workspace-drag-handle" type="button" data-workspace-drag-handle aria-label="拖动或用方向键排序 文件传输" aria-roledescription="可排序模块">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="9" cy="6" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="18" r="1"/></svg>
-                  </button>
-                  <button class="workspace-ctrl-btn" type="button" data-workspace-action="up" aria-label="上移 文件传输">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M12 19V5m-6 6 6-6 6 6"/></svg>
-                  </button>
-                  <button class="workspace-ctrl-btn" type="button" data-workspace-action="down" aria-label="下移 文件传输">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M12 5v14m6-6-6 6-6-6"/></svg>
-                  </button>
-                  <button class="workspace-ctrl-btn workspace-hide-btn" type="button" data-workspace-action="hide" aria-label="隐藏 文件传输">隐藏</button>
-                </div>
-              </header>
-              <div class="workspace-card-body">
-                <strong class="workspace-card-metric tabular-nums" data-ws-value>尚未读取</strong>
-                <p class="workspace-card-detail" data-ws-detail>仅展示当前账户的文件与受控分享</p>
-                <p class="workspace-card-extra" data-ws-extra>传输文件须经本人显式确认后上传</p>
-              </div>
-              <footer class="workspace-card-footer">
-                <button class="button-ghost workspace-preview-btn" type="button" data-workspace-preview="transfer">详情预览</button>
-                <a class="button-secondary workspace-route-link" href="/transfer" data-workspace-route="/transfer">文件传输</a>
-              </footer>
-            </article>
-
-            <article class="workspace-bento-card" data-workspace-card="activity" data-home-widget="activity" data-flip-key="activity">
-              <header class="workspace-card-head">
-                <div class="workspace-card-title-group">
-                  <h3>最近活动</h3>
-                </div>
-                <span class="status-badge tabular-nums" data-ws-status="activity" data-tone="neutral">动态与通知</span>
-                <div class="workspace-card-controls" data-workspace-controls hidden>
-                  <button class="workspace-ctrl-btn workspace-drag-handle" type="button" data-workspace-drag-handle aria-label="拖动或用方向键排序 最近活动" aria-roledescription="可排序模块">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="9" cy="6" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="18" r="1"/></svg>
-                  </button>
-                  <button class="workspace-ctrl-btn" type="button" data-workspace-action="up" aria-label="上移 最近活动">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M12 19V5m-6 6 6-6 6 6"/></svg>
-                  </button>
-                  <button class="workspace-ctrl-btn" type="button" data-workspace-action="down" aria-label="下移 最近活动">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M12 5v14m6-6-6 6-6-6"/></svg>
-                  </button>
-                  <button class="workspace-ctrl-btn workspace-hide-btn" type="button" data-workspace-action="hide" aria-label="隐藏 最近活动">隐藏</button>
-                </div>
-              </header>
-              <div class="workspace-card-body">
-                <strong class="workspace-card-metric tabular-nums" data-ws-value>暂无近期活动</strong>
-                <p class="workspace-card-detail" data-ws-detail>完成学习或使用工具后自动汇总</p>
-                <ul class="workspace-activity-mini" id="workspaceActivityList" data-ws-list><li>暂无近期学习或工具动态。</li></ul>
-              </div>
-              <footer class="workspace-card-footer">
-                <button class="button-ghost workspace-preview-btn" type="button" data-workspace-preview="activity">详情预览</button>
-                <a class="button-secondary workspace-route-link" href="/finance" data-workspace-route="/finance">查看通知</a>
-              </footer>
-            </article>
-
-            <article class="workspace-bento-card" data-workspace-card="account" data-home-widget="account" data-flip-key="account">
-              <header class="workspace-card-head">
-                <div class="workspace-card-title-group">
-                  <h3>会员与数据服务</h3>
-                </div>
-                <span class="status-badge" data-ws-status="account" data-tone="success">在线</span>
-                <div class="workspace-card-controls" data-workspace-controls hidden>
-                  <button class="workspace-ctrl-btn workspace-drag-handle" type="button" data-workspace-drag-handle aria-label="拖动或用方向键排序 会员与数据服务" aria-roledescription="可排序模块">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="9" cy="6" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="18" r="1"/></svg>
-                  </button>
-                  <button class="workspace-ctrl-btn" type="button" data-workspace-action="up" aria-label="上移 会员与数据服务">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M12 19V5m-6 6 6-6 6 6"/></svg>
-                  </button>
-                  <button class="workspace-ctrl-btn" type="button" data-workspace-action="down" aria-label="下移 会员与数据服务">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="M12 5v14m6-6-6 6-6-6"/></svg>
-                  </button>
-                  <button class="workspace-ctrl-btn workspace-hide-btn" type="button" data-workspace-action="hide" aria-label="隐藏 会员与数据服务">隐藏</button>
-                </div>
-              </header>
-              <div class="workspace-card-body">
-                <strong class="workspace-card-metric tabular-nums" data-ws-value>普通用户</strong>
-                <p class="workspace-card-detail tabular-nums" data-ws-detail>账户会员与权益状态</p>
-                <p class="workspace-card-extra" data-ws-extra>管理账户安全、同步与隐私控制</p>
-              </div>
-              <footer class="workspace-card-footer">
-                <button class="button-ghost workspace-preview-btn" type="button" data-workspace-preview="account">详情预览</button>
-                <a class="button-secondary workspace-route-link" href="/account" data-workspace-route="/account">账户与会员</a>
-              </footer>
-            </article>
-          </div>
-
-          <div class="workspace-extension-slot" id="workspaceExtensionSlot" data-workspace-extension-slot="task37" hidden aria-hidden="true"></div>
-        </section>
-
-        <section class="home-v3-summary-grid" id="homeV3SummaryGrid" data-home-personal hidden aria-label="工作空间模块摘要">
-          <button class="v3-summary-card" type="button" data-v3-summary="learning">
-            <strong class="v3-summary-title">最近学习</strong>
-            <span class="v3-summary-meta" id="v3SummaryLearningText">英语与日语词表练习 · 免费试做最多 10 题</span>
-            <span class="v3-summary-track" aria-hidden="true"><b id="v3SummaryLearningBar"></b></span>
-          </button>
-          <button class="v3-summary-card" type="button" data-v3-summary="finance">
-            <strong class="v3-summary-title">本月账本</strong>
-            <span class="v3-summary-meta" id="v3SummaryFinanceText">收入与支出按照账户真实数据同步</span>
-            <span class="v3-summary-track" aria-hidden="true"><b id="v3SummaryFinanceBar"></b></span>
-          </button>
-          <button class="v3-summary-card" type="button" data-v3-summary="transfer">
-            <strong class="v3-summary-title">最近文件</strong>
-            <span class="v3-summary-meta" id="v3SummaryTransferText">仅展示当前账户的文件与受控分享</span>
-            <span class="v3-summary-track" aria-hidden="true"><b id="v3SummaryTransferBar"></b></span>
-          </button>
-          <button class="v3-summary-card" type="button" data-v3-summary="tools">
-            <strong class="v3-summary-title">快捷工具</strong>
-            <span class="v3-summary-meta" id="v3SummaryToolsText">文本、JSON、图片本机即开即用</span>
-            <span class="v3-summary-track" aria-hidden="true"><b id="v3SummaryToolsBar"></b></span>
-          </button>
-        </section>
-
-        <div class="home-workspace-overview" data-home-personal hidden>
-          <section class="home-quick-access" aria-labelledby="homeQuickTitle">
-            <h2 id="homeQuickTitle">快速访问</h2>
-            <a href="/language" data-site-nav="language"><span aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 4h7l1 2 1-2h7v15h-7l-1 2-1-2H4ZM12 6v15"/></svg></span><span><strong>学习</strong><small>语言学习与练习</small></span><i class="home-quick-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></i></a>
-            <a href="/finance" data-site-nav="finance"><span aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 6h16v14H4ZM4 6V3h13v3M16 11h4v4h-4Z"/></svg></span><span><strong>财务</strong><small>账本与收支管理</small></span><i class="home-quick-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></i></a>
-            <a href="/tools" data-site-nav="tools"><span aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 17h16M8 4v6M16 14v6"/></svg></span><span><strong>工具箱</strong><small>实用工具</small></span><i class="home-quick-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></i></a>
-            <a href="/transfer" data-site-nav="transfer"><span aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 3h9l5 5v13H5ZM14 3v5h5M8 13h8M8 17h6"/></svg></span><span><strong>文件</strong><small>文件与分享</small></span><i class="home-quick-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></i></a>
-          </section>
-          <section class="home-recent-activity" aria-labelledby="homeActivityTitle">
-            <h2 id="homeActivityTitle">最近活动</h2>
-            <ul id="homeRecentActivity"><li>登录后显示自己的学习与工具记录。</li></ul>
-          </section>
-        </div>
-
-        <section class="public-preview-stage" data-public-section="window" aria-labelledby="publicCapabilitiesTitle">
-          <div class="scroll-preview-wrap" id="publicPreviewScrollWrap" data-scroll-3d="true" data-scroll-start="0.98" data-scroll-end="0.34" data-scroll-exit-start="0.14" data-scroll-exit-end="-0.48" data-scroll-max-rx="10" data-scroll-exit-rx="-8" data-scroll-min-scale="0.95" data-scroll-exit-scale="0.96" data-scroll-max-ty="18" data-scroll-exit-ty="-14" data-scroll-exit-tz="-20">
-            <div class="aeris-product-window preview-shell" id="publicCapabilityGallery" data-product-window>
-              <div class="preview-frame">
-                <header class="preview-toolbar">
-                  <div class="preview-window-meta">
-                    <div>
-                      <h2 id="publicCapabilitiesTitle">实时交互预览窗</h2>
-                      <p>仅在当前浏览器本地执行，不上传、不记账、不写入匿名档案。</p>
-                    </div>
-                  </div>
-                  <div class="aeris-product-tabs ds-segmented" role="tablist" aria-label="Aeris 本机交互预览" data-indicator-style="pill">
-                    <button class="capability-trigger" id="publicLearningTab" role="tab" type="button" aria-selected="true" aria-expanded="true" aria-controls="capabilityLearningBody" data-public-product="learning">语言一题</button>
-                    <button class="capability-trigger" id="publicToolsTab" role="tab" type="button" aria-selected="false" aria-expanded="false" aria-controls="capabilityToolsBody" data-public-product="tools" tabindex="-1">JSON 与文本</button>
-                    <button class="capability-trigger" id="publicFinanceTab" role="tab" type="button" aria-selected="false" aria-expanded="false" aria-controls="capabilityFinanceBody" data-public-product="finance" tabindex="-1">结余试算</button>
-                    <button class="capability-trigger" id="publicFilesTab" role="tab" type="button" aria-selected="false" aria-expanded="false" aria-controls="capabilityShareBody" data-public-product="files" tabindex="-1">文件清单</button>
-                  </div>
-                </header>
-                <div class="aeris-window-content preview-body">
-                  <div class="i03-skeleton-shimmer" aria-hidden="true"><span></span><span></span><span></span></div>
-                  <section class="aeris-product-panel active" id="capabilityLearningBody" role="tabpanel" aria-labelledby="publicLearningTab" data-capability-panel="learning">
-                    <div class="aeris-panel-copy">
-                      <span class="local-only-badge">本机词库演示</span>
-                      <h3 id="publicLearningTitle">先试一题，看反馈节奏</h3>
-                      <p>点击右侧选项即时核对释义，无需登录，也不会修改学习统计。</p>
-                    </div>
-                    <div class="aeris-live-sample">
-                      <p class="aeris-question" lang="ja">電話 <small>でんわ</small></p>
-                      <p>这个词的中文意思是？</p>
-                      <div class="aeris-answer-options" role="group" aria-label="选择释义">
-                        <button type="button" data-public-answer="train" aria-pressed="false">电车</button>
-                        <button type="button" data-public-answer="phone" aria-pressed="false">电话</button>
-                        <button type="button" data-public-answer="weather" aria-pressed="false">天气</button>
-                      </div>
-                      <p class="aeris-sample-status" id="publicLearningResult" role="status">选择一个答案。</p>
-                      <button class="button-ghost" id="publicLearningReset" type="button">再试一次</button>
-                    </div>
-                  </section>
-                  <section class="aeris-product-panel" id="capabilityToolsBody" role="tabpanel" aria-labelledby="publicToolsTab" data-capability-panel="tools" hidden>
-                    <div class="aeris-panel-copy">
-                      <span class="local-only-badge">零网络本机运算</span>
-                      <h3 id="publicToolsTitle">JSON 校验与文本统计</h3>
-                      <p>输入任意文本或 JSON 立即统计字符与行数，也可一键格式化校验。</p>
-                    </div>
-                    <div class="aeris-live-sample">
-                      <label for="publicTextInput">输入文本或 JSON 片段</label>
-                      <textarea id="publicTextInput" rows="4" maxlength="10000" spellcheck="false" placeholder='例如：{"service":"Aeris","local":true}'></textarea>
-                      <div class="aeris-live-metrics" aria-live="polite">
-                        <span><output id="publicTextCharacters" for="publicTextInput" aria-label="字符数">0</output> 字符</span>
-                        <span><output id="publicTextLines" for="publicTextInput" aria-label="行数">0</output> 行</span>
-                      </div>
-                      <div class="action-row compact">
-                        <button class="button-secondary" id="publicJsonFormatQuickBtn" type="button">格式化 JSON</button>
-                        <button class="button-ghost" id="publicTextClear" type="button">清空</button>
-                      </div>
-                      <small id="publicJsonQuickStatus" aria-live="polite">所有计算都在当前浏览器完成。</small>
-                    </div>
-                  </section>
-                  <section class="aeris-product-panel" id="capabilityFinanceBody" role="tabpanel" aria-labelledby="publicFinanceTab" data-capability-panel="finance" hidden>
-                    <div class="aeris-panel-copy">
-                      <span class="local-only-badge">本机试算 · 不写入账本</span>
-                      <h3>日常收支试算</h3>
-                      <p>使用整数分精度做即时结余试算；真实账本在登录后按账户独立同步。</p>
-                    </div>
-                    <div class="aeris-live-sample">
-                      <div class="aeris-budget-inputs">
-                        <label>收入（元）<input id="publicBudgetIncome" type="number" min="0" max="999999999" step="0.01" inputmode="decimal" value="0" /></label>
-                        <label>支出（元）<input id="publicBudgetExpense" type="number" min="0" max="999999999" step="0.01" inputmode="decimal" value="0" /></label>
-                      </div>
-                      <p class="aeris-budget-result">本机试算结余 <output id="publicBudgetBalance" for="publicBudgetIncome publicBudgetExpense" aria-label="本机估算结余（CNY）" aria-live="polite">¥0.00</output></p>
-                      <small>仅作即时演算，不会修改真实云端账本。</small>
-                    </div>
-                  </section>
-                  <section class="aeris-product-panel" id="capabilityShareBody" role="tabpanel" aria-labelledby="publicFilesTab" data-capability-panel="files" hidden>
-                    <div class="aeris-panel-copy">
-                      <span class="local-only-badge">仅读取本地文件元信息</span>
-                      <h3>待传文件核对</h3>
-                      <p>选取文件后仅在本地读取名称与体积，不会在未确认前发起上传。</p>
-                    </div>
-                    <div class="aeris-live-sample">
-                      <button class="button-secondary" id="publicFilesChoose" type="button">选择本地文件检查</button>
-                      <input class="hidden" id="publicFilesInput" type="file" aria-labelledby="publicFilesChoose" multiple />
-                      <ul class="aeris-file-preview" id="publicFilesPreview" aria-live="polite"><li>尚未选择文件。</li></ul>
-                      <small>需要创建限时加密分享时，请登录进入文件传输页。</small>
-                    </div>
-                  </section>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section class="public-section public-bento-section" data-public-section="capabilities" aria-labelledby="publicCoreCapabilitiesTitle">
-          <header class="aeris-home-section-heading">
-            <p class="section-kicker">核心模块</p>
-            <h2 id="publicCoreCapabilitiesTitle">无缝集成于同一账户工作区</h2>
-            <p>所有模块沿用现有权限、数据隔离与同步契约；选择入口即刻试用或登录继续。</p>
-          </header>
-          <div class="apple-bento-wall" id="publicBentoWall" data-bento-wall="true" data-parallax-max="12">
-            <article class="bento-tile bento-span-7" data-bento-module="learning">
-              <div class="tile-inner" data-parallax-speed="0.7">
-                <span class="bento-index">语言学习</span>
-                <h3 id="coreLearningTitle">英语与日语词表、听写与错题复习</h3>
-                <p>支持试做最多 10 题，登录后自动累积学习天数、错题本与目标进度。</p>
-                <a id="publicLanguageTrialBtn" class="button-link button-secondary" href="/language" data-site-nav="language" data-public-capability="learning">试做最多 10 题</a>
-              </div>
-            </article>
-            <article class="bento-tile bento-span-5" data-bento-module="tools">
-              <div class="tile-inner" data-parallax-speed="-0.55">
-                <span class="bento-index">本地工具箱</span>
-                <h3 id="coreToolsTitle">文本、JSON、单图处理与常用工作流</h3>
-                <p>默认在当前浏览器本地执行，快捷收藏与工作流随账户保存。</p>
-                <a id="publicToolsTrialBtn" class="button-link button-secondary" href="/tools" data-site-nav="tools" data-public-capability="tools">试用本地工具</a>
-              </div>
-            </article>
-            <article class="bento-tile bento-span-5" data-bento-module="finance">
-              <div class="tile-inner" data-parallax-speed="0.5">
-                <span class="bento-index">云端财务账本</span>
-                <h3>多币种记账、分类预算与加密备份</h3>
-                <p>与 Android 共用同一份账本与通知识别流，严守金额分精度校准。</p>
-                <a id="publicFinanceLoginBtn" class="button-link button-secondary" href="/finance" data-site-nav="finance" data-public-capability="finance">登录查看账本</a>
-              </div>
-            </article>
-            <article class="bento-tile bento-span-7" data-bento-module="share">
-              <div class="tile-inner" data-parallax-speed="-0.45">
-                <span class="bento-index">受控文件与分享</span>
-                <h3>分片传输、到期自动失效与提取校验</h3>
-                <p>按次数与有效期精细管控外链下载，避免未经授权的长期公开。</p>
-                <a id="publicFilesLoginBtn" class="button-link button-secondary" href="/transfer" data-site-nav="transfer" data-public-capability="files">文件与分享</a>
-              </div>
-            </article>
-            <article class="bento-tile bento-span-12 bento-tile-compact" data-bento-module="account">
-              <div class="tile-inner" data-parallax-speed="0.3">
+          <section class="gpt-guest-workbench" data-public-section="window" aria-labelledby="publicCapabilitiesTitle">
+            <div class="gpt-workbench-surface" id="publicCapabilityGallery" data-product-window>
+              <header class="gpt-workbench-header">
                 <div>
-                  <span class="bento-index">统一账户与同步</span>
-                  <h3>跨浏览器与 Android 原生端共用同一身份</h3>
-                  <p>查看实时权益、审计与离线缓存状态。</p>
+                  <h2 id="publicCapabilitiesTitle">本机即时体验</h2>
+                  <p>仅在当前浏览器运行，不上传、不记账、不写入匿名档案。</p>
                 </div>
-                <a class="button-link button-secondary" href="/account" data-public-trigger="publicLoginBtn" data-public-capability="account">登录账户</a>
+                <div class="aeris-product-tabs ds-segmented" role="tablist" aria-label="Aeris 本机交互体验" data-indicator-style="pill">
+                  <button class="capability-trigger" id="publicLearningTab" role="tab" type="button" aria-selected="true" aria-expanded="true" aria-controls="capabilityLearningBody" data-public-product="learning">语言一题</button>
+                  <button class="capability-trigger" id="publicToolsTab" role="tab" type="button" aria-selected="false" aria-expanded="false" aria-controls="capabilityToolsBody" data-public-product="tools" tabindex="-1">JSON 与文本</button>
+                  <button class="capability-trigger" id="publicFinanceTab" role="tab" type="button" aria-selected="false" aria-expanded="false" aria-controls="capabilityFinanceBody" data-public-product="finance" tabindex="-1">结余试算</button>
+                  <button class="capability-trigger" id="publicFilesTab" role="tab" type="button" aria-selected="false" aria-expanded="false" aria-controls="capabilityShareBody" data-public-product="files" tabindex="-1">文件清单</button>
+                </div>
+              </header>
+              <div class="gpt-workbench-body">
+                <section class="aeris-product-panel active" id="capabilityLearningBody" role="tabpanel" aria-labelledby="publicLearningTab" data-capability-panel="learning">
+                  <div class="aeris-panel-copy">
+                    <h3 id="publicLearningTitle">先试一题，看反馈节奏</h3>
+                    <p>点击右侧选项即时核对释义，无需登录，也不会修改学习统计。</p>
+                    <a id="publicLanguageTrialBtn" class="button-link button-ghost" href="/language" data-site-nav="language" data-public-capability="learning">进入 10 题免费试用</a>
+                  </div>
+                  <div class="aeris-live-sample">
+                    <p class="aeris-question" lang="ja">電話 <small>でんわ</small></p>
+                    <p>这个词的中文意思是？</p>
+                    <div class="aeris-answer-options" role="group" aria-label="选择释义">
+                      <button type="button" data-public-answer="train" aria-pressed="false">电车</button>
+                      <button type="button" data-public-answer="phone" aria-pressed="false">电话</button>
+                      <button type="button" data-public-answer="weather" aria-pressed="false">天气</button>
+                    </div>
+                    <p class="aeris-sample-status" id="publicLearningResult" role="status">选择一个答案。</p>
+                    <button class="button-ghost" id="publicLearningReset" type="button">再试一次</button>
+                  </div>
+                </section>
+                <section class="aeris-product-panel" id="capabilityToolsBody" role="tabpanel" aria-labelledby="publicToolsTab" data-capability-panel="tools" hidden>
+                  <div class="aeris-panel-copy">
+                    <h3 id="publicToolsTitle">JSON 校验与文本统计</h3>
+                    <p>输入任意文本或 JSON 立即统计字符与行数，也可一键格式化校验。</p>
+                    <a id="publicToolsTrialBtn" class="button-link button-ghost" href="/tools" data-site-nav="tools" data-public-capability="tools">进入完整工具箱</a>
+                  </div>
+                  <div class="aeris-live-sample">
+                    <label for="publicTextInput">输入文本或 JSON 片段</label>
+                    <textarea id="publicTextInput" rows="4" maxlength="10000" spellcheck="false" placeholder='例如：{"service":"Aeris","local":true}'></textarea>
+                    <div class="aeris-live-metrics" aria-live="polite">
+                      <span><output id="publicTextCharacters" for="publicTextInput" aria-label="字符数">0</output> 字符</span>
+                      <span><output id="publicTextLines" for="publicTextInput" aria-label="行数">0</output> 行</span>
+                    </div>
+                    <div class="action-row compact">
+                      <button class="button-secondary" id="publicJsonFormatQuickBtn" type="button">格式化 JSON</button>
+                      <button class="button-ghost" id="publicTextClear" type="button">清空</button>
+                    </div>
+                    <small id="publicJsonQuickStatus" aria-live="polite">所有计算都在当前浏览器完成。</small>
+                  </div>
+                </section>
+                <section class="aeris-product-panel" id="capabilityFinanceBody" role="tabpanel" aria-labelledby="publicFinanceTab" data-capability-panel="finance" hidden>
+                  <div class="aeris-panel-copy">
+                    <h3>日常收支试算</h3>
+                    <p>使用整数分精度做即时结余试算；真实账本在登录后按账户独立同步。</p>
+                    <a id="publicFinanceLoginBtn" class="button-link button-ghost" href="/finance" data-site-nav="finance" data-public-capability="finance">登录查看账本</a>
+                  </div>
+                  <div class="aeris-live-sample">
+                    <div class="aeris-budget-inputs">
+                      <label>收入（元）<input id="publicBudgetIncome" type="number" min="0" max="999999999" step="0.01" inputmode="decimal" value="0" /></label>
+                      <label>支出（元）<input id="publicBudgetExpense" type="number" min="0" max="999999999" step="0.01" inputmode="decimal" value="0" /></label>
+                    </div>
+                    <p class="aeris-budget-result">本机试算结余 <output id="publicBudgetBalance" for="publicBudgetIncome publicBudgetExpense" aria-label="本机估算结余（CNY）" aria-live="polite">¥0.00</output></p>
+                    <small>仅作即时演算，不会修改真实云端账本。</small>
+                  </div>
+                </section>
+                <section class="aeris-product-panel" id="capabilityShareBody" role="tabpanel" aria-labelledby="publicFilesTab" data-capability-panel="files" hidden>
+                  <div class="aeris-panel-copy">
+                    <h3>待传文件核对</h3>
+                    <p>选取文件后仅在本地读取名称与体积，不会在未确认前发起上传。</p>
+                    <a id="publicFilesLoginBtn" class="button-link button-ghost" href="/transfer" data-site-nav="transfer" data-public-capability="files">进入文件传输</a>
+                  </div>
+                  <div class="aeris-live-sample">
+                    <button class="button-secondary" id="publicFilesChoose" type="button">选择本地文件检查</button>
+                    <input class="hidden" id="publicFilesInput" type="file" aria-labelledby="publicFilesChoose" multiple />
+                    <ul class="aeris-file-preview" id="publicFilesPreview" aria-live="polite"><li>尚未选择文件。</li></ul>
+                    <small>需要创建限时加密分享时，请登录进入文件传输页。</small>
+                  </div>
+                </section>
               </div>
-            </article>
-          </div>
+            </div>
+          </section>
+
+          <section class="aeris-plans-section gpt-plans-section" id="publicPlansSection" data-public-section="plans" data-plans-expanded="false" aria-labelledby="publicPlansTitle">
+            <header class="gpt-plans-header">
+              <div>
+                <h2 id="publicPlansTitle">套餐与权益</h2>
+                <p>实时价格来自当前套餐目录；开通沿用现有付款确认流程。</p>
+              </div>
+              <div class="gpt-plans-header-actions">
+                <button class="button-ghost" id="toggleAllPublicPlansBtn" type="button" aria-expanded="false" aria-controls="publicPlansComparisonGrid">查看所有套餐</button>
+                <button class="button-secondary" id="publicPlansBtn" type="button">开通或续费</button>
+              </div>
+            </header>
+            <div class="gpt-plans-comparison" id="publicPlansComparisonGrid">
+              <div class="gpt-plan-column">
+                <h3>免费体验</h3>
+                <p class="gpt-plan-meta">无需注册 · 当前浏览器</p>
+                <ul class="aeris-plan-features"><li>英语或日语小测，最多 10 题</li><li>文本统计与 JSON 格式化</li><li>单张图片压缩与格式转换</li></ul>
+              </div>
+              <div class="gpt-plan-column">
+                <h3>按模块订阅</h3>
+                <p class="gpt-plan-meta">按需单独开通</p>
+                <ul class="aeris-plan-catalog tabular-nums" id="publicModulePlans" aria-label="当前模块订阅" aria-busy="true"><li>正在读取当前套餐目录…</li></ul>
+              </div>
+              <div class="gpt-plan-column">
+                <h3>全功能与永久方案</h3>
+                <p class="gpt-plan-meta">跨模块完整权益</p>
+                <ul class="aeris-plan-catalog tabular-nums" id="publicPermanentPlans" aria-label="当前全功能与永久方案" aria-busy="true"><li>正在读取当前套餐目录…</li></ul>
+              </div>
+            </div>
+            <div class="aeris-catalog-status"><p id="publicPlanStatus" role="status" aria-atomic="true">正在读取当前套餐目录…</p><button class="button-ghost hidden" id="publicPlanRetryBtn" type="button">重试读取套餐</button></div>
+          </section>
+
+          <section class="gpt-privacy-strip" data-public-section="privacy" aria-labelledby="publicPrivacyTitle">
+            <h2 id="publicPrivacyTitle" class="sr-only">数据处理原则</h2>
+            <div class="gpt-privacy-row">
+              <div><strong>留在本机</strong><span>文本、JSON、单张图片压缩与上方试用，都在当前浏览器运行。</span></div>
+              <div><strong>按账户同步</strong><span>学习记录与账本随账户同步；文件在你确认传输后上传。</span></div>
+              <div><strong>匿名分离</strong><span>试做不写入学习档案；试算不记账；文件清单不自动上传。</span></div>
+            </div>
+          </section>
         </section>
-
-        <details class="home-product-details" id="homeProductDetails" data-home-personal hidden>
-          <summary>账户详细指标与学习同步</summary>
-          <div class="authenticated-home-details">
-            <div class="home-personal-summary"><p id="dashboardLatestResult"></p><div class="home-learning-meta"><span>连续 <b id="dashboardStreak">0</b> 天</span><span>错题 <b id="dashboardWrongCount">0</b> 个</span></div><div class="home-project-links"><button type="button" data-dashboard-project="english">英语 <small id="dashboardEnglishGoal"></small></button><button type="button" data-dashboard-project="japanese">日语 <small id="dashboardJapaneseGoal"></small></button><button class="button-ghost" type="button" data-module="language">全部语言</button></div><div class="dashboard-resume hidden" id="dashboardResumeSection"><strong>未完成的测试</strong><div class="action-row compact"><button class="hidden" id="dashboardResumeEnglish" type="button" data-dashboard-resume="english">继续英语测试</button><button class="hidden" id="dashboardResumeJapanese" type="button" data-dashboard-resume="japanese">继续日语测试</button></div></div></div>
-            <div class="home-personal-summary"><span class="status-badge" id="toolsMemberBadge"></span><h4>收藏</h4><div id="dashboardFavoriteTools"></div><h4>最近使用</h4><div id="dashboardRecentTools"></div><button class="button-ghost" type="button" data-module="tools">打开工具箱</button></div>
-            <div class="home-personal-summary"><span class="status-badge" id="financeMemberBadge"></span><p>本月账本余额 <strong id="dashboardFinanceBalance">尚未读取</strong></p><p id="dashboardFinanceSync"></p><button class="button-ghost" id="dashboardFinanceBtn" type="button">打开账本</button></div>
-            <div class="home-personal-summary"><strong id="dashboardTransferCount"></strong><p id="dashboardTransferStatus"></p><button class="button-ghost" id="dashboardTransferBtn" type="button">打开文件传输</button></div>
-            <div class="home-personal-summary"><p id="moduleMembershipStatus"></p><p id="dashboardEntitlements"></p><button class="button-ghost" id="dashboardMembershipBtn" type="button">管理账户与会员</button><p id="dashboardUpdateDate"></p><p id="dashboardUpdateSummary"></p><button class="button-ghost" id="dashboardChangelogBtn" type="button">更新详情</button><details class="authenticated-service-details"><summary><span>数据与服务</span><span class="status-badge" id="dashboardAccountStatus">检测中</span></summary><div class="authenticated-service-body"><dl class="dashboard-service-list"><div><dt>学习数据</dt><dd id="dashboardSyncStatus">本地可用</dd></div><div><dt>AI 判卷</dt><dd id="dashboardAiStatus">检测中</dd></div><div><dt>临时分享</dt><dd id="dashboardShareStatus">检测中</dd></div></dl><div class="dashboard-sync-actions" aria-label="学习数据同步与备份"><div class="action-row compact"><button class="button-secondary" id="learningSyncNowBtn" type="button">立即同步</button><button class="button-ghost" id="learningSyncExportBtn" type="button">导出 JSON</button><button class="button-ghost" id="learningSyncImportBtn" type="button">导入 JSON</button></div><input class="hidden" id="learningSyncFileInput" type="file" accept="application/json,.json" /><p id="learningSyncDetail" aria-live="polite">本地修改会在联网后自动同步。</p></div></div></details></div>
-          </div>
-        </details>
-
-        <section class="aeris-privacy-section" data-public-section="privacy" aria-labelledby="publicPrivacyTitle">
-          <header class="aeris-home-section-heading"><h2 id="publicPrivacyTitle">数据处理原则</h2></header>
-          <div class="aeris-privacy-grid">
-            <article><h3>留在本机的处理</h3><p>文本、JSON、单张图片压缩与转换，以及上方试用，都在当前浏览器运行。</p></article>
-            <article><h3>按账户同步的数据</h3><p>学习记录与账本随账户同步；文件在你确认传输后上传。Android 通知原文留在设备本机。</p></article>
-            <article><h3>匿名体验与正式数据分离</h3><p>匿名试做不写入学习档案；试算不记账；文件清单不自动上传。</p></article>
-          </div>
-        </section>
-
-        <section class="aeris-plans-section" data-public-section="plans" aria-labelledby="publicPlansTitle">
-          <header class="aeris-home-section-heading"><h2 id="publicPlansTitle">套餐与权益</h2><p>实时价格来自当前套餐目录；开通沿用现有付款确认流程。</p></header>
-          <div class="aeris-plan-grid">
-            <article class="aeris-plan-card"><h3>免费体验</h3><p class="aeris-plan-note">无需注册</p><ul class="aeris-plan-features"><li>英语或日语小测，最多 10 题</li><li>文本统计与 JSON 格式化</li><li>单张图片压缩与格式转换</li></ul><p>在当前浏览器即可试用，无需填写账号信息。</p><button class="button-secondary" id="publicTrialBtn" type="button">开始免费试用</button></article>
-            <article class="aeris-plan-card"><h3>模块权益与订阅</h3><p class="aeris-plan-note">按模块开通</p><ul class="aeris-plan-catalog tabular-nums" id="publicModulePlans" aria-label="当前模块订阅" aria-busy="true"><li>正在读取当前套餐目录…</li></ul><button class="button-secondary" id="publicPlansBtn" type="button">查看套餐与权益</button></article>
-            <article class="aeris-plan-card"><h3>全功能与永久权益</h3><p class="aeris-plan-note">包月与永久方案</p><ul class="aeris-plan-catalog tabular-nums" id="publicPermanentPlans" aria-label="当前全功能与永久方案" aria-busy="true"><li>正在读取当前套餐目录…</li></ul><p>具体适用范围与有效期以账户页实际权益详情为准。</p><button class="button-secondary" type="button" data-public-trigger="publicPlansBtn">查看完整方案</button></article>
-          </div>
-          <div class="aeris-catalog-status"><p id="publicPlanStatus" role="status" aria-atomic="true">正在读取当前套餐目录…</p><button class="button-ghost hidden" id="publicPlanRetryBtn" type="button">重试读取套餐</button></div>
-        </section>
-
-        <div class="aeris-final-cta" role="group" data-public-section="final" aria-label="下载与更新">
-          <div>
-            <strong>Aeris</strong>
-            <p>跨网页与 Android 保持一致的效率与隐私体验。</p>
-          </div>
-          <div class="public-actions">
-            <a class="button-link button-secondary" href="/download" data-site-nav="download">下载 Android</a>
-            <a class="button-link button-secondary" id="publicChangelogBtn" href="/changelog" data-site-nav="changelog">更新日志</a>
-          </div>
-        </div>
       </section>
 
       <section class="public-page hidden" id="changelogPage" aria-labelledby="changelogTitle" aria-hidden="true">
-        <header class="public-page-header changelog-header"><p class="section-kicker">更新日志</p><h1 id="changelogTitle">近期改进</h1><p>按版本记录新功能、优化、修复和安全更新。当前版本：<strong class="tabular-nums" id="changelogCurrentVersion">v2026.11.09.1</strong></p></header>
+        <header class="public-page-header changelog-header"><h1 id="changelogTitle">近期改进</h1><p>按版本记录新功能、优化、修复和安全更新。当前版本：<strong class="tabular-nums" id="changelogCurrentVersion">v2026.11.09.1</strong></p></header>
         <div class="changelog-list" id="changelogList" aria-live="polite"></div>
         <div class="public-actions"><button class="primary" id="changelogTrialBtn" type="button">免费试用</button><a class="button-link button-secondary" href="https://github.com/WYJ0904/thewyj.uk/commits/main/" target="_blank" rel="noopener noreferrer">完整提交记录</a></div>
       </section>
       <section class="public-page hidden" id="downloadPage" aria-labelledby="downloadTitle" aria-hidden="true">
         <header class="public-page-header download-header">
-          <p class="section-kicker">Android App</p>
           <h1 id="downloadTitle">下载正式版 App</h1>
           <p>Aeris 官方 Android 安装包（<strong>要求 Android 11 / API 30 及以上</strong>），与网页端共用同一套账号、财务与通知保存服务。语音朗读由云端生成，不依赖设备语音包；OCR 模型随安装包提供，无需 Google Play Services。<span id="downloadNotice">下载后可用 SHA-256 校验安装包完整性。</span></p>
         </header>
@@ -664,7 +385,7 @@
       </section>
 
       <section class="trial-page hidden" id="trialPage" aria-labelledby="trialPageTitle" aria-hidden="true">
-        <header class="public-page-header trial-header"><p class="section-kicker">免费试用</p><h1 id="trialPageTitle">先用一遍，再决定是否注册</h1><p>下列功能均在当前浏览器处理，不保存匿名学习记录，不开放临时分享、批量处理、配置保存或会员功能。</p></header>
+        <header class="public-page-header trial-header"><h1 id="trialPageTitle">免费试用：先用一遍，再决定是否注册</h1><p>下列功能均在当前浏览器处理，不保存匿名学习记录，不开放临时分享、批量处理、配置保存或会员功能。</p></header>
         <div class="trial-tool-tabs ds-segmented" role="tablist" aria-label="免费试用功能" data-indicator-style="pill">
           <button class="trial-tool-tab active" type="button" role="tab" data-trial-tool="quiz" aria-controls="trialQuizPanel" aria-selected="true" tabindex="0">语言小测</button>
           <button class="trial-tool-tab" type="button" role="tab" data-trial-tool="text" aria-controls="trialTextPanel" aria-selected="false" tabindex="-1">文本统计</button>
@@ -708,7 +429,7 @@
           <div class="trial-workbench-heading"><div><h2 id="trialImageTitle">单张图片压缩</h2><p id="trialImageDescription">调整质量后生成一个新的本地图片文件。</p></div><span class="local-only-badge">仅本机</span></div>
           <div class="trial-image-fields"><label><span>选择图片</span><input id="trialImageInput" type="file" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" /></label><label id="trialImageQualityField"><span>输出质量 <output id="trialImageQualityValue">82%</output></span><input id="trialImageQuality" type="range" min="20" max="95" value="82" /></label><label class="hidden" id="trialImageFormatField"><span>目标格式</span><select id="trialImageFormat"><option value="image/png">PNG</option><option value="image/jpeg">JPG</option><option value="image/webp">WebP</option></select></label></div>
           <button class="primary" id="trialImageProcessBtn" type="button">压缩图片</button><p class="trial-message" id="trialImageMessage" aria-live="polite"></p>
-          <div class="trial-image-result hidden" id="trialImageResult"><img id="trialImagePreview" alt="处理后的图片预览" /><div><p id="trialImageDetails"></p><a class="button-link button-secondary" id="trialImageDownload" download>下载处理结果</a></div></div>
+          <div class="trial-image-result hidden" id="trialImageResult"><img id="trialImagePreview" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="处理后的图片预览" /><div><p id="trialImageDetails"></p><a class="button-link button-secondary" id="trialImageDownload" download>下载处理结果</a></div></div>
           <p class="local-processing-note">仅支持单张 PNG、JPG 或 WebP，文件不超过 12 MB、像素不超过 2000 万。不会上传，也不会保存到服务器。</p>
         </section>
 
@@ -1499,7 +1220,7 @@
               <h3 class="payment-order-card-title">扫码与人工审核流程</h3>
               <div class="payment-qr-wrap hidden" id="paymentQrWrap">
                 <p id="paymentQrLabel">请使用所选支付方式扫码付款</p>
-                <img id="paymentQrImage" alt="当前订单的私有收款二维码" />
+                <img id="paymentQrImage" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="当前订单的私有收款二维码" />
                 <p class="meta-line" id="paymentQrMessage" aria-live="polite"></p>
               </div>
               <div class="action-row membership-order-actions">
@@ -1567,6 +1288,28 @@
           <div class="action-row account-settings-list"><button class="button-secondary" id="openSecurityCenterBtn" type="button"><span class="account-setting-main"><span class="account-setting-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M12 3 4 6.5v5.5c0 4.5 3.4 8.4 8 9.5 4.6-1.1 8-5 8-9.5V6.5z"/><path d="m9.5 12 2 2 3.5-4"/></svg></span><span>账户安全 · 邮箱、双重验证与登录设备</span></span><svg class="account-setting-chevron" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button><button class="button-secondary" id="accountBackupOpen" type="button"><span class="account-setting-main"><span class="account-setting-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M21 8v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8m19-4H2v4h20zM10 12h4"/></svg></span><span>数据导出、加密备份与恢复</span></span><svg class="account-setting-chevron" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button><button class="button-secondary" id="accountPrivacyOpen" type="button"><span class="account-setting-main"><span class="account-setting-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></span><span>隐私与数据管理</span></span><svg class="account-setting-chevron" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6"/></svg></button></div>
         </section>
 
+        <section class="account-group account-sync-section" aria-labelledby="accountDataSyncTitle">
+          <div class="account-sync-section-head">
+            <h2 class="account-section-subtitle" id="accountDataSyncTitle">数据与服务状态</h2>
+            <span class="status-badge" id="dashboardAccountStatus">检测中</span>
+          </div>
+          <dl class="dashboard-service-list account-service-list">
+            <div><dt>学习数据</dt><dd id="dashboardSyncStatus">本地可用</dd></div>
+            <div><dt>AI 判卷</dt><dd id="dashboardAiStatus">检测中</dd></div>
+            <div><dt>临时分享</dt><dd id="dashboardShareStatus">检测中</dd></div>
+          </dl>
+          <p class="meta-line" id="dashboardEntitlements"></p>
+          <div class="dashboard-sync-actions" aria-label="学习数据同步与备份">
+            <div class="action-row compact">
+              <button class="button-secondary" id="learningSyncNowBtn" type="button">立即同步学习数据</button>
+              <button class="button-ghost" id="learningSyncExportBtn" type="button">导出学习 JSON</button>
+              <button class="button-ghost" id="learningSyncImportBtn" type="button">导入学习 JSON</button>
+            </div>
+            <input class="hidden" id="learningSyncFileInput" type="file" accept="application/json,.json" />
+            <p class="meta-line" id="learningSyncDetail" aria-live="polite">本地修改会在联网后自动同步。</p>
+          </div>
+        </section>
+
         <h2 class="account-section-subtitle">详细信息与权益</h2>
         <dl class="account-details" id="accountDetails"></dl>
         <section class="hidden" id="releaseChannelSection">
@@ -1619,7 +1362,7 @@
     <div class="modal-layer hidden" id="siteMessageModal" aria-hidden="true">
       <section class="modal-panel site-message-panel" role="dialog" aria-modal="true" aria-labelledby="siteMessageTitle" aria-describedby="siteMessageBody">
         <button class="modal-close" id="siteMessageCloseIcon" type="button" aria-label="关闭消息"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
-        <p class="section-kicker" id="siteMessageSource">Aeris 管理员通知</p>
+        <p class="meta-line" id="siteMessageSource">Aeris 管理员通知</p>
         <span class="status-badge" id="siteMessageType">普通</span>
         <h2 id="siteMessageTitle"></h2>
         <div class="site-message-body" id="siteMessageBody"></div>
@@ -1719,11 +1462,32 @@
       <section class="modal-panel v3-cmd-panel" role="dialog" aria-modal="true" aria-labelledby="commandPaletteTitle">
         <header class="v3-cmd-header">
           <h2 id="commandPaletteTitle" class="sr-only">全局命令面板</h2>
-          <input id="commandPaletteInput" class="v3-cmd-input" type="search" autocomplete="off" spellcheck="false" placeholder="跳转到模块或执行命令…" aria-label="搜索命令与模块" />
+          <span class="v3-cmd-search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg></span>
+          <input id="commandPaletteInput" class="v3-cmd-input" type="search" role="combobox" aria-expanded="true" aria-autocomplete="list" aria-controls="commandPaletteList" autocomplete="off" spellcheck="false" placeholder="搜索 104 项工具、跳转模块或执行命令…" aria-label="搜索命令与工具" />
+          <kbd class="v3-kbd v3-cmd-esc-hint" aria-hidden="true">Esc</kbd>
           <button class="modal-close" type="button" data-close-modal="commandPaletteModal" aria-label="关闭命令面板">关闭</button>
         </header>
-        <p class="v3-cmd-hint meta-line" id="commandPaletteHint" role="status" aria-live="polite">输入关键字筛选，↑ ↓ 选择，Enter 确认，Esc 关闭</p>
+        <div class="v3-cmd-filters" id="commandPaletteFilters" role="tablist" aria-label="结果分类">
+          <button type="button" class="active" role="tab" aria-selected="true" data-cmd-filter="all">全部</button>
+          <button type="button" role="tab" aria-selected="false" data-cmd-filter="tool">工具</button>
+          <button type="button" role="tab" aria-selected="false" data-cmd-filter="module">模块</button>
+          <button type="button" role="tab" aria-selected="false" data-cmd-filter="action">操作</button>
+        </div>
+        <p class="v3-cmd-hint meta-line" id="commandPaletteHint" role="status" aria-live="polite">输入中英文关键词筛选，↑ ↓ 选择，Enter 确认，Esc 关闭</p>
         <div class="v3-cmd-list" id="commandPaletteList" role="listbox" aria-label="可用命令"></div>
+      </section>
+    </div>
+
+    <div class="modal-layer hidden" id="homeShortcutsModal" aria-hidden="true">
+      <section class="modal-panel shortcuts-editor-panel" role="dialog" aria-modal="true" aria-labelledby="homeShortcutsTitle">
+        <button class="modal-close" type="button" data-close-modal="homeShortcutsModal" aria-label="关闭"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+        <h2 id="homeShortcutsTitle">自定义首页快捷入口</h2>
+        <p class="meta-line">选择最多 6 项常用入口固定到个人首页（按当前账户独立保存）。</p>
+        <div class="shortcuts-editor-list" id="homeShortcutsOptions"></div>
+        <div class="action-row shortcuts-editor-actions">
+          <button class="button-ghost" id="resetHomeShortcutsBtn" type="button">恢复默认</button>
+          <button class="primary" id="saveHomeShortcutsBtn" type="button">保存</button>
+        </div>
       </section>
     </div>
 
@@ -1738,7 +1502,7 @@
       <section class="modal-panel workspace-detail-panel" role="dialog" aria-modal="true" aria-labelledby="workspaceDetailTitle" tabindex="-1">
         <div class="ds-sheet-handle" aria-hidden="true"><span class="ds-sheet-handle-pill"></span></div>
         <button class="modal-close" id="closeWorkspaceDetailBtn" data-close-modal="workspaceDetailModal" type="button" aria-label="关闭模块详情"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
-        <p class="section-kicker" id="workspaceDetailKicker">工作台模块</p>
+        <p class="meta-line" id="workspaceDetailKicker">工作台模块</p>
         <h2 id="workspaceDetailTitle">模块详情</h2>
         <div class="workspace-detail-body" id="workspaceDetailBody"></div>
         <div class="modal-actions workspace-detail-actions" id="workspaceDetailActions"></div>
@@ -1748,7 +1512,6 @@
     <div class="modal-layer hidden" id="feedbackModal" aria-hidden="true">
       <section class="modal-panel feedback-panel" role="dialog" aria-modal="true" aria-labelledby="feedbackTitle">
         <button class="modal-close" data-close-modal="feedbackModal" type="button" aria-label="关闭"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
-        <p class="section-kicker">帮助我们改进</p>
         <h2 id="feedbackTitle">反馈与功能投票</h2>
         <div class="feedback-tabs" role="tablist" aria-label="反馈视图">
           <button class="active" id="feedbackSubmitTab" type="button" data-feedback-view="feedbackSubmitView" role="tab" aria-controls="feedbackSubmitView" aria-selected="true">提交反馈</button>
@@ -1777,7 +1540,6 @@
 
     <div class="modal-layer rejudge-result-modal hidden" id="rejudgeResultModal" data-confirm-only aria-hidden="true">
       <section class="modal-panel rejudge-result-panel" id="rejudgeResultPanel" data-tone="info" role="alertdialog" aria-modal="true" aria-labelledby="rejudgeResultTitle" aria-describedby="rejudgeResultMessage">
-        <p class="section-kicker">错题重新判定</p>
         <h2 id="rejudgeResultTitle">重新判定结果</h2>
         <p class="rejudge-result-message" id="rejudgeResultMessage"></p>
         <div class="action-row rejudge-result-actions"><button class="primary" id="rejudgeResultConfirmBtn" type="button">确定</button></div>
