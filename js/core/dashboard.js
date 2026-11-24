@@ -2,6 +2,28 @@ import { $, escapeHtml } from "./ui.js?release=20261121-aeris-i05-preview";
 import { reconcileKeyedRows } from "./keyed-list.js?release=20261121-aeris-i05-preview";
 import { createHomeWidgets } from "./home-widgets.js?release=20261121-aeris-i05-preview";
 import { projectHomeWidgets } from "./home-widget-data.js?release=20261121-aeris-i05-preview";
+import {
+  HOME_SHORTCUT_CATALOG,
+  defaultHomeShortcuts,
+  homeWidgetStorageKey,
+  mergeHomeShortcutsRecord,
+  sanitizeHomeShortcuts,
+} from "./home-widget-layout.js?release=20261121-aeris-i05-preview";
+import { getSafeStorage, safeStorageSet } from "./storage.js?release=20261121-aeris-i05-preview";
+
+const SHORTCUT_ICONS = Object.freeze({
+  book: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h6a2 2 0 0 1 2 2v12a1.5 1.5 0 0 0-1.5-1.5H4zM20 5h-6a2 2 0 0 0-2 2v12a1.5 1.5 0 0 1 1.5-1.5H20z"/></svg>',
+  wallet: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M16 14h2"/></svg>',
+  tool: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4l-5.6 5.6a1.5 1.5 0 0 0 2.1 2.1l5.6-5.6a4 4 0 0 0 5.4-5.4l-2.2 2.2-2.1-2.1z"/></svg>',
+  workflow: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="12" r="2.5"/><circle cx="6" cy="18" r="2.5"/><path d="M8.5 6h3.5a3 3 0 0 1 3 3v.5M8.5 18h3.5a3 3 0 0 0 3-3v-.5"/></svg>',
+  upload: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4m-4 4 4-4 4 4M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/></svg>',
+  code: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 8-4 4 4 4m8-8 4 4-4 4m-5 2 2-12"/></svg>',
+  file: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg>',
+  image: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10.5" r="1.5"/><path d="m21 15-4.5-4.5L9 18"/></svg>',
+  key: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m11 12 8-8m-3 3 2.5 2.5"/></svg>',
+  user: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>',
+  diamond: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4h12l3 5-9 11L3 9zM3 9h18"/></svg>',
+});
 const bound = new WeakSet();
 const setText = (node,value) => { if(node && node.textContent!==String(value))node.textContent=String(value); };
 
@@ -183,8 +205,99 @@ export function createDashboardView(context) {
  const widgets=createHomeWidgets({root:$("publicHome"),accountId:()=>context.state().account?.id,navigate:context.openHomeModule,onOpenPreview:(id,triggerEl)=>openWorkspaceDetailModal(id,triggerEl)});
  const recentRoot=$("homeRecentActivity");
  const summaryGrid=$("homeV3SummaryGrid");
- recentRoot.addEventListener('click',event=>{const button=event.target.closest('[data-home-activity]');if(button)context.openHomeModule(button.dataset.homeActivity);});
+ const shortcutsRoot=$("homeQuickShortcuts");
+ const storage = getSafeStorage();
+ recentRoot?.addEventListener('click',event=>{const button=event.target.closest('[data-home-activity]');if(button)context.openHomeModule(button.dataset.homeActivity);});
  summaryGrid?.addEventListener('click',event=>{const card=event.target.closest('[data-v3-summary]');if(card)context.openHomeModule(card.dataset.v3Summary);});
+ const readRawAccountWidgetRecord = (accountId) => {
+  if (!accountId || !storage) return null;
+  try {
+    const raw = storage.getItem(homeWidgetStorageKey(accountId));
+    return raw ? JSON.parse(raw) : null;
+  } catch (_) { return null; }
+ };
+ const readAccountShortcuts = () => {
+  const accountId = context.state().account?.id;
+  const parsed = readRawAccountWidgetRecord(accountId);
+  return sanitizeHomeShortcuts(parsed?.quickShortcuts);
+ };
+ const saveAccountShortcuts = (list) => {
+  const accountId = context.state().account?.id;
+  if (!accountId || !storage) return;
+  const next = mergeHomeShortcutsRecord(readRawAccountWidgetRecord(accountId), list);
+  safeStorageSet(storage, homeWidgetStorageKey(accountId), JSON.stringify(next));
+ };
+ const renderQuickShortcuts = (account) => {
+  if (!shortcutsRoot || !account) return;
+  const ids = readAccountShortcuts();
+  const byId = new Map(HOME_SHORTCUT_CATALOG.map((item) => [item.id, item]));
+  const items = ids.map((id) => byId.get(id)).filter(Boolean);
+  reconcileKeyedRows(shortcutsRoot, items, {
+   key: (item) => item.id,
+   signature: (item) => {
+    const locked = Boolean(item.entitlement && !isSuperAdmin(account) && !hasAccountEntitlement(item.entitlement, account));
+    return `${item.id}:${locked ? "locked" : "open"}`;
+   },
+   render: (item) => {
+    const locked = Boolean(item.entitlement && !isSuperAdmin(account) && !hasAccountEntitlement(item.entitlement, account));
+    const iconSvg = SHORTCUT_ICONS[item.icon] || SHORTCUT_ICONS.tool;
+    const lockHtml = locked ? '<span class="gpt-shortcut-lock" aria-label="需要会员权益" title="需要会员权益"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>' : '';
+    return `<button type="button" class="gpt-shortcut-chip${locked ? " is-locked" : ""}" data-home-shortcut-id="${escapeHtml(item.id)}"><span class="gpt-shortcut-icon">${iconSvg}</span><span class="gpt-shortcut-label">${escapeHtml(item.label)}</span>${lockHtml}</button>`;
+   },
+   empty: "",
+  });
+ };
+ if (shortcutsRoot && !bound.has(shortcutsRoot)) {
+  bound.add(shortcutsRoot);
+  shortcutsRoot.addEventListener("click", (event) => {
+   const btn = event.target.closest("[data-home-shortcut-id]");
+   if (!btn) return;
+   const item = HOME_SHORTCUT_CATALOG.find((x) => x.id === btn.dataset.homeShortcutId);
+   if (!item) return;
+   if (item.kind === "tool") context.openTool(item.target);
+   else context.openHomeModule(item.target);
+  });
+ }
+ const shortcutsEditorBtn = $("customizeShortcutsBtn");
+ const shortcutsOptionsRoot = $("homeShortcutsOptions");
+ const populateShortcutsModal = () => {
+  if (!shortcutsOptionsRoot) return;
+  const selected = new Set(readAccountShortcuts());
+  const doc = shortcutsOptionsRoot.ownerDocument;
+  shortcutsOptionsRoot.replaceChildren();
+  HOME_SHORTCUT_CATALOG.forEach((item) => {
+   const label = doc.createElement("label");
+   label.className = "shortcut-option-row";
+   const checkbox = doc.createElement("input");
+   checkbox.type = "checkbox";
+   checkbox.value = item.id;
+   checkbox.checked = selected.has(item.id);
+   checkbox.addEventListener("change", () => {
+    const checkedCount = shortcutsOptionsRoot.querySelectorAll("input:checked").length;
+    if (checkedCount > 6) checkbox.checked = false;
+   });
+   const span = doc.createElement("span");
+   span.textContent = item.label;
+   label.append(checkbox, span);
+   shortcutsOptionsRoot.append(label);
+  });
+ };
+ shortcutsEditorBtn?.addEventListener("click", () => {
+  populateShortcutsModal();
+  context.openModal?.("homeShortcutsModal");
+ });
+ $("saveHomeShortcutsBtn")?.addEventListener("click", () => {
+  if (!shortcutsOptionsRoot) return;
+  const picked = [...shortcutsOptionsRoot.querySelectorAll("input:checked")].map((i) => i.value);
+  saveAccountShortcuts(picked);
+  if (context.state().account) renderQuickShortcuts(context.state().account);
+  context.closeModal?.("homeShortcutsModal", true);
+ });
+ $("resetHomeShortcutsBtn")?.addEventListener("click", () => {
+  saveAccountShortcuts(defaultHomeShortcuts());
+  populateShortcutsModal();
+  if (context.state().account) renderQuickShortcuts(context.state().account);
+ });
  function setSummaryBar(id, percent) {
   const bar=$(id); if(bar) bar.style.setProperty("--v3-bar-scale", (Math.max(8, Math.min(100, Math.round(percent))) / 100).toFixed(2));
  }
@@ -200,7 +313,9 @@ export function createDashboardView(context) {
  }
  function present(snapshot) {
   widgets.render(snapshot);
-  reconcileKeyedRows(recentRoot,snapshot.activity,{key:x=>x.id,signature:x=>JSON.stringify(x),render:x=>`<li><button type="button" data-home-activity="${escapeHtml(x.path)}">${escapeHtml(x.label)}<small>${escapeHtml(context.formatLocalDateTime(x.at))}</small></button></li>`,empty:'<li>'+(snapshot.demo?'登录后显示自己的学习与工具记录。':'暂无最近活动。完成学习或使用工具后会显示在这里。')+'</li>'});
+  if (recentRoot) {
+   reconcileKeyedRows(recentRoot,snapshot.activity,{key:x=>x.id,signature:x=>JSON.stringify(x),render:x=>`<li><button type="button" data-home-activity="${escapeHtml(x.path)}">${escapeHtml(x.label)}<small>${escapeHtml(context.formatLocalDateTime(x.at))}</small></button></li>`,empty:'<li>'+(snapshot.demo?'登录后显示自己的学习与工具记录。':'暂无最近活动。完成学习或使用工具后会显示在这里。')+'</li>'});
+  }
  }
  function prepare() {
   widgets.setAccount();
@@ -234,6 +349,7 @@ export function createDashboardView(context) {
   const englishGoal = dashboardGoal("english");
   const japaneseGoal = dashboardGoal("japanese");
 
+  renderQuickShortcuts(account);
   const greetingModel = formatLocalTimeGreeting(account);
   setText($("dashboardGreeting"), greetingModel.greeting || account.username);
   const promptEl = $("dashboardGreetingPrompt");
@@ -246,7 +362,7 @@ export function createDashboardView(context) {
     ? "永久有效"
     : summary.expires_at
       ? `到期 ${formatLocalDateTime(summary.expires_at)}`
-      : "无有效会员到期时间");
+      : "");
   setText($("dashboardEntitlements"), entitlements.length ? entitlements.join("、") : "基础功能");
   setText($("dashboardStreak"), String(calculateStudyStreak(records)));
   setText($("dashboardWrongCount"), String(Object.keys(state.historyWrongBook).length));

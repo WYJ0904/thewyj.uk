@@ -48,23 +48,23 @@
   --ds-radius-card: var(--ds-radius-lg);
   --ds-radius-pill: 999px;
   --ds-border-width: 1px;
-  --ds-shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 12px rgba(15, 23, 42, 0.035);
-  --ds-shadow-raised: 0 4px 12px rgba(15, 23, 42, 0.06), 0 14px 28px rgba(15, 23, 42, 0.07);
-  --ds-shadow-dialog: 0 16px 40px rgba(15, 23, 42, 0.14), 0 4px 12px rgba(15, 23, 42, 0.05);
-  --ds-overlay: rgba(15, 23, 42, 0.52);
-  --ds-overlay-soft: rgba(15, 23, 42, 0.42);
-  --ds-hover: rgba(15, 23, 42, 0.045);
-  --ds-skeleton: #e8edf3;
-  --ds-skeleton-shine: rgba(255, 255, 255, 0.62);
-  --ds-knob-surface: #fdfefe;
-  --ds-knob-border: rgba(15, 23, 42, 0.14);
-  --ds-knob-shadow: 0 1px 2px rgba(15, 23, 42, 0.22);
-  --ds-seg-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
-  --ds-logo-badge-bg: #fdfefe;
-  --ds-logo-badge-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
-  --ds-caret-color: #2563eb;
-  --ds-selection-bg: rgba(37, 99, 235, 0.18);
-  --ds-selection-fg: #18212f;
+  --ds-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.03);
+  --ds-shadow-raised: 0 4px 12px rgba(0, 0, 0, 0.06), 0 14px 28px rgba(0, 0, 0, 0.07);
+  --ds-shadow-dialog: 0 16px 40px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.05);
+  --ds-overlay: rgba(24, 24, 24, 0.44);
+  --ds-overlay-soft: rgba(24, 24, 24, 0.32);
+  --ds-hover: rgba(36, 36, 36, 0.055);
+  --ds-skeleton: #eaeaea;
+  --ds-skeleton-shine: rgba(255, 255, 255, 0.65);
+  --ds-knob-surface: #fdfdfd;
+  --ds-knob-border: rgba(36, 36, 36, 0.16);
+  --ds-knob-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+  --ds-seg-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --ds-logo-badge-bg: #fdfdfd;
+  --ds-logo-badge-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --ds-caret-color: #242424;
+  --ds-selection-bg: rgba(36, 36, 36, 0.14);
+  --ds-selection-fg: #242424;
 
   /* Runtime-updated layout & viewport metrics (with safe static fallbacks) */
   --site-nav-height: 64px;
@@ -76,23 +76,26 @@
   --ds-hud-save-offset: 0px;
   --ds-hud-version-offset: 0px;
 
-  /* Motion (I07 Unified Tokens) */
+  /* Motion (Phase 1 Unified Elastic & Smooth Tokens) */
   --ds-duration-instant: 80ms;
   --ds-duration-fast: 140ms;
   --ds-duration-skeleton: 140ms;
   --ds-duration-normal: 200ms;
+  --ds-duration-sidebar: 320ms;
   --ds-duration-slow: 260ms;
   --ds-duration-pressed: var(--ds-duration-instant);
   --ds-duration-expand: var(--ds-duration-normal);
-  --ds-duration-page: 220ms;
+  --ds-duration-page: 240ms;
   --ds-duration-sheet: 280ms;
   --ds-duration-container: 420ms;
   --ds-duration-toast: 220ms;
-  --ds-pressed-scale: 0.985;
+  --ds-pressed-scale: 0.96;
   --ds-pressed-opacity: 0.92;
   --ds-ease-standard: cubic-bezier(0.2, 0, 0, 1);
   --ds-ease-emphasized: cubic-bezier(0.2, 0.8, 0.2, 1);
-  --ds-ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+  --ds-ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
+  --ds-ease-elastic: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ds-ease-bounce-micro: cubic-bezier(0.34, 1.45, 0.64, 1);
   --ds-ease-decelerate: cubic-bezier(0.16, 1, 0.3, 1);
   --ds-motion-page: var(--ds-duration-page) var(--ds-ease-emphasized);
   --ds-bg-scale: 1;
@@ -105,6 +108,8 @@
   --ds-parallax-y: 0px;
 
   /* Layout and touch */
+  --ds-sidebar-width: 256px;
+  --ds-sidebar-collapsed-width: 64px;
   --ds-container-reading: 760px;
   --ds-container-default: 1200px;
   --ds-container-console: 1320px;
@@ -122,124 +127,126 @@
   --ds-icon-md: 20px;
   --ds-icon-lg: 24px;
 
-  /* Product workspace surfaces */
-  --ds-workspace-canvas: #f6f7f9;
-  --ds-workspace-canvas-warm: #f6f7f9;
-  --ds-bg-subtle: #f1f4f8;
-  --ds-surface: #ffffff;
-  --ds-surface-subtle: #f8fafc;
-  --ds-surface-muted: #f1f4f8;
-  --ds-surface-hover: #edf1f7;
-  --ds-surface-active: #e8edf3;
-  --ds-surface-raised: #ffffff;
-  --ds-surface-disabled: #e9edf2;
-  --ds-text: #18212f;
-  --ds-text-secondary: #475569;
-  --ds-text-muted: #5b687a;
-  --ds-text-disabled: #526174;
-  --ds-border: #dde2ea;
-  --ds-border-subtle: #eaeef4;
-  --ds-border-strong: #c2cbd7;
-  --ds-border-hover: #8fa0b3;
-  --ds-divider: #eaeef4;
+  /* ChatGPT-inspired Neutral Monochrome Workspace (Light) */
+  --ds-workspace-canvas: #fafafa;
+  --ds-workspace-canvas-warm: #fafafa;
+  --ds-sidebar-bg: #f4f4f4;
+  --ds-bg-subtle: #f4f4f4;
+  --ds-surface: #fdfdfd;
+  --ds-surface-subtle: #f4f4f4;
+  --ds-surface-muted: #efefef;
+  --ds-surface-hover: #ebebeb;
+  --ds-surface-active: #eaeaea;
+  --ds-surface-raised: #fdfdfd;
+  --ds-surface-disabled: #ececec;
+  --ds-text: #242424;
+  --ds-text-secondary: #696969;
+  --ds-text-muted: #696969;
+  --ds-text-disabled: #696969;
+  --ds-border: #e4e4e4;
+  --ds-border-subtle: #ececec;
+  --ds-border-strong: #cfcfcf;
+  --ds-border-hover: #a6a6a6;
+  --ds-divider: #e8e8e8;
 
-  /* Primary action (high-contrast monochrome) & restrained semantic accents */
-  --ds-action-primary: #111113;
-  --ds-action-primary-hover: #27272a;
-  --ds-action-primary-pressed: #09090b;
-  --ds-on-action-primary: #ffffff;
-  --ds-brand: #2563eb;
-  --ds-brand-hover: #1d4ed8;
-  --ds-brand-pressed: #1e40af;
-  --ds-brand-soft: #edf4ff;
-  --ds-brand-border: #bfdbfe;
-  --ds-on-brand: #ffffff;
-  --ds-success: #0f766e;
-  --ds-success-soft: #ecfdf5;
-  --ds-success-border: #a7d8bc;
-  --ds-warning: #a15c07;
-  --ds-warning-soft: #fffbeb;
-  --ds-warning-border: #e8c982;
-  --ds-error: #c23333;
-  --ds-on-error: #ffffff;
-  --ds-error-hover: #a92424;
-  --ds-error-soft: #fef2f2;
-  --ds-error-border: #e6aaaa;
-  --ds-info: #1d4ed8;
-  --ds-info-soft: #eff6ff;
-  --ds-info-border: #b7cdf8;
-  --ds-focus: #1d4ed8;
-  --ds-focus-ring: 0 0 0 3px rgba(37, 99, 235, 0.24);
+  /* Primary action (soft monochrome) & desaturated semantic accents */
+  --ds-action-primary: #242424;
+  --ds-action-primary-hover: #383838;
+  --ds-action-primary-pressed: #171717;
+  --ds-on-action-primary: #fafafa;
+  --ds-brand: #242424;
+  --ds-brand-hover: #383838;
+  --ds-brand-pressed: #171717;
+  --ds-brand-soft: #eaeaea;
+  --ds-brand-border: #d4d4d4;
+  --ds-on-brand: #fafafa;
+  --ds-success: #166e46;
+  --ds-success-soft: #eef7f2;
+  --ds-success-border: #b6d9c7;
+  --ds-warning: #8c5206;
+  --ds-warning-soft: #fbf6eb;
+  --ds-warning-border: #e2cb9a;
+  --ds-error: #b83328;
+  --ds-on-error: #fafafa;
+  --ds-error-hover: #9e271d;
+  --ds-error-soft: #fbf0ef;
+  --ds-error-border: #e3b2ad;
+  --ds-info: #2d5a9e;
+  --ds-info-soft: #f0f4fa;
+  --ds-info-border: #c2d2eb;
+  --ds-focus: #242424;
+  --ds-focus-ring: 0 0 0 2px #fafafa, 0 0 0 4px #242424;
 
-  /* Module accent tokens for 3 floating home cards (defined in both P07 ON/OFF) */
-  --ds-card-learning-bg: #ffffff;
-  --ds-card-learning-surface: #ffffff;
-  --ds-card-learning-border: #d5e2f5;
-  --ds-card-learning-accent: #2563eb;
-  --ds-card-finance-bg: #ffffff;
-  --ds-card-finance-surface: #ffffff;
-  --ds-card-finance-border: #cde5df;
-  --ds-card-finance-accent: #0f766e;
-  --ds-card-tools-bg: #ffffff;
-  --ds-card-tools-surface: #ffffff;
-  --ds-card-tools-border: #dad9f5;
-  --ds-card-tools-accent: #4f46e5;
+  /* Neutral module accent tokens (compatibility preserved) */
+  --ds-card-learning-bg: #fdfdfd;
+  --ds-card-learning-surface: #fdfdfd;
+  --ds-card-learning-border: #e4e4e4;
+  --ds-card-learning-accent: #242424;
+  --ds-card-finance-bg: #fdfdfd;
+  --ds-card-finance-surface: #fdfdfd;
+  --ds-card-finance-border: #e4e4e4;
+  --ds-card-finance-accent: #166e46;
+  --ds-card-tools-bg: #fdfdfd;
+  --ds-card-tools-surface: #fdfdfd;
+  --ds-card-tools-border: #e4e4e4;
+  --ds-card-tools-accent: #242424;
 
-  /* Public brand stage */
-  --ds-stage: #f6f7f9;
-  --ds-stage-surface: #ffffff;
-  --ds-stage-surface-raised: #eef2f7;
-  --ds-stage-text: #0f172a;
-  --ds-stage-text-secondary: #475569;
-  --ds-stage-border: #dde2ea;
-  --ds-stage-brand: #2563eb;
+  /* Public brand stage (aligned to neutral workspace) */
+  --ds-stage: #fafafa;
+  --ds-stage-surface: #fdfdfd;
+  --ds-stage-surface-raised: #f4f4f4;
+  --ds-stage-text: #242424;
+  --ds-stage-text-secondary: #696969;
+  --ds-stage-border: #e4e4e4;
+  --ds-stage-brand: #242424;
   --ds-stage-action: var(--ds-action-primary);
   --ds-stage-on-action: var(--ds-on-action-primary);
   --ds-stage-action-hover: var(--ds-action-primary-hover);
 
-  /* Dark palette values are declared once and assigned below. */
-  --ds-dark-workspace-canvas: #0b0e14;
-  --ds-dark-workspace-canvas-warm: #0b0e14;
-  --ds-dark-bg-subtle: #10141c;
-  --ds-dark-surface: #141922;
-  --ds-dark-surface-subtle: #10151e;
-  --ds-dark-surface-muted: #1b222e;
-  --ds-dark-surface-hover: #1e2634;
-  --ds-dark-surface-active: #222b3a;
-  --ds-dark-surface-raised: #1a212d;
-  --ds-dark-surface-disabled: #222936;
-  --ds-dark-text: #f1f5f9;
-  --ds-dark-text-secondary: #c5cedb;
-  --ds-dark-text-muted: #98a5b8;
-  --ds-dark-text-disabled: #8b99ad;
-  --ds-dark-border: #26303f;
-  --ds-dark-border-subtle: #1d2532;
-  --ds-dark-border-strong: #39475c;
-  --ds-dark-border-hover: #4b5b73;
-  --ds-dark-action-primary: #f8fafc;
-  --ds-dark-action-primary-hover: #e2e8f0;
-  --ds-dark-action-primary-pressed: #cbd5e1;
-  --ds-dark-on-action-primary: #111113;
-  --ds-dark-brand: #6ea2ff;
-  --ds-dark-brand-hover: #8eb7ff;
-  --ds-dark-brand-pressed: #518bf5;
-  --ds-dark-brand-soft: #1b2944;
-  --ds-dark-brand-border: #2b4574;
-  --ds-dark-on-brand: #09111f;
-  --ds-dark-success: #4fd1a5;
-  --ds-dark-success-soft: #132c24;
-  --ds-dark-success-border: #245446;
-  --ds-dark-warning: #f2c572;
-  --ds-dark-warning-soft: #2e2414;
-  --ds-dark-warning-border: #634b1e;
-  --ds-dark-error: #ff9494;
-  --ds-dark-error-hover: #ffb3b3;
-  --ds-dark-error-soft: #2f181c;
-  --ds-dark-error-border: #692d34;
-  --ds-dark-info: #8eb7ff;
-  --ds-dark-info-soft: #1a2844;
-  --ds-dark-info-border: #2b4574;
-  --ds-dark-focus: #8eb7ff;
+  /* Dark palette: soft neutral charcoal (#212121 / #191919 / #303030) */
+  --ds-dark-workspace-canvas: #212121;
+  --ds-dark-workspace-canvas-warm: #212121;
+  --ds-dark-sidebar-bg: #191919;
+  --ds-dark-bg-subtle: #1c1c1c;
+  --ds-dark-surface: #282828;
+  --ds-dark-surface-subtle: #242424;
+  --ds-dark-surface-muted: #2c2c2c;
+  --ds-dark-surface-hover: #2e2e2e;
+  --ds-dark-surface-active: #303030;
+  --ds-dark-surface-raised: #2d2d2d;
+  --ds-dark-surface-disabled: #2b2b2b;
+  --ds-dark-text: #eaeaea;
+  --ds-dark-text-secondary: #aaaaaa;
+  --ds-dark-text-muted: #a0a0a0;
+  --ds-dark-text-disabled: #9a9a9a;
+  --ds-dark-border: #383838;
+  --ds-dark-border-subtle: #2f2f2f;
+  --ds-dark-border-strong: #4a4a4a;
+  --ds-dark-border-hover: #5e5e5e;
+  --ds-dark-action-primary: #eaeaea;
+  --ds-dark-action-primary-hover: #f5f5f5;
+  --ds-dark-action-primary-pressed: #d4d4d4;
+  --ds-dark-on-action-primary: #212121;
+  --ds-dark-brand: #eaeaea;
+  --ds-dark-brand-hover: #f5f5f5;
+  --ds-dark-brand-pressed: #d4d4d4;
+  --ds-dark-brand-soft: #303030;
+  --ds-dark-brand-border: #4a4a4a;
+  --ds-dark-on-brand: #212121;
+  --ds-dark-success: #5ac18e;
+  --ds-dark-success-soft: #1d2c24;
+  --ds-dark-success-border: #2e4d3c;
+  --ds-dark-warning: #e0b25b;
+  --ds-dark-warning-soft: #2e271a;
+  --ds-dark-warning-border: #5a4927;
+  --ds-dark-error: #ee827a;
+  --ds-dark-error-hover: #f5a09a;
+  --ds-dark-error-soft: #301f1e;
+  --ds-dark-error-border: #5e3431;
+  --ds-dark-info: #89b0ec;
+  --ds-dark-info-soft: #202836;
+  --ds-dark-info-border: #354764;
+  --ds-dark-focus: #eaeaea;
 
   /* Compatibility aliases used by existing modules. */
   --color-background: var(--ds-workspace-canvas);
@@ -334,6 +341,7 @@ body.modal-open .skip-link { visibility: hidden; }
   --ds-stage-action-hover: var(--ds-dark-action-primary-hover);
   --ds-workspace-canvas: var(--ds-dark-workspace-canvas);
   --ds-workspace-canvas-warm: var(--ds-dark-workspace-canvas-warm);
+  --ds-sidebar-bg: var(--ds-dark-sidebar-bg);
   --ds-bg-subtle: var(--ds-dark-bg-subtle);
   --ds-surface: var(--ds-dark-surface);
   --ds-surface-subtle: var(--ds-dark-surface-subtle);
@@ -376,36 +384,36 @@ body.modal-open .skip-link { visibility: hidden; }
   --ds-info-soft: var(--ds-dark-info-soft);
   --ds-info-border: var(--ds-dark-info-border);
   --ds-focus: var(--ds-dark-focus);
-  --ds-focus-ring: 0 0 0 3px rgba(142, 183, 255, 0.28);
-  --ds-card-learning-bg: #141922;
-  --ds-card-learning-surface: #141922;
-  --ds-card-learning-border: #283c5c;
-  --ds-card-learning-accent: #6ea2ff;
-  --ds-card-finance-bg: #141922;
-  --ds-card-finance-surface: #141922;
-  --ds-card-finance-border: #22443c;
-  --ds-card-finance-accent: #4fd1a5;
-  --ds-card-tools-bg: #141922;
-  --ds-card-tools-surface: #141922;
-  --ds-card-tools-border: #33355c;
-  --ds-card-tools-accent: #a5b4fc;
+  --ds-focus-ring: 0 0 0 2px #212121, 0 0 0 4px #eaeaea;
+  --ds-card-learning-bg: #282828;
+  --ds-card-learning-surface: #282828;
+  --ds-card-learning-border: #383838;
+  --ds-card-learning-accent: #eaeaea;
+  --ds-card-finance-bg: #282828;
+  --ds-card-finance-surface: #282828;
+  --ds-card-finance-border: #383838;
+  --ds-card-finance-accent: #5ac18e;
+  --ds-card-tools-bg: #282828;
+  --ds-card-tools-surface: #282828;
+  --ds-card-tools-border: #383838;
+  --ds-card-tools-accent: #eaeaea;
   --ds-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.28), 0 8px 22px rgba(0, 0, 0, 0.22);
   --ds-shadow-raised: 0 12px 32px rgba(0, 0, 0, 0.34);
   --ds-shadow-dialog: 0 24px 64px rgba(0, 0, 0, 0.52);
-  --ds-overlay: rgba(4, 7, 12, 0.72);
-  --ds-overlay-soft: rgba(4, 7, 12, 0.58);
+  --ds-overlay: rgba(12, 12, 12, 0.72);
+  --ds-overlay-soft: rgba(12, 12, 12, 0.56);
   --ds-hover: rgba(255, 255, 255, 0.065);
-  --ds-skeleton: #1e2633;
+  --ds-skeleton: #2d2d2d;
   --ds-skeleton-shine: rgba(255, 255, 255, 0.08);
-  --ds-knob-surface: #0b0e14;
-  --ds-knob-border: rgba(11, 14, 20, 0.24);
+  --ds-knob-surface: #212121;
+  --ds-knob-border: rgba(255, 255, 255, 0.16);
   --ds-knob-shadow: 0 1px 2px rgba(0, 0, 0, 0.36);
   --ds-seg-shadow: 0 1px 3px rgba(0, 0, 0, 0.28);
-  --ds-logo-badge-bg: #141922;
+  --ds-logo-badge-bg: #282828;
   --ds-logo-badge-shadow: 0 2px 8px rgba(0, 0, 0, 0.24);
-  --ds-caret-color: #6ea2ff;
-  --ds-selection-bg: rgba(110, 162, 255, 0.26);
-  --ds-selection-fg: #f1f5f9;
+  --ds-caret-color: #eaeaea;
+  --ds-selection-bg: rgba(234, 234, 234, 0.22);
+  --ds-selection-fg: #eaeaea;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -423,6 +431,7 @@ body.modal-open .skip-link { visibility: hidden; }
     --ds-stage-action-hover: var(--ds-dark-action-primary-hover);
     --ds-workspace-canvas: var(--ds-dark-workspace-canvas);
     --ds-workspace-canvas-warm: var(--ds-dark-workspace-canvas-warm);
+    --ds-sidebar-bg: var(--ds-dark-sidebar-bg);
     --ds-bg-subtle: var(--ds-dark-bg-subtle);
     --ds-surface: var(--ds-dark-surface);
     --ds-surface-subtle: var(--ds-dark-surface-subtle);
@@ -465,36 +474,36 @@ body.modal-open .skip-link { visibility: hidden; }
     --ds-info-soft: var(--ds-dark-info-soft);
     --ds-info-border: var(--ds-dark-info-border);
     --ds-focus: var(--ds-dark-focus);
-    --ds-focus-ring: 0 0 0 3px rgba(142, 183, 255, 0.28);
-    --ds-card-learning-bg: #141922;
-    --ds-card-learning-surface: #141922;
-    --ds-card-learning-border: #283c5c;
-    --ds-card-learning-accent: #6ea2ff;
-    --ds-card-finance-bg: #141922;
-    --ds-card-finance-surface: #141922;
-    --ds-card-finance-border: #22443c;
-    --ds-card-finance-accent: #4fd1a5;
-    --ds-card-tools-bg: #141922;
-    --ds-card-tools-surface: #141922;
-    --ds-card-tools-border: #33355c;
-    --ds-card-tools-accent: #a5b4fc;
+    --ds-focus-ring: 0 0 0 2px #212121, 0 0 0 4px #eaeaea;
+    --ds-card-learning-bg: #282828;
+    --ds-card-learning-surface: #282828;
+    --ds-card-learning-border: #383838;
+    --ds-card-learning-accent: #eaeaea;
+    --ds-card-finance-bg: #282828;
+    --ds-card-finance-surface: #282828;
+    --ds-card-finance-border: #383838;
+    --ds-card-finance-accent: #5ac18e;
+    --ds-card-tools-bg: #282828;
+    --ds-card-tools-surface: #282828;
+    --ds-card-tools-border: #383838;
+    --ds-card-tools-accent: #eaeaea;
     --ds-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.28), 0 8px 22px rgba(0, 0, 0, 0.22);
     --ds-shadow-raised: 0 12px 32px rgba(0, 0, 0, 0.34);
     --ds-shadow-dialog: 0 24px 64px rgba(0, 0, 0, 0.52);
-    --ds-overlay: rgba(4, 7, 12, 0.72);
-    --ds-overlay-soft: rgba(4, 7, 12, 0.58);
+    --ds-overlay: rgba(12, 12, 12, 0.72);
+    --ds-overlay-soft: rgba(12, 12, 12, 0.56);
     --ds-hover: rgba(255, 255, 255, 0.065);
-    --ds-skeleton: #1e2633;
+    --ds-skeleton: #2d2d2d;
     --ds-skeleton-shine: rgba(255, 255, 255, 0.08);
-    --ds-knob-surface: #0b0e14;
-    --ds-knob-border: rgba(11, 14, 20, 0.24);
+    --ds-knob-surface: #212121;
+    --ds-knob-border: rgba(255, 255, 255, 0.16);
     --ds-knob-shadow: 0 1px 2px rgba(0, 0, 0, 0.36);
     --ds-seg-shadow: 0 1px 3px rgba(0, 0, 0, 0.28);
-    --ds-logo-badge-bg: #141922;
+    --ds-logo-badge-bg: #282828;
     --ds-logo-badge-shadow: 0 2px 8px rgba(0, 0, 0, 0.24);
-    --ds-caret-color: #6ea2ff;
-    --ds-selection-bg: rgba(110, 162, 255, 0.26);
-    --ds-selection-fg: #f1f5f9;
+    --ds-caret-color: #eaeaea;
+    --ds-selection-bg: rgba(234, 234, 234, 0.22);
+    --ds-selection-fg: #eaeaea;
   }
 }
 
@@ -563,7 +572,7 @@ body {
   min-height: 100vh;
   min-height: 100dvh;
   margin: 0;
-  overflow-x: hidden;
+  overflow-x: clip;
   color: var(--ds-text);
   background: var(--ds-workspace-canvas);
   font-family: var(--ds-font-sans);
@@ -642,7 +651,7 @@ a.primary,
   color: var(--ds-text);
   background: var(--ds-surface);
   box-shadow: none;
-  font-weight: 650;
+  font-weight: 600;
   line-height: 1.2;
   text-decoration: none;
   cursor: pointer;
@@ -650,8 +659,7 @@ a.primary,
     color var(--ds-duration-fast) var(--ds-ease-standard),
     background-color var(--ds-duration-fast) var(--ds-ease-standard),
     border-color var(--ds-duration-fast) var(--ds-ease-standard),
-    transform var(--ds-duration-pressed) var(--ds-ease-standard),
-    scale var(--ds-duration-pressed) var(--ds-ease-standard),
+    transform 200ms var(--ds-ease-bounce-micro),
     opacity var(--ds-duration-pressed) var(--ds-ease-standard);
 }
 
@@ -663,6 +671,16 @@ a.primary,
 
 [hidden] {
   display: none !important;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  button:not([role="tab"]):hover:not(:disabled),
+  a.primary:hover:not([aria-disabled="true"]),
+  .button-link:hover:not([aria-disabled="true"]),
+  .button-secondary:hover:not(:disabled),
+  .icon-button:hover:not(:disabled) {
+    transform: translateY(-1px) scale(1.01);
+  }
 }
 
 button:hover:not(:disabled),
@@ -678,8 +696,9 @@ button:active:not(:disabled),
 a.primary:active:not([aria-disabled="true"]),
 .button-link:active:not([aria-disabled="true"]),
 [data-aeris-pressed="true"] {
-  scale: var(--ds-pressed-scale);
+  transform: translateY(0) scale(var(--ds-pressed-scale));
   opacity: var(--ds-pressed-opacity);
+  transition-duration: var(--ds-duration-pressed);
 }
 
 summary,
@@ -833,8 +852,9 @@ textarea:focus-visible,
 [role="switch"]:focus-visible,
 [tabindex]:focus-visible {
   outline: 2px solid var(--ds-focus);
-  outline-offset: 3px;
+  outline-offset: 2px;
   box-shadow: var(--ds-focus-ring);
+  transition: outline 0s, box-shadow 0s;
 }
 
 input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(.visually-hidden):not(.sr-only):not(.ds-sr-only),
@@ -1583,8 +1603,8 @@ html[data-p07-ui="enabled"] :is(button, a.primary, .button-link, .button-primary
   min-height: var(--ds-touch-min);
   padding-block: 6px;
   max-width: 100%;
-  white-space: normal;
-  overflow-wrap: anywhere;
+  word-break: keep-all;
+  overflow-wrap: normal;
 }
 
 html[data-p07-ui="enabled"] :is(button.primary, a.primary, .button-primary):not(:disabled) {
@@ -1993,6 +2013,154 @@ input.ds-sr-only,
   .ds-switch[aria-checked="true"] .ds-switch-thumb {
     background: HighlightText;
     border-color: HighlightText;
+  }
+}
+
+/* Unified Floating Dropdown Component (<=5 plain menu, >5 with search) */
+.ds-select-wrap {
+  position: relative;
+  display: inline-grid;
+  width: 100%;
+  min-width: 0;
+}
+
+.ds-select-trigger {
+  width: 100%;
+  min-height: var(--ds-touch-min);
+  padding: 0 var(--ds-space-3);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ds-space-2);
+  border: var(--ds-border-width) solid var(--ds-border-strong);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+  color: var(--ds-text);
+  font-size: var(--ds-text-sm);
+  font-weight: 500;
+  text-align: left;
+}
+
+.ds-select-trigger-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ds-select-chevron {
+  flex: 0 0 auto;
+  color: var(--ds-text-secondary);
+  transition: transform var(--ds-duration-fast) var(--ds-ease-spring);
+}
+
+.ds-select-trigger[aria-expanded="true"] .ds-select-chevron {
+  transform: rotate(180deg);
+}
+
+.ds-select-popover {
+  position: fixed;
+  z-index: calc(var(--ds-z-modal) + 20);
+  min-width: 180px;
+  max-width: min(360px, calc(100% - 24px));
+  padding: 6px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-surface-raised);
+  box-shadow: var(--ds-shadow-dialog);
+  opacity: 0;
+  transform: translateY(-4px) scale(0.97);
+  transform-origin: top center;
+  transition:
+    opacity var(--ds-duration-fast) var(--ds-ease-standard),
+    transform 180ms var(--ds-ease-spring);
+}
+
+.ds-select-popover[data-open="true"] {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.ds-select-popover[data-placement="top"] {
+  transform-origin: bottom center;
+}
+
+.ds-select-search-wrap {
+  padding: 2px 2px 6px;
+  border-bottom: 1px solid var(--ds-divider);
+  margin-bottom: 4px;
+}
+
+.ds-select-search {
+  min-height: 36px;
+  padding: 0 10px;
+  font-size: var(--ds-text-sm);
+}
+
+.ds-select-list {
+  max-height: min(260px, calc(100dvh - 140px));
+  overflow-y: auto;
+  display: grid;
+  gap: 2px;
+}
+
+.ds-select-option {
+  width: 100%;
+  min-height: 38px;
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: 0;
+  border-radius: var(--ds-radius-sm);
+  background: transparent;
+  color: var(--ds-text);
+  font-size: var(--ds-text-sm);
+  font-weight: 500;
+  text-align: left;
+}
+
+.ds-select-option:hover:not(:disabled),
+.ds-select-option.is-active {
+  background: var(--ds-surface-hover);
+  border-color: transparent;
+  transform: none;
+}
+
+.ds-select-option[aria-selected="true"] {
+  background: var(--ds-surface-active);
+  font-weight: 600;
+}
+
+.ds-select-empty {
+  padding: 10px 12px;
+  margin: 0;
+  color: var(--ds-text-secondary);
+  font-size: var(--ds-text-xs);
+  text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button,
+  a.primary,
+  .button-link,
+  .button-primary,
+  .button-secondary,
+  .button-ghost,
+  .danger-button,
+  .icon-button,
+  .ds-select-popover,
+  .ds-select-chevron {
+    transition: none;
+  }
+
+  button:hover:not(:disabled),
+  a.primary:hover:not([aria-disabled="true"]),
+  .button-link:hover:not([aria-disabled="true"]),
+  .button-secondary:hover:not(:disabled),
+  .icon-button:hover:not(:disabled) {
+    transform: none;
   }
 }
 

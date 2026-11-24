@@ -15,7 +15,10 @@ export function createRouter({ onRouteChange = () => {}, getScrollPosition = nul
         const pos = typeof getScrollPosition === "function" ? getScrollPosition() : null;
         const scrollX = Number.isFinite(pos?.scrollX) ? pos.scrollX : (globalThis.window.scrollX || 0);
         const scrollY = Number.isFinite(pos?.scrollY) ? pos.scrollY : (globalThis.window.scrollY || 0);
-        globalThis.history.replaceState({ ...prevState, scrollX, scrollY }, "", globalThis.location.href);
+        const aerisViewState = pos?.aerisViewState && typeof pos.aerisViewState === "object"
+          ? pos.aerisViewState
+          : prevState.aerisViewState;
+        globalThis.history.replaceState({ ...prevState, scrollX, scrollY, aerisViewState }, "", globalThis.location.href);
       } catch (_) {}
     }
     history[replace ? "replaceState" : "pushState"](state, "", target);

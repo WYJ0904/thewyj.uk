@@ -2455,25 +2455,26 @@ const activeRouteEntrances = new WeakMap();
  */
 export function animateRouteViewEntrance(element, {
   view = globalThis.window,
-  distanceY = 8,
+  distanceY = 14,
   duration = MOTION.page,
 } = {}) {
-  if (!element || typeof element.animate !== "function" || prefersReducedMotion(view)) return null;
+  if (!element || typeof element.animate !== "function") return null;
   const prev = activeRouteEntrances.get(element);
   if (prev) {
     try { prev.cancel(); } catch (_) {}
   }
-  const animation = element.animate(
-    [
-      { transform: `translate3d(0, ${distanceY}px, 0)` },
-      { transform: "translate3d(0, 0, 0)" },
-    ],
-    {
-      duration: Math.max(140, Math.min(260, Number(duration) || 200)),
-      easing: MOTION.easing,
-      fill: "none",
-    },
-  );
+  const reduced = prefersReducedMotion(view);
+  const keyframes = reduced
+    ? [{ opacity: 0.72 }, { opacity: 1 }]
+    : [
+      { opacity: 0.12, transform: `translate3d(0, ${distanceY}px, 0)` },
+      { opacity: 1, transform: "translate3d(0, 0, 0)" },
+    ];
+  const animation = element.animate(keyframes, {
+    duration: reduced ? 90 : Math.max(180, Math.min(300, Number(duration) || 240)),
+    easing: reduced ? MOTION.easing : MOTION.spring,
+    fill: "none",
+  });
   activeRouteEntrances.set(element, animation);
   animation.finished?.then?.(() => {
     if (activeRouteEntrances.get(element) === animation) activeRouteEntrances.delete(element);

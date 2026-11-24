@@ -16,13 +16,10 @@ const p = await openPage({
 
 const ready = "!document.getElementById('entryScreen')&&!document.querySelector('#publicHome').classList.contains('hidden')";
 const measurePublicMobile = `(()=>{
-  const wall=document.querySelector('#publicBentoWall');
+  const plans=document.querySelector('#publicPlansComparisonGrid');
   const gallery=document.querySelector('#publicCapabilityGallery');
-  const tiles=[...document.querySelectorAll('#publicBentoWall .bento-tile')].map(el=>{
-    const r=el.getBoundingClientRect();
-    return {mod:el.dataset.bentoModule,width:r.width,left:r.left,right:r.right,inside:r.left>=-1&&r.right<=innerWidth+1};
-  });
   const gr=gallery.getBoundingClientRect();
+  const pr=plans?plans.getBoundingClientRect():{left:0,right:0};
   return {
     width:innerWidth,
     height:innerHeight,
@@ -30,8 +27,7 @@ const measurePublicMobile = `(()=>{
     heroCards:document.querySelectorAll('.hero-scene-card').length,
     widgetEditor:Boolean(document.querySelector('#homeWidgetEditor')),
     galleryInside:gr.left>=-1&&gr.right<=innerWidth+1,
-    wallInside:Boolean(wall)&&tiles.length===5&&tiles.every(t=>t.inside),
-    tiles,
+    wallInside:Boolean(plans)&&pr.left>=-1&&pr.right<=innerWidth+1,
   };
 })()`;
 
@@ -71,11 +67,9 @@ try {
   await resize(390, 844, true);
   await p.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
   const reduced = await p.evaluate(`(()=>{
-    const inner=document.querySelector('#publicBentoWall .tile-inner');
-    const card=document.querySelector('#publicCapabilityGallery .preview-card');
+    const sb=document.querySelector('#v3Sidebar');
     return {
-      tileDuration:inner?getComputedStyle(inner).transitionDuration:'none',
-      cardTransform:card?getComputedStyle(card).transform:'none',
+      sidebarDuration:sb?getComputedStyle(sb).transitionDuration:'none',
       overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,
     };
   })()`);

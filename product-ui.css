@@ -2931,7 +2931,7 @@ textarea::placeholder {
 }
 
 .project-app .word-quality-hint.has-warning {
-  color: #7b4b0a;
+  color: var(--color-warning);
 }
 
 .project-app .achievement-head > strong,
@@ -3077,8 +3077,8 @@ textarea::placeholder {
 
 .membership-warning,
 .danger-note {
-  border-color: #edcf8c;
-  color: #7b4b0a;
+  border-color: var(--ds-warning-border, #edcf8c);
+  color: var(--color-warning);
   background: var(--color-warning-soft);
 }
 
@@ -4312,7 +4312,7 @@ progress {
 
 .site-message-panel .status-badge[data-message-type="maintenance"],
 .admin-message-card .status-badge[data-message-type="maintenance"] {
-  color: #7b4b0a;
+  color: var(--color-warning);
   background: var(--color-warning-soft);
 }
 

@@ -1,0 +1,59 @@
+{
+  "preview_url": "https://v63-phase1.thewyj-v63-preview.pages.dev",
+  "verified_at": "2026-11-24T13:34:07.499Z",
+  "accounts": {
+    "free": {
+      "username": "v63p1_free",
+      "badge": "v63p1_free",
+      "planCaption": "普通注册用户",
+      "financeLocked": true,
+      "toolsLocked": true,
+      "adminHidden": true,
+      "collapseSample": {
+        "midFrames": 23,
+        "width": 64,
+        "scrollWidth": 63,
+        "noOverflow": true,
+        "iconXDelta": 0
+      },
+      "adminBlocked": true
+    },
+    "vip": {
+      "username": "v63p1_vip",
+      "badge": "v63p1_vip",
+      "planCaption": "全功能永久会员",
+      "financeUnlocked": true,
+      "toolsUnlocked": true,
+      "adminHidden": true,
+      "scrollH": 900,
+      "innerH": 900,
+      "bodyRect": 900,
+      "appShellRect": 837,
+      "footerRect": 63,
+      "verHidden": false,
+      "sidebarH": 780,
+      "launcherH": 744,
+      "cmdCloseW": 29,
+      "toolsAndFinanceAccessible": true
+    },
+    "admin": {
+      "username": "v63p1_admin",
+      "badge": "v63p1_admin",
+      "planCaption": "管理员 · 全功能永久会员",
+      "adminVisible": true,
+      "adminPanelAccessible": true
+    }
+  },
+  "checks": [
+    {
+      "id": "hosted_guest_home",
+      "status": "PASS",
+      "detail": {
+        "p07Ui": "enabled",
+        "duplicateLogo": 0,
+        "titleNotOccluded": true
+      }
+    }
+  ],
+  "runtime_errors": []
+}

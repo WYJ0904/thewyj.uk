@@ -1,0 +1,335 @@
+{
+  "started_at": "2026-11-24T13:38:49.872Z",
+  "checks": [
+    {
+      "id": "guest_home_light_1440",
+      "status": "PASS",
+      "detail": {
+        "p07Ui": "enabled",
+        "theme": "light",
+        "bg": "rgb(250, 250, 250)",
+        "sidebarBg": "rgb(244, 244, 244)",
+        "sidebarVisible": true,
+        "accountBarVisible": true,
+        "guestVisible": true,
+        "authHidden": true,
+        "bentoExists": false,
+        "duplicateGuestLogoCount": 0,
+        "overflowX": false
+      }
+    },
+    {
+      "id": "top_announcement_banner",
+      "status": "PASS",
+      "detail": {
+        "exists": true,
+        "top": 0,
+        "bottom": 57,
+        "width": 1425,
+        "titleTop": 159,
+        "barBottom": 114,
+        "titleNotOccluded": true,
+        "atTop": true
+      }
+    },
+    {
+      "id": "normal_user_permissions_and_shell",
+      "status": "PASS",
+      "detail": {
+        "financeLocked": true,
+        "toolsLocked": true,
+        "adminHidden": true,
+        "sidebarPlanCaption": "普通注册用户",
+        "p07Ui": "enabled",
+        "bodyClass": "is-authenticated",
+        "innerWidth": 1440,
+        "accountBarDisplay": "none",
+        "accountBarHiddenDesktop": true,
+        "bg": "rgb(250, 250, 250)",
+        "sidebarBg": "rgb(244, 244, 244)",
+        "greeting": "v63_normal，晚上好。",
+        "groupsGapOk": true
+      }
+    },
+    {
+      "id": "vip_auth_launcher_pure",
+      "status": "PASS",
+      "detail": {
+        "financeUnlocked": true,
+        "toolsUnlocked": true,
+        "adminHidden": true,
+        "sidebarPlanCaption": "全功能永久会员",
+        "greeting": "v63_vip，晚上好。",
+        "shortcutsCount": 4,
+        "bentoGridGone": true,
+        "summaryGridGone": true,
+        "noVerticalScroll1440": true,
+        "scrollH": 900,
+        "innerH": 900
+      }
+    },
+    {
+      "id": "sidebar_continuous_collapse_and_interruption",
+      "status": "PASS",
+      "detail": {
+        "collapsedState": {
+          "collapsedAttr": "true",
+          "width": 64,
+          "scrollWidth": 63,
+          "identityClippedOrZero": true,
+          "identityOpacity": "0",
+          "expandBtnVisible": true,
+          "stored": "true",
+          "iconXDelta": 0,
+          "intermediateCount": 23
+        },
+        "rapidToggleResult": {
+          "collapsedAttr": "false",
+          "width": 256
+        }
+      }
+    },
+    {
+      "id": "quick_shortcuts_customization",
+      "status": "PASS"
+    },
+    {
+      "id": "unified_floating_dropdowns",
+      "status": "PASS",
+      "detail": {
+        "smallDropdownInfo": {
+          "open": true,
+          "hasSearch": false,
+          "optionsCount": 3
+        },
+        "largeDropdownInfo": {
+          "open": true,
+          "hasSearch": true,
+          "optionsCount": 6
+        }
+      }
+    },
+    {
+      "id": "command_palette_and_focus",
+      "status": "PASS",
+      "detail": {
+        "cmdSearchHits": [
+          "JSON 格式化"
+        ],
+        "restoredFocusId": "homeLauncherSearchBtn",
+        "cmdCloseMetrics": {
+          "hasSvg": true,
+          "width": 29,
+          "height": 29,
+          "text": ""
+        }
+      }
+    },
+    {
+      "id": "strategy_c_memory",
+      "status": "PASS",
+      "detail": {
+        "poppedSearch": "json",
+        "resetSearch": ""
+      }
+    },
+    {
+      "id": "prefers_reduced_motion",
+      "status": "PASS",
+      "detail": {
+        "reducedDur": "1e-06s"
+      }
+    },
+    {
+      "id": "zero_runtime_errors",
+      "status": "PASS"
+    },
+    {
+      "id": "admin_sidebar_entry_visible",
+      "status": "PASS",
+      "detail": {
+        "adminVisible": true,
+        "sidebarPlanCaption": "管理员 · 全功能永久会员"
+      }
+    }
+  ],
+  "responsive": [
+    {
+      "width": 375,
+      "height": 812,
+      "mobile": true,
+      "w": 375,
+      "scrollW": 375,
+      "overflowX": false,
+      "navToggleVisible": true
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "mobile": true,
+      "w": 390,
+      "scrollW": 390,
+      "overflowX": false,
+      "navToggleVisible": true
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "mobile": true,
+      "w": 768,
+      "scrollW": 768,
+      "overflowX": false,
+      "navToggleVisible": true
+    },
+    {
+      "width": 1280,
+      "height": 720,
+      "mobile": false,
+      "w": 1280,
+      "scrollW": 1265,
+      "overflowX": false,
+      "navToggleVisible": false
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "mobile": false,
+      "w": 1440,
+      "scrollW": 1425,
+      "overflowX": false,
+      "navToggleVisible": false
+    },
+    {
+      "width": 1920,
+      "height": 1080,
+      "mobile": false,
+      "w": 1920,
+      "scrollW": 1905,
+      "overflowX": false,
+      "navToggleVisible": false
+    },
+    {
+      "width": 2560,
+      "height": 1080,
+      "mobile": false,
+      "w": 2560,
+      "scrollW": 2545,
+      "overflowX": false,
+      "navToggleVisible": false
+    },
+    {
+      "width": 3440,
+      "height": 1440,
+      "mobile": false,
+      "w": 3440,
+      "scrollW": 3425,
+      "overflowX": false,
+      "navToggleVisible": false
+    },
+    {
+      "width": 3840,
+      "height": 2160,
+      "mobile": false,
+      "w": 3840,
+      "scrollW": 3825,
+      "overflowX": false,
+      "navToggleVisible": false
+    }
+  ],
+  "benchmarks_ms": {
+    "cold_load_ms": 2226.1,
+    "hot_p50_ms": 43.6,
+    "hot_p95_ms": 91,
+    "hot_max_ms": 91,
+    "slow_3g_p95_ms": 72.2,
+    "slow_3g_max_ms": 72.2,
+    "detailed_routes": [
+      {
+        "route": "tools",
+        "feedback_ms": 61.1,
+        "frame_ms": 64.5,
+        "interactive_ms": 65.8,
+        "action_ms": 76,
+        "settled_ms": 318.2
+      },
+      {
+        "route": "language",
+        "feedback_ms": 17.5,
+        "frame_ms": 22.8,
+        "interactive_ms": 29.7,
+        "action_ms": 76.4,
+        "settled_ms": 326
+      },
+      {
+        "route": "finance",
+        "feedback_ms": 68.6,
+        "frame_ms": 86.2,
+        "interactive_ms": 91,
+        "action_ms": 121.9,
+        "settled_ms": 364.4
+      },
+      {
+        "route": "transfer",
+        "feedback_ms": 38.6,
+        "frame_ms": 41.8,
+        "interactive_ms": 43.6,
+        "action_ms": 46.1,
+        "settled_ms": 286.7
+      },
+      {
+        "route": "home",
+        "feedback_ms": 50.2,
+        "frame_ms": 52.9,
+        "interactive_ms": 54.6,
+        "action_ms": 54.6,
+        "settled_ms": 297
+      }
+    ],
+    "samples": {
+      "hot": [
+        65.8,
+        29.7,
+        91,
+        43.6,
+        54.6,
+        61.7,
+        35.8,
+        47.4,
+        31.7,
+        39.3,
+        41.4
+      ],
+      "slow_3g": [
+        72.2,
+        43.2,
+        41.1
+      ]
+    }
+  },
+  "screenshots": [
+    "after-guest-home-1440.png",
+    "after-top-version-banner-1440.png",
+    "after-guest-home-dark-1440.png",
+    "after-auth-home-1440.png",
+    "after-auth-home-dark-1440.png",
+    "after-sidebar-collapsed-1440.png",
+    "after-account-menu-1440.png",
+    "after-shortcuts-modal-1440.png",
+    "after-account-modal-sync-1440.png",
+    "after-command-palette-1440.png",
+    "after-mobile-home-390.png",
+    "after-mobile-drawer-390.png",
+    "after-ultrawide-2560.png"
+  ],
+  "screencast": {
+    "path": "docs/ui-rebuild/v63-user-approved-phase1/evidence/after-v2/phase1-v2-walkthrough.mp4",
+    "frames": 922,
+    "playback_speed": "1.0x_normal_realtime",
+    "duration_sec": 27.12
+  },
+  "hallmark_render": {
+    "exitCode": 0,
+    "stdout": "{\n  \"summary\": {\n    \"fails\": 0,\n    \"reflex\": 0,\n    \"warns\": 1,\n    \"waived\": 0,\n    \"rejected\": 0,\n    \"answered\": 0,\n    \"dismissed\": 0,\n    \"notes\": 0,\n    \"files\": 0,\n    \"render\": \"ran\"\n  },\n  \"findings\": [\n    {\n      \"gate\": \"F19\",\n      \"grade\": \"WARN\",\n      \"tier\": \"finish\",\n      \"file\": \"http://127.0.0.1:8796\",\n      \"line\": 1,\n      \"evidence\": \"[1440px] 4 font weights in running use (400, 500, 600, 700)\",\n      \"fix\": \"Three weights at most, display and body together, picked as extremes\"\n    }\n  ]\n}\n",
+    "stderr": "render tier: 5 screenshots in C:\\Users\\78252\\.gemini\\antigravity\\worktrees\\thewyj.uk\\v63_user_approved_ui_redesign\\.hallmark\\shots (1280x800, 1440x900, 1920x1080 folds; 1440 and 375 full pages)\n"
+  }
+}

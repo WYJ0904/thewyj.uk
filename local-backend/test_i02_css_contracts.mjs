@@ -42,13 +42,15 @@ test("all CSS custom property references resolve to a declared token", () => {
   assert.deepEqual(missingByFile, {}, `Undefined CSS tokens detected: ${JSON.stringify(missingByFile)}`);
 });
 
-test("design-system.css defines V1.1 primary action, polarity, density, and switch tokens", () => {
+test("design-system.css defines V1.1/V6.3 primary action, polarity, density, and switch tokens", () => {
   const ds = readCss("design-system.css");
   for (const token of [
-    "--ds-action-primary: #111113;",
-    "--ds-on-action-primary: #ffffff;",
-    "--ds-dark-action-primary: #f8fafc;",
-    "--ds-dark-on-action-primary: #111113;",
+    "--ds-action-primary: #242424;",
+    "--ds-on-action-primary: #fafafa;",
+    "--ds-dark-action-primary: #eaeaea;",
+    "--ds-dark-on-action-primary: #212121;",
+    "--ds-sidebar-bg: #f4f4f4;",
+    "--ds-dark-sidebar-bg: #191919;",
     "--ds-density-radius:",
     "--site-nav-height:",
     "--ds-overlay-top:",

@@ -262,7 +262,7 @@ async function main() {
     });
 
     await check("membership business failure does not clear login", async () => {
-      await click('[data-module="tools"]');
+      await click('#v3Sidebar [data-v3-nav="tools"]');
       await waitFor("!document.querySelector('#membershipModal')?.classList.contains('hidden')", 12_000, "membership modal");
       assert.equal(await evaluate("localStorage.getItem('wyjAccountSession')"), originalSession);
       assert.equal((await request("/api/me", null, originalSession)).status, 200);
@@ -270,7 +270,7 @@ async function main() {
     });
 
     await check("English file import starts question one without logout", async () => {
-      await click('[data-module="language"]');
+      await click('#v3Sidebar [data-v3-nav="language"]');
       await waitFor("location.pathname === '/language'", 8_000, "language picker");
       await click('[data-project="english"]');
       await waitFor("location.pathname === '/language/english' && !document.querySelector('#workspace')?.classList.contains('hidden')", 12_000, "English workspace");
@@ -893,8 +893,8 @@ async function main() {
           assert.equal(await evaluate("document.getElementById('appShell').inert"),false);
         }
         await click('#siteNavToggle');
-        await waitFor("document.getElementById('siteNavPanel').getBoundingClientRect().height>100",3000,'visible navigation');
-        await click('[data-site-nav="trial"]');
+        await waitFor("document.getElementById('v3Sidebar').getBoundingClientRect().width>100",3000,'visible navigation');
+        await click('#v3Sidebar [data-site-nav="trial"]');
         await waitFor("location.pathname==='/trial'",3000,'trial navigation');
         await navigate('/');
       }
