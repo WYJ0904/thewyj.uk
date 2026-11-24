@@ -344,6 +344,7 @@ const trialState = {
 };
 const rejudgeInFlight = new Set();
 const modalReturnFocus = new Map();
+let modalClosingRoutePass = null;
 const modalCloseTimers = new Map();
 let rejudgeResultScrollPosition = null;
 const projectRuntime = {
@@ -1462,7 +1463,11 @@ function renderAccountUi() {
     $("accountAvatarGlyph").textContent = labelName ? labelName.slice(0, 1).toUpperCase() : "A";
   }
   if ($("sidebarAccountPlan")) {
-    $("sidebarAccountPlan").textContent = account ? summary.name : "未登录";
+    const membershipLabelText = summary.name || summary.label || "普通注册用户";
+    if (!account) $("sidebarAccountPlan").textContent = "未登录";
+    else if (isSuperAdmin(account)) $("sidebarAccountPlan").textContent = "站点所有者";
+    else if (isAdmin(account)) $("sidebarAccountPlan").textContent = summary.active ? `管理员 · ${membershipLabelText}` : "管理员";
+    else $("sidebarAccountPlan").textContent = membershipLabelText;
   }
   const unreadEl = $("notificationUnreadCount");
   const menuBadgeEl = $("menuNotificationBadge");
@@ -1516,17 +1521,21 @@ function renderAccountDetails() {
   const entitlementText = accountEntitlements(account).size
     ? [...accountEntitlements(account)].map(entitlementLabel).join("、")
     : "基础功能";
+  const roleLabel = isSuperAdmin(account) ? "站点所有者" : isAdmin(account) ? "管理员" : "普通用户";
+  const membershipPlanLabel = summary.name || summary.label || "普通注册用户";
   const rows = [
     ["用户名", account.username],
     ["用户 ID", account.id],
-    ["账户类型", isSuperAdmin(account) ? "站点所有者" : isAdmin(account) ? "管理员" : "普通账户"],
-    ["当前等级", summary.name],
+    ["账户角色", roleLabel],
+    ["会员方案", membershipPlanLabel],
     ["有效会员", membershipText],
     ["当前权益", entitlementText],
     ["注册时间", formatLocalDateTime(account.registered_at, "未知")],
     ["最后登录", formatLocalDateTime(account.last_login_at, "从未")],
   ];
-  const roleName = isSuperAdmin(account) ? "站点所有者" : isAdmin(account) ? "管理员" : (summary.name || "普通账户");
+  const roleName = isAdmin(account) && summary.active && !isSuperAdmin(account)
+    ? `${roleLabel} · ${membershipPlanLabel}`
+    : isAdmin(account) ? roleLabel : membershipPlanLabel;
   if ($("accountProfileUsername")) $("accountProfileUsername").textContent = account.username || "-";
   if ($("accountProfileRoleBadge")) $("accountProfileRoleBadge").textContent = roleName;
   if ($("accountProfileId")) $("accountProfileId").textContent = account.id || "-";
@@ -1846,31 +1855,25 @@ function openModal(id) {
 function closeModal(id, immediate = false) {
   const modal = $(id);
   if (!modal || modal.classList.contains("hidden")) return;
-  if (id === "membershipModal" || id === "accountModal") {
-    membershipModalLoadSequence += 1;
-    membershipModalController?.abort();
-    membershipModalController = null;
-    releasePaymentQr();
-    modal.classList.add("hidden");
-    modal.setAttribute("aria-hidden", "true");
-    modal.inert = false;
-    if (id === "accountModal") clearOwnSecretEditor();
-    syncShellInteractivity();
-    if (location.pathname === "/recharge" || location.pathname === "/account") {
-      const context = history.state?.aerisWorkspace;
-      const requested = context?.id === id ? nativeAppRoute(context.returnTo, location.origin) : null;
-      const target = requested && requested !== location.pathname ? requested : "/";
-      pushRoute(target, true);
-      void routeCurrent();
-    }
-    return;
-  }
   if (!immediate && modal.classList.contains("is-closing") && modalCloseTimers.has(id)) return;
   const pendingClose = modalCloseTimers.get(id);
   if (pendingClose) {
     window.clearTimeout(pendingClose);
     modalCloseTimers.delete(id);
   }
+  if (id === "membershipModal" || id === "accountModal") {
+    membershipModalLoadSequence += 1;
+    membershipModalController?.abort();
+    membershipModalController = null;
+    releasePaymentQr();
+  }
+  const routeRestoreTarget = ((id === "membershipModal" && location.pathname === "/recharge") || (id === "accountModal" && location.pathname === "/account"))
+    ? (() => {
+      const context = history.state?.aerisWorkspace;
+      const requested = context?.id === id ? nativeAppRoute(context.returnTo, location.origin) : null;
+      return requested && requested !== location.pathname ? requested : "/";
+    })()
+    : null;
   const finish = () => {
     modalCloseTimers.delete(id);
     modal.classList.add("hidden");
@@ -1894,16 +1897,21 @@ function closeModal(id, immediate = false) {
       focusWorkspaceFallback();
     }
     window.setTimeout(showNextSiteMessage, 0);
-    if ((id === "membershipModal" && location.pathname === "/recharge") || (id === "accountModal" && location.pathname === "/account")) {
-      if (state.session && state.account) {
-        showModulePicker(false);
-        pushRoute("/", true);
-      }
-    }
   };
-  if (immediate || prefersReducedMotion(window)) finish();
-  else {
+  if (immediate || prefersReducedMotion(window)) {
+    finish();
+    if (routeRestoreTarget) {
+      pushRoute(routeRestoreTarget, true);
+      void routeCurrent();
+    }
+  } else {
     modal.classList.add("is-closing");
+    if (routeRestoreTarget) {
+      modalClosingRoutePass = modal;
+      pushRoute(routeRestoreTarget, true);
+      void routeCurrent();
+      queueMicrotask(() => { if (modalClosingRoutePass === modal) modalClosingRoutePass = null; });
+    }
     modalCloseTimers.set(id, window.setTimeout(finish, motionDuration("expand", window)));
   }
 }
@@ -4178,6 +4186,9 @@ function showPublicHome(pushHistory = true) {
   setExperienceMode("public");
   $("publicHome").classList.remove("hidden");
   $("publicHome").setAttribute("aria-hidden", "false");
+  if (document.documentElement.dataset.bootState === "ready") {
+    animateRouteViewEntrance($("publicHome"));
+  }
   document.body.classList.remove("project-picker-active");
   if (pushHistory) pushRoute("/");
   const homeGen = routeGeneration;
@@ -4341,6 +4352,14 @@ function hidePrimaryScreens() {
     if (id === 'sessionRecovery' && document.documentElement.dataset.workspaceMount === 'pending') return;
     const element = $(id);
     if (!element) return;
+    if ((id === "membershipModal" || id === "accountModal") && element.classList.contains("is-closing") && modalClosingRoutePass === element) {
+      return;
+    }
+    if (modalCloseTimers.has(id)) {
+      window.clearTimeout(modalCloseTimers.get(id));
+      modalCloseTimers.delete(id);
+    }
+    element.classList.remove("is-closing");
     element.classList.add("hidden");
     element.setAttribute("aria-hidden", "true");
   });
@@ -4392,6 +4411,7 @@ function showProjectPicker(pushHistory = true) {
   hidePrimaryScreens();
   $("projectPicker").classList.remove("hidden");
   $("projectPicker").setAttribute("aria-hidden", "false");
+  animateRouteViewEntrance($("projectPicker"));
   document.body.classList.add("project-picker-active");
   if (pushHistory) pushRoute("/language");
   renderAccountUi();
@@ -4404,6 +4424,7 @@ function showMainShell() {
   $("languagePanel").classList.add("hidden");
   $("projectApp").classList.remove("hidden");
   $("projectApp").setAttribute("aria-hidden", "false");
+  animateRouteViewEntrance($("projectApp"));
   $("topbar").classList.remove("hidden");
   document.body.classList.remove("project-picker-active");
 }
@@ -4493,6 +4514,9 @@ function showAuth(message = "", options = {}) {
   hidePrimaryScreens();
   $("projectApp").classList.remove("hidden");
   $("projectApp").setAttribute("aria-hidden", "false");
+  if (document.documentElement.dataset.bootState === "ready") {
+    animateRouteViewEntrance($("projectApp"));
+  }
   $("topbar").classList.add("hidden");
   $("projectNameLabel").textContent = "";
   $("projectNameLabel").setAttribute("aria-hidden", "true");
@@ -4639,6 +4663,10 @@ async function showMembership(pushHistory = true, options = {}) {
   hidePrimaryScreens();
   const page = $("membershipModal");
   if (page) {
+    if (modalCloseTimers.has("membershipModal")) {
+      window.clearTimeout(modalCloseTimers.get("membershipModal"));
+      modalCloseTimers.delete("membershipModal");
+    }
     page.dataset.sheetWorkspace = "true";
     page.inert = false;
     page.classList.remove("hidden", "is-closing");
@@ -4664,6 +4692,10 @@ function showAccount(pushHistory = true) {
   hidePrimaryScreens();
   const page = $("accountModal");
   if (page) {
+    if (modalCloseTimers.has("accountModal")) {
+      window.clearTimeout(modalCloseTimers.get("accountModal"));
+      modalCloseTimers.delete("accountModal");
+    }
     page.dataset.sheetWorkspace = "true";
     page.inert = false;
     page.classList.remove("hidden", "is-closing");
@@ -8127,7 +8159,13 @@ async function boot() {
       });
     });
   });
-  $("sidebarGuestLoginBtn")?.addEventListener("click", () => showAuth("", { mode: "login", path: "/login" }));
+  if (window.matchMedia?.("(pointer: coarse)")?.matches || window.innerWidth <= 980) {
+    $("v3CmdTrigger")?.setAttribute("aria-label", "打开全局命令面板");
+    $("v3CmdTrigger")?.setAttribute("data-v3-tooltip", "搜索工具与命令");
+    if ($("commandPaletteHint")) {
+      $("commandPaletteHint").textContent = "输入中英文关键词筛选工具、模块与操作";
+    }
+  }
   $("publicTrialBtn")?.addEventListener("click", () => showTrial(true, "quiz"));
   // Guest Register opens /register; signed-in button jumps to language practice.
   $("publicRegisterBtn")?.addEventListener("click", () => {

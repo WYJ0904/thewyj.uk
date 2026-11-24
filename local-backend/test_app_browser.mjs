@@ -719,17 +719,19 @@ async function main() {
       await send("Emulation.setDeviceMetricsOverride",{width:1366,height:900,deviceScaleFactor:1,mobile:false});
 
       const navigationMatrix = [
-        { destination: "home", selector: "#navHomeLink", pathname: "/", surface: "#publicHome" },
-        { destination: "changelog", selector: "[data-site-nav=changelog]", pathname: "/changelog", surface: "#changelogPage" },
-        { destination: "language", selector: "[data-site-nav=language]", pathname: "/trial", surface: "#trialPage" },
-        { destination: "tools", selector: "[data-site-nav=tools]", pathname: "/trial", surface: "#trialPage" },
-        { destination: "finance", selector: "[data-site-nav=finance]", pathname: "/login", surface: "#authPanel" },
+        { destination: "home", selector: "#v3Sidebar [data-v3-nav=home]", pathname: "/", surface: "#publicHome" },
+        { destination: "changelog", selector: "#v3Sidebar [data-v3-nav=changelog]", pathname: "/changelog", surface: "#changelogPage" },
+        { destination: "language", selector: "#v3Sidebar [data-v3-nav=language]", pathname: "/trial", surface: "#trialPage" },
+        { destination: "tools", selector: "#v3Sidebar [data-v3-nav=tools]", pathname: "/trial", surface: "#trialPage" },
+        { destination: "finance", selector: "#v3Sidebar [data-v3-nav=finance]", pathname: "/login", surface: "#authPanel" },
       ];
       for (const item of navigationMatrix) {
+        await send("Emulation.setDeviceMetricsOverride",{width:390,height:900,deviceScaleFactor:1,mobile:true});
         await click("#siteNavToggle");
         await click(item.selector);
         await waitFor(`location.pathname === ${JSON.stringify(item.pathname)} && !document.querySelector(${JSON.stringify(item.surface)})?.classList.contains('hidden')`, 4_000, `${item.destination} navigation`);
         assert.equal(await evaluate("document.querySelector('#siteNavToggle').getAttribute('aria-expanded')"), "false");
+        await send("Emulation.setDeviceMetricsOverride",{width:1366,height:900,deviceScaleFactor:1,mobile:false});
         if (item.destination !== "home") {
           await click(".site-brand[data-site-nav=home]");
           await waitFor("location.pathname === '/' && !document.querySelector('#publicHome')?.classList.contains('hidden')", 4_000, `home after ${item.destination}`);
@@ -859,7 +861,7 @@ async function main() {
       await waitFor("!document.querySelector('#trialImageResult')?.classList.contains('hidden')", 8_000, "local image compression");
       assert.equal(await evaluate("document.querySelector('#trialImageDownload').href.startsWith('blob:')"), true);
       await click('[data-trial-tool="image-format"]');
-      assert.equal(await evaluate("document.querySelector('[data-site-nav=tools]').getAttribute('aria-current')"), "page");
+      assert.equal(await evaluate("document.querySelector('#v3Sidebar [data-v3-nav=trial]').getAttribute('aria-current')"), "page");
       await setFields({ "#trialImageFormat": "image/png" });
       await click("#trialImageProcessBtn");
       await waitFor("!document.querySelector('#trialImageResult')?.classList.contains('hidden')", 8_000, "local image conversion");
@@ -991,13 +993,13 @@ async function main() {
       const desktopShot = await send("Page.captureScreenshot", { format: "png", fromSurface: true });
       fs.writeFileSync(path.join(TEST_ROOT, `authenticated-home-1366-${RUN_ID}.png`), Buffer.from(desktopShot.data, "base64"));
       await send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
-      await click("#v3Sidebar [data-v3-nav='account']");
+      await click("#v3Sidebar [data-v3-nav=account]");
       await waitFor("!document.querySelector('#accountModal').classList.contains('hidden')", 3_000, "account modal sync");
     });
 
     await check("learning data sync is local-first and receives a second-device update", async () => {
       if (await evaluate("document.querySelector('#accountModal').classList.contains('hidden')")) {
-        await click("#v3Sidebar [data-v3-nav='account']");
+        await click("#v3Sidebar [data-v3-nav=account]");
         await waitFor("!document.querySelector('#accountModal').classList.contains('hidden')", 3_000, "account modal sync");
       }
       await waitFor(
@@ -1142,7 +1144,7 @@ async function main() {
     });
 
     await check("locked toolbox, direct-route guard and membership plans", async () => {
-      await click('#dashboardFinanceBtn');
+      await click("#v3Sidebar [data-v3-nav=finance]");
       await waitFor("location.pathname === '/finance' && !document.querySelector('#financeLocked')?.classList.contains('hidden')", 8_000, "locked finance page");
       assert.equal(await evaluate("document.querySelector('#financeWorkspace').classList.contains('hidden')"), true);
       assert.ok((await evaluate("document.querySelector('#financeLocked').textContent")).includes("财务会员 8 CNY/月"));
@@ -1156,7 +1158,7 @@ async function main() {
       await click("#financeBackBtn");
       await waitFor("location.pathname === '/'", 4_000, "finance back to dashboard");
 
-      await click('[data-module="tools"]');
+      await click("#v3Sidebar [data-v3-nav=tools]");
       await waitFor("!document.querySelector('#membershipModal')?.classList.contains('hidden')", 12_000, "membership modal");
       // Membership is a primary route. The old '/' assertion required a
       // modal over the home page and conflicts with the workspace contract.
@@ -1308,7 +1310,7 @@ async function main() {
     });
 
     await check("word import, export, shuffle and clear", async () => {
-      await click('[data-module="language"]');
+      await click("#v3Sidebar [data-v3-nav=language]");
       await waitFor("location.pathname === '/language'", 4_000, "language picker");
       await click('[data-project="english"]');
       try {
@@ -1605,9 +1607,11 @@ async function main() {
       await evaluate("window.__languageMatrixRandom = Math.random; Math.random = () => 0.999999; true");
 
       const openDashboardModule = async (mod) => {
-        const p07 = await evaluate("document.documentElement.dataset.p07Ui === 'enabled'");
-        if (p07) await tap(`[data-v3-summary=${JSON.stringify(mod)}]`);
-        else await tap(`.home-quick-access a[data-site-nav=${JSON.stringify(mod === "learning" ? "language" : mod)}]`);
+        const navKey = mod === "learning" ? "language" : mod;
+        if (await evaluate("innerWidth <= 980 && !document.querySelector('#v3Sidebar').classList.contains('mobile-drawer-open')")) {
+          await tap("#siteNavToggle");
+        }
+        await tap(`#v3Sidebar [data-v3-nav=${navKey}]`);
       };
 
       const ensureEnglishProject = async () => {
@@ -1725,6 +1729,7 @@ async function main() {
       await submitMeaning("测试释义", "正确");
       await tap('[data-view="wrongView"]');
       await tap('[data-view="quizView"]');
+      await tap("#siteNavToggle");
       await tap("#accountMenu summary");
       await tap("#homeBtn");
       await waitFor("location.pathname === '/'", 5_000, "scenario D dashboard");
@@ -1765,6 +1770,7 @@ async function main() {
       // G: an unanswered question survives inner and outer navigation without being marked wrong or skipped.
       await tap('[data-view="wrongView"]');
       await tap('[data-view="quizView"]');
+      await tap("#siteNavToggle");
       await tap("#accountMenu summary");
       await tap("#homeBtn");
       await ensureEnglishProject();
@@ -2131,7 +2137,7 @@ async function main() {
           } else callback(time);
         });
       })()`);
-      await click('#dashboardFinanceBtn');
+      await click("#v3Sidebar [data-v3-nav=finance]");
       await waitFor("location.pathname === '/finance' && !document.querySelector('#financeWorkspace')?.classList.contains('hidden')", 8_000, "finance workspace");
       assert.equal(await evaluate("document.querySelector('#financeRecordedSection').open"), false,
         "recorded transactions start collapsed");
@@ -2391,11 +2397,11 @@ async function main() {
     await check("full member toolbox, AI vocabulary and account secret/logout draft cleanup", async () => {
       await useSession(userSession, "/");
       await waitFor("!document.querySelector('#publicHome')?.classList.contains('hidden')", 8_000, "member module picker");
-      assert.ok((await evaluate("document.querySelector('#moduleMembershipStatus').textContent")).includes("全功能包月会员"));
-      await click('[data-module="tools"]');
+      assert.ok((await evaluate("document.querySelector('#sidebarAccountPlan').textContent")).includes("全功能包月会员"));
+      await click("#v3Sidebar [data-v3-nav=tools]");
       await waitFor("location.pathname === '/tools' && !document.querySelector('#toolsPanel')?.classList.contains('hidden')", 12_000, "member tools access");
       await click("#leaveToolsBtn");
-      await click('[data-module="language"]');
+      await click("#v3Sidebar [data-v3-nav=language]");
       await click('[data-project="english"]');
       await waitFor("location.pathname === '/language/english'", 6_000, "member English project");
       await setFields({ "#aiSuggestCount": 3, "#aiSuggestMode": "replace", "#aiLevelSelect": "primary_3" });
@@ -2404,8 +2410,9 @@ async function main() {
       assert.ok(Number(await evaluate("document.querySelector('#wordInput').value.split(/\\n/).filter(Boolean).length")) >= 3);
       assert.ok((await evaluate("document.querySelector('#aiSuggestMessage').textContent")).includes("3"));
       await setFields({ "#wordInput": "draft_should_clear" });
-      await click("#homeBtn");
+      await click("#v3Sidebar [data-v3-nav=home]");
       const themeBeforeLogout = await evaluate("localStorage.getItem('wyj_theme_preference_v1')");
+      await click("#accountMenu summary");
       await click("#logoutBtn");
       await waitFor("location.pathname === '/login' && !document.querySelector('#authPanel')?.classList.contains('hidden')", 10_000, "logout");
       assert.equal(await evaluate("localStorage.getItem('wyj_theme_preference_v1')"), themeBeforeLogout);
@@ -2413,11 +2420,11 @@ async function main() {
       await click("#loginSubmitBtn");
       await waitFor("location.pathname === '/'", 10_000, "relogin");
       assert.equal(await evaluate("localStorage.getItem('wyj_theme_preference_v1')"), themeBeforeLogout);
-      await click('[data-module="language"]');
+      await click("#v3Sidebar [data-v3-nav=language]");
       await click('[data-project="english"]');
       await waitFor("location.pathname === '/language/english'", 6_000, "English after relogin");
       assert.equal(await evaluate("document.querySelector('#wordInput').value"), "");
-      await click("#accountBtn");
+      await click("#v3Sidebar [data-v3-nav=account]");
       await waitFor("!document.querySelector('#accountModal')?.classList.contains('hidden')", 3_000, "account modal");
       assert.ok((await evaluate("document.querySelector('#accountDetails').textContent")).includes(USERNAME));
       await setFields({ "#currentSecretInput": USER_SECRET, "#newSecretInput": USER_SECRET_NEW, "#newSecretConfirmInput": USER_SECRET_NEW });
@@ -2442,7 +2449,7 @@ async function main() {
           outbox:[{language:'english',input:{event_id:crypto.randomUUID(),ticket_id:crypto.randomUUID(),kind:'answer_submitted',answer:'synthetic-private-answer',response_ms:1200}}],questions:{},cache:{},results:{}}));
         localStorage.setItem(other,'other-account-fixture');return {own,other};
       })()`);
-      await click("#accountBtn");
+      await click("#v3Sidebar [data-v3-nav=account]");
       await click("#openDeleteAccountBtn");
       await waitFor("!document.querySelector('#deleteAccountModal')?.classList.contains('hidden')", 3_000, "delete confirmation");
       await setFields({ "#deleteSecretInput": disposable.secret });

@@ -87,3 +87,19 @@
 | `impeccable` (`detect`) | 存在 `#7b4b0a` (2.0:1 暗色对比度失败)、`#50bef0` 霓虹发光、`.aeris-live-sample` 零内边距 | 已修复 `#7b4b0a` → `var(--color-warning)`、移除 `#50bef0` 发光、补足 `.aeris-live-sample` `16px` 内边距 | Phase 1 新增组件零 `low-contrast`/`cramped-padding`/`dark-glow`；`bounce-easing` 警告因用户第 10 节明确要求微弹性微交互而保留并约束在 `@media (hover: hover)`；旧版 `styles.css` 与 Phase 2–8 业务模块警告留待对应 Phase 处理 |
 | `hallmark` (`sloplint.mjs`) | `32 FAIL, 2 REFLEX, 6 WARN` | `15 FAIL, 2 REFLEX, 5 WARN` | 消除 `<title>` 破折号、Phase 1 眉题、`#trialImagePreview`/`#paymentQrImage` 空 `src`、链接拼接箭头；剩余项均为跨文件静态检出（外部 CSS 中已有 `:focus-visible`/`overflow-x: clip`）及未重构的 Phase 2–8 模块页 DOM |
 | Impeccable Setup 提示 | `CONTEXT_STALE` | `CONTEXT_STALE` (`hook-not-installed`) | 按 Impeccable 规范将在最终汇报末尾原样附带提示行 |
+
+---
+
+## 7. V2 专项整改复查记录（2026-11-24）
+
+- **Taste Skill (`design-taste-frontend`)**：
+  - `copy-lint.mjs index.html --kind software`：`== index.html (17 words) 0 FAIL, 0 WARN`。
+  - 结合 `references/motion.md` 实施零 `!important` 动效体系、主网格列宽与侧边栏宽度同频 `320ms` 过渡、移除静态 `button[role="tab"]` 悬停放大导致桌面分段胶囊对齐超差的问题。
+- **UI UX Pro Max (`ui-ux-pro-max`)**：
+  - `search.py "command palette sidebar motion accessibility" --domain ux`：命中 Motion Sensitivity、Reduced Motion、Excessive Motion 3 条高优先级 UX 指南，据此将路由入场动画收敛为纯 `opacity + translate3d`（取消容器 `scale()` 以保持 `>=44px` 触控热区高度稳定）并严格绑定 `prefers-reduced-motion: reduce`。
+- **Impeccable (`impeccable`)**：
+  - `impeccable.cmd doctor`：确认仅提示 `hook-not-installed [.agents/hooks.json]`，遵循规则未安装未授权 hooks。
+  - `impeccable.cmd detect --json index.html styles.css design-system.css public-experience.css workspace-experience.css spatial-experience.css`：V2 涉及的文件中仅在 `design-system.css` 与 `spatial-experience.css` 存在针对 `--ds-ease-elastic` / `--ds-ease-spring` 的 `bounce-easing` advisory 提示，与用户确认规范第 8 题 C 动效需求一致，无新增 `low-contrast` 或 `cramped-padding` 问题。
+- **Hallmark (`hallmark`)**：
+  - 静态 `sloplint.mjs index.html --scope app`：维持 `15 FAIL, 2 REFLEX, 5 WARN`（Phase 1 首页/侧栏/Command Palette 无新增失败项，剩余均属于 Phase 2+ 业务模块页或跨外部样式文件静态扫描限制）。
+  - 动态渲染审查（`sloplint.mjs --render --url http://127.0.0.1:8796 --scope app --json`）：**`0 FAIL, 0 REFLEX, 1 WARN`**（`exitCode: 0`，覆盖 1280x800、1440x900、1920x1080 折叠首屏及 1440/375 整页渲染；唯一 `WARN` 为 `F19` 正文共用到 4 种字重 400/500/600/700；已同步修复 375px 下 `"JSON 与文本"` 标签折行 `FAIL 49a`）。

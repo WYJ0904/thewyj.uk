@@ -1,5 +1,5 @@
 {
-  "started_at": "2026-11-24T09:25:01.742Z",
+  "started_at": "2026-11-24T12:28:42.241Z",
   "checks": [
     {
       "id": "guest_home_light_1440",
@@ -14,7 +14,22 @@
         "guestVisible": true,
         "authHidden": true,
         "bentoExists": false,
+        "duplicateGuestLogoCount": 0,
         "overflowX": false
+      }
+    },
+    {
+      "id": "top_announcement_banner",
+      "status": "PASS",
+      "detail": {
+        "exists": true,
+        "top": 0,
+        "bottom": 57,
+        "width": 1425,
+        "titleTop": 159,
+        "barBottom": 114,
+        "titleNotOccluded": true,
+        "atTop": true
       }
     },
     {
@@ -24,6 +39,7 @@
         "financeLocked": true,
         "toolsLocked": true,
         "adminHidden": true,
+        "sidebarPlanCaption": "普通注册用户",
         "p07Ui": "enabled",
         "bodyClass": "is-authenticated",
         "innerWidth": 1440,
@@ -31,7 +47,7 @@
         "accountBarHiddenDesktop": true,
         "bg": "rgb(250, 250, 250)",
         "sidebarBg": "rgb(244, 244, 244)",
-        "greeting": "v63_normal，下午好。",
+        "greeting": "v63_normal，晚上好。",
         "groupsGapOk": true
       }
     },
@@ -42,10 +58,35 @@
         "financeUnlocked": true,
         "toolsUnlocked": true,
         "adminHidden": true,
-        "greeting": "v63_vip，下午好。",
+        "sidebarPlanCaption": "全功能永久会员",
+        "greeting": "v63_vip，晚上好。",
         "shortcutsCount": 4,
         "bentoGridGone": true,
-        "summaryGridGone": true
+        "summaryGridGone": true,
+        "noVerticalScroll1440": true,
+        "scrollH": 900,
+        "innerH": 900
+      }
+    },
+    {
+      "id": "sidebar_continuous_collapse_and_interruption",
+      "status": "PASS",
+      "detail": {
+        "collapsedState": {
+          "collapsedAttr": "true",
+          "width": 64,
+          "scrollWidth": 63,
+          "identityClippedOrZero": true,
+          "identityOpacity": "0",
+          "expandBtnVisible": true,
+          "stored": "true",
+          "iconXDelta": 0,
+          "intermediateCount": 40
+        },
+        "rapidToggleResult": {
+          "collapsedAttr": "false",
+          "width": 256
+        }
       }
     },
     {
@@ -75,7 +116,13 @@
         "cmdSearchHits": [
           "JSON 格式化"
         ],
-        "restoredFocusId": "homeLauncherSearchBtn"
+        "restoredFocusId": "homeLauncherSearchBtn",
+        "cmdCloseMetrics": {
+          "hasSvg": true,
+          "width": 29,
+          "height": 29,
+          "text": ""
+        }
       }
     },
     {
@@ -99,7 +146,11 @@
     },
     {
       "id": "admin_sidebar_entry_visible",
-      "status": "PASS"
+      "status": "PASS",
+      "detail": {
+        "adminVisible": true,
+        "sidebarPlanCaption": "管理员 · 全功能永久会员"
+      }
     }
   ],
   "responsive": [
@@ -186,40 +237,78 @@
     }
   ],
   "benchmarks_ms": {
-    "cold_load_ms": 2384.4,
-    "hot_p50_ms": 79.6,
-    "hot_p95_ms": 138.8,
-    "hot_max_ms": 138.8,
-    "slow_3g_p95_ms": 95.3,
-    "slow_3g_max_ms": 95.3,
+    "cold_load_ms": 2291.2,
+    "hot_p50_ms": 31.8,
+    "hot_p95_ms": 94.2,
+    "hot_max_ms": 94.2,
+    "slow_3g_p95_ms": 59.6,
+    "slow_3g_max_ms": 59.6,
+    "detailed_routes": [
+      {
+        "route": "tools",
+        "feedback_ms": 85.2,
+        "frame_ms": 91.3,
+        "interactive_ms": 94.2,
+        "action_ms": 109.6,
+        "settled_ms": 356.2
+      },
+      {
+        "route": "language",
+        "feedback_ms": 23.8,
+        "frame_ms": 26.3,
+        "interactive_ms": 30.4,
+        "action_ms": 88,
+        "settled_ms": 338.4
+      },
+      {
+        "route": "finance",
+        "feedback_ms": 55.8,
+        "frame_ms": 71.9,
+        "interactive_ms": 77,
+        "action_ms": 114.2,
+        "settled_ms": 366.9
+      },
+      {
+        "route": "transfer",
+        "feedback_ms": 38.6,
+        "frame_ms": 41.4,
+        "interactive_ms": 42.5,
+        "action_ms": 44.2,
+        "settled_ms": 289
+      },
+      {
+        "route": "home",
+        "feedback_ms": 37.1,
+        "frame_ms": 40,
+        "interactive_ms": 41.1,
+        "action_ms": 41.1,
+        "settled_ms": 284.2
+      }
+    ],
     "samples": {
       "hot": [
-        91.5,
-        75.6,
-        117.6,
-        73.3,
-        79.6,
-        92,
-        86.6,
-        108.8,
-        76.2,
-        126.5,
-        138.8,
-        49.6,
-        52.8,
-        76.5,
-        72.8,
-        90.3
+        94.2,
+        30.4,
+        77,
+        42.5,
+        41.1,
+        43.1,
+        25.7,
+        25.1,
+        20.2,
+        28.6,
+        31.8
       ],
       "slow_3g": [
-        73.5,
-        95.3,
-        58.1
+        59.6,
+        38,
+        43.9
       ]
     }
   },
   "screenshots": [
     "after-guest-home-1440.png",
+    "after-top-version-banner-1440.png",
     "after-guest-home-dark-1440.png",
     "after-auth-home-1440.png",
     "after-auth-home-dark-1440.png",
@@ -233,7 +322,14 @@
     "after-ultrawide-2560.png"
   ],
   "screencast": {
-    "path": "docs/ui-rebuild/v63-user-approved-phase1/evidence/after/phase1-walkthrough.mp4",
-    "frames": 475
+    "path": "docs/ui-rebuild/v63-user-approved-phase1/evidence/after-v2/phase1-v2-walkthrough.mp4",
+    "frames": 992,
+    "playback_speed": "1.0x_normal_realtime",
+    "duration_sec": 28.31
+  },
+  "hallmark_render": {
+    "exitCode": 0,
+    "stdout": "{\n  \"summary\": {\n    \"fails\": 0,\n    \"reflex\": 0,\n    \"warns\": 1,\n    \"waived\": 0,\n    \"rejected\": 0,\n    \"answered\": 0,\n    \"dismissed\": 0,\n    \"notes\": 0,\n    \"files\": 0,\n    \"render\": \"ran\"\n  },\n  \"findings\": [\n    {\n      \"gate\": \"F19\",\n      \"grade\": \"WARN\",\n      \"tier\": \"finish\",\n      \"file\": \"http://127.0.0.1:8796\",\n      \"line\": 1,\n      \"evidence\": \"[1440px] 4 font weights in running use (400, 500, 600, 700)\",\n      \"fix\": \"Three weights at most, display and body together, picked as extremes\"\n    }\n  ]\n}\n",
+    "stderr": "render tier: 5 screenshots in C:\\Users\\78252\\.gemini\\antigravity\\worktrees\\thewyj.uk\\v63_user_approved_ui_redesign\\.hallmark\\shots (1280x800, 1440x900, 1920x1080 folds; 1440 and 375 full pages)\n"
   }
 }

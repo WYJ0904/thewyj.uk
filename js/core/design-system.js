@@ -55,7 +55,7 @@ export function syncSystemNoticeLayout(doc = globalThis.document) {
     const style = view?.getComputedStyle?.(verEl);
     if (!style || style.position === "fixed") {
       const h = Math.ceil(verEl.getBoundingClientRect?.().height || 0);
-      if (h > 0) versionOffset = h + 10;
+      if (h > 0) versionOffset = h;
     }
   }
   root.style.setProperty("--ds-hud-version-offset", `${versionOffset}px`);
@@ -252,17 +252,73 @@ function setupNavigation() {
     const popover = document.getElementById("accountMenuPopover");
     const summary = accountMenu?.querySelector("summary");
     if (!popover || !summary || !accountMenu?.open) return;
+    const rect = summary.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    popover.style.position = "fixed";
+    popover.style.top = "auto";
     if (isDesktopLayout() && desktopCollapsed) {
       popover.dataset.placement = "right-end";
+      const left = Math.min(vw - 240, Math.round(rect.right + 10));
+      const bottom = Math.max(8, Math.round(vh - rect.bottom));
+      popover.style.left = `${left}px`;
+      popover.style.right = "auto";
+      popover.style.bottom = `${bottom}px`;
+      popover.style.width = "228px";
     } else {
       popover.dataset.placement = "top-start";
+      const width = Math.max(224, Math.min(vw - 24, Math.round(rect.width)));
+      const left = Math.max(8, Math.min(vw - width - 8, Math.round(rect.left)));
+      const bottom = Math.max(8, Math.round(vh - rect.top + 8));
+      popover.style.left = `${left}px`;
+      popover.style.right = "auto";
+      popover.style.bottom = `${bottom}px`;
+      popover.style.width = `${width}px`;
     }
-    const rect = popover.getBoundingClientRect();
-    if (rect.top < 8) {
-      popover.style.maxHeight = `${Math.max(180, window.innerHeight - 24)}px`;
-    } else {
-      popover.style.maxHeight = "";
+    const maxAvail = Math.max(180, Math.round(vh - (parseFloat(popover.style.bottom) || 64) - 12));
+    popover.style.maxHeight = `${maxAvail}px`;
+  };
+
+  let popoverCloseTimer = 0;
+  const openAccountPopover = () => {
+    const popover = document.getElementById("accountMenuPopover");
+    window.clearTimeout(popoverCloseTimer);
+    if (popover) delete popover.dataset.closing;
+    if (!accountMenu) return;
+    accountMenu.open = true;
+    positionAccountPopover();
+    if (popover) {
+      popover.dataset.open = "false";
+      window.requestAnimationFrame(() => {
+        if (accountMenu.open && popover.dataset.closing !== "true") {
+          popover.dataset.open = "true";
+        }
+      });
     }
+    accountMenu.querySelector("summary")?.setAttribute("aria-expanded", "true");
+  };
+  const closeAccountPopover = ({ immediate = false } = {}) => {
+    if (!accountMenu?.open) return;
+    const popover = document.getElementById("accountMenuPopover");
+    window.clearTimeout(popoverCloseTimer);
+    const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches === true;
+    if (immediate || reduced || !popover) {
+      if (popover) {
+        delete popover.dataset.closing;
+        popover.dataset.open = "false";
+      }
+      accountMenu.open = false;
+      accountMenu.querySelector("summary")?.setAttribute("aria-expanded", "false");
+      return;
+    }
+    popover.dataset.open = "false";
+    popover.dataset.closing = "true";
+    popoverCloseTimer = window.setTimeout(() => {
+      popoverCloseTimer = 0;
+      delete popover.dataset.closing;
+      accountMenu.open = false;
+      accountMenu.querySelector("summary")?.setAttribute("aria-expanded", "false");
+    }, 170);
   };
 
   const applySidebarState = () => {
@@ -282,9 +338,19 @@ function setupNavigation() {
     window.requestAnimationFrame(() => syncSidebarActiveIndicator(document));
   };
 
+  sidebar.addEventListener("transitionend", (event) => {
+    if (event.target === sidebar && event.propertyName === "width") {
+      syncSidebarActiveIndicator(document);
+    }
+  });
+
+  let drawerHideTimer = 0;
   const setDrawerOpen = (open, { restoreFocus = false } = {}) => {
     const next = Boolean(open) && !isDesktopLayout();
     drawerOpen = next;
+    window.clearTimeout(drawerHideTimer);
+    sidebar.style.removeProperty("transform");
+    sidebar.style.removeProperty("transition");
     sidebar.classList.toggle("mobile-drawer-open", next);
     document.body.classList.toggle("v3-mobile-drawer-open", next);
     if (navigation) navigation.classList.toggle("nav-open", next);
@@ -293,11 +359,24 @@ function setupNavigation() {
       toggle.setAttribute("aria-label", next ? "关闭侧边栏导航" : "打开侧边栏导航");
     }
     if (backdrop) {
-      backdrop.hidden = !next;
+      const wasVisible = !backdrop.hidden || backdrop.dataset.open === "true";
+      backdrop.style.removeProperty("opacity");
+      backdrop.style.removeProperty("transition");
       backdrop.setAttribute("aria-hidden", String(!next));
       backdrop.dataset.open = String(next);
+      if (next) {
+        backdrop.hidden = false;
+      } else {
+        const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches === true;
+        if (!wasVisible || reduced || isDesktopLayout()) {
+          backdrop.hidden = true;
+        } else {
+          backdrop.hidden = false;
+          drawerHideTimer = window.setTimeout(() => { if (!drawerOpen) backdrop.hidden = true; }, 270);
+        }
+      }
     }
-    if (next && accountMenu?.open) accountMenu.open = false;
+    if (next && accountMenu?.open) closeAccountPopover({ immediate: true });
     if (!next && restoreFocus) toggle?.focus();
   };
 
@@ -308,7 +387,7 @@ function setupNavigation() {
     }
     desktopCollapsed = !desktopCollapsed;
     try { window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(desktopCollapsed)); } catch (_) { /* Keep in memory. */ }
-    if (accountMenu?.open) accountMenu.open = false;
+    if (accountMenu?.open) closeAccountPopover({ immediate: true });
     applySidebarState();
   });
 
@@ -316,7 +395,7 @@ function setupNavigation() {
   backdrop?.addEventListener("click", () => setDrawerOpen(false, { restoreFocus: true }));
 
   sidebar.addEventListener("click", (event) => {
-    if (!isDesktopLayout() && event.target.closest("[data-v3-nav], [data-site-nav], #sidebarGuestLoginBtn, #v3CmdTrigger")) {
+    if (!isDesktopLayout() && event.target.closest("[data-v3-nav], [data-site-nav], #v3CmdTrigger")) {
       setDrawerOpen(false);
     }
   });
@@ -344,7 +423,7 @@ function setupNavigation() {
       setDrawerOpen(false);
     }
     if (accountMenu?.open && !accountMenu.contains(event.target)) {
-      accountMenu.open = false;
+      closeAccountPopover();
     }
   });
 
@@ -358,11 +437,20 @@ function setupNavigation() {
     }
   });
 
-  // Edge swipe gesture for mobile slide-in drawer without conflicting with horizontal scrolling.
+  window.addEventListener("popstate", () => {
+    if (drawerOpen && !isDesktopLayout()) {
+      setDrawerOpen(false);
+    }
+  });
+
+  // Edge swipe gesture with continuous drag progress for mobile slide-in drawer.
   let swipeTracking = false;
   let swipeMode = "";
+  let swipeDragging = false;
   let startX = 0;
   let startY = 0;
+  let lastDx = 0;
+  const drawerWidthPx = () => Math.max(220, Math.round(sidebar.getBoundingClientRect().width || Math.min(window.innerWidth * 0.82, 300)));
   const hasHorizontalScroller = (node) => {
     let cur = node;
     while (cur && cur !== document.body) {
@@ -379,6 +467,8 @@ function setupNavigation() {
   };
   document.addEventListener("touchstart", (event) => {
     swipeTracking = false;
+    swipeDragging = false;
+    lastDx = 0;
     if (isDesktopLayout() || event.touches.length !== 1) return;
     if (document.querySelector(".modal-layer:not(.hidden)")) return;
     const touch = event.touches[0];
@@ -388,15 +478,52 @@ function setupNavigation() {
       swipeTracking = true; swipeMode = "close"; startX = touch.clientX; startY = touch.clientY;
     }
   }, { passive: true });
+  document.addEventListener("touchmove", (event) => {
+    if (!swipeTracking || !event.touches.length || isDesktopLayout()) return;
+    const touch = event.touches[0];
+    const dx = touch.clientX - startX;
+    const dy = touch.clientY - startY;
+    if (!swipeDragging) {
+      if (Math.abs(dy) > 14 && Math.abs(dy) > Math.abs(dx)) {
+        swipeTracking = false;
+        return;
+      }
+      if (Math.abs(dx) < 10) return;
+      swipeDragging = true;
+      sidebar.style.transition = "none";
+      sidebar.style.visibility = "visible";
+      if (backdrop) {
+        backdrop.hidden = false;
+        backdrop.style.transition = "none";
+      }
+    }
+    lastDx = dx;
+    const width = drawerWidthPx();
+    const progress = swipeMode === "open"
+      ? Math.max(0, Math.min(1, dx / width))
+      : Math.max(0, Math.min(1, 1 + dx / width));
+    sidebar.style.transform = `translate3d(${Math.round((progress - 1) * 100)}%, 0, 0)`;
+    if (backdrop) backdrop.style.opacity = String(progress.toFixed(3));
+  }, { passive: true });
   document.addEventListener("touchend", (event) => {
     if (!swipeTracking || !event.changedTouches.length) return;
+    const wasDragging = swipeDragging;
     swipeTracking = false;
+    swipeDragging = false;
     const touch = event.changedTouches[0];
     const dx = touch.clientX - startX;
     const dy = touch.clientY - startY;
-    if (Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy) * 1.4) return;
-    if (swipeMode === "open" && dx > 48) setDrawerOpen(true);
-    else if (swipeMode === "close" && dx < -48) setDrawerOpen(false, { restoreFocus: true });
+    sidebar.style.removeProperty("transition");
+    sidebar.style.removeProperty("transform");
+    if (!wasDragging) {
+      if (Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy) * 1.4) return;
+      if (swipeMode === "open" && dx > 48) setDrawerOpen(true);
+      else if (swipeMode === "close" && dx < -48) setDrawerOpen(false, { restoreFocus: true });
+      return;
+    }
+    const width = drawerWidthPx();
+    const shouldOpen = swipeMode === "open" ? lastDx > Math.min(72, width * 0.28) : lastDx > -Math.min(72, width * 0.28);
+    setDrawerOpen(shouldOpen, { restoreFocus: !shouldOpen });
   }, { passive: true });
 
   window.addEventListener("resize", () => {
@@ -407,33 +534,42 @@ function setupNavigation() {
   setDrawerOpen(false);
   applySidebarState();
 
+  const summary = accountMenu?.querySelector("summary");
+  summary?.addEventListener("click", (event) => {
+    if (!interfaceEnhancementsEnabled) return;
+    event.preventDefault();
+    if (accountMenu.open && document.getElementById("accountMenuPopover")?.dataset?.closing !== "true") {
+      closeAccountPopover();
+    } else {
+      openAccountPopover();
+    }
+  });
   accountMenu?.addEventListener("toggle", (event) => {
     if (event.target.open) {
       hideTooltip();
-      if (drawerOpen && !isDesktopLayout()) {
-        // Keep drawer open while popover opens upward at bottom of drawer.
-      }
       positionAccountPopover();
     }
     if (!interfaceEnhancementsEnabled) return;
-    accountMenu.querySelector("summary")?.setAttribute("aria-expanded", String(accountMenu.open));
+    summary?.setAttribute("aria-expanded", String(accountMenu.open));
   });
   accountMenu?.addEventListener("focusout", (event) => {
-    if (interfaceEnhancementsEnabled && event.relatedTarget && !accountMenu.contains(event.relatedTarget)) accountMenu.open = false;
+    if (interfaceEnhancementsEnabled && event.relatedTarget && !accountMenu.contains(event.relatedTarget)) {
+      closeAccountPopover();
+    }
   });
   accountMenu?.addEventListener("keydown", (event) => {
     if (!interfaceEnhancementsEnabled) return;
     if (!accountMenu.open) {
-      if (event.target === accountMenu.querySelector("summary") && ["ArrowDown", "ArrowUp"].includes(event.key)) {
+      if (event.target === summary && ["ArrowDown", "ArrowUp"].includes(event.key)) {
         event.preventDefault();
-        accountMenu.open = true;
+        openAccountPopover();
       } else return;
     }
     const items = [...accountMenu.querySelectorAll('[role="menuitem"]')]
       .filter((item) => !item.disabled && item.getClientRects().length && !item.closest("[inert]"));
     if (event.key === "Escape") {
-      event.preventDefault(); accountMenu.open = false;
-      accountMenu.querySelector("summary")?.focus(); return;
+      event.preventDefault(); closeAccountPopover();
+      summary?.focus(); return;
     }
     if (!items.length || !["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
     event.preventDefault();
@@ -900,16 +1036,22 @@ export function enhanceSelect(selectEl) {
     }
 
     activeSelectPopover = { select: selectEl, popover };
-    activeSelectCleanup = (restoreFocus = false) => {
+    activeSelectCleanup = (restoreFocus = false, immediate = false) => {
       doc.removeEventListener("pointerdown", handleDocPointer, true);
       doc.removeEventListener("keydown", handleKeydown, true);
       window.removeEventListener("resize", positionPopover);
       window.removeEventListener("scroll", positionPopover, true);
-      popover.remove();
       trigger.setAttribute("aria-expanded", "false");
       trigger.removeAttribute("aria-controls");
       activeSelectPopover = null;
       activeSelectCleanup = null;
+      const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches === true;
+      if (immediate || reduced) {
+        popover.remove();
+      } else {
+        popover.classList.add("is-closing");
+        window.setTimeout(() => popover.remove(), 150);
+      }
       if (restoreFocus) trigger.focus({ preventScroll: true });
     };
   };

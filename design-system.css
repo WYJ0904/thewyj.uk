@@ -81,19 +81,20 @@
   --ds-duration-fast: 140ms;
   --ds-duration-skeleton: 140ms;
   --ds-duration-normal: 200ms;
-  --ds-duration-sidebar: 240ms;
+  --ds-duration-sidebar: 320ms;
   --ds-duration-slow: 260ms;
   --ds-duration-pressed: var(--ds-duration-instant);
   --ds-duration-expand: var(--ds-duration-normal);
-  --ds-duration-page: 220ms;
+  --ds-duration-page: 240ms;
   --ds-duration-sheet: 280ms;
   --ds-duration-container: 420ms;
   --ds-duration-toast: 220ms;
-  --ds-pressed-scale: 0.975;
+  --ds-pressed-scale: 0.96;
   --ds-pressed-opacity: 0.92;
   --ds-ease-standard: cubic-bezier(0.2, 0, 0, 1);
   --ds-ease-emphasized: cubic-bezier(0.2, 0.8, 0.2, 1);
   --ds-ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
+  --ds-ease-elastic: cubic-bezier(0.34, 1.56, 0.64, 1);
   --ds-ease-bounce-micro: cubic-bezier(0.34, 1.45, 0.64, 1);
   --ds-ease-decelerate: cubic-bezier(0.16, 1, 0.3, 1);
   --ds-motion-page: var(--ds-duration-page) var(--ds-ease-emphasized);
@@ -673,7 +674,7 @@ a.primary,
 }
 
 @media (hover: hover) and (pointer: fine) {
-  button:hover:not(:disabled),
+  button:not([role="tab"]):hover:not(:disabled),
   a.primary:hover:not([aria-disabled="true"]),
   .button-link:hover:not([aria-disabled="true"]),
   .button-secondary:hover:not(:disabled),

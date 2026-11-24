@@ -8,7 +8,7 @@ import { hashSecret } from "../../functions/_lib/task12-crypto.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const EVIDENCE_DIR = path.join(ROOT, "docs/ui-rebuild/v63-user-approved-phase1/evidence");
-const AFTER_DIR = path.join(EVIDENCE_DIR, "after");
+const AFTER_DIR = path.join(EVIDENCE_DIR, "after-v2");
 fs.mkdirSync(AFTER_DIR, { recursive: true });
 
 const PORT = 8796;
@@ -165,6 +165,8 @@ async function run() {
       sqlPath,
       [
         `INSERT INTO task12_users (id, username, username_normalized, password_hash, password_scheme, password_iterations, role, registered_at, created_at, updated_at, source_updated_at) VALUES ('v63-admin-1', 'wyj', 'wyj', ${quote(adminHash)}, 'pbkdf2_sha256', 310000, 'super_admin', ${quote(now)}, ${quote(now)}, ${quote(now)}, ${quote(now)});`,
+        `INSERT INTO task12_users (id, username, username_normalized, password_hash, password_scheme, password_iterations, role, registered_at, created_at, updated_at, source_updated_at) VALUES ('v63-admin-delegated-1', 'v63_admin', 'v63_admin', ${quote(adminHash)}, 'pbkdf2_sha256', 310000, 'user', ${quote(now)}, ${quote(now)}, ${quote(now)}, ${quote(now)});`,
+        `INSERT INTO task18_admin_roles (user_id, role, granted_by_user_id, granted_by_username, granted_at, updated_at) VALUES ('v63-admin-delegated-1', 'admin', 'v63-admin-1', 'wyj', ${quote(now)}, ${quote(now)});`,
         `INSERT INTO task12_users (id, username, username_normalized, password_hash, password_scheme, password_iterations, role, registered_at, created_at, updated_at, source_updated_at) VALUES ('v63-normal-1', 'v63_normal', 'v63_normal', ${quote(userHash)}, 'pbkdf2_sha256', 310000, 'user', ${quote(now)}, ${quote(now)}, ${quote(now)}, ${quote(now)});`,
         `INSERT INTO task12_users (id, username, username_normalized, password_hash, password_scheme, password_iterations, role, registered_at, created_at, updated_at, source_updated_at) VALUES ('v63-vip-1', 'v63_vip', 'v63_vip', ${quote(userHash)}, 'pbkdf2_sha256', 310000, 'user', ${quote(now)}, ${quote(now)}, ${quote(now)}, ${quote(now)});`,
         `INSERT INTO task13_user_entitlement_overrides (user_id, entitlement_code, allowed, note, updated_by, updated_at) VALUES ('v63-vip-1', 'finance_access', 1, 'v63 phase1 test', 'wyj', ${quote(now)});`,
@@ -230,9 +232,31 @@ async function run() {
         "--binding", "WYJ_TASK14_TEMPORARY_SECRET=v63-temp-secret-2026",
         "--binding", "WYJ_TASK20_DEVICE_SESSION_SECRET=v63-dev-secret-2026",
       ],
-      { cwd: ROOT, stdio: "pipe", windowsHide: true, env: { ...process.env, WRANGLER_SEND_METRICS: "false" } },
+      { cwd: ROOT, stdio: "ignore", windowsHide: true, env: { ...process.env, WRANGLER_SEND_METRICS: "false" } },
     );
     await waitForHttp(`${BASE_URL}/api/status?source=cloud`, 60000);
+    await waitForHttp(`${BASE_URL}/api/membership/plans`, 30000);
+
+    // Seed real lifetime membership rows for v63_vip and v63_admin once default plans are initialized.
+    const memSqlPath = path.join(tmpDir, "memberships.sql");
+    fs.writeFileSync(
+      memSqlPath,
+      [
+        `INSERT INTO task13_user_memberships (id, user_id, plan_code, starts_at, expires_at, is_lifetime, status, source, source_ref, created_by, metadata_json, created_at, updated_at) VALUES ('mem_v63_vip', 'v63-vip-1', 'all_access_lifetime', ${quote(now)}, '', 1, 'active', 'admin', 'verify-v2', 'wyj', '{}', ${quote(now)}, ${quote(now)});`,
+        `INSERT INTO task13_user_memberships (id, user_id, plan_code, starts_at, expires_at, is_lifetime, status, source, source_ref, created_by, metadata_json, created_at, updated_at) VALUES ('mem_v63_admin', 'v63-admin-delegated-1', 'all_access_lifetime', ${quote(now)}, '', 1, 'active', 'admin', 'verify-v2', 'wyj', '{}', ${quote(now)}, ${quote(now)});`,
+      ].join("\n") + "\n",
+      "utf8",
+    );
+    const memSeed = spawnSync(
+      process.execPath,
+      [
+        path.join(ROOT, "node_modules/wrangler/bin/wrangler.js"),
+        "d1", "execute", "WYJ_DB", "--local",
+        "--config", "wrangler.local.jsonc", "--persist-to", stateDir, "--file", memSqlPath,
+      ],
+      { cwd: ROOT, stdio: "pipe", encoding: "utf8", windowsHide: true, env: { ...process.env, WRANGLER_SEND_METRICS: "false" } },
+    );
+    assert.equal(memSeed.status, 0, `Membership seed failed: ${memSeed.stderr || memSeed.stdout}`);
 
     // 3. Synthetic users (wyj admin, v63_normal unentitled, v63_vip entitled) seeded in isolated local D1.
 
@@ -254,6 +278,7 @@ async function run() {
 
     const { browserContextId } = await cdp.send("Target.createBrowserContext", {});
     const { targetId } = await cdp.send("Target.createTarget", { url: "about:blank", browserContextId });
+    await cdp.send("Target.activateTarget", { targetId }).catch(() => {});
     const { sessionId } = await cdp.send("Target.attachToTarget", { targetId, flatten: true });
     const send = (m, p = {}) => cdp.send(m, p, sessionId);
 
@@ -275,7 +300,8 @@ async function run() {
         if (await evalJs(`Boolean(${predicateExpr})`)) return;
         await new Promise((r) => setTimeout(r, 60));
       }
-      throw new Error(`waitFor timed out: ${predicateExpr}`);
+      const diag = await evalJs(`(() => ({ path: location.pathname, bodyCls: document.body.className, p07Ui: document.documentElement.dataset.p07Ui, policy: document.documentElement.dataset.interfacePolicy, hidden: document.hidden, loginErr: document.getElementById("loginError")?.textContent || "", boot: document.documentElement.dataset.bootState }))()`).catch(() => ({}));
+      throw new Error(`waitFor timed out: ${predicateExpr}; diag=${JSON.stringify(diag)}`);
     };
     const shot = async (name) => {
       await new Promise((r) => setTimeout(r, 260));
@@ -291,10 +317,16 @@ async function run() {
 
     let frameCounter = 0;
     let recordingFrames = false;
+    const capturedFrames = [];
     cdp.on("Page.screencastFrame", (params) => {
       if (recordingFrames) {
         const idx = String(++frameCounter).padStart(4, "0");
-        fs.writeFileSync(path.join(framesDir, `frame_${idx}.png`), Buffer.from(params.data, "base64"));
+        const filename = `frame_${idx}.png`;
+        fs.writeFileSync(path.join(framesDir, filename), Buffer.from(params.data, "base64"));
+        capturedFrames.push({
+          file: filename,
+          ts: Number(params.metadata?.timestamp) || Date.now() / 1000,
+        });
       }
       void send("Page.screencastFrameAck", { sessionId: params.sessionId }).catch(() => {});
     });
@@ -333,6 +365,7 @@ async function run() {
         guestVisible: !gl.hidden && gl.getBoundingClientRect().height > 50,
         authHidden: al.hidden,
         bentoExists: Boolean(bento),
+        duplicateGuestLogoCount: document.querySelectorAll(".gpt-guest-logo, #sidebarGuestLoginBtn").length,
         overflowX: document.documentElement.scrollWidth > window.innerWidth,
       };
     })()`);
@@ -342,9 +375,41 @@ async function run() {
     assert.equal(guestMetrics.guestVisible, true);
     assert.equal(guestMetrics.authHidden, true);
     assert.equal(guestMetrics.bentoExists, false, "Bento wall must be removed");
+    assert.equal(guestMetrics.duplicateGuestLogoCount, 0, "Duplicate guest hero logo and duplicate sidebar login button must be removed");
     assert.equal(guestMetrics.overflowX, false, "Zero horizontal overflow in Guest 1440px");
     report.checks.push({ id: "guest_home_light_1440", status: "PASS", detail: guestMetrics });
     await shot("after-guest-home-1440.png");
+
+    // Start normal-speed 1.0x screencast covering all 10 required flows
+    recordingFrames = true;
+    await send("Page.startScreencast", { format: "png", everyNthFrame: 1 });
+
+    // Verify Top Dismissible Version Announcement Banner (#versionNotice) + non-occlusion of #publicHomeTitle
+    const bannerMetrics = await evalJs(`(() => {
+      const el = document.getElementById("versionNotice");
+      if (!el) return { exists: false };
+      el.classList.remove("hidden");
+      window.dispatchEvent(new Event("resize"));
+      const r = el.getBoundingClientRect();
+      const barRect = document.getElementById("accountBar").getBoundingClientRect();
+      const titleRect = document.getElementById("publicHomeTitle").getBoundingClientRect();
+      return {
+        exists: true,
+        top: Math.round(r.top),
+        bottom: Math.round(r.bottom),
+        width: Math.round(r.width),
+        titleTop: Math.round(titleRect.top),
+        barBottom: Math.round(barRect.bottom),
+        titleNotOccluded: titleRect.top >= barRect.bottom - 1,
+        atTop: r.top >= 0 && r.top <= 120 && r.width >= window.innerWidth * 0.6,
+      };
+    })()`);
+    assert.equal(bannerMetrics.atTop, true, `#versionNotice must display as a top banner, got ${JSON.stringify(bannerMetrics)}`);
+    assert.equal(bannerMetrics.titleNotOccluded, true, `Top version banner + nav must never overlap guest <h1>: ${JSON.stringify(bannerMetrics)}`);
+    await shot("after-top-version-banner-1440.png");
+    await evalJs(`document.getElementById("dismissVersionNoticeBtn")?.click()`);
+    await waitFor(`document.getElementById("versionNotice").classList.contains("hidden")`);
+    report.checks.push({ id: "top_announcement_banner", status: "PASS", detail: bannerMetrics });
 
     // Guest interactive tab + plans expand + dark screenshot
     await evalJs(`document.getElementById("publicToolsTab").click()`);
@@ -376,6 +441,7 @@ async function run() {
       financeLocked: !document.getElementById("sidebarFinanceLock").hidden,
       toolsLocked: !document.getElementById("sidebarToolsLock").hidden,
       adminHidden: document.getElementById("v3SidebarAdminLink").hidden,
+      sidebarPlanCaption: document.getElementById("sidebarAccountPlan")?.textContent?.trim(),
       p07Ui: document.documentElement.dataset.p07Ui,
       bodyClass: document.body.className,
       innerWidth: window.innerWidth,
@@ -390,6 +456,7 @@ async function run() {
     assert.equal(normalChecks.financeLocked, true, "Normal user should see lock indicator on Finance");
     assert.equal(normalChecks.toolsLocked, true, "Normal user should see lock indicator on Tools");
     assert.equal(normalChecks.adminHidden, true, "Normal user must NOT see Admin entry");
+    assert.equal(normalChecks.sidebarPlanCaption, "普通注册用户", "Free user caption must read 普通注册用户");
     assert.equal(normalChecks.accountBarHiddenDesktop, true, "Authenticated desktop must hide #accountBar");
     assert.equal(normalChecks.groupsGapOk, true, "Sidebar group gap must be >= 20px");
     report.checks.push({ id: "normal_user_permissions_and_shell", status: "PASS", detail: normalChecks });
@@ -400,11 +467,10 @@ async function run() {
     await evalJs(`document.getElementById("logoutBtn").click()`);
     await waitFor(`!document.body.classList.contains("is-authenticated")`);
 
-    // --- Test VIP Entitled User & Start Screencast ---
-    recordingFrames = true;
-    await send("Page.startScreencast", { format: "png", everyNthFrame: 1 });
-
-    await evalJs(`document.getElementById("navLoginBtn").click()`);
+    // --- Test VIP Entitled User (continuing screencast) ---
+    if (await evalJs(`document.getElementById("authPanel").classList.contains("hidden")`)) {
+      await evalJs(`document.getElementById("navLoginBtn").click()`);
+    }
     await waitFor(`!document.getElementById("authPanel").classList.contains("hidden")`);
     await evalJs(`(() => {
       document.getElementById("usernameInput").value = "v63_vip";
@@ -422,17 +488,23 @@ async function run() {
       financeUnlocked: document.getElementById("sidebarFinanceLock").hidden,
       toolsUnlocked: document.getElementById("sidebarToolsLock").hidden,
       adminHidden: document.getElementById("v3SidebarAdminLink").hidden,
+      sidebarPlanCaption: document.getElementById("sidebarAccountPlan")?.textContent?.trim(),
       greeting: document.getElementById("dashboardGreeting").textContent,
       shortcutsCount: document.querySelectorAll("#homeQuickShortcuts .gpt-shortcut-chip").length,
       bentoGridGone: !document.getElementById("workspaceBentoGrid"),
       summaryGridGone: !document.getElementById("homeV3SummaryGrid"),
+      noVerticalScroll1440: document.documentElement.scrollHeight <= window.innerHeight + 1,
+      scrollH: document.documentElement.scrollHeight,
+      innerH: window.innerHeight,
     }))()`);
     assert.equal(authChecks.financeUnlocked, true);
     assert.equal(authChecks.toolsUnlocked, true);
     assert.equal(authChecks.adminHidden, true);
+    assert.equal(authChecks.sidebarPlanCaption, "全功能永久会员", "VIP user caption must read 全功能永久会员");
     assert.ok(authChecks.shortcutsCount >= 4);
     assert.equal(authChecks.bentoGridGone, true);
     assert.equal(authChecks.summaryGridGone, true);
+    assert.equal(authChecks.noVerticalScroll1440, true, `Authenticated 1440x900 home must have no pointless vertical scroll: scrollH=${authChecks.scrollH}, innerH=${authChecks.innerH}`);
     report.checks.push({ id: "vip_auth_launcher_pure", status: "PASS", detail: authChecks });
     await shot("after-auth-home-1440.png");
 
@@ -441,24 +513,49 @@ async function run() {
     await shot("after-auth-home-dark-1440.png");
     await evalJs(`while (document.documentElement.dataset.theme !== "light") { document.getElementById("sidebarThemeMenuBtn").click(); }`);
 
-    // Sidebar collapse + hover tooltip + icon coordinate stability + persistence across reload/module nav
+    // Sidebar continuous collapse animation sampling (256px -> mid-frames -> 64px), zero bottom overflow, icon X lock, rapid interruption
     const expandedIconX = await evalJs(`document.querySelector('#v3Sidebar [data-v3-nav="home"] .v3-nav-icon').getBoundingClientRect().left`);
-    await evalJs(`document.getElementById("sidebarCollapseBtn").click()`);
-    await new Promise((r) => setTimeout(r, 320));
+    const collapseTransitionSamples = await evalJs(`(async () => {
+      const sb = document.getElementById("v3Sidebar");
+      const widths = [];
+      let active = true;
+      const sample = () => {
+        widths.push(Math.round(sb.getBoundingClientRect().width));
+        if (active) requestAnimationFrame(sample);
+      };
+      requestAnimationFrame(sample);
+      document.getElementById("sidebarCollapseBtn").click();
+      await new Promise((r) => setTimeout(r, 420));
+      active = false;
+      widths.push(Math.round(sb.getBoundingClientRect().width));
+      const unique = [...new Set(widths)];
+      return { widths, unique, intermediateCount: unique.filter((w) => w > 68 && w < 252).length };
+    })()`);
+    assert.ok(collapseTransitionSamples.intermediateCount >= 2, `Sidebar collapse must animate continuously through intermediate widths, got ${JSON.stringify(collapseTransitionSamples)}`);
     const collapsedState = await evalJs(`(() => {
       const sb = document.getElementById("v3Sidebar");
       const btn = document.getElementById("sidebarCollapseBtn");
+      const identity = document.querySelector("#v3Sidebar .account-menu-identity");
+      const idRect = identity?.getBoundingClientRect();
+      const sbRect = sb.getBoundingClientRect();
       const iconX = document.querySelector('#v3Sidebar [data-v3-nav="home"] .v3-nav-icon').getBoundingClientRect().left;
       return {
         collapsedAttr: sb.dataset.collapsed,
-        width: Math.round(sb.getBoundingClientRect().width),
+        width: Math.round(sbRect.width),
+        scrollWidth: sb.scrollWidth,
+        identityClippedOrZero: !idRect || idRect.width === 0 || idRect.right <= sbRect.right + 1,
+        identityOpacity: identity ? getComputedStyle(identity).opacity : "0",
         expandBtnVisible: btn.getBoundingClientRect().width >= 30,
         stored: localStorage.getItem("wyj_sidebar_collapsed_v1"),
         iconXDelta: Math.abs(iconX - ${expandedIconX}),
+        intermediateCount: ${collapseTransitionSamples.intermediateCount},
       };
     })()`);
     assert.equal(collapsedState.collapsedAttr, "true");
     assert.ok(collapsedState.width <= 72, `Collapsed width expected ~64px, got ${collapsedState.width}`);
+    assert.ok(collapsedState.scrollWidth <= 66, `Collapsed sidebar must never overflow horizontally: scrollWidth=${collapsedState.scrollWidth}`);
+    assert.equal(collapsedState.identityClippedOrZero, true, "Collapsed footer identity text must never spill out");
+    assert.ok(collapsedState.iconXDelta <= 1.5, `Sidebar icon must stay horizontally anchored during collapse: delta=${collapsedState.iconXDelta}`);
     assert.equal(collapsedState.expandBtnVisible, true, "Expand button must remain visible when collapsed");
     assert.equal(collapsedState.stored, "true");
     // Trigger hover tooltip on collapsed sidebar item
@@ -468,9 +565,21 @@ async function run() {
     assert.equal(tooltipText, "在线工具箱");
     await shot("after-sidebar-collapsed-1440.png");
     await evalJs(`document.querySelector('#v3Sidebar [data-v3-nav="tools"]').dispatchEvent(new PointerEvent("pointerout", { bubbles: true }))`);
-    // Expand back
-    await evalJs(`document.getElementById("sidebarCollapseBtn").click()`);
-    await new Promise((r) => setTimeout(r, 320));
+    // Rapid interruptible reversal test: click expand -> 110ms -> click collapse -> 110ms -> click expand -> settle
+    const rapidToggleResult = await evalJs(`(async () => {
+      const btn = document.getElementById("sidebarCollapseBtn");
+      const sb = document.getElementById("v3Sidebar");
+      btn.click();
+      await new Promise((r) => setTimeout(r, 110));
+      btn.click();
+      await new Promise((r) => setTimeout(r, 110));
+      btn.click();
+      await new Promise((r) => setTimeout(r, 420));
+      return { collapsedAttr: sb.dataset.collapsed, width: Math.round(sb.getBoundingClientRect().width) };
+    })()`);
+    assert.equal(rapidToggleResult.collapsedAttr, "false", "Rapid 3-click interruption from collapsed must settle expanded");
+    assert.ok(rapidToggleResult.width >= 248, `Settled expanded width expected ~256px, got ${rapidToggleResult.width}`);
+    report.checks.push({ id: "sidebar_continuous_collapse_and_interruption", status: "PASS", detail: { collapsedState, rapidToggleResult } });
 
     // Upward accountMenu popover verification
     await evalJs(`document.querySelector("#accountMenu summary").click()`);
@@ -538,10 +647,23 @@ async function run() {
     await waitFor(`document.getElementById("feedbackModal").classList.contains("hidden")`);
     report.checks.push({ id: "unified_floating_dropdowns", status: "PASS", detail: { smallDropdownInfo, largeDropdownInfo } });
 
-    // Raycast Command Palette: Ctrl+K, 104 tools + English alias + focus restoration
+    // Raycast Command Palette: Ctrl+K, compact SVG close button, 104 tools + English alias + .is-closing + focus restoration
     await evalJs(`document.getElementById("homeLauncherSearchBtn").focus()`);
     await evalJs(`document.getElementById("homeLauncherSearchBtn").click()`);
     await waitFor(`!document.getElementById("commandPaletteModal").classList.contains("hidden")`);
+    const cmdCloseMetrics = await evalJs(`(() => {
+      const btn = document.querySelector('#commandPaletteModal [data-close-modal="commandPaletteModal"]');
+      const r = btn?.getBoundingClientRect();
+      return {
+        hasSvg: Boolean(btn?.querySelector("svg")),
+        width: Math.round(r?.width || 0),
+        height: Math.round(r?.height || 0),
+        text: btn?.textContent?.trim() || "",
+      };
+    })()`);
+    assert.equal(cmdCloseMetrics.hasSvg, true, "Command Palette close button must use compact SVG icon");
+    assert.ok(cmdCloseMetrics.width <= 44 && cmdCloseMetrics.height <= 44, `Command Palette close button oversized: ${JSON.stringify(cmdCloseMetrics)}`);
+    assert.equal(cmdCloseMetrics.text, "", "Command Palette close button must not render oversized plain text");
     await evalJs(`(() => {
       const inp = document.getElementById("commandPaletteInput");
       inp.value = "prettier";
@@ -555,24 +677,84 @@ async function run() {
     await waitFor(`document.getElementById("commandPaletteModal").classList.contains("hidden")`);
     const restoredFocusId = await evalJs(`document.activeElement?.id`);
     assert.equal(restoredFocusId, "homeLauncherSearchBtn", "Closing Command Palette must restore trigger focus");
-    report.checks.push({ id: "command_palette_and_focus", status: "PASS", detail: { cmdSearchHits, restoredFocusId } });
+    report.checks.push({ id: "command_palette_and_focus", status: "PASS", detail: { cmdSearchHits, restoredFocusId, cmdCloseMetrics } });
 
-    // --- BENCHMARK 2: Warm/Hot Route Transitions (<1s gate) + Strategy C ---
-    const measureRoute = async (navKey, readyExpr, targetBucket) => {
-      const t0 = await evalJs(`(() => { window.__v63NavStart = performance.now(); document.querySelector('#v3Sidebar [data-v3-nav="${navKey}"]').click(); return window.__v63NavStart; })()`);
+    // --- BENCHMARK 2: Multi-stage End-to-End Route Transitions (<1s interactive gate) + Strategy C ---
+    const detailedBenchmarks = [];
+    const measureRoute = async (navKey, readyExpr, targetBucket, options = {}) => {
+      const { interactiveSelector, actionFn, recordDetail } = options;
+      await evalJs(`(() => {
+        window.__v63Stages = { start: performance.now(), feedback: null, frame: null };
+        requestAnimationFrame(() => { if (window.__v63Stages && window.__v63Stages.feedback == null) window.__v63Stages.feedback = performance.now() - window.__v63Stages.start; });
+        document.querySelector('#v3Sidebar [data-v3-nav="${navKey}"]').click();
+      })()`);
       await waitFor(readyExpr);
-      const elapsed = await evalJs(`performance.now() - window.__v63NavStart`);
-      targetBucket.push(elapsed);
-      assert.ok(elapsed < 1000, `Route ${navKey} exceeded 1000ms gate: ${elapsed.toFixed(1)}ms`);
+      const tFrame = await evalJs(`(() => { window.__v63Stages.frame = performance.now() - window.__v63Stages.start; return window.__v63Stages.frame; })()`);
+      let tInteractive = tFrame;
+      if (interactiveSelector) {
+        await waitFor(`(() => { const el = document.querySelector(${JSON.stringify(interactiveSelector)}); return Boolean(el && !el.disabled && el.getBoundingClientRect().height > 0); })()`);
+        tInteractive = await evalJs(`performance.now() - window.__v63Stages.start`);
+      }
+      targetBucket.push(tInteractive);
+      assert.ok(tInteractive < 1000, `Route ${navKey} interactive ready exceeded 1000ms gate: ${tInteractive.toFixed(1)}ms`);
+      let tAction = tInteractive;
+      if (actionFn) {
+        await actionFn();
+        tAction = await evalJs(`performance.now() - window.__v63Stages.start`);
+      }
+      await new Promise((r) => setTimeout(r, 240));
+      const tSettled = await evalJs(`performance.now() - window.__v63Stages.start`);
+      const tFeedback = await evalJs(`window.__v63Stages.feedback || 16`);
+      if (recordDetail) {
+        detailedBenchmarks.push({
+          route: navKey,
+          feedback_ms: Number(tFeedback.toFixed(1)),
+          frame_ms: Number(tFrame.toFixed(1)),
+          interactive_ms: Number(tInteractive.toFixed(1)),
+          action_ms: Number(tAction.toFixed(1)),
+          settled_ms: Number(tSettled.toFixed(1)),
+        });
+      }
     };
 
-    for (let i = 0; i < 2; i++) {
-      await measureRoute("tools", `!document.getElementById("toolsPanel").classList.contains("hidden")`, hotTimes);
-      await measureRoute("language", `!document.getElementById("projectPicker").classList.contains("hidden")`, hotTimes);
-      await measureRoute("finance", `!document.getElementById("financePage").classList.contains("hidden")`, hotTimes);
-      await measureRoute("transfer", `!document.getElementById("transferPage").classList.contains("hidden")`, hotTimes);
-      await measureRoute("home", `!document.getElementById("publicHome").classList.contains("hidden")`, hotTimes);
-    }
+    await measureRoute("tools", `!document.getElementById("toolsPanel").classList.contains("hidden")`, hotTimes, {
+      interactiveSelector: "#toolSearchInput",
+      recordDetail: true,
+      actionFn: async () => {
+        await evalJs(`(() => { const i = document.getElementById("toolSearchInput"); i.value = "json"; i.dispatchEvent(new Event("input", { bubbles: true })); })()`);
+        await waitFor(`document.querySelectorAll("#toolCatalog button").length >= 1 && !document.getElementById("toolResultCount")?.textContent?.startsWith("0")`);
+        await evalJs(`(() => { const i = document.getElementById("toolSearchInput"); i.value = ""; i.dispatchEvent(new Event("input", { bubbles: true })); })()`);
+      },
+    });
+    await measureRoute("language", `!document.getElementById("projectPicker").classList.contains("hidden")`, hotTimes, {
+      interactiveSelector: '[data-project="english"]',
+      recordDetail: true,
+      actionFn: async () => {
+        await evalJs(`document.querySelector('[data-project="english"]').click()`);
+        await waitFor(`location.pathname === "/language/english" && !document.getElementById("workspace").classList.contains("hidden")`);
+      },
+    });
+    await measureRoute("finance", `!document.getElementById("financePage").classList.contains("hidden")`, hotTimes, {
+      interactiveSelector: "#financeAddTransactionBtn",
+      recordDetail: true,
+      actionFn: async () => {
+        await evalJs(`document.getElementById("financeAddTransactionBtn").click()`);
+        await waitFor(`!document.getElementById("financeTransactionModal").classList.contains("hidden")`);
+        await evalJs(`document.querySelector('#financeTransactionModal [data-finance-close="financeTransactionModal"]').click()`);
+        await waitFor(`document.getElementById("financeTransactionModal").classList.contains("hidden")`);
+      },
+    });
+    await measureRoute("transfer", `!document.getElementById("transferPage").classList.contains("hidden")`, hotTimes, {
+      interactiveSelector: "#transferSelectFilesBtn",
+      recordDetail: true,
+      actionFn: async () => {
+        await waitFor(`!document.getElementById("transferQuotaText")?.textContent.includes("加载中")`);
+      },
+    });
+    await measureRoute("home", `!document.getElementById("publicHome").classList.contains("hidden")`, hotTimes, {
+      interactiveSelector: "#homeLauncherSearchBtn",
+      recordDetail: true,
+    });
 
     // Strategy C test: filter in /tools -> sidebar click /language -> history.back() restores filter -> sidebar click /tools clears filter
     await measureRoute("tools", `!document.getElementById("toolsDashboard").classList.contains("hidden")`, hotTimes);
@@ -607,6 +789,7 @@ async function run() {
       hot_max_ms: Number(Math.max(...hotTimes).toFixed(1)),
       slow_3g_p95_ms: percentile(throttledTimes, 95),
       slow_3g_max_ms: Number(Math.max(...throttledTimes).toFixed(1)),
+      detailed_routes: detailedBenchmarks,
       samples: { hot: hotTimes.map((x) => Number(x.toFixed(1))), slow_3g: throttledTimes.map((x) => Number(x.toFixed(1))) },
     };
 
@@ -622,6 +805,7 @@ async function run() {
       [3440, 1440, false],
       [3840, 2160, false],
     ];
+    recordingFrames = false;
     for (const [w, h, mobile] of viewports) {
       await resetViewport(w, h, mobile);
       const metrics = await evalJs(`(() => ({
@@ -634,13 +818,17 @@ async function run() {
       if (w <= 980) assert.equal(metrics.navToggleVisible, true, `Mobile drawer trigger missing at ${w}x${h}`);
       report.responsive.push({ width: w, height: h, mobile, ...metrics });
       if (w === 390) {
+        recordingFrames = true;
+        const kbdHidden = await evalJs(`getComputedStyle(document.querySelector(".gpt-home-search-bar .v3-kbd")).display === "none"`);
+        assert.equal(kbdHidden, true, "Mobile/touch viewport must hide Ctrl+K hint");
         await shot("after-mobile-home-390.png");
         await evalJs(`document.getElementById("siteNavToggle").click()`);
-        await new Promise((r) => setTimeout(r, 320));
+        await new Promise((r) => setTimeout(r, 340));
         assert.equal(await evalJs(`document.getElementById("v3Sidebar").classList.contains("mobile-drawer-open")`), true);
         await shot("after-mobile-drawer-390.png");
         await evalJs(`document.getElementById("v3SidebarBackdrop").click()`);
-        await new Promise((r) => setTimeout(r, 320));
+        await new Promise((r) => setTimeout(r, 340));
+        recordingFrames = false;
       }
       if (w === 2560) {
         await shot("after-ultrawide-2560.png");
@@ -653,38 +841,101 @@ async function run() {
     const reducedDur = await evalJs(`getComputedStyle(document.getElementById("v3Sidebar")).transitionDuration`);
     assert.ok(parseFloat(reducedDur) <= 0.001, `Reduced motion must disable sidebar transition, got ${reducedDur}`);
     report.checks.push({ id: "prefers_reduced_motion", status: "PASS", detail: { reducedDur } });
-
-    recordingFrames = false;
-    await send("Page.stopScreencast").catch(() => {});
-    if (frameCounter >= 3) {
-      const mp4Path = path.join(AFTER_DIR, "phase1-walkthrough.mp4");
-      const ff = spawnSync("ffmpeg", [
-        "-y", "-framerate", "4", "-i", path.join(framesDir, "frame_%04d.png"),
-        "-c:v", "libx264", "-pix_fmt", "yuv420p", "-vf", "scale=trunc(iw/2)*2:trunc(ih/2)*2",
-        mp4Path,
-      ], { cwd: ROOT, stdio: "pipe", windowsHide: true });
-      if (ff.status === 0 && fs.existsSync(mp4Path)) {
-        report.screencast = { path: "docs/ui-rebuild/v63-user-approved-phase1/evidence/after/phase1-walkthrough.mp4", frames: frameCounter };
-      }
-    }
+    await send("Emulation.setEmulatedMedia", { features: [] });
 
     // Verify zero runtime JS exceptions
     assert.deepEqual(runtimeErrors, [], `Unexpected browser JS errors: ${JSON.stringify(runtimeErrors)}`);
     report.checks.push({ id: "zero_runtime_errors", status: "PASS" });
 
-    // --- Admin User Isolation Check ---
+    // --- Admin User Isolation & Role/Membership Caption Check (included in screencast) ---
+    recordingFrames = true;
     await evalJs(`(() => { localStorage.clear(); sessionStorage.clear(); })()`);
     await send("Page.navigate", { url: `${BASE_URL}/login` });
     await waitFor(`document?.documentElement?.dataset?.bootState === "ready" && document?.getElementById("authPanel")?.classList && !document.getElementById("authPanel").classList.contains("hidden")`);
     await evalJs(`(() => {
-      document.getElementById("usernameInput").value = "wyj";
+      document.getElementById("usernameInput").value = "v63_admin";
       document.getElementById("secretInput").value = ${JSON.stringify(ADMIN_SECRET)};
       document.getElementById("loginForm").dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
     })()`);
     await waitFor(`document?.body?.classList?.contains("is-authenticated") && !document.body.classList.contains("auth-transition-active") && document.documentElement.dataset.p07Ui === "enabled"`);
-    const adminVisible = await evalJs(`!document.getElementById("v3SidebarAdminLink").hidden`);
-    assert.equal(adminVisible, true, "Admin user must see /admin entry in sidebar");
-    report.checks.push({ id: "admin_sidebar_entry_visible", status: "PASS" });
+    const adminInfo = await evalJs(`(() => ({
+      adminVisible: !document.getElementById("v3SidebarAdminLink").hidden,
+      sidebarPlanCaption: document.getElementById("sidebarAccountPlan")?.textContent?.trim(),
+    }))()`);
+    assert.equal(adminInfo.adminVisible, true, "Admin user must see /admin entry in sidebar");
+    assert.equal(adminInfo.sidebarPlanCaption, "管理员 · 全功能永久会员", "Delegated admin + lifetime plan caption mismatch");
+    report.checks.push({ id: "admin_sidebar_entry_visible", status: "PASS", detail: adminInfo });
+
+    recordingFrames = false;
+    await send("Page.stopScreencast").catch(() => {});
+    if (capturedFrames.length >= 3) {
+      // Normalize any non-1440x900 frames (e.g. 390x844 mobile drawer frames) so ffmpeg concat has uniform dimensions
+      for (const cur of capturedFrames) {
+        const fpath = path.join(framesDir, cur.file);
+        const hdr = fs.readFileSync(fpath).subarray(16, 24);
+        const fw = hdr.readUInt32BE(0);
+        const fh = hdr.readUInt32BE(4);
+        if (fw !== 1440 || fh !== 900) {
+          const normPath = path.join(framesDir, `norm_${cur.file}`);
+          const padRes = spawnSync("ffmpeg", [
+            "-y", "-i", cur.file,
+            "-vf", "scale=1440:900:force_original_aspect_ratio=decrease,pad=1440:900:(ow-iw)/2:(oh-ih)/2:color=0xfafafa",
+            normPath,
+          ], { cwd: framesDir, stdio: "pipe", windowsHide: true });
+          if (padRes.status === 0 && fs.existsSync(normPath)) {
+            fs.renameSync(normPath, fpath);
+          }
+        }
+      }
+      const concatPath = path.join(framesDir, "frames.ffconcat");
+      const lines = ["ffconcat version 1.0"];
+      for (let idx = 0; idx < capturedFrames.length; idx += 1) {
+        const cur = capturedFrames[idx];
+        const next = capturedFrames[idx + 1];
+        const rawDelta = next ? next.ts - cur.ts : 0.25;
+        const dur = Math.max(0.033, Math.min(2.0, Number(rawDelta) || 0.25));
+        lines.push(`file '${cur.file}'`);
+        lines.push(`duration ${dur.toFixed(4)}`);
+      }
+      lines.push(`file '${capturedFrames[capturedFrames.length - 1].file}'`);
+      fs.writeFileSync(concatPath, lines.join("\n") + "\n", "utf8");
+      const mp4Path = path.join(AFTER_DIR, "phase1-v2-walkthrough.mp4");
+      const ff = spawnSync("ffmpeg", [
+        "-y", "-safe", "0", "-f", "concat", "-i", "frames.ffconcat",
+        "-fps_mode", "vfr", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-vf", "scale=trunc(iw/2)*2:trunc(ih/2)*2",
+        mp4Path,
+      ], { cwd: framesDir, stdio: "pipe", encoding: "utf8", windowsHide: true });
+      assert.equal(ff.status, 0, `ffmpeg screencast encode failed: ${ff.stderr || ff.stdout}`);
+      assert.equal(fs.existsSync(mp4Path), true, "phase1-v2-walkthrough.mp4 must exist");
+      const totalDurationSec = Number((capturedFrames[capturedFrames.length - 1].ts - capturedFrames[0].ts).toFixed(2));
+      report.screencast = {
+        path: "docs/ui-rebuild/v63-user-approved-phase1/evidence/after-v2/phase1-v2-walkthrough.mp4",
+        frames: capturedFrames.length,
+        playback_speed: "1.0x_normal_realtime",
+        duration_sec: totalDurationSec,
+      };
+    }
+
+    // Close verify Chromium cleanly BEFORE running Hallmark --render (one Chromium at a time)
+    cdp?.close();
+    cdp = null;
+    killPidTree(chromeProc?.pid);
+    chromeProc = null;
+
+    const sloplintScript = path.join(process.env.USERPROFILE || os.homedir(), ".gemini/config/skills/hallmark/scripts/sloplint.mjs");
+    if (fs.existsSync(sloplintScript)) {
+      const renderRes = spawnSync(process.execPath, [sloplintScript, "--render", "--url", BASE_URL, "--scope", "app", "--json"], {
+        cwd: ROOT,
+        encoding: "utf8",
+        windowsHide: true,
+        timeout: 90000,
+      });
+      report.hallmark_render = {
+        exitCode: renderRes.status,
+        stdout: (renderRes.stdout || "").slice(0, 6000),
+        stderr: (renderRes.stderr || "").slice(0, 1000),
+      };
+    }
 
     fs.writeFileSync(path.join(EVIDENCE_DIR, "phase1-verification.json"), JSON.stringify(report, null, 2));
     console.log("PHASE1_VERIFICATION_PASSED", JSON.stringify(report.benchmarks_ms));

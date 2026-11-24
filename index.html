@@ -131,10 +131,6 @@
                 <span class="v3-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.64 5.64l1.42 1.42M16.94 16.94l1.42 1.42M18.36 5.64l-1.42 1.42M7.06 16.94l-1.42 1.42"/></svg></span>
                 <span class="v3-nav-label" id="sidebarGuestThemeLabel">外观：系统</span>
               </button>
-              <button class="v3-sidebar-login-cta" id="sidebarGuestLoginBtn" type="button" data-v3-tooltip="登录账户">
-                <span class="v3-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg></span>
-                <span class="v3-nav-label">登录或注册</span>
-              </button>
             </div>
             <details class="account-menu hidden" id="accountMenu">
               <summary aria-label="打开账户菜单" aria-haspopup="menu" aria-controls="accountMenuPopover" data-v3-tooltip="账户与设置">
@@ -203,7 +199,6 @@
         <section class="gpt-guest-launcher" id="guestHomeLauncher" data-home-guest aria-labelledby="publicHomeTitle">
           <div class="gpt-guest-hero">
             <header class="gpt-guest-header" data-public-section="hero">
-              <img class="gpt-guest-logo" src="/icon-192.png?release=20261121-aeris-i05-preview" alt="Aeris" width="40" height="40" />
               <div class="gpt-guest-heading">
                 <h1 id="publicHomeTitle">Aeris</h1>
                 <p class="gpt-guest-subtitle">学习、工具、账本与文件的统一工作空间，本机功能无需登录即可即时试用。</p>
@@ -704,7 +699,7 @@
           <img class="auth-logo" src="/assets/brand/aeris-lockup.png?release=20261121-aeris-i05-preview" width="320" height="320" alt="Aeris" />
           <h1 id="authTitle">账户登录</h1>
           <p class="auth-subtitle" id="authSubtitle">使用 Aeris 账户同步词汇进度、账本记录与传输文件。</p>
-          <div class="auth-tabs" role="tablist" aria-label="账户入口">
+          <div class="auth-tabs" role="tablist" aria-label="账户入口" data-indicator-style="pill">
             <button class="active" id="showLoginBtn" type="button" role="tab" aria-controls="loginTabPanel" aria-selected="true">登录</button>
             <button id="showRegisterBtn" type="button" role="tab" aria-controls="registerTabPanel" aria-selected="false">注册</button>
           </div>
@@ -1340,9 +1335,11 @@
         </div>
       </div>
       <div class="version-notice hidden" id="versionNotice" role="status" aria-live="polite">
-        <div><strong id="versionNoticeTitle">网站已更新</strong><p id="versionNoticeMessage"></p></div>
-        <button class="button-ghost" id="viewVersionDetailsBtn" type="button">查看详情</button>
-        <button class="version-notice-close" id="dismissVersionNoticeBtn" type="button" aria-label="关闭新版本提示" title="关闭"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+        <div class="version-notice-copy"><strong id="versionNoticeTitle">网站已更新</strong><p id="versionNoticeMessage"></p></div>
+        <div class="version-notice-actions">
+          <button class="button-ghost" id="viewVersionDetailsBtn" type="button">查看详情</button>
+          <button class="version-notice-close" id="dismissVersionNoticeBtn" type="button" aria-label="关闭新版本提示" title="关闭"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+        </div>
       </div>
     </main>
 
@@ -1465,7 +1462,7 @@
           <span class="v3-cmd-search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg></span>
           <input id="commandPaletteInput" class="v3-cmd-input" type="search" role="combobox" aria-expanded="true" aria-autocomplete="list" aria-controls="commandPaletteList" autocomplete="off" spellcheck="false" placeholder="搜索 104 项工具、跳转模块或执行命令…" aria-label="搜索命令与工具" />
           <kbd class="v3-kbd v3-cmd-esc-hint" aria-hidden="true">Esc</kbd>
-          <button class="modal-close" type="button" data-close-modal="commandPaletteModal" aria-label="关闭命令面板">关闭</button>
+          <button class="modal-close v3-cmd-close-btn" type="button" data-close-modal="commandPaletteModal" aria-label="关闭命令面板" title="关闭"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
         </header>
         <div class="v3-cmd-filters" id="commandPaletteFilters" role="tablist" aria-label="结果分类">
           <button type="button" class="active" role="tab" aria-selected="true" data-cmd-filter="all">全部</button>
