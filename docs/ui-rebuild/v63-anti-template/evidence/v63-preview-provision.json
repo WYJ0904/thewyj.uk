@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "environment": "isolated-preview",
+  "project": "thewyj-v63-preview",
+  "branch": "v63-preview",
+  "production_branch": "release-held",
+  "d1_name": "aeris-v63-preview",
+  "d1_id": "d1df54e4-044a-4717-8981-0741a6e6894c",
+  "r2_name": "aeris-v63-preview-storage",
+  "deployment_url": "https://9652097f.thewyj-v63-preview.pages.dev",
+  "branch_alias_url": "https://v63-preview.thewyj-v63-preview.pages.dev",
+  "smoke_checks": {
+    "checked_url": "https://v63-preview.thewyj-v63-preview.pages.dev",
+    "status_http": 200,
+    "status_ok": true,
+    "environment": "preview",
+    "d1_bound": true,
+    "r2_bound": true,
+    "features_http": 200,
+    "p07_accessibility": true,
+    "public_ui_reason": "public_stable",
+    "home_http": 200,
+    "home_has_aeris": true
+  },
+  "secret_names": [
+    "WYJ_TASK12_PASSWORD_PEPPER",
+    "WYJ_TASK14_TEMPORARY_SECRET",
+    "WYJ_TASK20_DEVICE_SESSION_SECRET"
+  ],
+  "provisioned_at": "2026-11-24T06:53:01.304Z",
+  "deployment_id": "9652097f-dec2-4a66-9931-5a9826b58f02"
+}
