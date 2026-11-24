@@ -1,5 +1,5 @@
 {
-  "started_at": "2026-11-24T12:28:42.241Z",
+  "started_at": "2026-11-24T13:38:49.872Z",
   "checks": [
     {
       "id": "guest_home_light_1440",
@@ -81,7 +81,7 @@
           "expandBtnVisible": true,
           "stored": "true",
           "iconXDelta": 0,
-          "intermediateCount": 40
+          "intermediateCount": 23
         },
         "rapidToggleResult": {
           "collapsedAttr": "false",
@@ -237,72 +237,72 @@
     }
   ],
   "benchmarks_ms": {
-    "cold_load_ms": 2291.2,
-    "hot_p50_ms": 31.8,
-    "hot_p95_ms": 94.2,
-    "hot_max_ms": 94.2,
-    "slow_3g_p95_ms": 59.6,
-    "slow_3g_max_ms": 59.6,
+    "cold_load_ms": 2226.1,
+    "hot_p50_ms": 43.6,
+    "hot_p95_ms": 91,
+    "hot_max_ms": 91,
+    "slow_3g_p95_ms": 72.2,
+    "slow_3g_max_ms": 72.2,
     "detailed_routes": [
       {
         "route": "tools",
-        "feedback_ms": 85.2,
-        "frame_ms": 91.3,
-        "interactive_ms": 94.2,
-        "action_ms": 109.6,
-        "settled_ms": 356.2
+        "feedback_ms": 61.1,
+        "frame_ms": 64.5,
+        "interactive_ms": 65.8,
+        "action_ms": 76,
+        "settled_ms": 318.2
       },
       {
         "route": "language",
-        "feedback_ms": 23.8,
-        "frame_ms": 26.3,
-        "interactive_ms": 30.4,
-        "action_ms": 88,
-        "settled_ms": 338.4
+        "feedback_ms": 17.5,
+        "frame_ms": 22.8,
+        "interactive_ms": 29.7,
+        "action_ms": 76.4,
+        "settled_ms": 326
       },
       {
         "route": "finance",
-        "feedback_ms": 55.8,
-        "frame_ms": 71.9,
-        "interactive_ms": 77,
-        "action_ms": 114.2,
-        "settled_ms": 366.9
+        "feedback_ms": 68.6,
+        "frame_ms": 86.2,
+        "interactive_ms": 91,
+        "action_ms": 121.9,
+        "settled_ms": 364.4
       },
       {
         "route": "transfer",
         "feedback_ms": 38.6,
-        "frame_ms": 41.4,
-        "interactive_ms": 42.5,
-        "action_ms": 44.2,
-        "settled_ms": 289
+        "frame_ms": 41.8,
+        "interactive_ms": 43.6,
+        "action_ms": 46.1,
+        "settled_ms": 286.7
       },
       {
         "route": "home",
-        "feedback_ms": 37.1,
-        "frame_ms": 40,
-        "interactive_ms": 41.1,
-        "action_ms": 41.1,
-        "settled_ms": 284.2
+        "feedback_ms": 50.2,
+        "frame_ms": 52.9,
+        "interactive_ms": 54.6,
+        "action_ms": 54.6,
+        "settled_ms": 297
       }
     ],
     "samples": {
       "hot": [
-        94.2,
-        30.4,
-        77,
-        42.5,
-        41.1,
-        43.1,
-        25.7,
-        25.1,
-        20.2,
-        28.6,
-        31.8
+        65.8,
+        29.7,
+        91,
+        43.6,
+        54.6,
+        61.7,
+        35.8,
+        47.4,
+        31.7,
+        39.3,
+        41.4
       ],
       "slow_3g": [
-        59.6,
-        38,
-        43.9
+        72.2,
+        43.2,
+        41.1
       ]
     }
   },
@@ -323,9 +323,9 @@
   ],
   "screencast": {
     "path": "docs/ui-rebuild/v63-user-approved-phase1/evidence/after-v2/phase1-v2-walkthrough.mp4",
-    "frames": 992,
+    "frames": 922,
     "playback_speed": "1.0x_normal_realtime",
-    "duration_sec": 28.31
+    "duration_sec": 27.12
   },
   "hallmark_render": {
     "exitCode": 0,

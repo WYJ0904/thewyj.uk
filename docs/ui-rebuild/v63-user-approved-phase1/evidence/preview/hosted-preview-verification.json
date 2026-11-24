@@ -1,6 +1,6 @@
 {
   "preview_url": "https://v63-phase1.thewyj-v63-preview.pages.dev",
-  "verified_at": "2026-11-24T12:27:35.515Z",
+  "verified_at": "2026-11-24T13:34:07.499Z",
   "accounts": {
     "free": {
       "username": "v63p1_free",
@@ -10,7 +10,7 @@
       "toolsLocked": true,
       "adminHidden": true,
       "collapseSample": {
-        "midFrames": 38,
+        "midFrames": 23,
         "width": 64,
         "scrollWidth": 63,
         "noOverflow": true,
@@ -28,11 +28,11 @@
       "scrollH": 900,
       "innerH": 900,
       "bodyRect": 900,
-      "appShellRect": 847,
-      "footerRect": 53,
+      "appShellRect": 837,
+      "footerRect": 63,
       "verHidden": false,
-      "sidebarH": 790,
-      "launcherH": 754,
+      "sidebarH": 780,
+      "launcherH": 744,
       "cmdCloseW": 29,
       "toolsAndFinanceAccessible": true
     },

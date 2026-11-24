@@ -6911,6 +6911,10 @@ html[data-p07-ui="enabled"] .v3-cmd-trigger:active {
   transform: scale(var(--ds-pressed-scale));
 }
 
+html[data-p07-ui="enabled"] .project-app .achievement-item:not(.unlocked) :is(.achievement-tier, .achievement-status) {
+  color: var(--ds-text);
+}
+
 html[data-p07-ui="enabled"] .v3-kbd {
   display: inline-flex;
   align-items: center;
@@ -9903,6 +9907,7 @@ html[data-p07-ui="enabled"] .modal-layer.is-closing .modal-panel {
 /* Authenticated Home Launcher Clean Viewport Fit & Compact Footer */
 @media (min-width: 981px) {
   html[data-p07-ui="enabled"] body.is-authenticated[data-workspace-route="home"] {
+    height: 100dvh;
     min-height: 100dvh;
     display: flex;
     flex-direction: column;
@@ -9910,7 +9915,7 @@ html[data-p07-ui="enabled"] .modal-layer.is-closing .modal-panel {
 
   html[data-p07-ui="enabled"] body.is-authenticated[data-workspace-route="home"] #appShell.app-shell {
     min-height: 0;
-    flex: 1 1 auto;
+    flex: 1 1 0%;
     display: flex;
     flex-direction: column;
     padding-bottom: 0;
@@ -9918,7 +9923,7 @@ html[data-p07-ui="enabled"] .modal-layer.is-closing .modal-panel {
 
   html[data-p07-ui="enabled"] body.is-authenticated[data-workspace-route="home"] .v3-app-frame {
     min-height: 0;
-    flex: 1 1 auto;
+    flex: 1 1 0%;
     align-items: stretch;
   }
 
@@ -9938,6 +9943,7 @@ html[data-p07-ui="enabled"] .modal-layer.is-closing .modal-panel {
     display: flex;
     flex-direction: column;
     min-height: 0;
+    overflow-y: auto;
   }
 
   html[data-p07-ui="enabled"] body.is-authenticated[data-workspace-route="home"] #publicHome[data-session-mode="authenticated"] {
@@ -9950,13 +9956,13 @@ html[data-p07-ui="enabled"] .modal-layer.is-closing .modal-panel {
   html[data-p07-ui="enabled"] body.is-authenticated[data-workspace-route="home"] .gpt-home-launcher {
     flex: 1 1 auto;
     min-height: 0;
-    padding: 20px 24px 24px;
+    padding: 18px 24px 20px;
   }
 
   html[data-p07-ui="enabled"] body.is-authenticated .site-help-footer {
     flex: 0 0 auto;
     margin-top: 0;
-    padding: 4px 24px max(4px, env(safe-area-inset-bottom));
+    padding: 2px 24px max(16px, env(safe-area-inset-bottom));
     display: flex;
     flex-wrap: wrap;
     align-items: center;

@@ -12,7 +12,7 @@
 | 基线提交 | `820a14b09154a3517c46355766cd83c6f3b9ec83`（PR #180 `hydrogen/v63-anti-template-structural-redesign`） |
 | 开发分支 & Draft PR | `hydrogen/v63-user-approved-ui-redesign` · Draft PR #181 |
 | 隔离 Hosted Preview Alias | https://v63-phase1.thewyj-v63-preview.pages.dev |
-| 最新 V2 Cloudflare Pages 部署 URL | https://0fd87c47.thewyj-v63-preview.pages.dev |
+| 最新 V2 Cloudflare Pages 部署 URL | https://bdd75a35.thewyj-v63-preview.pages.dev |
 | 预览环境隔离确认 | Pages 项目 `thewyj-v63-preview` 分支 `v63-phase1`，绑定独立预览库 `wyj-cloud-preview`（`a3e6253b-689f-49f3-998b-7c5828ea255a`）；`/api/status?source=cloud` 返回 `"status_env": "preview"`，与生产 `wyj-cloud-production` 完全隔离 |
 
 ---
@@ -60,7 +60,7 @@
 ## 5. V2 视觉证据、1.0x 正常倍速录屏与多阶段耗时实测
 
 ### 5.1 证据目录（保留 `before/` 与初版 `after/`，新增 `after-v2/` 与 `preview/`）
-- **1.0x 正常倍速全流程录屏**：[`phase1-v2-walkthrough.mp4`](./evidence/after-v2/phase1-v2-walkthrough.mp4)（`992` 帧 · 真实时长 `28.31s` · `1.0x` 原速 `ffconcat` 合成，完整覆盖顶部通知条展示与关闭、普通用户与永久会员与管理员三账户切换及退出、侧边栏 `256↔64px` 连续动画与快速连击打断、底部上弹菜单、Command Palette、下拉选择器、工具/语言/财务/传输模块切换、Strategy C 返回恢复与移动端 `390x844` 抽屉交互）
+- **1.0x 正常倍速全流程录屏**：[`phase1-v2-walkthrough.mp4`](./evidence/after-v2/phase1-v2-walkthrough.mp4)（`922` 帧 · 真实时长 `27.12s` · `1.0x` 原速 `ffconcat` 合成，完整覆盖顶部通知条展示与关闭、普通用户与永久会员与管理员三账户切换及退出、侧边栏 `256↔64px` 连续动画与快速连击打断、底部上弹菜单、Command Palette、下拉选择器、工具/语言/财务/传输模块切换、Strategy C 返回恢复与移动端 `390x844` 抽屉交互）
 - **V2 本地隔离验收截图（[`evidence/after-v2/`](./evidence/after-v2/)）**：
   - [`after-guest-home-1440.png`](./evidence/after-v2/after-guest-home-1440.png) / [`after-top-version-banner-1440.png`](./evidence/after-v2/after-top-version-banner-1440.png) / [`after-guest-home-dark-1440.png`](./evidence/after-v2/after-guest-home-dark-1440.png)
   - [`after-auth-home-1440.png`](./evidence/after-v2/after-auth-home-1440.png) / [`after-auth-home-dark-1440.png`](./evidence/after-v2/after-auth-home-dark-1440.png) / [`after-sidebar-collapsed-1440.png`](./evidence/after-v2/after-sidebar-collapsed-1440.png)
@@ -73,17 +73,17 @@
 ### 5.2 模块切换全链路多阶段耗时实测（[`phase1-verification.json`](./evidence/phase1-verification.json)）
 
 在本地隔离 Wrangler Miniflare（`127.0.0.1:8796`）+ 单实例无头 Chromium（`127.0.0.1:9231`）实测：
-- 冷加载 `cold_load_ms`：`2291.2 ms`
-- 热切换关键控件可交互汇总：`hot_p50_ms: 31.8 ms` · `hot_p95_ms: 94.2 ms` · `hot_max_ms: 94.2 ms`（11 次采样全部 `< 1000 ms`）
-- Slow 3G 限速切换：`slow_3g_p95_ms: 59.6 ms` · `slow_3g_max_ms: 59.6 ms`
+- 冷加载 `cold_load_ms`：`2226.1 ms`
+- 热切换关键控件可交互汇总：`hot_p50_ms: 43.6 ms` · `hot_p95_ms: 91.0 ms` · `hot_max_ms: 91.0 ms`（11 次采样全部 `< 1000 ms`）
+- Slow 3G 限速切换：`slow_3g_p95_ms: 72.2 ms` · `slow_3g_max_ms: 72.2 ms`
 
 | 模块路由 | 点击至首帧反馈 | 页面容器切换完成 | 关键控件可交互（目标 `<1000ms`） | 真实用户操作响应完成 | 动画收敛稳定 |
 |---|---|---|---|---|---|
-| `tools`（输入搜索 `json`） | `85.2 ms` | `91.3 ms` | **`94.2 ms`** | `109.6 ms` | `356.2 ms` |
-| `language`（进入英语工作区） | `23.8 ms` | `26.3 ms` | **`30.4 ms`** | `88.0 ms` | `338.4 ms` |
-| `finance`（打开并关闭新增账目弹窗） | `55.8 ms` | `71.9 ms` | **`77.0 ms`** | `114.2 ms` | `366.9 ms` |
-| `transfer`（配额与选文件就绪） | `38.6 ms` | `41.4 ms` | **`42.5 ms`** | `44.2 ms` | `289.0 ms` |
-| `home`（返回个人启动台） | `37.1 ms` | `40.0 ms` | **`41.1 ms`** | `41.1 ms` | `284.2 ms` |
+| `tools`（输入搜索 `json`） | `61.1 ms` | `64.5 ms` | **`65.8 ms`** | `76.0 ms` | `318.2 ms` |
+| `language`（进入英语工作区） | `17.5 ms` | `22.8 ms` | **`29.7 ms`** | `76.4 ms` | `326.0 ms` |
+| `finance`（打开并关闭新增账目弹窗） | `68.6 ms` | `86.2 ms` | **`91.0 ms`** | `121.9 ms` | `364.4 ms` |
+| `transfer`（配额与选文件就绪） | `38.6 ms` | `41.8 ms` | **`43.6 ms`** | `46.1 ms` | `286.7 ms` |
+| `home`（返回个人启动台） | `50.2 ms` | `52.9 ms` | **`54.6 ms`** | `54.6 ms` | `297.0 ms` |
 
 ---
 
@@ -94,14 +94,13 @@
 | `npm run cf:check` + `npm run pages:stage` + `npm run task27:publication` | **PASS** | Functions 编译、20 条目发布清单及 `.wrangler/pages-output` 通过 |
 | 静态安全与仓内审计（`repository_audit.py` / `check_js_module_graph.mjs` / `check_storage_contract.mjs` / `functional_audit_gate.py`） | **PASS** | 2419 文件、67 ESM 模块 / 120 导入、31 存储键族、27 路由 / 104 工具 / 12 工作流能力全通过 |
 | `python -m unittest local-backend.test_static` | **PASS** | 31/31 通过 |
-| `node --test` 契约与 SW 套件（9 个测试文件） | **PASS** | 31/31 通过，0 failed / 0 skipped |
+| `node --test` 契约与 SW 套件（9 个测试文件） | **PASS** | 81/81 通过，0 failed / 0 skipped |
 | `node qa/v63-phase1/verify_phase1.mjs`（本地隔离 E2E） | **PASS** | 全部 V2 视觉/动效/三角色/9 档视口/`prefers-reduced-motion`（`1e-06s`）/Strategy C/0 报错通过 |
 | Hallmark `sloplint.mjs --render --url http://127.0.0.1:8796 --scope app` | **PASS** | `0 FAIL, 0 REFLEX, 1 WARN`（`F19` 字体字重提醒），覆盖 1280/1440/1920 折叠与 1440/375 整页渲染 |
 | Impeccable `doctor` & `detect` | **PASS（带提示）** | `detect` 无新增 Phase 1 对比度/内边距/发光错误；`doctor` 提示未安装 `.agents/hooks.json`（按规则未安装未授权 hooks） |
 | Taste Skill `copy-lint.mjs index.html --kind software` | **PASS** | `0 FAIL, 0 WARN` |
-| Core CI Job 复现：`local-backend/test_app_browser.mjs` | **PASS** | 本轮修改测试选择器适配 `#v3Sidebar` 后本地隔离跑通 24/24 |
-| Core CI Job 复现：`qa/aeris/*.mjs`（17 套）+ `test_interaction_feedback` + `transfer-clipboard` + `test_task15_cloud` + `test_task18` + `qa/task25` | **PASS** | 22 套浏览器套件本地隔离全通过（`p3` 首屏 CLS=0）；注：末次仅针对登录态桌面 `/` 的 footer/sidebar 高度 CSS 微调未更改公开页/模块页交互逻辑，最终远程 CI 结果以 PR #181 推送触发为准 |
-| 隔离 Hosted Preview 在线三账户实测（[`hosted-preview-verification.json`](./evidence/preview/hosted-preview-verification.json)） | **PASS** | `https://v63-phase1.thewyj-v63-preview.pages.dev` 游客/`v63p1_free`/`v63p1_vip`/`v63p1_admin` 全通过，0 运行时错误 |
+| Core CI 浏览器套件（含 `test_app_browser`、`qa/aeris/*.mjs`、`publication-browser`、`rollback-browser` 等） | **待随 PR #181 推送全量复跑** | 已在本地隔离跑通相关浏览器回归，末次桌面 `height: 100dvh` 2px 微调后将以 PR #181 GitHub Actions Core CI 全量结果为准 |
+| 隔离 Hosted Preview 在线三账户实测（[`hosted-preview-verification.json`](./evidence/preview/hosted-preview-verification.json)） | **PASS** | `https://v63-phase1.thewyj-v63-preview.pages.dev`（`bdd75a35`）游客/`v63p1_free`/`v63p1_vip`（`scrollH=900`）/`v63p1_admin` 全通过，0 运行时错误 |
 
 ---
 

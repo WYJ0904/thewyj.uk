@@ -301,7 +301,7 @@ async function run() {
         await new Promise((r) => setTimeout(r, 60));
       }
       const diag = await evalJs(`(() => ({ path: location.pathname, bodyCls: document.body.className, p07Ui: document.documentElement.dataset.p07Ui, policy: document.documentElement.dataset.interfacePolicy, hidden: document.hidden, loginErr: document.getElementById("loginError")?.textContent || "", boot: document.documentElement.dataset.bootState }))()`).catch(() => ({}));
-      throw new Error(`waitFor timed out: ${predicateExpr}; diag=${JSON.stringify(diag)}`);
+      throw new Error(`waitFor timed out: ${predicateExpr}; mfExit=${mfProc?.exitCode}; diag=${JSON.stringify(diag)}`);
     };
     const shot = async (name) => {
       await new Promise((r) => setTimeout(r, 260));
@@ -849,6 +849,7 @@ async function run() {
 
     // --- Admin User Isolation & Role/Membership Caption Check (included in screencast) ---
     recordingFrames = true;
+    await send("Network.clearBrowserCookies");
     await evalJs(`(() => { localStorage.clear(); sessionStorage.clear(); })()`);
     await send("Page.navigate", { url: `${BASE_URL}/login` });
     await waitFor(`document?.documentElement?.dataset?.bootState === "ready" && document?.getElementById("authPanel")?.classList && !document.getElementById("authPanel").classList.contains("hidden")`);
