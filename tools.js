@@ -228,7 +228,7 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
     const favorite = favoriteFor(tool.id);
     const category = categoryFor(tool);
     return `<article class="tool-card" data-tool-card="${tool.id}">
-      <button class="tool-open" type="button" data-open-tool="${tool.id}" title="${tool.name}"><span>${iconSvg(category.id)}</span><strong>${tool.name}</strong><small>${tool.description}</small><em>${category.name}</em></button>
+      <button class="tool-open" type="button" data-open-tool="${tool.id}" title="${tool.name}"><span>${iconSvg(category.id)}</span><strong>${tool.name}</strong><small>${tool.description}</small></button>
       <button class="tool-card-favorite${favorite ? " active" : ""}" type="button" data-toggle-favorite="${tool.id}" aria-pressed="${Boolean(favorite)}" aria-label="${favorite ? "取消收藏" : "收藏"} ${tool.name}">${iconSvg("bookmark", "ui-icon bookmark-icon")}</button>
     </article>`;
   }

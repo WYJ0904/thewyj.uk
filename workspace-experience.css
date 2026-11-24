@@ -1946,7 +1946,7 @@ html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] .v3-s
 
 @media (min-width: 761px) {
   .modal-layer#workspaceDetailModal[data-sheet-mode="modal"] .modal-panel.workspace-detail-panel {
-    animation: dsModalPanelIn var(--ds-duration-container, 420ms) var(--ds-ease-spring) backwards;
+    animation: dsModalPanelIn var(--ds-duration-container, 420ms) var(--ds-ease-decelerate) backwards;
   }
 }
 
@@ -1969,7 +1969,7 @@ html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] .v3-s
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  animation: dsDrawerSheetIn var(--ds-duration-sheet, 320ms) var(--ds-ease-spring) backwards;
+  animation: dsDrawerSheetIn var(--ds-duration-sheet, 320ms) var(--ds-ease-decelerate) backwards;
 }
 
 .modal-layer[data-sheet-mode="drawer"] .modal-panel[data-sheet-dragging="true"] {

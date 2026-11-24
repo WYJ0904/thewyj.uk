@@ -270,7 +270,7 @@ body[data-experience="public"] .site-nav-links .site-nav-card > a.active {
   display: flex;
   align-items: center;
   overflow: hidden;
-  padding: var(--ds-space-12) max(var(--ds-space-6), calc((100vw - var(--ds-container-default)) / 2));
+  padding: var(--ds-space-12) max(var(--ds-space-6), calc((100% - var(--ds-container-default)) / 2));
   border: 0;
   color: var(--ds-stage-text);
   /* Blend the hero into the page canvas so the boundary reads as one page. */
@@ -1352,7 +1352,7 @@ html:has(body[data-experience="public"]),body[data-experience="public"] {min-wid
 .site-brand {flex-shrink:0;}
 .home-search {margin-left:auto;}
 .site-nav-toggle {display:none;}
-#publicHome .public-hero {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.08fr);gap:64px;align-items:center;height:auto;min-height:640px;padding:40px max(32px,calc((100vw - var(--ds-container-default))/2));overflow:visible;}
+#publicHome .public-hero {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.08fr);gap:64px;align-items:center;height:auto;min-height:640px;padding:40px max(32px,calc((100% - var(--ds-container-default))/2));overflow:visible;}
 #publicHome .public-hero::after {display:none;}
 #publicHome .public-intro-copy {width:100%;min-width:0;}
 #publicHome .home-brand h1 {font-size:3.625rem;letter-spacing:-.045em;}

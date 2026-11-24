@@ -1486,7 +1486,7 @@ function renderHomeSessionUi(account) {
   home.dataset.sessionMode = account ? "authenticated" : "guest";
   home.querySelectorAll("[data-home-personal]").forEach(node => { node.hidden = !account; });
   const v3UiActive = document.documentElement.dataset.p07Ui === "enabled";
-  $("publicLoginBtn").textContent = v3UiActive ? (account ? "进入空间 →" : "探索 Aeris →") : "账户";
+  $("publicLoginBtn").textContent = v3UiActive ? (account ? "账户设置" : "登录工作台") : "账户";
   $("publicRegisterBtn").textContent = "继续学习";
   const labels = { learning: account ? "打开学习" : "试做最多 10 题", tools: account ? "打开工具箱" : "试用本地工具", finance: account ? "打开账本" : "登录查看账本", files: "文件与分享", account: account ? "管理账户" : "登录账户" };
   home.querySelectorAll("[data-public-capability]").forEach(node => { node.textContent = labels[node.dataset.publicCapability]; });
@@ -5492,7 +5492,7 @@ function applyInterfacePolicy() {
   for (const check of [...presentationListeners]) check();
   const loginBtn = $("publicLoginBtn");
   if (loginBtn) {
-    loginBtn.textContent = enabled ? (hasAuthenticatedAccount ? "进入空间 →" : "探索 Aeris →") : "账户";
+    loginBtn.textContent = enabled ? (hasAuthenticatedAccount ? "账户设置" : "登录工作台") : "账户";
   }
 }
 featureController = createFeatureController({ api, apiGet,
