@@ -47,7 +47,7 @@ import {
 } from "./js/core/session.js?release=20261121-aeris-i05-preview";
 import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?release=20261121-aeris-i05-preview";
 import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?release=20261121-aeris-i05-preview";
-import { initDesignSystem, setExperienceMode, setInterfaceEnhancementsEnabled, dialogFocusTargets, focusDialog, workspaceRouteMeta, syncWorkspaceShell, syncSidebarActiveIndicator, syncSystemNoticeLayout } from "./js/core/design-system.js?release=20261121-aeris-i05-preview";
+import { initDesignSystem, setExperienceMode, setInterfaceEnhancementsEnabled, dialogFocusTargets, focusDialog, workspaceRouteMeta, syncWorkspaceShell, syncSidebarActiveIndicator, syncSystemNoticeLayout, closeAccountPopover, closeActiveSelectPopover } from "./js/core/design-system.js?release=20261121-aeris-i05-preview";
 import { createPublicUiPolicyController } from "./js/core/public-ui-policy.js?release=20261121-aeris-i05-preview";
 import { completeStartupSplash, canPresentWorkspace, waitForPresentation } from "./js/core/startup.js?release=20261121-aeris-i05-preview";
 import { installMotionSystem, motionDuration, prefersReducedMotion, attachSheetAdapter, syncModalScrollLock, setControlFeedbackState, getSharedToastManager, showToast, dismissToastByKey, invalidateToastContext, animateRouteViewEntrance, createAssetPrefetcher } from "./js/core/motion.js?release=20261121-aeris-i05-preview";
@@ -7868,8 +7868,9 @@ function scheduleBackendRecovery(baseDelayMs = 250) {
 }
 
 function closeAccountMenu() {
+  closeAccountPopover({ immediate: true });
   const menu = $("accountMenu");
-  if (menu) menu.open = false;
+  if (menu?.open) menu.open = false;
 }
 
 function dismissTopOverlay() {
@@ -7954,8 +7955,7 @@ function setupResponsiveDisclosures() {
     });
   });
   desktop?.addEventListener?.("change", () => {
-    // A breakpoint change is a layout change, not a user preference: reapply.
-    nodes.forEach((node) => { delete node.dataset.userToggled; });
+    // Only apply default breakpoint state to disclosures the user hasn't manually toggled.
     sync();
   });
   sync();
@@ -7982,6 +7982,7 @@ async function navigateFromSiteNav(destination) {
     return;
   }
   closeAccountMenu();
+  closeActiveSelectPopover({ restoreFocus: false, immediate: true });
   if (destination === "home") {
     if (state.session && state.account) showModulePicker(true);
     else showPublicHome(true);
@@ -8579,10 +8580,7 @@ async function boot() {
       closeModal("membershipModal");
     }
   });
-  document.addEventListener("click", (event) => {
-    const menu = $("accountMenu");
-    if (menu?.open && !menu.contains(event.target)) closeAccountMenu();
-  });
+  // Outside click dismissal for #accountMenu is owned by js/core/design-system.js (pointerdown + closing animation).
   $("changeSecretForm").addEventListener("submit", changeOwnSecret);
   $("toggleCurrentSecretBtn").addEventListener("click", () => setSecretFieldsVisibility(["currentSecretInput"], "toggleCurrentSecretBtn", $("currentSecretInput").type === "password"));
   $("toggleNewSecretBtn").addEventListener("click", () => setSecretFieldsVisibility(["newSecretInput", "newSecretConfirmInput"], "toggleNewSecretBtn", $("newSecretInput").type === "password"));

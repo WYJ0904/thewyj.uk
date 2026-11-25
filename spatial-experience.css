@@ -9313,6 +9313,21 @@ html[data-p07-ui="enabled"] .v3-sidebar-nav {
   overflow-y: auto;
   overflow-x: hidden;
   padding-right: 0;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+html[data-p07-ui="enabled"] #v3Sidebar,
+html[data-p07-ui="enabled"] #v3Sidebar .v3-sidebar-nav {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+html[data-p07-ui="enabled"] #v3Sidebar::-webkit-scrollbar,
+html[data-p07-ui="enabled"] #v3Sidebar .v3-sidebar-nav::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 html[data-p07-ui="enabled"] .v3-sidebar-group {
@@ -9744,11 +9759,24 @@ html[data-p07-ui="enabled"] #publicHome[data-session-mode="authenticated"] {
 }
 
 html[data-p07-ui="enabled"] .gpt-home-launcher {
-  min-height: calc(100dvh - 110px);
+  min-height: calc(100dvh - var(--site-nav-height, 56px) - var(--owner-preview-banner-height, 0px) - var(--ds-hud-version-offset, 0px) - 72px);
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 36px 24px 64px;
+  justify-content: flex-start;
+  padding: 24px 24px 36px;
+}
+
+html[data-p07-ui="enabled"] .gpt-home-launcher::before {
+  content: "";
+  flex: 4 1 0%;
+  min-height: 12px;
+}
+
+html[data-p07-ui="enabled"] .gpt-home-launcher::after {
+  content: "";
+  flex: 6 1 0%;
+  min-height: 16px;
 }
 
 html[data-p07-ui="enabled"] .gpt-launcher-inner {
@@ -10299,7 +10327,9 @@ html[data-p07-ui="enabled"] .ds-select-trigger[aria-expanded="true"] .ds-select-
   background: var(--ds-surface-raised);
   box-shadow: var(--ds-shadow-dialog);
   overflow: hidden;
-  animation: dsSelectPopoverIn var(--ds-duration-fast) var(--ds-ease-decelerate);
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  animation: dsSelectPopoverIn var(--ds-duration-fast) var(--ds-ease-decelerate) both;
 }
 
 html[data-p07-ui="enabled"] .site-help-footer {
@@ -10667,7 +10697,7 @@ html[data-p07-ui="enabled"] .modal-layer.is-closing .modal-panel {
     overflow-y: auto;
   }
 
-  html[data-p07-ui="enabled"] body.is-authenticated[data-workspace-route="home"] .v3-main-canvas {
+  html[data-p07-ui="enabled"] body.is-authenticated[data-workspace-route="home"] #v3MainCanvas.v3-main-canvas {
     display: flex;
     flex-direction: column;
     min-height: 0;
@@ -10684,6 +10714,10 @@ html[data-p07-ui="enabled"] .modal-layer.is-closing .modal-panel {
   html[data-p07-ui="enabled"] body.is-authenticated[data-workspace-route="home"] .gpt-home-launcher {
     flex: 1 1 auto;
     min-height: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
     padding: 18px 24px 20px;
   }
 

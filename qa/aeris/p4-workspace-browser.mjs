@@ -12,9 +12,11 @@ const cdpUrl = process.env.WYJ_CDP_URL || 'http://127.0.0.1:9228';
 const fixtureRoot = path.resolve('.tool-e2e/aeris-p4/fixtures');
 fs.mkdirSync(fixtureRoot, { recursive: true });
 fs.mkdirSync(path.dirname(output), { recursive: true });
+const nowDate = new Date();
+const fixtureAnchorMs = new Date(nowDate.getFullYear(), nowDate.getMonth(), 15, 12).getTime();
 const rows = Array.from({ length: 1500 }, (_, i) => ({
   id: `p4-ledger:${String(i).padStart(5, '0')}`, direction: i % 3 === 0 ? 'income' : 'expense',
-  amount_minor: i + 1, occurred_at_ms: new Date(2026, 9, 5, 12).getTime() - i * 60000,
+  amount_minor: i + 1, occurred_at_ms: fixtureAnchorMs - i * 60000,
   merchant: i === 3 ? 'P4 长文件与商户名称 '.repeat(12) : `P4 merchant ${i}`,
   category_id: 'p4-category:daily', currency: 'CNY', status: 'active', source_kind: i % 2 ? 'manual' : 'automatic',
   reconciliation_state: 'confirmed', revision: 1, note: i === 4 ? 'P4 long note '.repeat(20) : '',

@@ -1211,8 +1211,9 @@ export function createFinanceController({
       </div>
       ${unconvertedBanner}
       <div class="finance-trend-month-table">
-        <div class="finance-trend-month-head" aria-hidden="true"><span>月份</span><span>收入</span><span>支出</span><span>结余</span></div>
+        <div class="finance-trend-month-head" aria-hidden="true"><span>月份</span><span>收入</span><span>支出</span><span>收支差额</span></div>
         <div class="finance-trend-month-grid" id="financeTrendMonthList" aria-label="月度收支明细">${monthRows}</div>
+        <p class="finance-currency-note">走势与月度收支差额按「收入 − 支出」统计（不含退款）；总览本月结余按「收入 + 退款 − 支出」计算。</p>
       </div>`;
 
     const stage = wrap.querySelector(".finance-chart-stage");
@@ -1243,7 +1244,7 @@ export function createFinanceController({
         <strong>${escapeHtml(p.fullLabel)} <small>${p.count} 笔</small></strong>
         <div class="finance-tooltip-row"><span class="is-income">收入</span><b>${escapeHtml(formatMoney(p.val))}</b></div>
         <div class="finance-tooltip-row"><span class="is-expense">支出</span><b>${escapeHtml(formatMoney(p.exp))}</b></div>
-        <div class="finance-tooltip-row"><span>结余</span><b>${netSign}${escapeHtml(formatMoney(net))}</b></div>`;
+        <div class="finance-tooltip-row"><span>收支差额</span><b>${netSign}${escapeHtml(formatMoney(net))}</b></div>`;
       tooltip.classList.remove("hidden");
       const stageW = stage?.clientWidth || svgWidth;
       const tipW = tooltip.offsetWidth || 156;
@@ -1357,7 +1358,7 @@ export function createFinanceController({
     }
     const fmt = (v) => formatFinanceMoney(Math.round(v * unit), primaryCurrency);
     host.innerHTML = `<div class="finance-analytics-table">
-      <div class="finance-analytics-thead"><span>月份</span><span>收入</span><span>支出</span><span>结余</span><span>笔数</span></div>
+      <div class="finance-analytics-thead"><span>月份</span><span>收入</span><span>支出</span><span>收支差额</span><span>笔数</span></div>
       ${activeMonths.map((m) => {
         const net = m.income - m.expense;
         return `<div class="finance-analytics-trow"><strong>${escapeHtml(m.fullLabel)}</strong><span class="is-income">${escapeHtml(fmt(m.income))}</span><span class="is-expense">${escapeHtml(fmt(m.expense))}</span><span class="${net >= 0 ? "is-income" : "is-expense"}">${net > 0 ? "+" : ""}${escapeHtml(fmt(net))}</span><small>${m.count} 笔</small></div>`;
@@ -2242,7 +2243,19 @@ export function createFinanceController({
 
   function accountUpdated() {
     serverDeniedAccess = false;
-    if (!element("financePage")?.classList.contains("hidden")) show();
+    if (element("financePage")?.classList.contains("hidden")) return;
+    const nextAccountId = String(account()?.id || "");
+    const allowed = hasAccess();
+    const lockedHidden = element("financeLocked")?.classList.contains("hidden");
+    const sameAccount = Boolean(store) && currentAccountId === nextAccountId;
+    const accessChanged = allowed !== Boolean(lockedHidden);
+    if (sameAccount && !accessChanged && allowed) {
+      void fetchCurrencyPreferences();
+      void loadReferences();
+      void syncNow();
+      return;
+    }
+    show();
   }
 
   function dashboardSummary() {

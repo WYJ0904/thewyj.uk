@@ -211,6 +211,8 @@ export function createFinanceCandidatesController({
   let active = false;
   let lifecycleVersion = 0;
   let autoCollapsedEmpty = false;
+  let userToggledPending = false;
+  let programmaticPendingToggle = false;
   // Task 24 reopen #7: one *automatic* refresh at a time, and only the newest
   // list may paint. A manual refresh must never be answered by a load that
   // started before the user's click (legacy Task 21 gate: the second candidate
@@ -285,11 +287,14 @@ export function createFinanceCandidatesController({
     if (element("financePendingCount")) element("financePendingCount").textContent = hasCanonicalObservation ? String(candidates.length) : "待核对";
     pendingDisclosure?.pending(candidates.map(item => item.canonical_id || item.id));
     const cleanEmpty = hasCanonicalObservation && candidates.length === 0 && !message;
-    section.dataset.pendingEmpty = cleanEmpty ? "true" : "false";
+    if (section.dataset) section.dataset.pendingEmpty = cleanEmpty ? "true" : "false";
+    else section.setAttribute?.("data-pending-empty", cleanEmpty ? "true" : "false");
     if (candidates.length > 0) autoCollapsedEmpty = false;
-    else if (cleanEmpty && !autoCollapsedEmpty) {
+    else if (cleanEmpty && !autoCollapsedEmpty && !userToggledPending) {
       autoCollapsedEmpty = true;
+      programmaticPendingToggle = true;
       section.open = false;
+      window.setTimeout(() => { programmaticPendingToggle = false; }, 0);
     }
     const banner = element("financeCandidateMessage");
     if (banner) { banner.textContent = message; banner.hidden = !message; }
@@ -692,6 +697,9 @@ export function createFinanceCandidatesController({
       pendingDisclosure = createFinanceDisclosure({ element: element("financeCandidatesSection"), storage,
         accountId: () => account()?.id, section: "pending", defaultOpen: true });
       pendingDisclosure.restore();
+      element("financeCandidatesSection")?.addEventListener("toggle", () => {
+        if (!programmaticPendingToggle) userToggledPending = true;
+      });
       element("financeCandidatesSection")?.addEventListener("click", handleClick);
       element("financeCandidatesSection")?.addEventListener("submit", handleSubmit);
       document.addEventListener("thewyj:payment-updated", () => {
@@ -733,6 +741,7 @@ export function createFinanceCandidatesController({
       currentCandidates = [];
       hasCanonicalObservation = false;
       autoCollapsedEmpty = false;
+      userToggledPending = false;
       canonicalRecords = [];
       hasCanonicalObservation = false;
     }
