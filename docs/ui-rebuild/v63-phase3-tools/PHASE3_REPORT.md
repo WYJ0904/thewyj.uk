@@ -1,46 +1,50 @@
-# Aeris V6.3 — Phase 3 V2 专项整改交付报告
+# Aeris V6.3 Phase 3 工具箱全量审查与统一整改报告
 
-## 1. 部署与分支状态
-- **Phase 2 CI 修复分支**：`hydrogen/v63-phase2-finance-redesign`（HEAD `1bb7a840`，Draft PR #182 已推送，已安全合并同步至 Phase 3 分支）
-- **Phase 3 V2 分支**：`hydrogen/v63-phase3-tools-redesign`（Draft PR #184）
-- **独立 Hosted Preview**：`https://v63-phase3.thewyj-v63-preview.pages.dev`（本次部署实例：`https://5f790ee2.thewyj-v63-preview.pages.dev`）
-- **边界遵守**：未合并 `main`、未部署 Production、未发布 Android Stable、未启动 Phase 4、保留 Phase 1 / Phase 2 Preview 与历史证据。
+- **当前分支**：`hydrogen/v63-phase3-tools-redesign` (Draft PR #184)
+- **Phase 2 基线**：`hydrogen/v63-phase2-finance-redesign` (`2c76d2e9`, Draft PR #182，Core CI `45590898967` PASS)
+- **Hosted Preview**：`https://v63-phase3.thewyj-v63-preview.pages.dev`（当前部署实例：`https://3c8bed6b.thewyj-v63-preview.pages.dev`）
+- **作用域确认**：未合并 `main`、未部署 Production、未发布 Android Stable、未开启 Phase 4；全部 104 个注册工具（103 可见 + `temporary-file -> /transfer` 重定向）与历史 Phase 1/2 Preview 完整保留。
 
-## 2. 本轮 V2 核心整改清单
-1. **工具目录视觉与搜索精修**：
-   - 修复 `styles.css:1465` `.tool-open > span` 导致的搜索结果分类徽章被裁成 30px 圆形溢出问题（改用 `<em class="tool-tile-cat">` 并重置尺寸）。
-   - 修复 `spatial-experience.css:8622` 特异性覆盖导致的图标左偏与单行截断问题；实测图标块水平居中偏差 `0px`，长工具名称（如 `camelCase 转换`、`正则表达式替换`、`提取数字和日期`）支持 2–3 行完整自然换行。
-   - 每个工具采用独立浅灰可点击表面（浅色 `rgb(244,244,244)`）+ 内部更浅色居中图标块（浅色 `rgb(253,253,253)` / 深色 `#252932`）+ `12px` 网格留白；隐藏浏览器原生重复搜索清除叉号，保留单一“清空”按钮并柔化聚焦光晕。
-   - 扩充 `js/tools/catalog.js` 细线 SVG 图标库，区分文本统计/去重/删空行/合并空格/排序/随机排序、密码/UUID、各类骰子/硬币/转盘等相似工具。
-2. **统一 Aeris 文件选择器与拖放区**：
-   - 在所有文件/图片工具及工作流文件输入中视觉隐藏原生 `<input type="file">`（`.visually-hidden` 保留无障碍与系统对话框），统一为 Aeris 风格拖放区 + 文件清单 + 重新选择/清空操作，保留全部本地处理隐私与上限校验。
-3. **统一权重滑杆与真实动画随机工具**（完整保留已认可的安全密码生成器）：
-   - **权重滑杆引擎**：`0%`–`100%`、`0.5%` 步进（内部使用 `0..200` 整数半百分点杜绝浮点漂移），实时显示设定权重与归一化概率，`0%` 选项自动退出转盘且不可被抽中，全 `0%` 阻止抽取；隐藏 `#randomEntries` 双向同步，100% 兼容旧版 `名称|权重` 预设与工作流（旧版 >100 权重按比例换算并给出提示）。
-   - **交互式转盘**（`weighted-wheel` / `random-wheel`）：低饱和 SVG 比例扇区、滑杆拖动实时联动、固定 12 点指针、3.8s 连续多圈缓出旋转并精准停在中奖扇区内。
-   - **真实 3D 骰子**（`dice-d6` 真实六面 CSS 3D 立方体点数 + `d4/d8/d10/d12/d20/custom-dice` 多面体翻转）：连续立体抛掷并落定至与结果一致的朝向。
-   - **真实 3D 人民币 1 元硬币**（`coin-flip`）：严格参照中国人民银行 2019 年版第五套人民币 1 元硬币（正面“中国人民银行 1 元 YIYUAN”、背面菊花与“2019”、6 层金属边缘厚度），连续立体翻转落定。
-4. **工程遗留与性能优化**：
-   - **Phase 2 CI 修复**：修复 `js/finance/candidates.js` 在隐藏标签页下调用 `form.reportValidity()` 触发 `An invalid form control with name='amount'/'direction' is not focusable` 运行时错误的问题，并同步至 Phase 3。
-   - **Phase 3 CI 修复**：恢复 `CATALOG_BATCH = 24`，`qa/aeris/p5-contract-browser.mjs` 实测 100% 通过（103 工具 / 4 批次 / DOM 复用 / 0 错误）。
-   - **工具箱加载性能（<1s 目标）**：`app.js` 与 `tools.js` 并行预取 `/api/tools/preferences` 且不阻塞目录首次交互。Hosted Preview 实测：**冷进入 `767ms`**（优化前 `1500ms`）、**热重入 `33ms`**、**搜索 `178ms`**、**打开工具 `34ms`**。
+## 一、核心工程修复（P0）
 
-## 3. 自动化测试与线上 3 账号验收
-| 检查项 | 结果 | 详情 |
-|---|---|---|
-| `local-backend/test_phase3_random_weights.mjs` | **PASS** | 6/6（`0%/0.5%/50%/99.5%/100%`、全 0 拦截、旧预设兼容、转盘/骰子/硬币确定性视觉映射、图标区分度） |
-| `local-backend/test_i06_module_experience.mjs` | **PASS** | 2/2（`0 !important`、`81/89/89` SW 壳清单完整） |
-| `local-backend/test_tools_js.mjs` | **PASS** | 38/38 |
-| `npm run cf:check` & `npm run pages:stage` | **PASS** | Worker 编译与 Allowlisted 打包通过 |
-| `functional_audit_gate.py` & `repository_audit.py` | **PASS** | 27 路由 / 104 工具 / 51 模式 / 2480 文件检查通过 |
-| `qa/aeris/p5-contract-browser.mjs` | **PASS** | 本地隔离 Wrangler+Chromium：`catalogTotal: 103, batches: 4, runtimeErrors: 0` |
-| Hosted Preview `v63p1_admin` | **PASS** | `p07Ui: enabled`, 冷进入 `767ms`, `centerDelta: 0`, `mobileOverflow: 0`, `runtimeErrors: 0` |
-| Hosted Preview `v63p1_free` | **PASS** | 无工具箱权限正确拦截（`cards: 0`, `runtimeErrors: 0`） |
-| Hosted Preview `v63p1_vip` | **PASS** | 工具箱完整可用（`cards: 24`, `p07Ui: enabled`, `runtimeErrors: 0`） |
+1. **原子化 PWA 资源图与版本防混载 (`P0-01`)**：
+   - 将 `scripts/update_task27_publication.mjs` 与 `sw.js` 对齐为自动化完整清单校验，覆盖 80 项源码/样式/ESM 模块 SHA-256 指纹（`89` 项预缓存安装图中的全部文本/代码资产）。
+   - 修复失败场景保留旧客户端与用户缓存：`sw-install.test.mjs`（24/24）、`sw-install-browser.mjs`（8 浏览器场景：`normal`, `slow`, `failure-retry`, `body-timeout`, `warm`, `task26-failure`, `stale-task26`, `warm-task26-failure`）与 `qa/aeris/p5-pwa-browser.mjs` 全部 PASS。
+2. **工具箱 CSS 与 Feature Flag 安全解耦 (`P0-03`)**：
+   - 清理 `spatial-experience.css` 中遗留 I06 `.tool-catalog/.tool-card` 细线样式冲突。
+   - 解耦 `#toolsPanel` 目录瓷砖、图标居中、50:50 转盘、40:60 舞台、3D D6 骰子与硬币、多面体 SVG 与居中临时工具双栏规则，确保在 `p07_accessibility` 为 `enabled`、`disabled` 或 `error` 时几何与功能均不退化；同时保留 `tools-legacy-nav` (`#leaveToolsBtn`) 仅在 `html[data-p07-ui="enabled"]` 下隐藏的回退契约。
+3. **测试与交互状态契约收敛 (`P0-02`, `P2-02`, CI)**：
+   - 随机工具统一增加 `data-random-state="idle|running|settled"`，升级 `local-backend/test_tools_browser.mjs` 验证完整动画落定与真实视觉状态。
+   - 修复 `app.js` 中 `/tools` 会员到期时间未定义 `formatDate` 异常（统一调用 `formatLocalDateTime`）与非阻塞 `/api/tools/access` 并行校验 (`P1-07`)。
+   - 修复 `app.js` 移动端首屏切换 `/` -> `/tools` 时 `showStartupRecovery` / `markStartupScreenPresented` 的遮罩残留问题 (`P2-02`)。
+   - 修复 `js/core/motion.js` 键盘 `Enter`/`Space` 触发导航失焦后残留 `data-aeris-pressed="true"` 缩放态的问题。
+   - 修复 Phase 2 与 Phase 3 `local-backend/test_static.py` 中 `--ds-text-secondary` 仍硬编码旧色 `#696969`（已升级为 WCAG AA `#595959`）导致的静态检查失败。
 
-## 4. 视觉与录屏证据
-- 1.0x 原速完整交互录屏：`docs/ui-rebuild/v63-phase3-tools/phase3-v2-walkthrough.mp4`
-- V2 真实渲染截图目录：`docs/ui-rebuild/v63-phase3-tools/screenshots/v2/`
-  - `01-directory-light.png` / `02-search-results.png` / `03-directory-dark.png` / `04-directory-mobile.png`
-  - `05-file-picker-dropzone.png` / `06-weighted-wheel.png` / `07-dice-3d.png` / `08-coin-rmb-1yuan.png`
-- 网络研究映射：`docs/ui-rebuild/v63-phase3-tools/REFERENCE_MAPPING_V2.md`
-- 五大 Skill 核验：`docs/ui-rebuild/v63-phase3-tools/FIVE_SKILLS_AUDIT.md`
+## 二、目录、工具台与随机体验整改
+
+- **工具目录 (`103` 可见卡片)**：统一 4px 间距与柔和灰瓷砖底（`--ds-surface-subtle`）、更浅居中图标底（`--ds-surface`）、始终可辨认的右上角收藏按钮（默认透明度 `0.56`）、完整自然换行长名称（取消 `-webkit-line-clamp`），消除 `.tool-category-pill-count` 与 `0%` 选项行的对比度降级。
+- **转盘与权重体验 (`P1-01`, `P1-03`, `P1-05`)**：
+  - 桌面端重构为左控制（4 个默认独立单行选项、0.5% 步进滑杆、结果、开始按钮）与右转盘 50:50；手机端顶部紧凑粘性转盘与下方选项列表可同屏调参联动。
+  - 转盘顶部指针采用与转盘共享 `viewBox="0 0 320 320"` 的内嵌 SVG 叠层（Preview 实测水平中心偏差 `<= 2.5px`）。
+  - `js/tools/random.js` 新增非 0.5% 历史权重无损比例保留 (`exactWeight` / `precisionPreserved`) 并在默认多选项工具统一提供 4 个初始条目。
+- **3D 骰子、多面体、硬币、配色与临时工具 (`P1-02`, `P1-04`, `P1-06`, `P2-01`, `P3-01`, `P3-02`)**：
+  - 桌面 40:60 左控右舞台；D6 为真 3D 点阵立方体，D4/D8/D10/D12/D20 与自定义骰通过 `renderDicePolyhedronSvg()` 渲染对应分面多面体 SVG。
+  - 硬币为单枚 2019 版人民币 1 元正反面 `preserve-3d` 实体（零分离、零镜像）。
+  - 配色/调色板展示可点击复制 HEX 色卡且无内联 `style` 冲突；文件错误同步展示至 `#fileToolResult.is-error`；`temporary-*` 采用居中对称双栏且提交具备 `withButtonPending` 锁定态。
+
+## 三、验证汇总与 Aeris 资源调度记录
+
+- **单元测试与静态检查**：
+  - Python (`local-backend`): `186 tests OK`; (`scripts`): `68 tests OK`; `test_static.py`: `31 tests OK`.
+  - JavaScript & SW (`test_phase3_random_weights`, `test_tools_js`, `test_i02_css_contracts`, `test_i06_module_experience`, `test_v6_ui_contracts`, `test_i07_motion_engine`, `test_interaction_feedback_js`, `sw-install.test.mjs`): 相关测试全部 PASS；`npm run cf:check`、`functional_audit_gate.py`、`repository_audit.py` 全部 PASS。
+- **远端 GitHub Actions Core CI**：
+  - PR #182 (`2c76d2e9`): Run `45590898967` **SUCCESS**。
+  - PR #184 (`c1a5c8ea`): Run `45604824646` **SUCCESS**（8/8 活跃 Job 全绿，包含 `Browser flow (application)` 与 `Cloud-only browser, canonical session and toolbox`）。
+- **本地重型浏览器验证（串行执行，每次仅 1 套堆栈）**：
+  - `qa/p07-release/sw-install-browser.mjs` (8 场景) **PASS**；`qa/v63-phase3/verify_phase3_tools.mjs` **PASS** (`104` 注册/`103` 可见, 1.0x MP4 视频已更新)；`qa/v63-phase3/verify_phase3_v2.mjs` + 降级 UI (`disabled`/`error`) 矩阵 **PASS**。
+- **Hosted Preview 全量复测 (`https://v63-phase3.thewyj-v63-preview.pages.dev`)**：
+  - **104/104** 注册工具（103 可见 + `temporary-file -> /transfer`）与 **69** 种模式在 Desktop (`1440x900`) 与 Mobile (`390x844`) 全数实测 **PASS**，`0` 运行时错误，`0` 溢出，`10/10` 随机工具 1.0x walkthrough MP4 完成编码。
+  - 账户矩阵：`v63p1_free` 拦截并打开 `/recharge` (`cards=0`)，`v63p1_vip` 与 `v63p1_admin` 完整可用。
+  - 性能延迟：5 次冷入 `/tools` P50 = `125ms`、P95 = `127ms`、max = `129ms`；热切换 P50 = `63ms`。
+  - 移动端 `/` -> `/tools` 连续切换 5 轮 `spuriousRecovery = 0`。
+- **资源清理确认**：全部临时 Wrangler/Miniflare 与自动化 Chromium 进程均已在任务退出时精准回收，无本任务遗留后台任务或子进程。
