@@ -1,6 +1,6 @@
 # Aeris V6.3 Phase 3 — 五大设计 Skill 实际执行与审查报告
 
-本次 Phase 3 工具箱重构严格读取并执行了 `C:\Users\78252\.gemini\config\skills` 下的五个已安装 Skill，未使用任何未经授权的 Live Apply 或审批绕过机制。
+本次 Phase 3 工具箱重构严格读取并执行了 `~/.gemini/config/skills` 下的五个已安装 Skill，未使用任何未经授权的 Live Apply 或审批绕过机制。
 
 | Skill | 实际执行内容 | 关键设计决策与落地结果 |
 |---|---|---|
