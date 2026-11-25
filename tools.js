@@ -7,6 +7,8 @@ import {
   TOOLS,
   iconSvg,
   searchTools,
+  toolIconSvg,
+  toolLayoutType,
 } from "./js/tools/catalog.js?release=20261121-aeris-i05-preview";
 import { randomToolResult } from "./js/tools/random.js?release=20261121-aeris-i05-preview";
 import { buildVcardPayload, buildWifiPayload } from "./js/tools/temporary.js?release=20261121-aeris-i05-preview";
@@ -71,7 +73,7 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
 
   const byId = (id) => document.getElementById(id);
   const catalogRows = createParkedRows(() => byId("toolCatalog"));
-  const CATALOG_BATCH = 24;
+  const CATALOG_BATCH = 48;
   let catalogLimit = CATALOG_BATCH, catalogFilter = "";
   const categoryFor = (tool) => CATEGORY_MAP.get(tool.category);
   const favoriteFor = (toolId) => preferences.favorites.find((item) => item.tool_id === toolId);
@@ -210,13 +212,21 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
   function renderCategories() {
     const target = byId("toolCategoryList");
     if (!target) return;
-    reconcileKeyedRows(target, CATEGORY_DEFINITIONS, { key: category => category.id, render: (category) => {
-      const count = CATALOG_TOOLS.filter((tool) => tool.category === category.id).length;
-      return `<button class="tool-category-card${currentCategory === category.id ? " active" : ""}" type="button" data-tool-category="${category.id}" aria-pressed="${currentCategory === category.id}">
-        <span class="tool-category-mark" aria-hidden="true">${iconSvg(category.id)}</span>
-        <span><strong>${category.name}</strong><small>${category.description}</small><em>${count} 个工具</em></span>
-      </button>`;
-    }});
+    const items = [
+      { id: "all", name: "全部工具", shortName: "全部", count: CATALOG_TOOLS.length },
+      ...CATEGORY_DEFINITIONS.map((category) => ({
+        ...category,
+        count: CATALOG_TOOLS.filter((tool) => tool.category === category.id).length,
+      })),
+    ];
+    reconcileKeyedRows(target, items, {
+      key: (category) => category.id,
+      signature: (category) => `${category.id}:${currentCategory === category.id}:${category.count}`,
+      render: (category) => `<button class="tool-category-pill${currentCategory === category.id ? " active" : ""}" type="button" data-tool-category="${category.id}" aria-pressed="${currentCategory === category.id}">
+        <span class="tool-category-pill-name">${category.shortName || category.name}</span>
+        <span class="tool-category-pill-count">${category.count}</span>
+      </button>`,
+    });
   }
 
   function visibleTools() {
@@ -227,9 +237,15 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
   function toolCard(tool) {
     const favorite = favoriteFor(tool.id);
     const category = categoryFor(tool);
-    return `<article class="tool-card" data-tool-card="${tool.id}">
-      <button class="tool-open" type="button" data-open-tool="${tool.id}" title="${tool.name}"><span>${iconSvg(category.id)}</span><strong>${tool.name}</strong><small>${tool.description}</small></button>
-      <button class="tool-card-favorite${favorite ? " active" : ""}" type="button" data-toggle-favorite="${tool.id}" aria-pressed="${Boolean(favorite)}" aria-label="${favorite ? "取消收藏" : "收藏"} ${tool.name}">${iconSvg("bookmark", "ui-icon bookmark-icon")}</button>
+    const hasQuery = Boolean((byId("toolSearchInput")?.value || "").trim());
+    const tooltip = `${tool.name}：${tool.description}`;
+    return `<article class="tool-card" data-tool-card="${tool.id}" data-tool-category-id="${tool.category}">
+      <button class="tool-open" type="button" data-open-tool="${tool.id}" title="${escapeHtml(tooltip)}">
+        <span class="tool-tile-glyph" aria-hidden="true">${toolIconSvg(tool)}</span>
+        <strong class="tool-tile-name">${escapeHtml(tool.name)}</strong>
+        ${hasQuery ? `<span class="tool-tile-cat">${escapeHtml(category.shortName || category.name)}</span>` : ""}
+      </button>
+      <button class="tool-card-favorite${favorite ? " active" : ""}" type="button" data-toggle-favorite="${tool.id}" aria-pressed="${Boolean(favorite)}" aria-label="${favorite ? "取消收藏" : "收藏"} ${escapeHtml(tool.name)}" title="${favorite ? "取消收藏" : "收藏"}">${iconSvg("bookmark", "ui-icon bookmark-icon")}</button>
     </article>`;
   }
 
@@ -247,21 +263,28 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
   function renderCatalog() {
     if (byId("toolsPanel")?.classList.contains("hidden")) return;
     catalogRows.resume();
+    const query = (byId("toolSearchInput")?.value || "").trim();
+    byId("toolSearchClearBtn")?.classList.toggle("hidden", !query);
     const tools = visibleTools();
     const target = byId("toolCatalog");
     if (!target) return;
-    byId("toolCatalogTitle").textContent = currentCategory === "all" ? "全部工具" : CATEGORY_MAP.get(currentCategory).name;
+    byId("toolCatalogTitle").textContent = query
+      ? `搜索结果`
+      : (currentCategory === "all" ? "全部工具" : (CATEGORY_MAP.get(currentCategory)?.name || "全部工具"));
     byId("toolResultCount").textContent = `${tools.length} 项`;
-    const filter = `${currentCategory}:${byId("toolSearchInput")?.value || ""}`;
+    const filter = `${currentCategory}:${query}`;
     if (filter !== catalogFilter) { catalogFilter = filter; catalogLimit = CATALOG_BATCH; }
-    reconcileKeyedRows(target, tools.slice(0, catalogLimit), { key: tool => tool.id,
-      signature: tool => `${tool.id}:${Boolean(favoriteFor(tool.id))}`, render: toolCard,
-      empty: '<p class="tool-empty">没有匹配的工具</p>' });
+    reconcileKeyedRows(target, tools.slice(0, catalogLimit), {
+      key: (tool) => tool.id,
+      signature: (tool) => `${tool.id}:${Boolean(favoriteFor(tool.id))}:${Boolean(query)}`,
+      render: toolCard,
+      empty: '<div class="tool-empty"><p>没有找到匹配的工具，可以试试 JSON、压图、密码或二维码。</p><button class="button-secondary" type="button" data-clear-tool-search>清空搜索</button></div>',
+    });
     target.setAttribute("aria-busy", "false");
     const more = byId("toolCatalogMoreBtn");
     if (more) { more.hidden = tools.length <= catalogLimit; more.textContent = `显示更多（剩余 ${Math.max(0, tools.length - catalogLimit)} 项）`; }
     bindToolButtons(target);
-    syncToolKeyboardHighlight(0);
+    syncToolKeyboardHighlight(query ? 0 : -1);
   }
 
   let toolKbdIndex = -1;
@@ -290,14 +313,20 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
     const recentSection = byId("recentToolsSection");
     favoriteSection?.classList.toggle("hidden", !favoriteTools.length);
     recentSection?.classList.toggle("hidden", !recentTools.length);
+    byId("toolsShelves")?.classList.toggle("hidden", !favoriteTools.length && !recentTools.length);
     if (byId("favoriteToolsList")) {
-      reconcileKeyedRows(byId("favoriteToolsList"), favoriteTools, { key: tool => tool.id,
-        render: tool => `<button type="button" data-open-tool="${tool.id}">${favoriteFor(tool.id)?.pinned ? "已固定 · " : ""}${tool.name}</button>` });
+      reconcileKeyedRows(byId("favoriteToolsList"), favoriteTools, {
+        key: (tool) => tool.id,
+        signature: (tool) => `${tool.id}:${Boolean(favoriteFor(tool.id)?.pinned)}`,
+        render: (tool) => `<button class="tool-shelf-chip" type="button" data-open-tool="${tool.id}" title="${escapeHtml(tool.description)}"><span class="tool-shelf-chip-icon" aria-hidden="true">${toolIconSvg(tool, "ui-icon")}</span><span>${favoriteFor(tool.id)?.pinned ? "已固定 · " : ""}${escapeHtml(tool.name)}</span></button>`,
+      });
       bindToolButtons(byId("favoriteToolsList"));
     }
     if (byId("recentToolsList")) {
-      reconcileKeyedRows(byId("recentToolsList"), recentTools, { key: tool => tool.id,
-        render: tool => `<button type="button" data-open-tool="${tool.id}">${tool.name}</button>` });
+      reconcileKeyedRows(byId("recentToolsList"), recentTools.slice(0, 10), {
+        key: (tool) => tool.id,
+        render: (tool) => `<button class="tool-shelf-chip" type="button" data-open-tool="${tool.id}" title="${escapeHtml(tool.description)}"><span class="tool-shelf-chip-icon" aria-hidden="true">${toolIconSvg(tool, "ui-icon")}</span><span>${escapeHtml(tool.name)}</span></button>`,
+      });
       bindToolButtons(byId("recentToolsList"));
     }
   }
@@ -363,10 +392,13 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
 
   function renderConfigControls(toolId) {
     const configs = configsFor(toolId);
-    return `<section class="tool-config-box">
-      <div><input id="toolConfigName" maxlength="80" placeholder="配置名称" /><button class="button-secondary" id="saveToolConfigBtn" type="button">保存当前参数</button></div>
-      <div class="saved-config-list" id="savedToolConfigList">${configs.map((item) => `<span><button class="button-ghost" type="button" data-load-config="${item.id}">${escapeHtml(item.name)}</button><button class="button-ghost danger-text" type="button" data-delete-config="${item.id}" aria-label="删除配置">${iconSvg("delete")}</button></span>`).join("") || "<small>暂无已保存配置</small>"}</div>
-    </section>`;
+    return `<details class="tool-config-box"${configs.length ? " open" : ""}>
+      <summary class="tool-config-summary"><span>参数预设</span><small>${configs.length ? `${configs.length} 个已保存` : "可保存常用参数"}</small></summary>
+      <div class="tool-config-inner">
+        <div class="tool-config-save-row"><input id="toolConfigName" maxlength="80" placeholder="配置名称" /><button class="button-secondary" id="saveToolConfigBtn" type="button">保存当前参数</button></div>
+        <div class="saved-config-list" id="savedToolConfigList">${configs.map((item) => `<span class="saved-config-chip"><button class="button-ghost" type="button" data-load-config="${item.id}">${escapeHtml(item.name)}</button><button class="button-ghost danger-text" type="button" data-delete-config="${item.id}" aria-label="删除配置">${iconSvg("delete")}</button></span>`).join("") || "<small>暂无已保存配置</small>"}</div>
+      </div>
+    </details>`;
   }
 
   function collectConfig() {
@@ -440,19 +472,48 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
 
   function renderTextTool(tool) {
     const { optionHtml, parameterHtml, secondaryHtml } = textToolFields(tool.id);
-    byId("toolWorkbenchBody").innerHTML = `<div class="tool-form text-tool-form">
+    const hasOptions = Boolean(optionHtml || parameterHtml.includes("<label"));
+    byId("toolWorkbenchBody").innerHTML = `<div class="tool-form text-tool-form" data-workspace-kind="split-editor">
+      <div class="tool-editor-toolbar">
+        ${hasOptions ? `<div class="tool-options tool-toolbar-options">${parameterHtml}${optionHtml}</div>` : `${parameterHtml}<div class="tool-toolbar-spacer"></div>`}
+        <div class="tool-command-row">
+          <button class="primary" id="runTextToolBtn" type="button">处理</button>
+          <button class="button-secondary" id="copyTextToolBtn" type="button">复制结果</button>
+          <button class="button-ghost" id="downloadTextToolBtn" type="button">下载 TXT</button>
+          <button class="button-ghost" id="clearTextToolBtn" type="button">清空</button>
+        </div>
+      </div>
       <div class="tool-split-pane">
         <div class="tool-pane-input">
-          <label class="tool-wide"><span>输入文本</span><textarea id="textToolInput" spellcheck="false"></textarea></label>
-          ${secondaryHtml}<div class="tool-options">${parameterHtml}${optionHtml}</div>
-          <div class="tool-command-row"><button class="primary" id="runTextToolBtn" type="button">处理</button><button class="button-secondary" id="copyTextToolBtn" type="button">复制结果</button><button class="button-ghost" id="downloadTextToolBtn" type="button">下载 TXT</button></div>
+          <div class="tool-pane-head"><span>输入</span><small id="textInputMeta">0 字符 · 0 行</small></div>
+          <label class="tool-wide tool-pane-field"><span class="visually-hidden">输入文本</span><textarea id="textToolInput" spellcheck="false" placeholder="在此粘贴或输入文本内容…"></textarea></label>
+          ${secondaryHtml}
         </div>
         <div class="tool-pane-output">
-          <label class="tool-wide"><span>结果</span><textarea id="textToolOutput" readonly></textarea></label>
+          <div class="tool-pane-head"><span>结果</span><small id="textOutputMeta">0 字符 · 0 行</small></div>
+          <label class="tool-wide tool-pane-field"><span class="visually-hidden">结果</span><textarea id="textToolOutput" readonly placeholder="处理结果将显示在这里…"></textarea></label>
         </div>
       </div>
       ${renderConfigControls(tool.id)}
     </div>`;
+    const updateMeta = (textarea, metaEl) => {
+      if (!textarea || !metaEl) return;
+      const val = textarea.value || "";
+      const lines = val ? val.split(/\r?\n/).length : 0;
+      metaEl.textContent = `${val.length} 字符 · ${lines} 行`;
+    };
+    const inputEl = byId("textToolInput");
+    const outputEl = byId("textToolOutput");
+    inputEl?.addEventListener("input", () => updateMeta(inputEl, byId("textInputMeta")));
+    byId("clearTextToolBtn")?.addEventListener("click", () => {
+      if (inputEl) inputEl.value = "";
+      if (byId("textToolSecondary")) byId("textToolSecondary").value = "";
+      if (outputEl) outputEl.value = "";
+      updateMeta(inputEl, byId("textInputMeta"));
+      updateMeta(outputEl, byId("textOutputMeta"));
+      setMessage("");
+      inputEl?.focus({ preventScroll: true });
+    });
     byId("runTextToolBtn").addEventListener("click", async (event) => {
       const button = event.currentTarget;
       button.disabled = true;
@@ -463,6 +524,7 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
         }
         const output = runTextOperation(tool.id, byId("textToolInput").value, byId("textToolSecondary").value, byId("textToolParameter").value, byId("textToolOption")?.value || "");
         byId("textToolOutput").value = output;
+        updateMeta(outputEl, byId("textOutputMeta"));
         setMessage(tool.id === "chinese-convert" && getOpenCcSource() !== "opencc" ? "官方词典不可用，已使用内置基础词典" : "处理完成");
       } catch (error) {
         setMessage(`处理失败：${error.message}`, true);
@@ -479,7 +541,11 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
     const needsEntries = ["random-draw", "random-groups", "random-wheel", "weighted-wheel", "random-decision"].includes(tool.id);
     const numeric = ["random-integer", "random-decimal"].includes(tool.id);
     const strings = ["random-string", "random-password"].includes(tool.id);
-    byId("toolWorkbenchBody").innerHTML = `<div class="tool-form random-tool-form">
+    byId("toolWorkbenchBody").innerHTML = `<div class="tool-form random-tool-form" data-workspace-kind="compact-generator">
+      <div class="tool-random-stage">
+        <div class="tool-random-stage-head"><span>生成结果</span><div class="tool-command-row"><button class="primary" id="runRandomToolBtn" type="button">生成</button><button class="button-secondary" id="copyRandomResultBtn" type="button">复制结果</button></div></div>
+        <output class="random-result" id="randomResult">点击“生成”获取结果</output>
+      </div>
       <div class="tool-options">
         ${numeric ? '<label><span>最小值</span><input data-config="minimum" id="randomMinimum" type="number" value="0" /></label><label><span>最大值</span><input data-config="maximum" id="randomMaximum" type="number" value="100" /></label>' : ""}
         ${tool.id === "random-decimal" ? '<label><span>小数位</span><input data-config="precision" id="randomPrecision" type="number" min="0" max="12" value="2" /></label>' : ""}
@@ -491,9 +557,7 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
         ${tool.id === "custom-dice" ? '<label><span>骰子面数</span><input data-config="sides" id="randomSides" type="number" min="2" value="6" /></label>' : ""}
         ${tool.id === "random-date" ? '<label><span>开始日期</span><input data-config="startDate" id="randomStartDate" type="date" value="2000-01-01" /></label><label><span>结束日期</span><input data-config="endDate" id="randomEndDate" type="date" /></label>' : ""}
       </div>
-      ${needsEntries ? `<label class="tool-wide"><span>${tool.id === "weighted-wheel" ? "选项（每行：名称|权重）" : "选项（每行一个）"}</span><textarea data-config="entries" id="randomEntries"></textarea></label>` : ""}
-      <div class="tool-command-row"><button class="primary" id="runRandomToolBtn" type="button">生成</button><button class="button-secondary" id="copyRandomResultBtn" type="button">复制结果</button></div>
-      <output class="random-result" id="randomResult">等待生成</output>
+      ${needsEntries ? `<label class="tool-wide"><span>${tool.id === "weighted-wheel" ? "选项（每行：名称|权重）" : "选项（每行一个）"}</span><textarea data-config="entries" id="randomEntries" placeholder="每行输入一个选项…"></textarea></label>` : ""}
       ${renderConfigControls(tool.id)}
     </div>`;
     if (byId("randomEndDate")) byId("randomEndDate").value = new Date().toISOString().slice(0, 10);
@@ -510,7 +574,11 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
           passwordDigits: byId("passwordDigits")?.checked, passwordSymbols: byId("passwordSymbols")?.checked,
         };
         const result = randomToolResult(tool.id, values);
-        byId("randomResult").textContent = result;
+        const outEl = byId("randomResult");
+        outEl.textContent = result;
+        outEl.classList.remove("is-fresh");
+        void outEl.offsetWidth;
+        outEl.classList.add("is-fresh");
         setMessage(tool.id === "random-password" ? "密码只在本机生成，未上传服务器" : "生成完成");
       } catch (error) { setMessage(error.message, true); }
     });
@@ -522,7 +590,9 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
     stopRoomPolling();
     cancelActiveUpload(false);
     if (!currentTool) return;
-    byId("toolWorkbenchCategory").textContent = categoryFor(currentTool).name;
+    const workbench = byId("toolWorkbench");
+    if (workbench) workbench.dataset.toolLayout = toolLayoutType(currentTool);
+    byId("toolWorkbenchCategory").textContent = categoryFor(currentTool).shortName || categoryFor(currentTool).name;
     byId("toolWorkbenchTitle").textContent = currentTool.name;
     byId("toolWorkbenchDescription").textContent = currentTool.description;
     setMessage("");
@@ -649,10 +719,28 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
       byId("toolCatalog")?.setAttribute("aria-busy", "true");
       catalogSearchTimer = window.setTimeout(() => { currentCategory = "all"; renderCategories(); renderCatalog(); }, 120);
     };
+    const clearSearch = () => {
+      const input = byId("toolSearchInput");
+      if (!input) return;
+      input.value = "";
+      window.clearTimeout(catalogSearchTimer);
+      renderCategories();
+      renderCatalog();
+      input.focus({ preventScroll: true });
+    };
+    byId("toolSearchClearBtn")?.addEventListener("click", clearSearch);
+    byId("toolCatalog")?.addEventListener("click", (event) => {
+      if (event.target.closest("[data-clear-tool-search]")) clearSearch();
+    });
     byId("toolSearchInput")?.addEventListener("input", queueSearch);
     byId("toolSearchInput")?.addEventListener("compositionend", queueSearch);
     byId("toolSearchInput")?.addEventListener("keydown", (event) => {
       if (event.isComposing) return;
+      if (event.key === "Escape" && byId("toolSearchInput")?.value) {
+        event.preventDefault();
+        clearSearch();
+        return;
+      }
       const cards = [...(byId("toolCatalog")?.querySelectorAll(".tool-card[data-tool-card]") || [])];
       if (!cards.length) return;
       if (event.key === "ArrowDown") {
@@ -697,7 +785,8 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
       const button = event.target.closest("[data-tool-category]");
       if (!button) return;
       window.clearTimeout(catalogSearchTimer);
-      currentCategory = currentCategory === button.dataset.toolCategory ? "all" : button.dataset.toolCategory;
+      const next = button.dataset.toolCategory;
+      currentCategory = next === "all" ? "all" : (currentCategory === next ? "all" : next);
       renderCategories(); renderCatalog();
     });
     byId("closeToolWorkbenchBtn")?.addEventListener("click", () => closeWorkbench(true));
@@ -883,18 +972,54 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
     const multiple = !["csv-json", "json-csv", "text-encoding", "text-split", "csv-split"].includes(tool.id);
     const acceptsImages = tool.id === "images-pdf";
     const parameterLabel = ["text-split", "csv-split"].includes(tool.id) ? "每份数据行数" : tool.id === "rename-preview" ? "新文件名前缀" : "参数";
-    byId("toolWorkbenchBody").innerHTML = `<div class="tool-form file-tool-form">
-      <label class="file-drop"><span>选择${multiple ? "一个或多个" : "一个"}文件</span><input id="fileToolInput" type="file" ${multiple ? "multiple" : ""} ${acceptsImages ? 'accept="image/*"' : ""} /></label>
-      <p class="local-processing-note">文件默认只在本地浏览器中处理，不会上传服务器。单次最多 50 个文件、总计 50 MB。</p>
-      <div class="tool-options">
-        ${["text-split", "csv-split", "rename-preview"].includes(tool.id) ? `<label><span>${parameterLabel}</span><input id="fileToolParameter" data-config="parameter" value="${tool.id === "rename-preview" ? "file" : "1000"}" /></label>` : '<input id="fileToolParameter" type="hidden" />'}
-        ${["csv-json", "json-csv", "text-encoding", "text-split", "csv-split", "txt-merge", "csv-merge", "json-array-merge"].includes(tool.id) ? '<label><span>源文本编码</span><select id="fileToolEncoding" data-config="encoding"><option value="utf-8">UTF-8</option><option value="gbk">GBK</option><option value="big5">Big5</option><option value="shift_jis">Shift-JIS</option></select></label>' : '<select id="fileToolEncoding" class="hidden"><option value="utf-8"></option></select>'}
+    const hasParam = ["text-split", "csv-split", "rename-preview"].includes(tool.id);
+    const hasEnc = ["csv-json", "json-csv", "text-encoding", "text-split", "csv-split", "txt-merge", "csv-merge", "json-array-merge"].includes(tool.id);
+    byId("toolWorkbenchBody").innerHTML = `<div class="tool-form file-tool-form" data-workspace-kind="file-pipeline">
+      <div class="tool-file-pipeline-grid">
+        <div class="tool-file-input-col">
+          <label class="file-drop" id="fileToolDropzone">
+            <span class="file-drop-title">选择或拖放${multiple ? "一个或多个" : "一个"}文件</span>
+            <small class="file-drop-hint">仅在当前浏览器本地处理 · 最多 50 个文件、总计 50 MB</small>
+            <input id="fileToolInput" type="file" ${multiple ? "multiple" : ""} ${acceptsImages ? 'accept="image/*"' : ""} />
+          </label>
+          <div class="tool-file-manifest hidden" id="fileToolManifest" aria-live="polite"></div>
+          <div class="tool-options${hasParam || hasEnc ? "" : " hidden"}">
+            ${hasParam ? `<label><span>${parameterLabel}</span><input id="fileToolParameter" data-config="parameter" value="${tool.id === "rename-preview" ? "file" : "1000"}" /></label>` : '<input id="fileToolParameter" type="hidden" />'}
+            ${hasEnc ? '<label><span>源文本编码</span><select id="fileToolEncoding" data-config="encoding"><option value="utf-8">UTF-8</option><option value="gbk">GBK</option><option value="big5">Big5</option><option value="shift_jis">Shift-JIS</option></select></label>' : '<select id="fileToolEncoding" class="hidden"><option value="utf-8"></option></select>'}
+          </div>
+          <div class="tool-command-row"><button class="primary" id="runFileToolBtn" type="button">开始处理</button><button class="button-secondary" id="downloadFileToolBtn" type="button" disabled>下载结果</button><button class="button-ghost" id="copyFileToolBtn" type="button">复制文本结果</button></div>
+        </div>
+        <div class="tool-file-output-col">
+          <div class="tool-pane-head"><span>处理结果</span><small>本地计算</small></div>
+          <pre class="file-result" id="fileToolResult">等待选择文件并开始处理</pre>
+        </div>
       </div>
-      <div class="tool-command-row"><button class="primary" id="runFileToolBtn" type="button">开始处理</button><button class="button-secondary" id="downloadFileToolBtn" type="button" disabled>下载结果</button><button class="button-ghost" id="copyFileToolBtn" type="button">复制文本结果</button></div>
-      <pre class="file-result" id="fileToolResult">等待处理</pre>
       ${renderConfigControls(tool.id)}
     </div>`;
     currentDownload = null;
+    const dropzone = byId("fileToolDropzone");
+    const fileInput = byId("fileToolInput");
+    const manifest = byId("fileToolManifest");
+    const renderManifest = () => {
+      const list = [...(fileInput?.files || [])];
+      if (!manifest) return;
+      manifest.classList.toggle("hidden", !list.length);
+      if (!list.length) { manifest.innerHTML = ""; return; }
+      const total = list.reduce((sum, f) => sum + f.size, 0);
+      manifest.innerHTML = `<div class="tool-file-manifest-head"><strong>已选 ${list.length} 个文件</strong><small>${formatBytes(total)}</small></div><ul>${list.slice(0, 8).map((f) => `<li><span>${escapeHtml(f.name)}</span><small>${formatBytes(f.size)}</small></li>`).join("")}${list.length > 8 ? `<li><span>其余 ${list.length - 8} 个文件…</span></li>` : ""}</ul>`;
+    };
+    fileInput?.addEventListener("change", renderManifest);
+    if (dropzone && fileInput) {
+      dropzone.addEventListener("dragover", (event) => { event.preventDefault(); dropzone.classList.add("is-dragover"); });
+      dropzone.addEventListener("dragleave", () => dropzone.classList.remove("is-dragover"));
+      dropzone.addEventListener("drop", (event) => {
+        event.preventDefault();
+        dropzone.classList.remove("is-dragover");
+        if (event.dataTransfer?.files?.length) {
+          try { fileInput.files = event.dataTransfer.files; renderManifest(); } catch (_) {}
+        }
+      });
+    }
     byId("runFileToolBtn").addEventListener("click", async () => {
       const button = byId("runFileToolBtn"); button.disabled = true; setMessage("正在处理…");
       try {
@@ -1126,16 +1251,47 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
   function renderImageTool(tool) {
     const standalone = ["color-convert", "gradient-generator", "gradient-css", "solid-image"].includes(tool.id);
     const multiple = ["image-batch-compress", "image-pdf"].includes(tool.id);
-    byId("toolWorkbenchBody").innerHTML = `<div class="tool-form image-tool-form">
-      ${standalone ? "" : `<label class="file-drop"><span>选择${multiple ? "一组" : "一张"}图片</span><input id="imageToolInput" type="file" accept="image/png,image/jpeg,image/webp,image/gif" ${multiple ? "multiple" : ""} /></label>`}
-      ${tool.id === "image-watermark" ? '<label class="file-drop"><span>选择水印图片</span><input id="imageOverlayInput" type="file" accept="image/*" /></label>' : ""}
-      <p class="local-processing-note">图片在本地浏览器中处理。批量操作最多 20 张、总计 50 MB。</p>
-      <div class="tool-options">${imageFields(tool.id)}</div>
-      <div class="tool-command-row"><button class="primary" id="runImageToolBtn" type="button">开始处理</button><button class="button-secondary" id="downloadImageToolBtn" type="button" disabled>下载结果</button><button class="button-ghost" id="copyImageTextBtn" type="button">复制结果信息</button></div>
-      <pre class="file-result" id="imageToolResult">等待处理</pre><div class="image-preview" id="imageToolPreview"></div>
+    const fieldsMarkup = imageFields(tool.id);
+    byId("toolWorkbenchBody").innerHTML = `<div class="tool-form image-tool-form" data-workspace-kind="studio-preview">
+      <div class="tool-studio-grid">
+        <div class="tool-studio-controls">
+          ${standalone ? "" : `<label class="file-drop" id="imageToolDropzone"><span class="file-drop-title">选择或拖放${multiple ? "一组" : "一张"}图片</span><small class="file-drop-hint">本地浏览器处理 · 最多 20 张、总计 50 MB</small><input id="imageToolInput" type="file" accept="image/png,image/jpeg,image/webp,image/gif" ${multiple ? "multiple" : ""} /></label><div class="tool-file-manifest hidden" id="imageToolManifest" aria-live="polite"></div>`}
+          ${tool.id === "image-watermark" ? '<label class="file-drop"><span class="file-drop-title">选择水印图片</span><input id="imageOverlayInput" type="file" accept="image/*" /></label>' : ""}
+          ${fieldsMarkup ? `<div class="tool-options">${fieldsMarkup}</div>` : ""}
+          <div class="tool-command-row"><button class="primary" id="runImageToolBtn" type="button">开始处理</button><button class="button-secondary" id="downloadImageToolBtn" type="button" disabled>下载结果</button><button class="button-ghost" id="copyImageTextBtn" type="button">复制信息</button></div>
+        </div>
+        <div class="tool-studio-stage">
+          <div class="tool-pane-head"><span>预览与结果</span><small>原始图片与输出区分</small></div>
+          <div class="image-preview" id="imageToolPreview"><span class="image-preview-placeholder">处理完成后将在此显示真实结果预览</span></div>
+          <pre class="file-result" id="imageToolResult">等待处理</pre>
+        </div>
+      </div>
       ${renderConfigControls(tool.id)}
     </div>`;
     currentDownload = null;
+    const imgInput = byId("imageToolInput");
+    const imgManifest = byId("imageToolManifest");
+    const imgDrop = byId("imageToolDropzone");
+    const updateImgManifest = () => {
+      const list = [...(imgInput?.files || [])];
+      if (!imgManifest) return;
+      imgManifest.classList.toggle("hidden", !list.length);
+      if (!list.length) { imgManifest.innerHTML = ""; return; }
+      const total = list.reduce((sum, f) => sum + f.size, 0);
+      imgManifest.innerHTML = `<div class="tool-file-manifest-head"><strong>原图：${list.length} 张</strong><small>${formatBytes(total)}</small></div><ul>${list.slice(0, 4).map((f) => `<li><span>${escapeHtml(f.name)}</span><small>${formatBytes(f.size)}</small></li>`).join("")}</ul>`;
+    };
+    imgInput?.addEventListener("change", updateImgManifest);
+    if (imgDrop && imgInput) {
+      imgDrop.addEventListener("dragover", (event) => { event.preventDefault(); imgDrop.classList.add("is-dragover"); });
+      imgDrop.addEventListener("dragleave", () => imgDrop.classList.remove("is-dragover"));
+      imgDrop.addEventListener("drop", (event) => {
+        event.preventDefault();
+        imgDrop.classList.remove("is-dragover");
+        if (event.dataTransfer?.files?.length) {
+          try { imgInput.files = event.dataTransfer.files; updateImgManifest(); } catch (_) {}
+        }
+      });
+    }
     byId("runImageToolBtn").addEventListener("click", async () => {
       const button = byId("runImageToolBtn"); button.disabled = true; setMessage("正在本地处理…");
       try {
@@ -1144,6 +1300,7 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
         byId("imageToolResult").textContent = result.text || "处理完成";
         const preview = byId("imageToolPreview"); preview.innerHTML = "";
         if (result.canvas) { const shown = document.createElement("canvas"); const scale = Math.min(1, 720 / result.canvas.width, 460 / result.canvas.height); shown.width = Math.max(1, Math.round(result.canvas.width * scale)); shown.height = Math.max(1, Math.round(result.canvas.height * scale)); shown.getContext("2d").drawImage(result.canvas, 0, 0, shown.width, shown.height); preview.appendChild(shown); }
+        else { preview.innerHTML = '<span class="image-preview-placeholder">该工具输出文本/文档结果，请查看下方信息或下载文件</span>'; }
         currentDownload = result.blob ? { blob: result.blob, name: result.name } : null;
         byId("downloadImageToolBtn").disabled = !currentDownload;
         setMessage("本地处理完成");
@@ -1349,15 +1506,23 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
   }
 
   function renderTemporaryQr(tool) {
-    byId("toolWorkbenchBody").innerHTML = `<div class="tool-form temporary-tool-form">
-      <label><span>二维码类型</span><select id="qrKind" data-config="kind"><option value="text">文本</option><option value="url">URL</option><option value="wifi">Wi-Fi</option><option value="contact">联系信息</option></select></label>
-      <div class="tool-wide" id="qrStructuredFields"></div>
-      <label class="admin-checkbox"><input id="qrDynamic" data-config="dynamic" type="checkbox" /> 生成会自动失效的临时链接</label>
-      <div class="tool-wide hidden" id="qrDynamicOptions">${temporaryCommonFields(60)}
-        <label><span>最大访问次数</span><input id="tempMaxViews" data-config="maxViews" type="number" min="1" max="1000" value="10" /></label>
+    byId("toolWorkbenchBody").innerHTML = `<div class="tool-form temporary-tool-form" data-workspace-kind="temporary-qr">
+      <div class="tool-studio-grid">
+        <div class="tool-studio-controls">
+          <label><span>二维码类型</span><select id="qrKind" data-config="kind"><option value="text">文本</option><option value="url">URL</option><option value="wifi">Wi-Fi</option><option value="contact">联系信息</option></select></label>
+          <div class="tool-wide" id="qrStructuredFields"></div>
+          <label class="admin-checkbox"><input id="qrDynamic" data-config="dynamic" type="checkbox" /> 生成会自动失效的临时链接</label>
+          <div class="tool-wide hidden" id="qrDynamicOptions">${temporaryCommonFields(60)}
+            <label><span>最大访问次数</span><input id="tempMaxViews" data-config="maxViews" type="number" min="1" max="1000" value="10" /></label>
+          </div>
+          <div class="tool-command-row"><button class="primary" id="createTempBtn" type="button">生成二维码</button></div>
+        </div>
+        <div class="tool-studio-stage">
+          <div class="tool-pane-head"><span>二维码预览</span><small>静态二维码仅在本地生成</small></div>
+          <div class="temporary-result tool-qr-stage" id="temporaryResult"><span class="image-preview-placeholder">填写内容后点击“生成二维码”</span></div>
+        </div>
       </div>
-      <div class="tool-command-row"><button class="primary" id="createTempBtn" type="button">生成二维码</button></div>
-      <div class="temporary-result" id="temporaryResult"></div>${renderConfigControls(tool.id)}
+      ${renderConfigControls(tool.id)}
     </div>`;
     const updateFields = () => {
       byId("qrStructuredFields").innerHTML = qrStructuredFields(byId("qrKind").value);

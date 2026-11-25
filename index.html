@@ -1115,30 +1115,64 @@
 
       <section class="tools-panel hidden" id="toolsPanel" aria-hidden="true">
         <header class="tools-header">
-          <div><h1>在线工具箱</h1><p id="toolsMembershipStatus">正在验证会员权限</p></div>
-          <div class="action-row compact"><button class="button-secondary" id="toolsTransferBtn" type="button">文件传输</button><button class="button-secondary" id="toolsAccountBtn" type="button">账户</button><button class="button-ghost" id="leaveToolsBtn" type="button">返回功能选择</button></div>
+          <div class="tools-header-copy">
+            <h1>工具箱</h1>
+            <p id="toolsMembershipStatus">正在验证会员权限</p>
+          </div>
+          <div class="tools-header-actions action-row compact">
+            <button class="button-secondary tools-workflow-entry" id="openWorkflowBtn" type="button">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="12" r="2.5"/><circle cx="6" cy="18" r="2.5"/><path d="M8.5 6H12a2 2 0 0 1 2 2v2a2 2 0 0 0 2 2M8.5 18H12a2 2 0 0 0 2-2v-2"/></svg>
+              <span>工具工作流</span>
+            </button>
+            <div class="tools-legacy-nav" aria-label="快捷返回">
+              <button class="button-ghost" id="toolsTransferBtn" type="button">文件传输</button>
+              <button class="button-ghost" id="toolsAccountBtn" type="button">账户</button>
+              <button class="button-ghost" id="leaveToolsBtn" type="button">返回首页</button>
+            </div>
+          </div>
         </header>
         <div class="tools-dashboard" id="toolsDashboard">
           <div class="tools-search-bar">
-            <label class="tool-search" for="toolSearchInput"><span class="tool-search-label-row"><span>模糊搜索工具</span><small class="tool-search-kbd" aria-hidden="true">↑↓ 选择 · Enter 打开 · / 聚焦</small></span><input id="toolSearchInput" type="search" autocomplete="off" placeholder="输入名称、用途或近似关键词，例如 JSON、压图、随机密码" /></label>
-            <div class="tools-search-bar-meta">
-              <p class="local-processing-note">文本、图片与文件默认只在当前浏览器处理，不上传服务器。</p>
-              <button class="button-secondary" id="openWorkflowBtn" type="button">工具工作流</button>
+            <div class="tools-search-input-wrap">
+              <span class="tools-search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg></span>
+              <input id="toolSearchInput" type="search" autocomplete="off" aria-label="模糊搜索工具" placeholder="搜索 103 个工具，如 JSON、压图、密码、二维码、Base64…" />
+              <button class="tools-search-clear hidden" id="toolSearchClearBtn" type="button" aria-label="清空搜索">清空</button>
+              <span class="tool-search-kbd" aria-hidden="true"><kbd class="v3-kbd">/</kbd><kbd class="v3-kbd">↑↓</kbd><kbd class="v3-kbd">Enter</kbd></span>
             </div>
+            <p class="local-processing-note">文本、图片与文件默认仅在当前浏览器本地处理，不上传服务器。</p>
           </div>
-          <div class="tools-two-pane">
-            <aside class="tools-index-rail" aria-label="工具筛选与分类">
-              <section class="tool-shelf hidden" id="favoriteToolsSection"><div class="tool-section-title"><h2>收藏与固定</h2></div><div class="tool-chip-list" id="favoriteToolsList"></div></section>
-              <section class="tool-shelf hidden" id="recentToolsSection"><div class="tool-section-title"><h2>最近使用</h2><button class="button-ghost" id="clearToolHistoryBtn" type="button">清除记录</button></div><div class="tool-chip-list" id="recentToolsList"></div></section>
-              <section class="tool-category-grid" id="toolCategoryList" aria-label="工具分类"></section>
-            </aside>
-            <div class="tools-index-main">
-              <section class="tool-catalog-section"><div class="tool-section-title"><h2 id="toolCatalogTitle">全部工具</h2><span id="toolResultCount">0 项</span></div><div class="tool-catalog" id="toolCatalog"></div><button class="button-secondary" id="toolCatalogMoreBtn" type="button" hidden>显示更多</button></section>
+          <div class="tools-shelves" id="toolsShelves">
+            <section class="tool-shelf hidden" id="favoriteToolsSection" aria-label="收藏与固定"><div class="tool-shelf-head"><h2>收藏</h2></div><div class="tool-chip-list" id="favoriteToolsList"></div></section>
+            <section class="tool-shelf hidden" id="recentToolsSection" aria-label="最近使用"><div class="tool-shelf-head"><h2>最近使用</h2><button class="button-ghost tool-shelf-clear-btn" id="clearToolHistoryBtn" type="button">清除记录</button></div><div class="tool-chip-list" id="recentToolsList"></div></section>
+          </div>
+          <nav class="tool-category-bar" id="toolCategoryList" aria-label="工具分类"></nav>
+          <section class="tool-catalog-section" aria-labelledby="toolCatalogTitle">
+            <div class="tool-section-title">
+              <h2 id="toolCatalogTitle">全部工具</h2>
+              <span id="toolResultCount">0 项</span>
             </div>
-          </div>
+            <div class="tool-catalog" id="toolCatalog"></div>
+            <div class="tool-catalog-footer"><button class="button-secondary" id="toolCatalogMoreBtn" type="button" hidden>显示更多</button></div>
+          </section>
         </div>
-        <section class="tool-workbench hidden" id="toolWorkbench" aria-hidden="true">
-          <header><button class="button-ghost" id="closeToolWorkbenchBtn" type="button">返回工具列表</button><div><p id="toolWorkbenchCategory"></p><h2 id="toolWorkbenchTitle">工具</h2><p id="toolWorkbenchDescription"></p></div><div class="tool-workbench-actions"><button class="button-secondary" id="favoriteToolBtn" type="button">收藏</button><button class="button-secondary" id="pinToolBtn" type="button">固定</button></div></header>
+        <section class="tool-workbench hidden" id="toolWorkbench" aria-hidden="true" data-tool-layout="split-editor">
+          <header class="tool-workbench-header">
+            <button class="button-ghost tool-back-btn" id="closeToolWorkbenchBtn" type="button">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+              <span>返回工具箱</span>
+            </button>
+            <div class="tool-workbench-title-group">
+              <div class="tool-workbench-heading-row">
+                <h2 id="toolWorkbenchTitle">工具</h2>
+                <span class="tool-workbench-cat-badge" id="toolWorkbenchCategory"></span>
+              </div>
+              <p id="toolWorkbenchDescription"></p>
+            </div>
+            <div class="tool-workbench-actions">
+              <button class="button-secondary" id="favoriteToolBtn" type="button">收藏</button>
+              <button class="button-ghost" id="pinToolBtn" type="button">固定</button>
+            </div>
+          </header>
           <div id="toolWorkbenchBody"></div>
           <p class="error" id="toolWorkbenchMessage" aria-live="polite"></p>
         </section>

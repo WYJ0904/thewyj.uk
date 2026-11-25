@@ -1,22 +1,99 @@
 export const CATEGORY_DEFINITIONS = [
-  { id: "text", name: "文本处理工具箱", description: "清理、转换、提取、编码与 JSON 处理" },
-  { id: "file", name: "文件处理中心", description: "哈希、转换、拆分、合并、PDF 与 ZIP" },
-  { id: "image", name: "图片与设计工具", description: "压缩、格式、尺寸、裁剪、水印与配色" },
-  { id: "random", name: "随机生成器中心", description: "安全密码、抽签、分组、颜色、日期与骰子" },
-  { id: "temporary", name: "临时工具", description: "临时文本、文件、剪贴板、二维码与留言房间" },
+  { id: "text", name: "文本处理工具箱", shortName: "文本处理", description: "清理、转换、提取、编码与 JSON 处理" },
+  { id: "file", name: "文件处理中心", shortName: "文件处理", description: "哈希、转换、拆分、合并、PDF 与 ZIP" },
+  { id: "image", name: "图片与设计工具", shortName: "图片设计", description: "压缩、格式、尺寸、裁剪、水印与配色" },
+  { id: "random", name: "随机生成器中心", shortName: "随机生成", description: "安全密码、抽签、分组、颜色、日期与骰子" },
+  { id: "temporary", name: "临时工具", shortName: "临时工具", description: "临时文本、文件、剪贴板、二维码与留言房间" },
 ];
 
 export const ICON_PATHS = {
-  text: '<path d="M4 4h16v16H4z"/><path d="M8 8h8M8 12h8M8 16h5"/>',
+  text: '<path d="M4 6h16M4 12h11M4 18h14"/>',
   file: '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5M9 13h6M9 17h6"/>',
-  image: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m4 17 5-5 4 4 2-2 5 5"/>',
+  image: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="9" r="1.8"/><path d="m4 17 5-5 4 4 2-2 5 5"/>',
   random: '<path d="M4 7h3l10 10h3"/><path d="m17 14 3 3-3 3M4 17h3l3-3M14 10l3-3h3M17 4l3 3-3 3"/>',
-  temporary: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  temporary: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
   bookmark: '<path d="M7 4h10v16l-5-3-5 3z"/>',
   delete: '<path d="M3 6h18M8 6V4h8v2m3 0-1 14H6L5 6M10 11v5m4-5v5"/>',
+  json: '<path d="M8 4c-1.5 0-2 1-2 2.5v3c0 1.2-.8 2.5-2 2.5 1.2 0 2 1.3 2 2.5v3C6 19 6.5 20 8 20"/><path d="M16 4c1.5 0 2 1 2 2.5v3c0 1.2.8 2.5 2 2.5-1.2 0-2 1.3-2 2.5v3c0 1.5-.5 2.5-2 2.5"/>',
+  code: '<path d="m8 8-4 4 4 4M16 8l4 4-4 4M14 5l-4 14"/>',
+  diff: '<rect x="3" y="4" width="8" height="16" rx="1.5"/><rect x="13" y="4" width="8" height="16" rx="1.5"/><path d="M6 9h2M16 9h2M17 8v2M6 14h2"/>',
+  search: '<circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/>',
+  sort: '<path d="M7 5v14M4 16l3 3 3-3M14 7h6M14 12h4M14 17h2"/>',
+  extract: '<path d="M4 6h16M7 12h10M10 18h4"/>',
+  case: '<path d="M4 17 8.5 6 13 17M5.5 14h6M16 11c1.8 0 3 1 3 3v3M19 14.5h-2.2c-1 0-1.8.6-1.8 1.5s.8 1.5 1.8 1.5H19"/>',
+  lang: '<path d="M4 6h10M9 4v2m3 0c-.8 4.2-3.4 7.6-7 9.5M6.5 9.5c1.5 2.4 3.8 4.5 6.5 5.8M14 19l3-8 3 8M15 16.5h4"/>',
+  hash: '<path d="M5 9h14M5 15h14M10 4 8 20M16 4l-2 16"/>',
+  table: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 4v16M15 10v10"/>',
+  split: '<path d="M4 6h6v12H4zM14 6h6v12h-6zM12 4v16"/>',
+  merge: '<path d="M6 4v5a3 3 0 0 0 3 3h6a3 3 0 0 0 3-3V4M12 12v8m-3-3 3 3 3-3"/>',
+  zip: '<path d="M6 3h8l4 4v14H6z"/><path d="M12 6v2M12 10v2M12 14v2M10 17h4"/>',
+  pdf: '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5M8.5 15.5h7M8.5 12.5h4.5"/>',
+  crop: '<path d="M6 3v13a2 2 0 0 0 2 2h13"/><path d="M3 6h13a2 2 0 0 1 2 2v13"/>',
+  resize: '<path d="M15 4h5v5M20 4l-6 6M9 20H4v-5M4 20l6-6"/>',
+  rotate: '<path d="M20 12a8 8 0 1 1-2.3-5.6L20 9"/><path d="M20 4v5h-5"/>',
+  flip: '<path d="M12 4v16M8 8l-4 4 4 4V8zM16 8l4 4-4 4V8z"/>',
+  watermark: '<path d="M4 7h16M8 7v10M16 7v10M6 17h12"/>',
+  shield: '<path d="M12 3 5 6v6c0 4.5 3 7.8 7 9 4-1.2 7-4.5 7-9V6z"/><path d="m9.5 12 2 2 3.5-4"/>',
+  palette: '<circle cx="12" cy="12" r="8.5"/><circle cx="9" cy="10" r="1"/><circle cx="13" cy="8.5" r="1"/><circle cx="15.5" cy="11.5" r="1"/><path d="M14 15.5a2 2 0 0 0 2 2h1.5"/>',
+  key: '<circle cx="8" cy="12" r="3.5"/><path d="M11.5 12H20M17 12v3M20 12v2.5"/>',
+  dice: '<rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="9" r="1"/><circle cx="15" cy="9" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="9" cy="15" r="1"/><circle cx="15" cy="15" r="1"/>',
+  calendar: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16"/>',
+  users: '<circle cx="9" cy="9" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><circle cx="16.5" cy="9.5" r="2.2"/><path d="M16.5 14a4 4 0 0 1 4 4"/>',
+  qr: '<rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><path d="M14 14h2v2h-2zM18 14h2v2h-2zM16 16h2v2h-2zM14 18h2v2h-2zM18 18h2v2h-2z"/>',
+  clipboard: '<rect x="6" y="4" width="12" height="16" rx="2"/><path d="M9 4h6v2.5H9zM9 11h6M9 15h4"/>',
+  chat: '<path d="M4 5h16v11H8l-4 4z"/><path d="M8 10h8M8 13h5"/>',
+  transfer: '<path d="M12 16V4m-4 4 4-4 4 4"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/>',
+  link: '<path d="M10 14a4 4 0 0 1 0-5.6l2.5-2.5a4 4 0 0 1 5.6 5.6L16.5 13"/><path d="M14 10a4 4 0 0 1 0 5.6L11.5 18a4 4 0 0 1-5.6-5.6L7.5 11"/>',
 };
 
-export const iconSvg = (name, className = "ui-icon") => `<svg class="${className}" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${ICON_PATHS[name] || ""}</svg>`;
+export const iconSvg = (name, className = "ui-icon") => `<svg class="${className}" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${ICON_PATHS[name] || ICON_PATHS.text}</svg>`;
+
+export function toolIconName(tool) {
+  const id = String(tool?.id || "");
+  if (id.startsWith("json-")) return "json";
+  if (["base64", "url-code", "html-entities", "unicode-code"].includes(id)) return "code";
+  if (id === "text-diff") return "diff";
+  if (["find-replace", "regex-replace"].includes(id)) return "search";
+  if (["sort-lines", "shuffle-lines"].includes(id)) return "sort";
+  if (id.startsWith("extract-")) return "extract";
+  if (["letter-case", "camel-case", "pascal-case", "snake-case", "kebab-case"].includes(id)) return "case";
+  if (id === "chinese-convert") return "lang";
+  if (id.startsWith("file-md5") || id.startsWith("file-sha")) return "hash";
+  if (["csv-json", "json-csv", "csv-merge"].includes(id)) return "table";
+  if (id.endsWith("-split")) return "split";
+  if (id.endsWith("-merge")) return "merge";
+  if (id.includes("zip")) return "zip";
+  if (id.includes("pdf")) return "pdf";
+  if (id.includes("crop")) return "crop";
+  if (["image-resize", "image-scale", "favicon-generator"].includes(id)) return "resize";
+  if (id === "image-rotate") return "rotate";
+  if (id === "image-flip") return "flip";
+  if (id.includes("watermark")) return "watermark";
+  if (["image-mosaic", "image-blur", "image-redact", "exif-remove", "gps-warning"].includes(id)) return "shield";
+  if (["color-extract", "color-convert", "gradient-generator", "gradient-css", "solid-image", "random-color", "random-palette"].includes(id)) return "palette";
+  if (["random-password", "random-string", "random-uuid"].includes(id)) return "key";
+  if (id.startsWith("dice-") || id === "custom-dice" || id === "coin-flip") return "dice";
+  if (["random-date", "random-time"].includes(id)) return "calendar";
+  if (["random-draw", "random-groups", "random-wheel", "weighted-wheel", "random-decision"].includes(id)) return "users";
+  if (id === "temporary-qr") return "qr";
+  if (id === "temporary-clipboard") return "clipboard";
+  if (id === "temporary-room") return "chat";
+  if (id === "file-transfer" || id === "temporary-file") return "transfer";
+  if (id === "temporary-text") return "link";
+  return tool?.category || "text";
+}
+
+export const toolIconSvg = (tool, className = "ui-icon tool-tile-icon") => iconSvg(toolIconName(tool), className);
+
+export function toolLayoutType(tool) {
+  const id = String(tool?.id || "");
+  if (tool?.category === "text") return "split-editor";
+  if (tool?.category === "image") return "studio-preview";
+  if (tool?.category === "file") return "file-pipeline";
+  if (tool?.category === "random") return "compact-generator";
+  if (id === "temporary-qr") return "temporary-qr";
+  return "temporary-utility";
+}
 
 export const toolRows = {
   text: [
