@@ -10920,6 +10920,14 @@ html[data-p07-ui="enabled"] .v3-cmd-filters [data-cmd-filter]:active {
 
 #toolsPanel .tools-header-actions {
   display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+#toolsPanel .tools-legacy-nav {
+  display: inline-flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
 }
@@ -10936,7 +10944,7 @@ html[data-p07-ui="enabled"] .v3-cmd-filters [data-cmd-filter]:active {
 }
 
 @media (min-width: 981px) {
-  #toolsPanel .tools-legacy-nav {
+  html[data-p07-ui="enabled"] #toolsPanel .tools-legacy-nav {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -10950,7 +10958,7 @@ html[data-p07-ui="enabled"] .v3-cmd-filters [data-cmd-filter]:active {
 }
 
 @media (max-width: 980px) {
-  #toolsPanel .tools-legacy-nav {
+  html[data-p07-ui="enabled"] #toolsPanel .tools-legacy-nav {
     display: none;
   }
 }
@@ -11219,7 +11227,7 @@ html[data-theme="dark"] #toolsPanel .tools-search-input-wrap:focus-within {
 #toolsPanel .tool-category-pill-count {
   font-size: 0.75rem;
   font-variant-numeric: tabular-nums;
-  opacity: 0.72;
+  color: inherit;
 }
 
 /* Toolbox Tile Grid: soft-gray tile, centered inner icon, unrestricted full title, discoverable favorite star */
@@ -12357,7 +12365,8 @@ html[data-theme="dark"] #toolsPanel .tool-card .tool-open > .tool-tile-glyph {
 }
 
 #toolsPanel .weight-option-row.is-zero-weight {
-  opacity: 0.64;
+  border-style: dashed;
+  background: var(--ds-workspace-canvas);
 }
 
 #toolsPanel .weight-option-top {
