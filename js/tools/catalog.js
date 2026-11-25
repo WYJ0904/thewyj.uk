@@ -8,9 +8,53 @@ export const CATEGORY_DEFINITIONS = [
 
 export const ICON_PATHS = {
   text: '<path d="M4 6h16M4 12h11M4 18h14"/>',
+  stats: '<path d="M5 19V11M10 19V6M15 19v-8M20 19V9M3 19h18"/>',
+  dedupe: '<path d="M4 7h11M4 12h8M4 17h11"/><path d="m16 10 2 2 3-3"/>',
+  trimLines: '<path d="M4 6h16M4 18h16M8 12h8"/><path d="m12 8-2 2h4l-2-2zm0 8-2-2h4l-2 2z"/>',
+  space: '<path d="M4 9v6h16V9"/><path d="M9 12h6"/>',
+  prefix: '<path d="M4 12h6M7 9l3 3-3 3M14 7h6M14 12h6M14 17h6"/>',
+  suffix: '<path d="M4 7h6M4 12h6M4 17h6M20 12h-6m3-3-3 3 3 3"/>',
+  numbered: '<path d="M10 7h10M10 12h10M10 17h10M4 7h2v3M4 16h2.5"/>',
+  shuffle: '<path d="M4 7h3.5l9 10H20"/><path d="m17 14 3 3-3 3M4 17h3.5l2.5-3M14 10l2.5-3H20M17 4l3 3-3 3"/>',
+  regex: '<circle cx="6.5" cy="16.5" r="1.5"/><path d="M14 5v8M10.5 7l7 4M17.5 7l-7 4M11 17h8"/>',
+  mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/>',
+  globe: '<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5a12 12 0 0 1 0 17M12 3.5a12 12 0 0 0 0 17"/>',
+  network: '<rect x="9" y="3.5" width="6" height="4.5" rx="1"/><rect x="3.5" y="16" width="6" height="4.5" rx="1"/><rect x="14.5" y="16" width="6" height="4.5" rx="1"/><path d="M12 8v4M6.5 16v-4h11v4"/>',
+  jsonCheck: '<path d="M7 5c-1.3 0-2 .8-2 2v3c0 1-.6 2-1.5 2 .9 0 1.5 1 1.5 2v3c0 1.2.7 2 2 2"/><path d="M17 5c1.3 0 2 .8 2 2v3c0 1 .6 2 1.5 2-.9 0-1.5 1-1.5 2v3c0 1.2-.7 2-2 2"/><path d="m9.5 12 1.8 1.8L15 10"/>',
+  jsonMin: '<path d="M9 5c-1.2 0-1.8.8-1.8 2v3c0 1-.5 2-1.4 2 .9 0 1.4 1 1.4 2v3c0 1.2.6 2 1.8 2"/><path d="M15 5c1.2 0 1.8.8 1.8 2v3c0 1 .5 2 1.4 2-.9 0-1.4 1-1.4 2v3c0 1.2-.6 2-1.8 2"/>',
   file: '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5M9 13h6M9 17h6"/>',
+  fileInfo: '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5M12 11.5v5M12 9h.01"/>',
+  rename: '<path d="M4 17h16M7 14l7.5-7.5 2.5 2.5L9.5 16.5H7z"/>',
   image: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="9" r="1.8"/><path d="m4 17 5-5 4 4 2-2 5 5"/>',
+  compress: '<path d="M4 10h6V4M4 4l6 6M20 14h-6v6M20 20l-6-6"/>',
+  format: '<path d="M7 7h10l-2.5-2.5M17 17H7l2.5 2.5M17 7v4M7 17v-4"/>',
+  rounded: '<rect x="4" y="4" width="16" height="16" rx="5.5"/>',
+  avatar: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="9.5" r="2.7"/><path d="M7 18a5.5 5.5 0 0 1 10 0"/>',
+  mosaic: '<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M10 4v16M14 4v16M4 10h16M4 14h16"/>',
+  blur: '<circle cx="12" cy="12" r="8.5" stroke-dasharray="2 2.5"/><circle cx="12" cy="12" r="5" stroke-dasharray="2 2"/><circle cx="12" cy="12" r="1.8"/>',
+  redact: '<rect x="3.5" y="6" width="17" height="12" rx="2"/><path d="M7 12h10M7 9h6M7 15h8"/>',
+  exif: '<rect x="3.5" y="6" width="17" height="13" rx="2"/><path d="M8 6l1.5-2h5L16 6"/><circle cx="12" cy="12.5" r="3"/>',
+  gps: '<path d="M12 20.5s6-5.2 6-10a6 6 0 1 0-12 0c0 4.8 6 10 6 10z"/><circle cx="12" cy="10.5" r="2"/>',
+  gradient: '<rect x="4" y="4" width="16" height="16" rx="2.5"/><path d="M4 15 15 4M9 20 20 9"/>',
+  swatch: '<rect x="4.5" y="4.5" width="15" height="15" rx="3"/><path d="M9 15 15 9"/>',
   random: '<path d="M4 7h3l10 10h3"/><path d="m17 14 3 3-3 3M4 17h3l3-3M14 10l3-3h3M17 4l3 3-3 3"/>',
+  number: '<path d="M5 9h14M5 15h14M9 5l-1.5 14M16.5 5 15 19"/>',
+  string: '<rect x="3.5" y="6" width="17" height="12" rx="2"/><path d="M7 10.5h3M7 13.5h5M14 10.5l2 1.5-2 1.5"/>',
+  password: '<rect x="4.5" y="10.5" width="15" height="9.5" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/><circle cx="9.5" cy="15.2" r=".8"/><circle cx="12" cy="15.2" r=".8"/><circle cx="14.5" cy="15.2" r=".8"/>',
+  uuid: '<rect x="3.5" y="5.5" width="17" height="13" rx="2"/><path d="M7 10h3M12 10h5M7 14h5M14 14h3"/>',
+  wheel: '<circle cx="12" cy="12.5" r="8"/><path d="M12 4.5v16M4 12.5h16M6.3 6.8l11.4 11.4M17.7 6.8 6.3 18.2"/><path d="M12 2.2 10.5 4.5h3z"/>',
+  weightedWheel: '<circle cx="12" cy="12.5" r="8"/><path d="M12 12.5V4.5M12 12.5l6.8 4.2M12 12.5 5 16"/><circle cx="12" cy="12.5" r="1.8"/><path d="M12 2.2 10.5 4.5h3z"/>',
+  coin: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="6"/><path d="M12 8v8M10 10.2h4M10 13.2h4"/>',
+  d4: '<path d="M12 3.5 3.8 18.5h16.4z"/><path d="M12 3.5v15"/>',
+  d6: '<rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="9" r="1"/><circle cx="15" cy="9" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="9" cy="15" r="1"/><circle cx="15" cy="15" r="1"/>',
+  d8: '<path d="M12 3 4 12l8 9 8-9z"/><path d="M4 12h16M12 3v18"/>',
+  d10: '<path d="M12 3 4.5 11.5 12 21l7.5-9.5z"/><path d="M12 3 8.5 12.5 12 21M12 3l3.5 9.5L12 21M4.5 11.5l4 1h7l4-1"/>',
+  d12: '<path d="M12 3.2 4.2 9l3 10.8h9.6l3-10.8z"/><path d="M12 7.2 7.8 10.4l1.6 5.2h5.2l1.6-5.2z"/>',
+  d20: '<path d="M12 3 4.5 7.5v9L12 21l7.5-4.5v-9z"/><path d="M12 3 7.5 15h9L12 3zM4.5 7.5 7.5 15M19.5 7.5 16.5 15"/>',
+  customDice: '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M12 8.5v7M8.5 12h7"/>',
+  draw: '<rect x="4" y="8" width="16" height="12" rx="2"/><path d="M8 8V5h8v3M9 14h6"/>',
+  decision: '<path d="M12 4v16M5 7h11l2.5 2.5L16 12H5zM19 13H9l-2 2 2 2h10z"/>',
+  clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3.2 2.2"/>',
   temporary: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
   bookmark: '<path d="M7 4h10v16l-5-3-5 3z"/>',
   delete: '<path d="M3 6h18M8 6V4h8v2m3 0-1 14H6L5 6M10 11v5m4-5v5"/>',
@@ -50,31 +94,73 @@ export const iconSvg = (name, className = "ui-icon") => `<svg class="${className
 
 export function toolIconName(tool) {
   const id = String(tool?.id || "");
+  if (id === "text-stats") return "stats";
+  if (id === "dedupe-lines") return "dedupe";
+  if (id === "remove-empty-lines") return "trimLines";
+  if (id === "collapse-spaces") return "space";
+  if (id === "line-prefix") return "prefix";
+  if (id === "line-suffix") return "suffix";
+  if (id === "line-numbers") return "numbered";
+  if (id === "sort-lines") return "sort";
+  if (id === "shuffle-lines") return "shuffle";
+  if (id === "find-replace") return "search";
+  if (id === "regex-replace") return "regex";
+  if (id === "text-diff") return "diff";
+  if (id === "extract-email") return "mail";
+  if (id === "extract-url") return "globe";
+  if (id === "extract-ip") return "network";
+  if (id === "extract-number-date") return "extract";
+  if (id === "json-validate") return "jsonCheck";
+  if (id === "json-minify") return "jsonMin";
   if (id.startsWith("json-")) return "json";
   if (["base64", "url-code", "html-entities", "unicode-code"].includes(id)) return "code";
-  if (id === "text-diff") return "diff";
-  if (["find-replace", "regex-replace"].includes(id)) return "search";
-  if (["sort-lines", "shuffle-lines"].includes(id)) return "sort";
-  if (id.startsWith("extract-")) return "extract";
   if (["letter-case", "camel-case", "pascal-case", "snake-case", "kebab-case"].includes(id)) return "case";
   if (id === "chinese-convert") return "lang";
   if (id.startsWith("file-md5") || id.startsWith("file-sha")) return "hash";
+  if (id === "file-info") return "fileInfo";
+  if (id === "rename-preview") return "rename";
   if (["csv-json", "json-csv", "csv-merge"].includes(id)) return "table";
   if (id.endsWith("-split")) return "split";
   if (id.endsWith("-merge")) return "merge";
   if (id.includes("zip")) return "zip";
   if (id.includes("pdf")) return "pdf";
+  if (["image-compress", "image-batch-compress"].includes(id)) return "compress";
+  if (id === "image-format") return "format";
   if (id.includes("crop")) return "crop";
   if (["image-resize", "image-scale", "favicon-generator"].includes(id)) return "resize";
   if (id === "image-rotate") return "rotate";
   if (id === "image-flip") return "flip";
+  if (id === "image-rounded") return "rounded";
+  if (id === "image-avatar") return "avatar";
   if (id.includes("watermark")) return "watermark";
-  if (["image-mosaic", "image-blur", "image-redact", "exif-remove", "gps-warning"].includes(id)) return "shield";
-  if (["color-extract", "color-convert", "gradient-generator", "gradient-css", "solid-image", "random-color", "random-palette"].includes(id)) return "palette";
-  if (["random-password", "random-string", "random-uuid"].includes(id)) return "key";
-  if (id.startsWith("dice-") || id === "custom-dice" || id === "coin-flip") return "dice";
-  if (["random-date", "random-time"].includes(id)) return "calendar";
-  if (["random-draw", "random-groups", "random-wheel", "weighted-wheel", "random-decision"].includes(id)) return "users";
+  if (id === "image-mosaic") return "mosaic";
+  if (id === "image-blur") return "blur";
+  if (id === "image-redact") return "redact";
+  if (id === "exif-view") return "exif";
+  if (id === "gps-warning") return "gps";
+  if (id === "exif-remove") return "shield";
+  if (["gradient-generator", "gradient-css"].includes(id)) return "gradient";
+  if (["solid-image", "color-convert"].includes(id)) return "swatch";
+  if (["color-extract", "random-color", "random-palette"].includes(id)) return "palette";
+  if (["random-integer", "random-decimal"].includes(id)) return "number";
+  if (id === "random-string") return "string";
+  if (id === "random-password") return "password";
+  if (id === "random-uuid") return "uuid";
+  if (id === "random-wheel") return "wheel";
+  if (id === "weighted-wheel") return "weightedWheel";
+  if (id === "coin-flip") return "coin";
+  if (id === "dice-d4") return "d4";
+  if (id === "dice-d6") return "d6";
+  if (id === "dice-d8") return "d8";
+  if (id === "dice-d10") return "d10";
+  if (id === "dice-d12") return "d12";
+  if (id === "dice-d20") return "d20";
+  if (id === "custom-dice") return "customDice";
+  if (id === "random-draw") return "draw";
+  if (id === "random-decision") return "decision";
+  if (id === "random-groups") return "users";
+  if (id === "random-date") return "calendar";
+  if (id === "random-time") return "clock";
   if (id === "temporary-qr") return "qr";
   if (id === "temporary-clipboard") return "clipboard";
   if (id === "temporary-room") return "chat";

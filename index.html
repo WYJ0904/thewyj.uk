@@ -1203,7 +1203,7 @@
                   <section class="workflow-runner-pane workflow-runner-input" aria-labelledby="workflowRunTitle">
                     <div class="workflow-section-heading"><div><h2 id="workflowRunTitle">INPUT · 运行输入</h2><p id="workflowInputHint">请先添加步骤。</p></div><span class="status-badge" id="workflowRunState">等待</span></div>
                     <label class="workflow-text-input hidden" id="workflowTextInputWrap"><span>输入文本</span><textarea id="workflowTextInput" spellcheck="false"></textarea></label>
-                    <label class="file-drop hidden" id="workflowFileInputWrap"><span id="workflowFileInputLabel">选择文件</span><input id="workflowFileInput" type="file" /></label>
+                    <label class="file-drop aeris-file-drop hidden" id="workflowFileInputWrap" for="workflowFileInput"><span class="file-drop-title" id="workflowFileInputLabel">选择文件</span><span class="aeris-file-drop-action"><span class="button-secondary aeris-file-trigger-pill">选择文件</span><span class="aeris-file-drop-sub">或拖拽到此处</span></span><input class="visually-hidden aeris-file-native" id="workflowFileInput" type="file" /></label>
                     <label class="workflow-batch-toggle hidden" id="workflowBatchToggleWrap"><input id="workflowBatchToggle" type="checkbox" /> 批量运行并打包结果</label>
                     <div class="action-row"><button class="primary" id="runWorkflowBtn" type="button">运行工作流</button><button class="button-ghost" id="cancelWorkflowBtn" type="button" disabled>取消</button></div>
                   </section>

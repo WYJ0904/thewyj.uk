@@ -4588,6 +4588,11 @@ async function showTools(path = "/tools", pushHistory = true, generation = route
     const preparing = cachedAccess
       ? Promise.resolve(window.WYJTools.prepare()).catch((error) => ({ error }))
       : Promise.resolve(null);
+    if (cachedAccess && !offline) {
+      // Prefetch user preferences in parallel with /api/tools/access to avoid
+      // a sequential network waterfall on cold /tools entry.
+      window.WYJTools.prefetchPreferences?.();
+    }
     if (!access) {
       try {
         access = await apiGet("/api/tools/access");

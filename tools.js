@@ -10,7 +10,20 @@ import {
   toolIconSvg,
   toolLayoutType,
 } from "./js/tools/catalog.js?release=20261121-aeris-i05-preview";
-import { randomToolResult } from "./js/tools/random.js?release=20261121-aeris-i05-preview";
+import {
+  HALF_PERCENT_MAX,
+  computeCoinTargetAngle,
+  computeDiceTargetTransform,
+  computeWeightedSectors,
+  computeWheelNextRotation,
+  drawWeightedSector,
+  formatWeightPercent,
+  parseWeightedEntries,
+  randomToolResult,
+  renderRmbOneYuanCoinSvg,
+  renderWheelSvg,
+  serializeWeightedEntries,
+} from "./js/tools/random.js?release=20261121-aeris-i05-preview";
 import { buildVcardPayload, buildWifiPayload } from "./js/tools/temporary.js?release=20261121-aeris-i05-preview";
 import { getOpenCcSource, loadOpenCcMaps, runTextOperation } from "./js/tools/text.js?release=20261121-aeris-i05-preview";
 import {
@@ -61,6 +74,7 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
   let currentDownload = null;
   let activeRoomPoller = null;
   let activeUploadController = null;
+  let activeRandomTimer = 0;
   let recentSyncRunning = false;
   let pendingRecentToolId = "";
   const TEMP_FILE_MAX_BYTES = 20 * 1024 * 1024;
@@ -73,8 +87,15 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
 
   const byId = (id) => document.getElementById(id);
   const catalogRows = createParkedRows(() => byId("toolCatalog"));
-  const CATALOG_BATCH = 48;
+  const CATALOG_BATCH = 24;
   let catalogLimit = CATALOG_BATCH, catalogFilter = "";
+
+  function stopRandomAnimation() {
+    if (activeRandomTimer) {
+      window.clearTimeout(activeRandomTimer);
+      activeRandomTimer = 0;
+    }
+  }
   const categoryFor = (tool) => CATEGORY_MAP.get(tool.category);
   const favoriteFor = (toolId) => preferences.favorites.find((item) => item.tool_id === toolId);
   const configsFor = (toolId) => preferences.configs.filter((item) => item.tool_id === toolId);
@@ -240,10 +261,10 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
     const hasQuery = Boolean((byId("toolSearchInput")?.value || "").trim());
     const tooltip = `${tool.name}：${tool.description}`;
     return `<article class="tool-card" data-tool-card="${tool.id}" data-tool-category-id="${tool.category}">
-      <button class="tool-open" type="button" data-open-tool="${tool.id}" title="${escapeHtml(tooltip)}">
+      <button class="tool-open" type="button" data-open-tool="${tool.id}" title="${escapeHtml(tooltip)}" aria-label="${escapeHtml(tool.name)}（${escapeHtml(category.shortName || category.name)}）">
         <span class="tool-tile-glyph" aria-hidden="true">${toolIconSvg(tool)}</span>
         <strong class="tool-tile-name">${escapeHtml(tool.name)}</strong>
-        ${hasQuery ? `<span class="tool-tile-cat">${escapeHtml(category.shortName || category.name)}</span>` : ""}
+        ${hasQuery ? `<em class="tool-tile-cat">${escapeHtml(category.shortName || category.name)}</em>` : ""}
       </button>
       <button class="tool-card-favorite${favorite ? " active" : ""}" type="button" data-toggle-favorite="${tool.id}" aria-pressed="${Boolean(favorite)}" aria-label="${favorite ? "取消收藏" : "收藏"} ${escapeHtml(tool.name)}" title="${favorite ? "取消收藏" : "收藏"}">${iconSvg("bookmark", "ui-icon bookmark-icon")}</button>
     </article>`;
@@ -418,7 +439,7 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
       if (!field) return;
       if (field.type === "checkbox") field.checked = Boolean(value);
       else field.value = value;
-      if (["qrKind", "qrDynamic", "qrWifiSecurity"].includes(field.id)) field.dispatchEvent(new Event("change", { bubbles: true }));
+      if (["qrKind", "qrDynamic", "qrWifiSecurity", "randomEntries"].includes(field.id)) field.dispatchEvent(new Event("change", { bubbles: true }));
     });
   }
 
@@ -537,8 +558,462 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
     bindConfigControls();
   }
 
+  function isReducedMotion() {
+    return window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches === true;
+  }
+
+  function renderWheelRandomTool(tool) {
+    const isWeighted = tool.id === "weighted-wheel";
+    const defaultEntries = isWeighted
+      ? "方案 A|50\n方案 B|30\n方案 C|20"
+      : "选项 A\n选项 B\n选项 C\n选项 D";
+    const initialParsed = isWeighted
+      ? parseWeightedEntries(defaultEntries)
+      : {
+        items: defaultEntries.split("\n").map((name) => ({ name, halfUnits: 50 })),
+        convertedFromLegacy: false,
+      };
+    let rows = initialParsed.items;
+    let currentRotation = 0;
+    let spinning = false;
+    let winnerIndex = -1;
+
+    byId("toolWorkbenchBody").innerHTML = `<div class="tool-form random-tool-form random-wheel-workspace" data-workspace-kind="random-wheel">
+      <div class="wheel-workspace-grid">
+        <div class="wheel-stage-card">
+          <div class="wheel-stage-shell">
+            <div class="wheel-pointer" aria-hidden="true">
+              <svg viewBox="0 0 28 32" width="28" height="32"><path d="M14 30 3 6a3 3 0 0 1 2.7-4.3h16.6A3 3 0 0 1 25 6z" fill="currentColor"/></svg>
+            </div>
+            <div class="wheel-rotor" id="wheelRotor"></div>
+            <button class="wheel-center-trigger" id="wheelCenterSpinBtn" type="button" aria-label="开始旋转转盘">旋转</button>
+          </div>
+          <div class="wheel-stage-footer">
+            <output class="random-result wheel-result-banner" id="randomResult">点击“开始旋转”抽取结果</output>
+            <div class="tool-command-row">
+              <button class="primary" id="runRandomToolBtn" type="button">开始旋转</button>
+              <button class="button-secondary" id="copyRandomResultBtn" type="button">复制结果</button>
+            </div>
+          </div>
+        </div>
+        <div class="wheel-controls-card">
+          <div class="wheel-controls-head">
+            <h3>${isWeighted ? "选项与权重" : "转盘选项"}</h3>
+            <span class="wheel-weight-summary" id="wheelWeightSummary"></span>
+          </div>
+          <p class="wheel-legacy-notice hidden" id="wheelLegacyNotice" role="status"></p>
+          <div class="weight-slider-list" id="weightSliderList" role="list"></div>
+          <div class="wheel-controls-actions">
+            <button class="button-secondary" id="addWeightOptionBtn" type="button">+ 添加选项</button>
+          </div>
+          <textarea class="hidden" data-config="entries" id="randomEntries"></textarea>
+        </div>
+      </div>
+      ${renderConfigControls(tool.id)}
+    </div>`;
+
+    const rotorEl = byId("wheelRotor");
+    const listEl = byId("weightSliderList");
+    const summaryEl = byId("wheelWeightSummary");
+    const legacyNoticeEl = byId("wheelLegacyNotice");
+    const hiddenEntriesEl = byId("randomEntries");
+    const spinBtn = byId("runRandomToolBtn");
+    const centerSpinBtn = byId("wheelCenterSpinBtn");
+    const resultEl = byId("randomResult");
+
+    const syncHiddenEntries = () => {
+      if (!hiddenEntriesEl) return;
+      hiddenEntriesEl.value = isWeighted
+        ? serializeWeightedEntries(rows)
+        : rows.map((r) => String(r.name || "").trim()).filter(Boolean).join("\n");
+    };
+
+    const updateWheelVisual = () => {
+      const effectiveRows = isWeighted ? rows : rows.map((r) => ({ name: r.name, halfUnits: 50 }));
+      const model = computeWeightedSectors(effectiveRows);
+      if (rotorEl) rotorEl.innerHTML = renderWheelSvg(model.activeSectors, winnerIndex);
+      if (summaryEl) {
+        if (!isWeighted) {
+          summaryEl.textContent = `${model.activeSectors.length} 项均等概率`;
+        } else if (model.totalHalfUnits === 0) {
+          summaryEl.textContent = "权重合计 0% · 请调高至少一项";
+          summaryEl.classList.add("is-warning");
+        } else {
+          summaryEl.classList.remove("is-warning");
+          summaryEl.textContent = model.totalWeightPercent === 100
+            ? "权重合计 100%"
+            : `权重合计 ${formatWeightPercent(model.totalHalfUnits)} · 已自动归一化`;
+        }
+      }
+      if (spinBtn && !spinning) spinBtn.disabled = model.totalHalfUnits === 0;
+      if (centerSpinBtn && !spinning) centerSpinBtn.disabled = model.totalHalfUnits === 0;
+      // Refresh per-row live weight & normalized probability displays without rebuilding inputs
+      listEl?.querySelectorAll("[data-weight-row]").forEach((rowNode) => {
+        const idx = Number(rowNode.dataset.weightRow);
+        const info = model.rows[idx];
+        if (!info) return;
+        const weightOut = rowNode.querySelector("[data-weight-display]");
+        const probOut = rowNode.querySelector("[data-prob-display]");
+        const rangeInput = rowNode.querySelector('input[type="range"]');
+        if (weightOut) weightOut.textContent = formatWeightPercent(info.halfUnits);
+        if (probOut) {
+          probOut.textContent = info.excluded
+            ? "不参与抽取"
+            : `概率 ${info.probabilityPercent.toFixed(1)}%`;
+          probOut.classList.toggle("is-excluded", info.excluded);
+        }
+        if (rangeInput) {
+          const pct = info.weightPercent;
+          rangeInput.setAttribute("aria-valuenow", String(pct));
+          rangeInput.setAttribute("aria-valuetext", `${formatWeightPercent(info.halfUnits)}（抽中概率 ${info.probabilityPercent.toFixed(1)}%）`);
+          rangeInput.style.setProperty("--slider-fill", `${(info.halfUnits / HALF_PERCENT_MAX) * 100}%`);
+        }
+        rowNode.classList.toggle("is-zero-weight", info.excluded);
+      });
+      syncHiddenEntries();
+    };
+
+    const renderOptionRows = () => {
+      if (!listEl) return;
+      const effectiveRows = isWeighted ? rows : rows.map((r) => ({ name: r.name, halfUnits: 50 }));
+      const model = computeWeightedSectors(effectiveRows);
+      listEl.innerHTML = model.rows.map((item, idx) => `
+        <div class="weight-option-row${item.excluded ? " is-zero-weight" : ""}" data-weight-row="${idx}" role="listitem">
+          <div class="weight-option-top">
+            <span class="weight-option-swatch" data-swatch-index="${idx % 8}" aria-hidden="true"></span>
+            <input class="weight-option-name" type="text" maxlength="60" value="${escapeHtml(rows[idx].name)}" placeholder="选项名称" aria-label="选项 ${idx + 1} 名称" data-option-name="${idx}" />
+            <button class="button-ghost weight-option-delete" type="button" data-option-delete="${idx}" aria-label="删除 ${escapeHtml(rows[idx].name || `选项 ${idx + 1}`)}" ${rows.length <= 1 ? "disabled" : ""}>${iconSvg("delete")}</button>
+          </div>
+          ${isWeighted ? `
+          <div class="weight-option-slider-bar">
+            <input class="aeris-weight-slider" type="range" min="0" max="${HALF_PERCENT_MAX}" step="1" value="${item.halfUnits}" aria-label="${escapeHtml(rows[idx].name || `选项 ${idx + 1}`)} 权重" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${item.weightPercent}" aria-valuetext="${formatWeightPercent(item.halfUnits)}" data-option-slider="${idx}" />
+            <div class="weight-option-metrics">
+              <strong class="weight-metric-value" data-weight-display>${formatWeightPercent(item.halfUnits)}</strong>
+              <small class="weight-metric-prob${item.excluded ? " is-excluded" : ""}" data-prob-display>${item.excluded ? "不参与抽取" : `概率 ${item.probabilityPercent.toFixed(1)}%`}</small>
+            </div>
+          </div>` : ""}
+        </div>`).join("");
+      updateWheelVisual();
+    };
+
+    listEl?.addEventListener("input", (event) => {
+      const nameInput = event.target.closest("[data-option-name]");
+      if (nameInput) {
+        const idx = Number(nameInput.dataset.optionName);
+        if (rows[idx]) {
+          rows[idx].name = nameInput.value;
+          winnerIndex = -1;
+          updateWheelVisual();
+        }
+        return;
+      }
+      const sliderInput = event.target.closest("[data-option-slider]");
+      if (sliderInput) {
+        const idx = Number(sliderInput.dataset.optionSlider);
+        if (rows[idx]) {
+          rows[idx].halfUnits = Math.max(0, Math.min(HALF_PERCENT_MAX, Math.round(Number(sliderInput.value) || 0)));
+          winnerIndex = -1;
+          updateWheelVisual();
+        }
+      }
+    });
+
+    listEl?.addEventListener("click", (event) => {
+      const deleteBtn = event.target.closest("[data-option-delete]");
+      if (!deleteBtn || rows.length <= 1) return;
+      const idx = Number(deleteBtn.dataset.optionDelete);
+      rows.splice(idx, 1);
+      winnerIndex = -1;
+      renderOptionRows();
+    });
+
+    byId("addWeightOptionBtn")?.addEventListener("click", () => {
+      rows.push({ name: `选项 ${rows.length + 1}`, halfUnits: 50 });
+      winnerIndex = -1;
+      renderOptionRows();
+      const lastInput = listEl?.querySelector(`[data-option-name="${rows.length - 1}"]`);
+      lastInput?.focus({ preventScroll: true });
+      lastInput?.select?.();
+    });
+
+    // Sync when a saved parameter preset is loaded into #randomEntries
+    hiddenEntriesEl?.addEventListener("change", () => {
+      const parsed = isWeighted
+        ? parseWeightedEntries(hiddenEntriesEl.value)
+        : {
+          items: String(hiddenEntriesEl.value || "").split(/\r?\n|,/).map((s) => s.trim()).filter(Boolean).map((name) => ({ name, halfUnits: 50 })),
+          convertedFromLegacy: false,
+        };
+      if (parsed.items.length) {
+        rows = parsed.items;
+        winnerIndex = -1;
+        if (legacyNoticeEl) {
+          legacyNoticeEl.textContent = parsed.convertedFromLegacy ? "已将旧版大权重配置按比例换算为 0%–100% 滑杆权重（保持相对概率不变）。" : "";
+          legacyNoticeEl.classList.toggle("hidden", !parsed.convertedFromLegacy);
+        }
+        renderOptionRows();
+      }
+    });
+
+    const triggerSpin = () => {
+      if (spinning) return;
+      try {
+        const effectiveRows = isWeighted ? rows : rows.map((r) => ({ name: r.name, halfUnits: 50 }));
+        const draw = drawWeightedSector(effectiveRows);
+        spinning = true;
+        winnerIndex = -1;
+        updateWheelVisual();
+        if (spinBtn) spinBtn.disabled = true;
+        if (centerSpinBtn) centerSpinBtn.disabled = true;
+        setMessage("转盘旋转中…");
+        const nextRotation = computeWheelNextRotation(currentRotation, draw.pointerAlignedMod, 6);
+        currentRotation = nextRotation;
+        const reduced = isReducedMotion();
+        const durationMs = reduced ? 60 : 3800;
+        if (rotorEl) {
+          rotorEl.style.transition = reduced ? "none" : `transform ${durationMs}ms cubic-bezier(0.14, 0.85, 0.22, 1)`;
+          rotorEl.style.transform = `rotate(${nextRotation.toFixed(3)}deg)`;
+        }
+        stopRandomAnimation();
+        activeRandomTimer = window.setTimeout(() => {
+          activeRandomTimer = 0;
+          spinning = false;
+          winnerIndex = draw.sector.index;
+          updateWheelVisual();
+          if (spinBtn) spinBtn.disabled = false;
+          if (centerSpinBtn) centerSpinBtn.disabled = false;
+          if (resultEl) {
+            resultEl.textContent = draw.winner;
+            resultEl.dataset.winnerIndex = String(draw.sector.index);
+            resultEl.classList.remove("is-fresh");
+            void resultEl.offsetWidth;
+            resultEl.classList.add("is-fresh");
+          }
+          setMessage(`抽中：${draw.winner}（概率 ${draw.sector.probabilityPercent.toFixed(1)}%）`);
+        }, durationMs + 40);
+      } catch (error) {
+        spinning = false;
+        if (spinBtn) spinBtn.disabled = false;
+        if (centerSpinBtn) centerSpinBtn.disabled = false;
+        setMessage(error.message, true);
+      }
+    };
+
+    spinBtn?.addEventListener("click", triggerSpin);
+    centerSpinBtn?.addEventListener("click", triggerSpin);
+    byId("copyRandomResultBtn")?.addEventListener("click", (event) => copyText(resultEl?.textContent || "", event.currentTarget));
+    renderOptionRows();
+    bindConfigControls();
+  }
+
+  function renderDiceFacePips(count) {
+    const pipPositions = {
+      1: [5],
+      2: [1, 9],
+      3: [1, 5, 9],
+      4: [1, 3, 7, 9],
+      5: [1, 3, 5, 7, 9],
+      6: [1, 3, 4, 6, 7, 9],
+    };
+    const active = new Set(pipPositions[count] || [5]);
+    return Array.from({ length: 9 }, (_, i) => `<span class="dice-pip${active.has(i + 1) ? " is-on" : ""}${count === 1 || count === 4 ? " is-accent" : ""}"></span>`).join("");
+  }
+
+  function renderDiceRandomTool(tool) {
+    const isD6 = tool.id === "dice-d6";
+    const isCustom = tool.id === "custom-dice";
+    const sidesLabel = isCustom ? "自定义" : tool.id.slice(5).toUpperCase();
+    let rx = 0;
+    let ry = 0;
+    let rolling = false;
+
+    byId("toolWorkbenchBody").innerHTML = `<div class="tool-form random-tool-form random-dice-workspace" data-workspace-kind="random-dice">
+      <div class="dice-stage-card">
+        <div class="dice-stage-arena" id="diceArena">
+          ${isD6 ? `
+          <div class="dice-cube-scene">
+            <div class="dice-cube" id="diceCube" data-face="1">
+              <div class="dice-face dice-face-1">${renderDiceFacePips(1)}</div>
+              <div class="dice-face dice-face-2">${renderDiceFacePips(2)}</div>
+              <div class="dice-face dice-face-3">${renderDiceFacePips(3)}</div>
+              <div class="dice-face dice-face-4">${renderDiceFacePips(4)}</div>
+              <div class="dice-face dice-face-5">${renderDiceFacePips(5)}</div>
+              <div class="dice-face dice-face-6">${renderDiceFacePips(6)}</div>
+            </div>
+          </div>` : `
+          <div class="dice-poly-scene">
+            <div class="dice-poly-body" id="dicePoly" data-die-kind="${escapeHtml(tool.id)}">
+              <span class="dice-poly-badge">${escapeHtml(sidesLabel)}</span>
+              <strong class="dice-poly-value" id="dicePolyValue">1</strong>
+            </div>
+          </div>`}
+          <div class="dice-ground-shadow" aria-hidden="true"></div>
+        </div>
+        ${isCustom ? '<div class="tool-options"><label><span>骰子面数</span><input data-config="sides" id="randomSides" type="number" min="2" max="1000000" value="6" /></label></div>' : ""}
+        <div class="dice-stage-footer">
+          <output class="random-result" id="randomResult">点击“投掷骰子”开始</output>
+          <div class="tool-command-row">
+            <button class="primary" id="runRandomToolBtn" type="button">投掷骰子</button>
+            <button class="button-secondary" id="copyRandomResultBtn" type="button">复制结果</button>
+          </div>
+        </div>
+      </div>
+      ${renderConfigControls(tool.id)}
+    </div>`;
+
+    const rollBtn = byId("runRandomToolBtn");
+    const resultEl = byId("randomResult");
+    const arenaEl = byId("diceArena");
+    const cubeEl = byId("diceCube");
+    const polyEl = byId("dicePoly");
+    const polyValEl = byId("dicePolyValue");
+
+    rollBtn?.addEventListener("click", () => {
+      if (rolling) return;
+      try {
+        const result = randomToolResult(tool.id, { sides: byId("randomSides")?.value });
+        const faceNum = Number(result);
+        rolling = true;
+        rollBtn.disabled = true;
+        setMessage("骰子滚动中…");
+        const reduced = isReducedMotion();
+        const durationMs = reduced ? 60 : 1150;
+        arenaEl?.classList.remove("is-tossing");
+        void arenaEl?.offsetWidth;
+        if (!reduced) arenaEl?.classList.add("is-tossing");
+
+        if (isD6 && cubeEl) {
+          const next = computeDiceTargetTransform(faceNum, rx, ry, 2, 3);
+          rx = next.rx;
+          ry = next.ry;
+          cubeEl.style.transition = reduced ? "none" : `transform ${durationMs}ms cubic-bezier(0.2, 0.85, 0.25, 1)`;
+          cubeEl.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg)`;
+          cubeEl.dataset.face = String(faceNum);
+        } else if (polyEl) {
+          ry += 720;
+          polyEl.style.transition = reduced ? "none" : `transform ${durationMs}ms cubic-bezier(0.2, 0.85, 0.25, 1)`;
+          polyEl.style.transform = `rotateY(${ry}deg) rotateX(360deg)`;
+        }
+
+        stopRandomAnimation();
+        activeRandomTimer = window.setTimeout(() => {
+          activeRandomTimer = 0;
+          rolling = false;
+          rollBtn.disabled = false;
+          arenaEl?.classList.remove("is-tossing");
+          if (polyValEl) polyValEl.textContent = result;
+          if (resultEl) {
+            resultEl.textContent = result;
+            resultEl.classList.remove("is-fresh");
+            void resultEl.offsetWidth;
+            resultEl.classList.add("is-fresh");
+          }
+          setMessage(`投掷结果：${result} 点`);
+        }, durationMs + 30);
+      } catch (error) {
+        rolling = false;
+        rollBtn.disabled = false;
+        setMessage(error.message, true);
+      }
+    });
+    byId("copyRandomResultBtn")?.addEventListener("click", (event) => copyText(resultEl?.textContent || "", event.currentTarget));
+    bindConfigControls();
+  }
+
+  function renderCoinRandomTool(tool) {
+    let angleY = 0;
+    let flipping = false;
+    const edgeLayers = Array.from({ length: 6 }, (_, i) => `<div class="coin-edge-layer coin-edge-layer-${i + 1}" aria-hidden="true"></div>`).join("");
+
+    byId("toolWorkbenchBody").innerHTML = `<div class="tool-form random-tool-form random-coin-workspace" data-workspace-kind="random-coin" data-coin-currency="CNY">
+      <div class="coin-stage-card">
+        <div class="coin-meta-bar">
+          <span class="coin-currency-tag">人民币 1 元（2019 版第五套人民币）</span>
+          <small>正面：中国人民银行 1 元 · 反面：菊花</small>
+        </div>
+        <div class="coin-stage-arena" id="coinArena">
+          <div class="coin-3d-scene">
+            <div class="coin-3d-body" id="coinBody" data-side="正面">
+              <div class="coin-face coin-face-front">${renderRmbOneYuanCoinSvg("正面")}</div>
+              ${edgeLayers}
+              <div class="coin-face coin-face-back">${renderRmbOneYuanCoinSvg("反面")}</div>
+            </div>
+          </div>
+          <div class="coin-ground-shadow" aria-hidden="true"></div>
+        </div>
+        <div class="coin-stage-footer">
+          <output class="random-result" id="randomResult">点击“抛硬币”开始</output>
+          <div class="tool-command-row">
+            <button class="primary" id="runRandomToolBtn" type="button">抛硬币</button>
+            <button class="button-secondary" id="copyRandomResultBtn" type="button">复制结果</button>
+          </div>
+        </div>
+      </div>
+      ${renderConfigControls(tool.id)}
+    </div>`;
+
+    const flipBtn = byId("runRandomToolBtn");
+    const resultEl = byId("randomResult");
+    const arenaEl = byId("coinArena");
+    const coinBodyEl = byId("coinBody");
+
+    flipBtn?.addEventListener("click", () => {
+      if (flipping) return;
+      try {
+        const result = randomToolResult(tool.id, {});
+        const target = computeCoinTargetAngle(result, angleY, 6);
+        angleY = target.angleY;
+        flipping = true;
+        flipBtn.disabled = true;
+        setMessage("硬币翻转中…");
+        const reduced = isReducedMotion();
+        const durationMs = reduced ? 60 : 1350;
+        arenaEl?.classList.remove("is-flipping");
+        void arenaEl?.offsetWidth;
+        if (!reduced) arenaEl?.classList.add("is-flipping");
+        if (coinBodyEl) {
+          coinBodyEl.style.transition = reduced ? "none" : `transform ${durationMs}ms cubic-bezier(0.22, 0.88, 0.28, 1)`;
+          coinBodyEl.style.transform = `rotateY(${angleY}deg)`;
+          coinBodyEl.dataset.side = target.side;
+        }
+        stopRandomAnimation();
+        activeRandomTimer = window.setTimeout(() => {
+          activeRandomTimer = 0;
+          flipping = false;
+          flipBtn.disabled = false;
+          arenaEl?.classList.remove("is-flipping");
+          if (resultEl) {
+            resultEl.textContent = target.side;
+            resultEl.classList.remove("is-fresh");
+            void resultEl.offsetWidth;
+            resultEl.classList.add("is-fresh");
+          }
+          setMessage(`结果：${target.side}（${target.side === "正面" ? "1 元面" : "菊花面"}）`);
+        }, durationMs + 30);
+      } catch (error) {
+        flipping = false;
+        flipBtn.disabled = false;
+        setMessage(error.message, true);
+      }
+    });
+    byId("copyRandomResultBtn")?.addEventListener("click", (event) => copyText(resultEl?.textContent || "", event.currentTarget));
+    bindConfigControls();
+  }
+
   function renderRandomTool(tool) {
-    const needsEntries = ["random-draw", "random-groups", "random-wheel", "weighted-wheel", "random-decision"].includes(tool.id);
+    if (tool.id === "weighted-wheel" || tool.id === "random-wheel") {
+      renderWheelRandomTool(tool);
+      return;
+    }
+    if (tool.id.startsWith("dice-") || tool.id === "custom-dice") {
+      renderDiceRandomTool(tool);
+      return;
+    }
+    if (tool.id === "coin-flip") {
+      renderCoinRandomTool(tool);
+      return;
+    }
+    const needsEntries = ["random-draw", "random-groups", "random-decision"].includes(tool.id);
     const numeric = ["random-integer", "random-decimal"].includes(tool.id);
     const strings = ["random-string", "random-password"].includes(tool.id);
     byId("toolWorkbenchBody").innerHTML = `<div class="tool-form random-tool-form" data-workspace-kind="compact-generator">
@@ -554,10 +1029,9 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
         ${tool.id === "random-string" ? '<label class="tool-wide"><span>字符集</span><input data-config="alphabet" id="randomAlphabet" value="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" /></label>' : ""}
         ${tool.id === "random-password" ? '<label class="admin-checkbox"><input data-config="passwordUpper" id="passwordUpper" type="checkbox" checked /> 大写字母</label><label class="admin-checkbox"><input data-config="passwordLower" id="passwordLower" type="checkbox" checked /> 小写字母</label><label class="admin-checkbox"><input data-config="passwordDigits" id="passwordDigits" type="checkbox" checked /> 数字</label><label class="admin-checkbox"><input data-config="passwordSymbols" id="passwordSymbols" type="checkbox" checked /> 符号</label>' : ""}
         ${tool.id === "random-groups" ? '<label><span>组数</span><input data-config="groups" id="randomGroups" type="number" min="1" value="2" /></label>' : ""}
-        ${tool.id === "custom-dice" ? '<label><span>骰子面数</span><input data-config="sides" id="randomSides" type="number" min="2" value="6" /></label>' : ""}
         ${tool.id === "random-date" ? '<label><span>开始日期</span><input data-config="startDate" id="randomStartDate" type="date" value="2000-01-01" /></label><label><span>结束日期</span><input data-config="endDate" id="randomEndDate" type="date" /></label>' : ""}
       </div>
-      ${needsEntries ? `<label class="tool-wide"><span>${tool.id === "weighted-wheel" ? "选项（每行：名称|权重）" : "选项（每行一个）"}</span><textarea data-config="entries" id="randomEntries" placeholder="每行输入一个选项…"></textarea></label>` : ""}
+      ${needsEntries ? `<label class="tool-wide"><span>选项（每行一个）</span><textarea data-config="entries" id="randomEntries" placeholder="每行输入一个选项…"></textarea></label>` : ""}
       ${renderConfigControls(tool.id)}
     </div>`;
     if (byId("randomEndDate")) byId("randomEndDate").value = new Date().toISOString().slice(0, 10);
@@ -567,7 +1041,7 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
           minimum: byId("randomMinimum")?.value, maximum: byId("randomMaximum")?.value,
           precision: byId("randomPrecision")?.value, count: byId("randomCount")?.value,
           length: byId("randomLength")?.value, alphabet: byId("randomAlphabet")?.value,
-          groups: byId("randomGroups")?.value, sides: byId("randomSides")?.value,
+          groups: byId("randomGroups")?.value,
           startDate: byId("randomStartDate")?.value, endDate: byId("randomEndDate")?.value,
           entries: byId("randomEntries")?.value,
           passwordUpper: byId("passwordUpper")?.checked, passwordLower: byId("passwordLower")?.checked,
@@ -589,6 +1063,7 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
   function renderCurrentTool() {
     stopRoomPolling();
     cancelActiveUpload(false);
+    stopRandomAnimation();
     if (!currentTool) return;
     const workbench = byId("toolWorkbench");
     if (workbench) workbench.dataset.toolLayout = toolLayoutType(currentTool);
@@ -644,6 +1119,7 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
     viewRevision++;
     stopRoomPolling();
     cancelActiveUpload(false);
+    stopRandomAnimation();
     const closedToolId = currentTool?.id || lastOpenedToolId;
     const workbenchHadFocus = Boolean(byId("toolWorkbench")?.contains(document.activeElement));
     currentTool = null;
@@ -678,6 +1154,8 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
       return;
     }
     window.WYJWorkflows?.hide?.({ cancel: true });
+    ensureAccountPreferences();
+    renderShelves();
     renderCategories();
     renderCatalog();
     if (options.offline) {
@@ -686,18 +1164,23 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
       renderCatalog();
       bridge?.onPreferencesChanged?.();
     } else {
-      await loadPreferences({ allowCached: true });
+      // Refresh remote preferences without blocking initial catalog interactivity.
+      void loadPreferences({ allowCached: true }).catch(() => {});
     }
-    // The visible catalog is usable while preferences load. Do not undo a
-    // subsequent tool selection, close, or route departure when they arrive.
     if (revision !== viewRevision) return;
     const match = path.match(/^\/tools\/([a-z0-9_-]+)$/);
     if (match && TOOL_MAP.has(match[1])) await openTool(match[1], false);
     else closeWorkbench(false);
   }
 
+  function prefetchPreferences() {
+    if (!bridge?.isAuthenticated?.()) return;
+    void loadPreferences({ allowCached: true }).catch(() => {});
+  }
+
   function hide() {
     window.clearTimeout(catalogSearchTimer);
+    stopRandomAnimation();
     byId("toolCatalog")?.setAttribute("aria-busy", "false");
     viewRevision++;
     stopRoomPolling();
@@ -814,6 +1297,7 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
     // tools are ready only after both the bridge and authenticated account do.
     isReady: () => Boolean(bridge?.isAuthenticated?.()),
     prepare,
+    prefetchPreferences,
     show,
     hide,
     openTool,
@@ -968,6 +1452,62 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
     throw new Error("暂不支持该文件操作");
   }
 
+  function aerisDropzoneMarkup({ id, inputId, title, hint, buttonText = "选择文件", accept = "", multiple = false }) {
+    return `<label class="file-drop aeris-file-drop" id="${id}" for="${inputId}">
+      <span class="aeris-file-drop-icon" aria-hidden="true">${iconSvg("transfer", "ui-icon")}</span>
+      <span class="file-drop-title">${escapeHtml(title)}</span>
+      <span class="aeris-file-drop-action"><span class="button-secondary aeris-file-trigger-pill">${escapeHtml(buttonText)}</span><span class="aeris-file-drop-sub">或拖拽文件到此处</span></span>
+      ${hint ? `<small class="file-drop-hint">${escapeHtml(hint)}</small>` : ""}
+      <input class="visually-hidden aeris-file-native" id="${inputId}" type="file" ${multiple ? "multiple" : ""} ${accept ? `accept="${escapeHtml(accept)}"` : ""} />
+    </label>`;
+  }
+
+  function bindAerisDropzone({ dropzoneId, inputId, manifestId, emptyLabel = "文件", maxPreview = 8 }) {
+    const dropzone = byId(dropzoneId);
+    const input = byId(inputId);
+    const manifest = manifestId ? byId(manifestId) : null;
+    if (!input) return;
+
+    const renderManifest = () => {
+      const list = [...(input.files || [])];
+      dropzone?.classList.toggle("has-files", list.length > 0);
+      if (!manifest) return;
+      manifest.classList.toggle("hidden", !list.length);
+      if (!list.length) { manifest.innerHTML = ""; return; }
+      const total = list.reduce((sum, f) => sum + f.size, 0);
+      manifest.innerHTML = `<div class="tool-file-manifest-head">
+        <strong>已选 ${list.length} 个${escapeHtml(emptyLabel)} · ${formatBytes(total)}</strong>
+        <span class="tool-file-manifest-actions">
+          <button class="button-ghost" type="button" data-file-reselect>重新选择</button>
+          <button class="button-ghost danger-text" type="button" data-file-clear>清空</button>
+        </span>
+      </div>
+      <ul>${list.slice(0, maxPreview).map((f) => `<li><span title="${escapeHtml(f.name)}">${escapeHtml(f.name)}</span><small>${formatBytes(f.size)}</small></li>`).join("")}${list.length > maxPreview ? `<li><span>其余 ${list.length - maxPreview} 个${escapeHtml(emptyLabel)}…</span></li>` : ""}</ul>`;
+    };
+
+    manifest?.addEventListener("click", (event) => {
+      if (event.target.closest("[data-file-reselect]")) {
+        input.click();
+      } else if (event.target.closest("[data-file-clear]")) {
+        input.value = "";
+        renderManifest();
+      }
+    });
+
+    input.addEventListener("change", renderManifest);
+    if (dropzone) {
+      dropzone.addEventListener("dragover", (event) => { event.preventDefault(); dropzone.classList.add("is-dragover"); });
+      dropzone.addEventListener("dragleave", () => dropzone.classList.remove("is-dragover"));
+      dropzone.addEventListener("drop", (event) => {
+        event.preventDefault();
+        dropzone.classList.remove("is-dragover");
+        if (event.dataTransfer?.files?.length) {
+          try { input.files = event.dataTransfer.files; renderManifest(); } catch (_) {}
+        }
+      });
+    }
+  }
+
   function renderFileTool(tool) {
     const multiple = !["csv-json", "json-csv", "text-encoding", "text-split", "csv-split"].includes(tool.id);
     const acceptsImages = tool.id === "images-pdf";
@@ -977,11 +1517,15 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
     byId("toolWorkbenchBody").innerHTML = `<div class="tool-form file-tool-form" data-workspace-kind="file-pipeline">
       <div class="tool-file-pipeline-grid">
         <div class="tool-file-input-col">
-          <label class="file-drop" id="fileToolDropzone">
-            <span class="file-drop-title">选择或拖放${multiple ? "一个或多个" : "一个"}文件</span>
-            <small class="file-drop-hint">仅在当前浏览器本地处理 · 最多 50 个文件、总计 50 MB</small>
-            <input id="fileToolInput" type="file" ${multiple ? "multiple" : ""} ${acceptsImages ? 'accept="image/*"' : ""} />
-          </label>
+          ${aerisDropzoneMarkup({
+            id: "fileToolDropzone",
+            inputId: "fileToolInput",
+            title: `选择或拖放${multiple ? "一个或多个" : "一个"}文件`,
+            hint: "仅在当前浏览器本地处理 · 最多 50 个文件、总计 50 MB",
+            buttonText: multiple ? "选择文件（可多选）" : "选择文件",
+            accept: acceptsImages ? "image/*" : "",
+            multiple,
+          })}
           <div class="tool-file-manifest hidden" id="fileToolManifest" aria-live="polite"></div>
           <div class="tool-options${hasParam || hasEnc ? "" : " hidden"}">
             ${hasParam ? `<label><span>${parameterLabel}</span><input id="fileToolParameter" data-config="parameter" value="${tool.id === "rename-preview" ? "file" : "1000"}" /></label>` : '<input id="fileToolParameter" type="hidden" />'}
@@ -997,29 +1541,7 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
       ${renderConfigControls(tool.id)}
     </div>`;
     currentDownload = null;
-    const dropzone = byId("fileToolDropzone");
-    const fileInput = byId("fileToolInput");
-    const manifest = byId("fileToolManifest");
-    const renderManifest = () => {
-      const list = [...(fileInput?.files || [])];
-      if (!manifest) return;
-      manifest.classList.toggle("hidden", !list.length);
-      if (!list.length) { manifest.innerHTML = ""; return; }
-      const total = list.reduce((sum, f) => sum + f.size, 0);
-      manifest.innerHTML = `<div class="tool-file-manifest-head"><strong>已选 ${list.length} 个文件</strong><small>${formatBytes(total)}</small></div><ul>${list.slice(0, 8).map((f) => `<li><span>${escapeHtml(f.name)}</span><small>${formatBytes(f.size)}</small></li>`).join("")}${list.length > 8 ? `<li><span>其余 ${list.length - 8} 个文件…</span></li>` : ""}</ul>`;
-    };
-    fileInput?.addEventListener("change", renderManifest);
-    if (dropzone && fileInput) {
-      dropzone.addEventListener("dragover", (event) => { event.preventDefault(); dropzone.classList.add("is-dragover"); });
-      dropzone.addEventListener("dragleave", () => dropzone.classList.remove("is-dragover"));
-      dropzone.addEventListener("drop", (event) => {
-        event.preventDefault();
-        dropzone.classList.remove("is-dragover");
-        if (event.dataTransfer?.files?.length) {
-          try { fileInput.files = event.dataTransfer.files; renderManifest(); } catch (_) {}
-        }
-      });
-    }
+    bindAerisDropzone({ dropzoneId: "fileToolDropzone", inputId: "fileToolInput", manifestId: "fileToolManifest", emptyLabel: "文件", maxPreview: 8 });
     byId("runFileToolBtn").addEventListener("click", async () => {
       const button = byId("runFileToolBtn"); button.disabled = true; setMessage("正在处理…");
       try {
@@ -1255,8 +1777,24 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
     byId("toolWorkbenchBody").innerHTML = `<div class="tool-form image-tool-form" data-workspace-kind="studio-preview">
       <div class="tool-studio-grid">
         <div class="tool-studio-controls">
-          ${standalone ? "" : `<label class="file-drop" id="imageToolDropzone"><span class="file-drop-title">选择或拖放${multiple ? "一组" : "一张"}图片</span><small class="file-drop-hint">本地浏览器处理 · 最多 20 张、总计 50 MB</small><input id="imageToolInput" type="file" accept="image/png,image/jpeg,image/webp,image/gif" ${multiple ? "multiple" : ""} /></label><div class="tool-file-manifest hidden" id="imageToolManifest" aria-live="polite"></div>`}
-          ${tool.id === "image-watermark" ? '<label class="file-drop"><span class="file-drop-title">选择水印图片</span><input id="imageOverlayInput" type="file" accept="image/*" /></label>' : ""}
+          ${standalone ? "" : `${aerisDropzoneMarkup({
+            id: "imageToolDropzone",
+            inputId: "imageToolInput",
+            title: `选择或拖放${multiple ? "一组" : "一张"}图片`,
+            hint: "本地浏览器处理 · 最多 20 张、总计 50 MB",
+            buttonText: multiple ? "选择图片（可多选）" : "选择图片",
+            accept: "image/png,image/jpeg,image/webp,image/gif",
+            multiple,
+          })}<div class="tool-file-manifest hidden" id="imageToolManifest" aria-live="polite"></div>`}
+          ${tool.id === "image-watermark" ? `${aerisDropzoneMarkup({
+            id: "imageOverlayDropzone",
+            inputId: "imageOverlayInput",
+            title: "选择水印图片",
+            hint: "支持 PNG / WebP 透明图",
+            buttonText: "选择水印图",
+            accept: "image/*",
+            multiple: false,
+          })}<div class="tool-file-manifest hidden" id="imageOverlayManifest" aria-live="polite"></div>` : ""}
           ${fieldsMarkup ? `<div class="tool-options">${fieldsMarkup}</div>` : ""}
           <div class="tool-command-row"><button class="primary" id="runImageToolBtn" type="button">开始处理</button><button class="button-secondary" id="downloadImageToolBtn" type="button" disabled>下载结果</button><button class="button-ghost" id="copyImageTextBtn" type="button">复制信息</button></div>
         </div>
@@ -1269,28 +1807,11 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
       ${renderConfigControls(tool.id)}
     </div>`;
     currentDownload = null;
-    const imgInput = byId("imageToolInput");
-    const imgManifest = byId("imageToolManifest");
-    const imgDrop = byId("imageToolDropzone");
-    const updateImgManifest = () => {
-      const list = [...(imgInput?.files || [])];
-      if (!imgManifest) return;
-      imgManifest.classList.toggle("hidden", !list.length);
-      if (!list.length) { imgManifest.innerHTML = ""; return; }
-      const total = list.reduce((sum, f) => sum + f.size, 0);
-      imgManifest.innerHTML = `<div class="tool-file-manifest-head"><strong>原图：${list.length} 张</strong><small>${formatBytes(total)}</small></div><ul>${list.slice(0, 4).map((f) => `<li><span>${escapeHtml(f.name)}</span><small>${formatBytes(f.size)}</small></li>`).join("")}</ul>`;
-    };
-    imgInput?.addEventListener("change", updateImgManifest);
-    if (imgDrop && imgInput) {
-      imgDrop.addEventListener("dragover", (event) => { event.preventDefault(); imgDrop.classList.add("is-dragover"); });
-      imgDrop.addEventListener("dragleave", () => imgDrop.classList.remove("is-dragover"));
-      imgDrop.addEventListener("drop", (event) => {
-        event.preventDefault();
-        imgDrop.classList.remove("is-dragover");
-        if (event.dataTransfer?.files?.length) {
-          try { imgInput.files = event.dataTransfer.files; updateImgManifest(); } catch (_) {}
-        }
-      });
+    if (!standalone) {
+      bindAerisDropzone({ dropzoneId: "imageToolDropzone", inputId: "imageToolInput", manifestId: "imageToolManifest", emptyLabel: "图片", maxPreview: 4 });
+    }
+    if (tool.id === "image-watermark") {
+      bindAerisDropzone({ dropzoneId: "imageOverlayDropzone", inputId: "imageOverlayInput", manifestId: "imageOverlayManifest", emptyLabel: "水印图", maxPreview: 1 });
     }
     byId("runImageToolBtn").addEventListener("click", async () => {
       const button = byId("runImageToolBtn"); button.disabled = true; setMessage("正在本地处理…");
