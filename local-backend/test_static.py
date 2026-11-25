@@ -370,8 +370,8 @@ class StaticSiteTests(unittest.TestCase):
 
         required_colors = {
             "--ds-text": "#242424",
-            "--ds-text-secondary": "#696969",
-            "--ds-text-muted": "#696969",
+            "--ds-text-secondary": "#595959",
+            "--ds-text-muted": "#595959",
         }
         for token, color in required_colors.items():
             self.assertRegex(self.design_styles, rf"{re.escape(token)}:\s*{color}")
