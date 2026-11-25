@@ -1967,6 +1967,7 @@ html:has(#entryScreen) .site-help-footer { display: none; }
 
 /* Compact /trial Segmented Switcher & Select Padding */
 .trial-tool-tabs {
+  position: relative;
   display: inline-grid;
   grid-template-columns: repeat(5, minmax(0, auto));
   gap: 4px;
@@ -1974,15 +1975,18 @@ html:has(#entryScreen) .site-help-footer { display: none; }
   padding: 4px;
   border: 1px solid var(--ds-border);
   border-radius: 12px;
+  --ds-seg-radius: 8px;
   background: var(--ds-surface-muted);
   max-width: 100%;
 }
 
 .trial-tool-tab {
+  position: relative;
+  z-index: 1;
   min-height: 44px;
   padding: 0 16px;
   border: 0;
-  border-radius: 9px;
+  border-radius: 8px;
   background: transparent;
   color: var(--ds-text-secondary);
   font-size: var(--ds-text-sm);
@@ -1993,6 +1997,19 @@ html:has(#entryScreen) .site-help-footer { display: none; }
 .trial-tool-tab.active,
 .trial-tool-tab[aria-selected="true"] {
   color: var(--ds-text);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+}
+
+.trial-tool-tabs.ds-motion-tabs > .trial-tool-tab.active,
+.trial-tool-tabs.ds-motion-tabs > .trial-tool-tab[aria-selected="true"] {
+  background: transparent;
+  box-shadow: none;
+}
+
+.trial-tool-tabs .ds-tab-indicator.seg-indicator {
+  border-radius: 8px;
+  border: 1px solid var(--ds-border);
   background: var(--ds-surface);
   box-shadow: var(--ds-shadow-card);
 }

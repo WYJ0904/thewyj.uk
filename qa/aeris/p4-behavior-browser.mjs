@@ -30,6 +30,7 @@ for(const width of [390,1366,1920]) {
       {match:'/api/admin/users?',respond:({url})=>{const params=new URL(url).searchParams,p=Number(params.get('page')||1),query=params.get('q')||params.get('query')||'',filtered=users.filter(u=>!query||u.username.includes(query));return{body:{ok:true,users:filtered.slice((p-1)*30,p*30),page:p,total:filtered.length,has_more:p*30<filtered.length,limit:30,query,match:'partial'}};}},
     ]);
     await page.navigate('/finance');await page.waitFor("!document.getElementById('entryScreen') && document.querySelector('#financeRecordedCount').textContent==='250' && document.querySelector('#financePendingCount').textContent==='125'");
+    await page.click('#financeTabLedger');await page.waitFor("document.querySelector('#financeWorkspace')?.dataset.financeActiveTab==='ledger'");
     await page.evaluate("document.querySelector('#financeRecordedSection').open=true;document.querySelector('#financeCandidatesSection').open=true;window.__p4Rows=[...document.querySelectorAll('[data-finance-transaction]')];window.__p4Pending=[...document.querySelectorAll('[data-canonical-identity]')];true");
     assert.equal(await page.evaluate("window.__p4Rows.length"),100);
     await page.click('#financeLedgerMoreBtn');assert.equal(await page.evaluate("document.querySelectorAll('[data-finance-transaction]').length"),200);

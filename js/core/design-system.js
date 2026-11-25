@@ -280,9 +280,13 @@ function setupNavigation() {
   };
 
   let popoverCloseTimer = 0;
+  let popoverGeneration = 0;
   const openAccountPopover = () => {
     const popover = document.getElementById("accountMenuPopover");
+    popoverGeneration += 1;
+    const gen = popoverGeneration;
     window.clearTimeout(popoverCloseTimer);
+    popoverCloseTimer = 0;
     if (popover) delete popover.dataset.closing;
     if (!accountMenu) return;
     accountMenu.open = true;
@@ -290,7 +294,7 @@ function setupNavigation() {
     if (popover) {
       popover.dataset.open = "false";
       window.requestAnimationFrame(() => {
-        if (accountMenu.open && popover.dataset.closing !== "true") {
+        if (gen === popoverGeneration && accountMenu.open && popover.dataset.closing !== "true") {
           popover.dataset.open = "true";
         }
       });
@@ -300,7 +304,10 @@ function setupNavigation() {
   const closeAccountPopover = ({ immediate = false } = {}) => {
     if (!accountMenu?.open) return;
     const popover = document.getElementById("accountMenuPopover");
+    popoverGeneration += 1;
+    const gen = popoverGeneration;
     window.clearTimeout(popoverCloseTimer);
+    popoverCloseTimer = 0;
     const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches === true;
     if (immediate || reduced || !popover) {
       if (popover) {
@@ -315,6 +322,7 @@ function setupNavigation() {
     popover.dataset.closing = "true";
     popoverCloseTimer = window.setTimeout(() => {
       popoverCloseTimer = 0;
+      if (gen !== popoverGeneration) return;
       delete popover.dataset.closing;
       accountMenu.open = false;
       accountMenu.querySelector("summary")?.setAttribute("aria-expanded", "false");
@@ -582,6 +590,7 @@ function setupNavigation() {
 
   return Object.freeze({
     close: () => setDrawerOpen(false),
+    closeAccountMenu: (opts) => closeAccountPopover(opts),
     isCollapsed: () => desktopCollapsed,
     setCollapsed: (val) => {
       desktopCollapsed = Boolean(val);
@@ -610,7 +619,7 @@ function setupContentNavigation() {
   // The public product demo already owns its tab behavior. These groups call
   // their existing click handlers, so routes, validation and permissions stay
   // with their current owners rather than being duplicated here.
-  const groups = [...document.querySelectorAll('.auth-tabs, .admin-tabs, .feedback-tabs, #workspace > .tabs')];
+  const groups = [...document.querySelectorAll('.auth-tabs, .admin-tabs, .feedback-tabs, .finance-subnav, #workspace > .tabs')];
   const refreshGroups = groups.map((group) => {
     const tabs = [...group.querySelectorAll('[role="tab"]')];
     const original = new Map(tabs.map((tab) => [tab, { index: tab.getAttribute("tabindex"), selected: tab.getAttribute("aria-selected") }]));
@@ -706,6 +715,11 @@ export function setExperienceMode(mode) {
   const next = mode === PUBLIC_MODE ? PUBLIC_MODE : WORKSPACE_MODE;
   document.body.dataset.experience = next;
   navigationController?.close();
+  closeActiveSelectPopover({ restoreFocus: false, immediate: true });
+}
+
+export function closeAccountPopover(options = {}) {
+  navigationController?.closeAccountMenu?.(options);
 }
 
 export function workspaceRouteMeta(pathname, { authenticated = false, toolTitle = "", adminSection = "", languageSection = "" } = {}) {
@@ -785,10 +799,11 @@ export function syncWorkspaceShell(doc, meta) {
 const ENHANCED_SELECTS = new WeakMap();
 let activeSelectPopover = null;
 let activeSelectCleanup = null;
+let activeSelectGeneration = 0;
 
-function closeActiveSelectPopover({ restoreFocus = false } = {}) {
+export function closeActiveSelectPopover({ restoreFocus = false, immediate = false } = {}) {
   if (typeof activeSelectCleanup === "function") {
-    activeSelectCleanup(restoreFocus);
+    activeSelectCleanup(restoreFocus, immediate);
   }
 }
 
@@ -856,13 +871,15 @@ export function enhanceSelect(selectEl) {
       closeActiveSelectPopover({ restoreFocus: true });
       return;
     }
-    closeActiveSelectPopover({ restoreFocus: false });
+    closeActiveSelectPopover({ restoreFocus: false, immediate: true });
 
-    const options = getOptions();
+    const generation = ++activeSelectGeneration;
+    let options = getOptions();
     const searchable = options.length > 5;
     const popover = doc.createElement("div");
     popover.className = "ds-select-popover";
-    popover.id = `ds-select-popover-${Math.random().toString(36).slice(2, 8)}`;
+    popover.id = `ds-select-popover-${generation}`;
+    popover.dataset.open = "true";
     trigger.setAttribute("aria-controls", popover.id);
 
     let searchInput = null;
@@ -889,7 +906,8 @@ export function enhanceSelect(selectEl) {
     let activeIndex = Math.max(0, options.findIndex((o) => o.value === selectEl.value));
     let composing = false;
 
-    const renderList = (query = "") => {
+    const renderList = (query = searchInput?.value || "") => {
+      options = getOptions();
       const needle = query.trim().toLowerCase();
       filtered = needle
         ? options.filter((opt) => opt.textContent.toLowerCase().includes(needle) || String(opt.value).toLowerCase().includes(needle))
@@ -933,7 +951,8 @@ export function enhanceSelect(selectEl) {
           activeIndex = idx;
           listbox.querySelectorAll(".ds-select-option").forEach((n, i) => n.classList.toggle("is-active", i === idx));
         });
-        btn.addEventListener("click", () => {
+        btn.addEventListener("click", (event) => {
+          event.stopPropagation();
           if (opt.disabled) return;
           selectEl.value = opt.value;
           selectEl.dispatchEvent(new Event("input", { bubbles: true }));
@@ -946,7 +965,16 @@ export function enhanceSelect(selectEl) {
     };
 
     const positionPopover = () => {
+      if (generation !== activeSelectGeneration) return;
+      if (!trigger.isConnected) {
+        closeActiveSelectPopover({ restoreFocus: false, immediate: true });
+        return;
+      }
       const rect = trigger.getBoundingClientRect();
+      if (rect.width === 0 && rect.height === 0) {
+        closeActiveSelectPopover({ restoreFocus: false, immediate: true });
+        return;
+      }
       const vw = window.innerWidth;
       const vh = window.innerHeight;
       const width = Math.max(Math.round(rect.width), searchable ? 220 : 168);
@@ -971,12 +999,22 @@ export function enhanceSelect(selectEl) {
       }
     };
 
+    const hostLabel = selectEl.closest("label");
     const handleDocPointer = (event) => {
-      if (!popover.contains(event.target) && !trigger.contains(event.target)) {
-        closeActiveSelectPopover({ restoreFocus: false });
+      if (generation !== activeSelectGeneration) return;
+      const target = event.target;
+      if (popover.contains(target) || trigger.contains(target) || host.contains(target)) return;
+      // Clicking the wrapping <label> forwards a synthetic click to trigger; let trigger toggle cleanly without double-toggling.
+      if (hostLabel && hostLabel.contains(target)) return;
+      closeActiveSelectPopover({ restoreFocus: false });
+    };
+    const handleRouteClose = () => {
+      if (generation === activeSelectGeneration) {
+        closeActiveSelectPopover({ restoreFocus: false, immediate: true });
       }
     };
     const handleKeydown = (event) => {
+      if (generation !== activeSelectGeneration) return;
       if (composing || event.isComposing) return;
       if (event.key === "Escape") {
         event.preventDefault();
@@ -1020,6 +1058,7 @@ export function enhanceSelect(selectEl) {
     doc.addEventListener("keydown", handleKeydown, true);
     window.addEventListener("resize", positionPopover, { passive: true });
     window.addEventListener("scroll", positionPopover, { passive: true, capture: true });
+    window.addEventListener("popstate", handleRouteClose);
 
     if (searchInput) {
       searchInput.addEventListener("compositionstart", () => { composing = true; });
@@ -1027,45 +1066,70 @@ export function enhanceSelect(selectEl) {
       searchInput.addEventListener("input", () => {
         if (!composing) renderList(searchInput.value);
       });
-      window.requestAnimationFrame(() => searchInput.focus({ preventScroll: true }));
+      window.requestAnimationFrame(() => {
+        if (generation === activeSelectGeneration) searchInput.focus({ preventScroll: true });
+      });
     } else {
       window.requestAnimationFrame(() => {
+        if (generation !== activeSelectGeneration) return;
         const selectedBtn = listbox.querySelector('[aria-selected="true"]') || listbox.querySelector(".ds-select-option");
         selectedBtn?.focus({ preventScroll: true });
       });
     }
 
-    activeSelectPopover = { select: selectEl, popover };
+    let cleaned = false;
+    activeSelectPopover = { select: selectEl, popover, refreshOptions: () => { if (!cleaned && generation === activeSelectGeneration) { renderList(); positionPopover(); } } };
     activeSelectCleanup = (restoreFocus = false, immediate = false) => {
+      if (cleaned) return;
+      cleaned = true;
       doc.removeEventListener("pointerdown", handleDocPointer, true);
       doc.removeEventListener("keydown", handleKeydown, true);
       window.removeEventListener("resize", positionPopover);
       window.removeEventListener("scroll", positionPopover, true);
+      window.removeEventListener("popstate", handleRouteClose);
       trigger.setAttribute("aria-expanded", "false");
       trigger.removeAttribute("aria-controls");
-      activeSelectPopover = null;
-      activeSelectCleanup = null;
+      if (activeSelectPopover?.popover === popover) {
+        activeSelectPopover = null;
+        activeSelectCleanup = null;
+      }
       const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches === true;
       if (immediate || reduced) {
         popover.remove();
       } else {
+        popover.dataset.open = "false";
         popover.classList.add("is-closing");
         window.setTimeout(() => popover.remove(), 150);
       }
-      if (restoreFocus) trigger.focus({ preventScroll: true });
+      if (restoreFocus && trigger.isConnected) trigger.focus({ preventScroll: true });
     };
   };
 
-  trigger.addEventListener("click", openPopover);
+  trigger.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    openPopover();
+  });
   trigger.addEventListener("keydown", (event) => {
     if (["ArrowDown", "ArrowUp", "Enter", " "].includes(event.key)) {
       event.preventDefault();
       openPopover();
     }
   });
-  selectEl.addEventListener("change", sync);
+  selectEl.addEventListener("change", () => {
+    trigger.removeAttribute("aria-invalid");
+    sync();
+  });
+  selectEl.addEventListener("invalid", () => {
+    trigger.setAttribute("aria-invalid", "true");
+  });
 
-  const observer = new MutationObserver(() => sync());
+  const observer = new MutationObserver(() => {
+    sync();
+    if (activeSelectPopover?.select === selectEl) {
+      activeSelectPopover.refreshOptions?.();
+    }
+  });
   observer.observe(selectEl, { childList: true, subtree: true, attributes: true, attributeFilter: ["disabled"] });
 
   sync();

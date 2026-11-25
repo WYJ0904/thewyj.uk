@@ -1,0 +1,37 @@
+{
+  "preview_url": "https://v63-phase2.thewyj-v63-preview.pages.dev",
+  "deployment_url": "https://e466a4c0.thewyj-v63-preview.pages.dev",
+  "phase1_preserved_url": "https://v63-phase1.thewyj-v63-preview.pages.dev",
+  "environment": "preview",
+  "bindings": {
+    "d1": true,
+    "r2": true,
+    "workers_ai": true
+  },
+  "guest_segmented_overflow": {
+    "overflowLeft": -297.89,
+    "overflowRight": -4.53,
+    "scrollW": 1425,
+    "clientW": 1425
+  },
+  "vip_chart_geom": {
+    "tab": "overview",
+    "wrapW": 1089,
+    "svgW": 1063,
+    "svgH": 277
+  },
+  "accounts_tested": [
+    "v63p1_free",
+    "v63p1_vip",
+    "v63p1_admin"
+  ],
+  "screenshots": [
+    "docs/ui-rebuild/v63-phase2-finance/evidence/preview/preview-guest-tabs-1440.png",
+    "docs/ui-rebuild/v63-phase2-finance/evidence/preview/preview-free-finance-lock-1440.png",
+    "docs/ui-rebuild/v63-phase2-finance/evidence/preview/preview-vip-finance-overview-1440.png",
+    "docs/ui-rebuild/v63-phase2-finance/evidence/preview/preview-vip-finance-ledger-1440.png",
+    "docs/ui-rebuild/v63-phase2-finance/evidence/preview/preview-vip-finance-analytics-1440.png",
+    "docs/ui-rebuild/v63-phase2-finance/evidence/preview/preview-admin-panel-1440.png"
+  ],
+  "runtime_errors": []
+}

@@ -1,0 +1,31 @@
+{
+  "status": "PASS",
+  "homePos1440": {
+    "mainH": 837,
+    "innerTop": 245,
+    "innerH": 285,
+    "topRatio": 0.444,
+    "overflowY": 0,
+    "centerDiffX": 0
+  },
+  "sidebarCheck": {
+    "collapsed": "true",
+    "scrollbarWidth": "none",
+    "navClientW": 43,
+    "navOffsetW": 43,
+    "scrollDiffW": 0,
+    "scrollHeight": 555,
+    "clientHeight": 294,
+    "scrolledTo": 120,
+    "footerVisible": true
+  },
+  "currencyStayedOpen": true,
+  "candidatesStayedOpen": true,
+  "accountMenuStayedOpen": true,
+  "perfOp": {
+    "tOpen": 16.4,
+    "tSubmit": 323.7,
+    "found": true
+  },
+  "runtimeErrors": []
+}

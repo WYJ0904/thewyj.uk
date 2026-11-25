@@ -1,0 +1,79 @@
+{
+  "checks": [
+    {
+      "id": "free_membership_gate",
+      "status": "PASS"
+    },
+    {
+      "id": "sync_message_auto_clear",
+      "status": "PASS"
+    },
+    {
+      "id": "trend_chart_full_width_and_resize",
+      "status": "PASS",
+      "expandedW": 1063,
+      "collapsedW": 1255
+    },
+    {
+      "id": "subnav_and_strategy_c",
+      "status": "PASS"
+    }
+  ],
+  "viewports": [
+    {
+      "width": 375,
+      "w": 375,
+      "scrollW": 375,
+      "svgW": 289,
+      "wrapW": 315
+    },
+    {
+      "width": 390,
+      "w": 390,
+      "scrollW": 390,
+      "svgW": 304,
+      "wrapW": 330
+    },
+    {
+      "width": 768,
+      "w": 753,
+      "scrollW": 753,
+      "svgW": 647,
+      "wrapW": 673
+    },
+    {
+      "width": 1440,
+      "w": 1425,
+      "scrollW": 1425,
+      "svgW": 1063,
+      "wrapW": 1089
+    },
+    {
+      "width": 1920,
+      "w": 1905,
+      "scrollW": 1905,
+      "svgW": 1262,
+      "wrapW": 1288
+    },
+    {
+      "width": 2560,
+      "w": 2545,
+      "scrollW": 2545,
+      "svgW": 1262,
+      "wrapW": 1288
+    },
+    {
+      "width": 3440,
+      "w": 3425,
+      "scrollW": 3425,
+      "svgW": 1262,
+      "wrapW": 1288
+    }
+  ],
+  "perf": {
+    "finance_route_interactive_ms": 72.8
+  },
+  "runtime_errors": [],
+  "screencast_frames": 321,
+  "screencast_path": "docs/ui-rebuild/v63-phase2-finance/evidence/after/phase2-finance-walkthrough.mp4"
+}

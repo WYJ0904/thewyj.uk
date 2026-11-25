@@ -2139,8 +2139,10 @@ async function main() {
       })()`);
       await click("#v3Sidebar [data-v3-nav=finance]");
       await waitFor("location.pathname === '/finance' && !document.querySelector('#financeWorkspace')?.classList.contains('hidden')", 8_000, "finance workspace");
-      assert.equal(await evaluate("document.querySelector('#financeRecordedSection').open"), false,
-        "recorded transactions start collapsed");
+      assert.equal(await evaluate("document.querySelector('#financeWorkspace').dataset.financeActiveTab"), "overview",
+        "finance sidebar navigation defaults to overview subview");
+      assert.equal(await evaluate("document.querySelector('#financeRecordedSection').open"), true,
+        "recorded transactions start open on ledger tab");
       assert.equal(await evaluate("document.querySelector('#financeLocked').classList.contains('hidden')"), true);
       await waitFor("document.querySelector('#financeCategoryFilter')?.textContent.includes('云端预置分类')", 4_000, "pre-existing finance category hydration");
       await waitFor("document.querySelector('#financeBudgetSummary')?.getAttribute('aria-busy') === 'false'", 4_000,
@@ -2148,6 +2150,8 @@ async function main() {
       assert.ok((await evaluate("document.querySelector('#financeBudgetSummary').textContent")).includes("50.00"));
       await evaluate("window.requestAnimationFrame = window.__financeBudgetOriginalRaf; delete window.__financeBudgetOriginalRaf;");
 
+      await click("#financeTabAnalytics");
+      await waitFor("document.querySelector('#financeWorkspace').dataset.financeActiveTab === 'analytics'", 3_000, "finance analytics tab");
       await click("#financeManageCategoriesBtn");
       await setFields({ "#financeCategoryName": "餐饮", "#financeCategoryAppliesTo": "expense" });
       await click("#financeCategoryForm button[type=submit]");
@@ -2174,7 +2178,11 @@ async function main() {
       await addTransaction({ direction: "refund", amount: "2.34", merchant: "便利店退款", category: categoryId });
       await waitFor("document.querySelectorAll('#financeTransactionList .finance-transaction').length === 3", 8_000, "three finance directions");
       assert.equal(await evaluate("document.querySelector('#financeRecordedCount').textContent"), "3",
-        "collapsed transactions still load and update their count");
+        "transactions load and update their count across subviews");
+      await click("#financeTabLedger");
+      await waitFor("document.querySelector('#financeWorkspace').dataset.financeActiveTab === 'ledger'", 3_000, "finance ledger tab");
+      await click("#financeRecordedSection > summary");
+      assert.equal(await evaluate("document.querySelector('#financeRecordedSection').open"), false);
       await click("#financeRecordedSection > summary");
       assert.equal(await evaluate("document.querySelector('#financeRecordedSection').open"), true);
       assert.ok((await evaluate("document.querySelector('#financeBalanceTotal').textContent")).includes("90.00"));
@@ -2209,13 +2217,12 @@ async function main() {
         await evaluate(`document.querySelector('#financeRecordedSection').open=${open};document.querySelector('#financeInsightDisclosure').open=true;true`);
         const layout = await evaluate(`(() => {
           const ledger=document.querySelector('#financeRecordedSection'),insight=document.querySelector('#financeInsightDisclosure');
-          const a=ledger.getBoundingClientRect(),b=insight.getBoundingClientRect(),s=getComputedStyle(insight);
-          return {siblings:ledger.parentElement===insight.parentElement,nested:ledger.contains(insight),
-            separate:b.top>=a.bottom+12 || b.left>=a.right+12,
-            border:parseFloat(s.borderTopWidth),radius:parseFloat(s.borderTopLeftRadius),background:s.backgroundColor};
+          return {
+            distinctPanels: ledger.closest('[data-finance-panel]') !== insight.closest('[data-finance-panel]'),
+            nested: ledger.contains(insight) || insight.contains(ledger),
+          };
         })()`);
-        assert.equal(layout.siblings,true);assert.equal(layout.nested,false);assert.equal(layout.separate,true);
-        assert.ok(layout.border>0 && layout.radius>0 && layout.background!=="rgba(0, 0, 0, 0)","statistics has its own card in both ledger states");
+        assert.equal(layout.distinctPanels,true);assert.equal(layout.nested,false);
       }
       await evaluate("document.querySelector('#financeRecordedSection').open=true;true");
 
@@ -2256,10 +2263,14 @@ async function main() {
         true,
         "finance undo must not survive a route change",
       );
+      await click("#financeTabLedger");
+      await waitFor("document.querySelector('#financeWorkspace').dataset.financeActiveTab === 'ledger'", 3_000, "finance ledger tab after restore");
       await setFields({ "#financeStatusFilter": "deleted" });
       await click(`[data-finance-restore="${expenseId}"]`);
       await setFields({ "#financeStatusFilter": "active" });
 
+      await click("#financeTabAnalytics");
+      await waitFor("document.querySelector('#financeWorkspace').dataset.financeActiveTab === 'analytics'", 3_000, "finance analytics tab for budgets");
       await click("#financeManageBudgetsBtn");
       await setFields({ "#financeBudgetAmount": "20.00", "#financeBudgetCategory": categoryId });
       await click("#financeBudgetForm button[type=submit]");
@@ -2282,6 +2293,8 @@ async function main() {
       await evaluate("window.dispatchEvent(new Event('online')); true");
       await waitFor("financeController.dashboardSummary().pending === 0", 8_000, "finance reconnect sync");
 
+      await click("#financeTabLedger");
+      await waitFor("document.querySelector('#financeWorkspace').dataset.financeActiveTab === 'ledger'", 3_000, "finance ledger tab on mobile");
       await send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
       const mobilePage = await evaluate(`({ viewport: document.documentElement.clientWidth, scrollWidth: document.documentElement.scrollWidth, cards: document.querySelectorAll('#financeTransactionList .finance-transaction').length })`);
       assert.ok(mobilePage.scrollWidth <= mobilePage.viewport + 1, JSON.stringify(mobilePage));
@@ -2298,6 +2311,7 @@ async function main() {
 
       await navigate(`/finance?reload=${RUN_ID}`);
       await waitFor("!document.querySelector('#entryScreen') && location.pathname === '/finance'", 8_000, "finance reload");
+      await click("#financeTabLedger");
       await waitFor("document.querySelectorAll('#financeTransactionList .finance-transaction').length === 4", 8_000, "finance reload state");
       assert.ok((await evaluate("document.querySelector('#financeTransactionList').textContent")).includes("离线账目"));
       await evaluate("window.fetch = window.__financeTestOriginalFetch; delete window.__financeTestOriginalFetch; true");

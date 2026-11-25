@@ -2304,11 +2304,15 @@ export function installMotionSystem(doc = globalThis.document) {
   disclosureObserver.observe(doc.documentElement, { subtree: true, attributes: true, attributeFilter: ["open"] });
   disposers.push(() => disclosureObserver.disconnect());
 
+  const wasHiddenGroups = new WeakSet();
+
   function updateIndicator(group) {
     if (!group?.isConnected) return;
     const selected = group.querySelector("[role='tab'][aria-selected='true']") || group.querySelector("[role='tab'].active");
     if (!selected) return;
     let indicator = indicators.get(group);
+    const snapMount = !indicator || wasHiddenGroups.has(group);
+    wasHiddenGroups.delete(group);
     if (!indicator) {
       indicator = doc.createElement("span");
       const segmented = group.classList?.contains?.("ds-segmented") || group.dataset?.indicatorStyle === "pill";
@@ -2318,29 +2322,58 @@ export function installMotionSystem(doc = globalThis.document) {
       group.classList.add("ds-motion-tabs");
       indicators.set(group, indicator);
     }
-    // Layout coordinates stay stable while pressed scale changes visual bounds.
     let left = selected.offsetLeft;
     let top = selected.offsetTop || 0;
+    let width = selected.offsetWidth;
+    let height = selected.offsetHeight;
     let parent = selected.offsetParent;
     while (parent && parent !== group) {
       left += parent.offsetLeft;
       top += parent.offsetTop || 0;
       parent = parent.offsetParent;
     }
-    indicator.style.width = `${selected.offsetWidth}px`;
+    // Use subpixel bounding coordinates when tab is untransformed, normalizing any
+    // ancestor CSS transform scale (e.g., modal entrance scale(0.955) -> 1).
+    if (view?.getComputedStyle && selected.getBoundingClientRect && group.getBoundingClientRect) {
+      const selStyle = view.getComputedStyle(selected);
+      const grpRect = group.getBoundingClientRect();
+      const selRect = selected.getBoundingClientRect();
+      const grpLayoutW = group.offsetWidth || 0;
+      const grpLayoutH = group.offsetHeight || 0;
+      const scaleX = grpLayoutW > 0 && grpRect.width > 0 ? grpRect.width / grpLayoutW : 1;
+      const scaleY = grpLayoutH > 0 && grpRect.height > 0 ? grpRect.height / grpLayoutH : 1;
+      if (grpRect.width > 0 && selRect.width > 0 && (!selStyle?.transform || selStyle.transform === "none")) {
+        left = (selRect.left - grpRect.left) / scaleX - (group.clientLeft || 0) + (group.scrollLeft || 0);
+        top = (selRect.top - grpRect.top) / scaleY - (group.clientTop || 0) + (group.scrollTop || 0);
+        width = selRect.width / scaleX;
+        height = selRect.height / scaleY;
+      }
+    }
+    if (snapMount) indicator.style.transition = "none";
+    indicator.style.width = `${width}px`;
     if (indicator.classList?.contains?.("seg-indicator")) {
-      indicator.style.height = `${selected.offsetHeight}px`;
+      indicator.style.height = `${height}px`;
       indicator.style.transform = `translate3d(${left}px, ${top}px, 0)`;
     } else {
       indicator.style.transform = `translateX(${left}px)`;
     }
+    if (snapMount) {
+      void indicator.offsetWidth;
+      indicator.style.transition = "";
+    }
   }
 
   function scheduleIndicator(group) {
-    if (!group || !group.isConnected || indicatorFrames.has(group)) return;
+    if (!group || !group.isConnected) return;
+    if (group.getBoundingClientRect().width <= 0) {
+      wasHiddenGroups.add(group);
+      return;
+    }
+    if (indicatorFrames.has(group)) return;
     indicatorFrames.set(group, view.requestAnimationFrame(() => {
       indicatorFrames.delete(group);
       if (group.isConnected && group.getBoundingClientRect().width > 0) updateIndicator(group);
+      else wasHiddenGroups.add(group);
     }));
   }
 
@@ -2374,10 +2407,20 @@ export function installMotionSystem(doc = globalThis.document) {
     return pruned;
   }
 
+  const resizeObserver = typeof view.ResizeObserver === "function"
+    ? new view.ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const target = entry.target;
+        if (target?.isConnected && observedTablists.has(target)) scheduleIndicator(target);
+      }
+    })
+    : null;
+
   function registerTabGroup(group) {
     if (!group || !group.isConnected || observedTablists.has(group)) return;
     observedTablists.add(group);
     tabObserver.observe(group, { subtree: true, attributes: true, attributeFilter: ["aria-selected", "class"] });
+    resizeObserver?.observe(group);
     if (group.getBoundingClientRect().width > 0) updateIndicator(group);
   }
 
@@ -2410,18 +2453,20 @@ export function installMotionSystem(doc = globalThis.document) {
 
   disposers.push(() => {
     tabObserver.disconnect();
+    resizeObserver?.disconnect();
     for (const frame of indicatorFrames.values()) view.cancelAnimationFrame(frame);
     indicatorFrames.clear();
   });
 
   const resize = () => {
     pruneDisconnectedTablists();
-    for (const group of indicators.keys()) {
+    for (const group of observedTablists) {
       if (group.isConnected && group.getBoundingClientRect().width > 0) updateIndicator(group);
     }
   };
   view.addEventListener("resize", resize);
   disposers.push(() => view.removeEventListener("resize", resize));
+  doc.fonts?.ready?.then(() => resize()).catch(() => {});
 
   // Scroll-progress & Bento internal parallax controller (auto-tracks [data-scroll-3d] & [data-bento-wall]).
   const scrollController = createScrollProgressController({ root: doc, doc, view });

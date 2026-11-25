@@ -41,7 +41,8 @@ test('deadline remains live while a response body is stalled',async()=>{
   if(!asset.includes('/js/core/config.js'))return response(asset);
   return new Response(new ReadableStream({start(c){bodyController=c;options.signal.addEventListener('abort',()=>c.error(new DOMException('Aborted','AbortError')));}}));
  });
- const install=w.install();await turn();await turn();
+ const install=w.install();for(let i=0;i<100&&!bodyController;i++)await turn();
+ assert.ok(bodyController,'stalled config.js stream should start');
  assert.ok(w.timers.size>0,'headers alone must not release the body deadline');
  for(const f of [...w.timers.values()])f();
  await assert.rejects(install,/Release shell is incomplete/);assert.ok(bodyController);assert.equal(w.stores.has(meta.cache),false);assert.equal(w.skipped(),0);
