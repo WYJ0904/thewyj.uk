@@ -13,7 +13,8 @@ import { POLICY_VERSIONS } from './task27-policy.mjs';
 import { hasTask27 } from './task27-store.mjs';
 import { envelopeCipher, opaque, unixTime, verifyBackchannel } from './ds-native-crypto.mjs';
 import {
-  issueNativeGrant, nativeGrantStatus, nativeSchemaReady, readEnvelope, reserveNonce, revokeNativeGrant, saveEnvelope,
+  issueNativeGrant, nativeGrantStatus, nativeRenewalSchemaReady, nativeSchemaReady, readEnvelope, renewNativeGrant,
+  reserveNonce, revokeNativeGrant, saveEnvelope,
 } from './ds-native-store.mjs';
 
 const route = '/api/internal/ds-identity/v1';
@@ -22,7 +23,7 @@ const productionIssuer = 'https://thewyj.uk';
 const productionOrigin = 'https://ds.thewyj.uk';
 const productionClientId = 'ds-production-v1';
 const productionSecretPrefix = 'dsprod_v1_';
-const nativeActions = new Set(['policies', 'register', 'introspect', 'revoke']);
+const nativeActions = new Set(['policies', 'register', 'introspect', 'renew', 'revoke']);
 const scopes = new Set(['profile_change', 'password_change', 'email_change', 'mfa_change', 'recovery_regenerate', 'sessions_revoke']);
 const loginActions = new Set(['login', 'login_verify', 'password_force', 'policy_accept', 'recovery_start', 'recovery_finish']);
 const accountActions = new Map([
@@ -178,7 +179,7 @@ async function canonical(context, path, { session = '', payload, ip = '' } = {})
   return body;
 }
 
-async function authResult(context, client, cipher, binding, result) {
+async function authResult(context, client, cipher, binding, result, grantVersion) {
   const db = context.env.WYJ_DB;
   const expires = Math.min(unixTime() + 300, Math.floor(Date.parse(result.expires_at) / 1000) || Infinity);
   if (opaque(result.session)) {
@@ -189,7 +190,7 @@ async function authResult(context, client, cipher, binding, result) {
       return { stage: 'policy_required' };
     }
     if (!source.authenticated) throw error('authentication_required', source.status || 401);
-    const grant = await issueNativeGrant(db, client, cipher, result.session);
+    const grant = await issueNativeGrant(db, client, cipher, result.session, grantVersion);
     if (!grant) throw error('authentication_required', 401);
     return { stage: 'authenticated', claims: grant };
   }
@@ -200,12 +201,12 @@ async function authResult(context, client, cipher, binding, result) {
   return { stage, ...select(result, ['method', 'expires_at']) };
 }
 
-async function unauthenticated(context, client, cipher, action, input, binding, ip) {
+async function unauthenticated(context, client, cipher, action, input, binding, ip, grantVersion) {
   const db = context.env.WYJ_DB;
   if (!opaque(binding)) throw error('invalid_request', 400);
   if (action === 'login') {
     const result = await canonical(context, '/api/login', { payload: select(input, ['username', 'secret']), ip });
-    return authResult(context, client, cipher, binding, result);
+    return authResult(context, client, cipher, binding, result, grantVersion);
   }
   if (action === 'recovery_start') {
     const result = await canonical(context, '/api/security/password/request', {
@@ -218,11 +219,11 @@ async function unauthenticated(context, client, cipher, action, input, binding, 
   if (!token) throw error('flow_expired', 400);
   if (action === 'policy_accept') {
     await canonical(context, '/api/policies/accept', { session: token, payload: select(input, ['terms_accepted', 'policy_versions']), ip });
-    return authResult(context, client, cipher, binding, { session: token });
+    return authResult(context, client, cipher, binding, { session: token }, grantVersion);
   }
   if (action === 'login_verify') {
     const result = await canonical(context, '/api/security/login/verify', { payload: { challenge: token, code: input.code }, ip });
-    return authResult(context, client, cipher, binding, result);
+    return authResult(context, client, cipher, binding, result, grantVersion);
   }
   const path = action === 'password_force' ? '/api/security/password/complete' : '/api/security/password/reset';
   await canonical(context, path, { payload: { ...select(input, ['code', 'new_secret', 'confirm_secret']), challenge: token }, ip });
@@ -286,16 +287,22 @@ export async function handleDsNativeRequest(context) {
     let envelope;
     try { envelope = JSON.parse(raw); } catch { throw error('invalid_request', 400); }
     if (!object(envelope) || !object(envelope.input)) throw error('invalid_request', 400);
-    const { op, input, binding, grant } = envelope;
+    const { op, input, binding, grant, grant_version: grantVersion } = envelope;
+    if (grantVersion !== undefined && grantVersion !== 2) throw error('invalid_request', 400);
     if (client.production && !nativeActions.has(op) && !loginActions.has(op) && !accountActions.has(op)) {
       return json({ error: 'not_found' }, 404);
     }
     const ip = typeof envelope.ip === 'string' && /^[0-9a-f:.]{1,45}$/i.test(envelope.ip) ? envelope.ip : '';
-    if (op === 'introspect' || op === 'revoke') {
+    if (op === 'introspect' || op === 'renew' || op === 'revoke') {
       auditOperation = op;
       if (!opaque(grant)) throw error('invalid_request', 400);
       await securityRate(context, 'ds-native-' + op, client.clientId, 600, 60);
-      if (op === 'introspect') return json(await nativeGrantStatus(db, client, grant));
+      if (op === 'introspect') return json(await nativeGrantStatus(db, client, grant, grantVersion !== 2));
+      if (op === 'renew') {
+        if (Object.keys(input).length || binding !== undefined) throw error('invalid_request', 400);
+        if (!await nativeRenewalSchemaReady(db)) throw error('operation_unavailable', 503);
+        return json(await renewNativeGrant(db, client, grant, grantVersion));
+      }
       await revokeNativeGrant(db, client, grant);
       return json({ revoked: true });
     }
@@ -323,7 +330,8 @@ export async function handleDsNativeRequest(context) {
     }
     if (loginActions.has(op)) {
       auditOperation = op;
-      return json(await unauthenticated(context, client, cipher, op, input, binding, ip));
+      if (grantVersion === 2 && !await nativeRenewalSchemaReady(db)) throw error('operation_unavailable', 503);
+      return json(await unauthenticated(context, client, cipher, op, input, binding, ip, grantVersion));
     }
     const definition = accountActions.get(op);
     if (definition && opaque(grant)) {
