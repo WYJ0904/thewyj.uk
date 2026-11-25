@@ -597,7 +597,26 @@ export function createFinanceCandidatesController({
     form.elements.amount.setCustomValidity(amountVal.valid ? "" : amountVal.message);
     const direction = String(form.elements.direction.value || "");
     form.elements.direction.setCustomValidity(VALID_DIRECTIONS.has(direction) ? "" : "请选择收支方向");
-    if (!form.reportValidity()) return;
+    if (!form.checkValidity()) {
+      const firstInvalid = form.querySelector(":invalid");
+      if (firstInvalid && form.offsetParent !== null) {
+        const selectTrigger = firstInvalid.tagName === "SELECT"
+          ? firstInvalid.closest(".ds-select-host")?.querySelector(".ds-select-trigger")
+          : null;
+        if (selectTrigger) {
+          selectTrigger.setAttribute("aria-invalid", "true");
+          selectTrigger.focus({ preventScroll: true });
+          const msg = firstInvalid.validationMessage || "请补全必填字段";
+          render(currentCandidates, msg);
+        } else {
+          form.reportValidity();
+        }
+      } else {
+        const msg = firstInvalid?.validationMessage || (!amountVal.valid ? amountVal.message : "请选择收支方向");
+        render(currentCandidates, msg);
+      }
+      return;
+    }
     decide(id, true, buildEdits(candidate, form), trigger);
   }
 

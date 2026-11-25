@@ -1116,7 +1116,13 @@ export function enhanceSelect(selectEl) {
       openPopover();
     }
   });
-  selectEl.addEventListener("change", sync);
+  selectEl.addEventListener("change", () => {
+    trigger.removeAttribute("aria-invalid");
+    sync();
+  });
+  selectEl.addEventListener("invalid", () => {
+    trigger.setAttribute("aria-invalid", "true");
+  });
 
   const observer = new MutationObserver(() => {
     sync();
