@@ -4615,7 +4615,7 @@ async function showTools(path = "/tools", pushHistory = true, generation = route
         if (statusEl) {
           statusEl.textContent = summary.permanent
             ? `${summary.name} · 永久有效`
-            : `${summary.name || "工具箱会员"}${summary.expires_at ? ` · 到期 ${formatDate(summary.expires_at)}` : ""}`;
+            : `${summary.name || "工具箱会员"}${summary.expires_at ? ` · 到期 ${formatLocalDateTime(summary.expires_at)}` : ""}`;
         }
       }, (error) => {
         if (error?.code === "membership_required" && isRouteGenerationCurrent(generation)) {

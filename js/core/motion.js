@@ -2109,6 +2109,7 @@ export function installMotionSystem(doc = globalThis.document) {
   const view = doc.defaultView;
   const pressed = new Map();
   const pointerTargets = new Map();
+  const keyboardTargets = new Map();
   const disposers = [];
   const disclosures = new WeakMap();
   const indicators = new Map();
@@ -2152,6 +2153,7 @@ export function installMotionSystem(doc = globalThis.document) {
   function reset() {
     for (const node of [...pressed.keys()]) clear(node);
     pointerTargets.clear();
+    keyboardTargets.clear();
   }
 
   function listen(type, handler, options = { capture: true }) {
@@ -2181,15 +2183,32 @@ export function installMotionSystem(doc = globalThis.document) {
 
   listen("keydown", (event) => {
     if (!event.repeat && (event.key === "Enter" || event.key === " ")) {
-      press(resolveInteractiveTarget(event.target));
+      const node = resolveInteractiveTarget(event.target);
+      if (node && usable(node)) {
+        keyboardTargets.set(event.code || event.key, node);
+        press(node);
+      }
     }
   });
 
   listen("keyup", (event) => {
     if (event.key === "Enter" || event.key === " ") {
-      release(resolveInteractiveTarget(event.target));
+      const keyId = event.code || event.key;
+      const node = keyboardTargets.get(keyId) || resolveInteractiveTarget(event.target);
+      keyboardTargets.delete(keyId);
+      if (node) release(node);
     }
   });
+
+  listen("blur", (event) => {
+    const node = resolveInteractiveTarget(event.target);
+    if (node && pressed.has(node)) release(node, true);
+  }, { capture: true, passive: true });
+
+  listen("click", (event) => {
+    const node = resolveInteractiveTarget(event.target);
+    if (node?.tagName === "A" && pressed.has(node)) release(node);
+  }, { capture: true, passive: true });
 
   // Semantic invalid/input feedback sync across native forms.
   listen("invalid", (event) => {
