@@ -1,0 +1,162 @@
+{
+  "tabMetrics": {
+    "initial": {
+      "box": {
+        "left": 448.5,
+        "right": 932.69,
+        "top": 460.38,
+        "bottom": 513.38,
+        "width": 484.19,
+        "height": 53,
+        "borderRadius": "999px",
+        "borderBottom": "1px",
+        "padding": "4px",
+        "overflowX": "auto",
+        "overflowY": "hidden"
+      },
+      "ind": {
+        "left": 452.5,
+        "right": 567.5,
+        "top": 464.38,
+        "bottom": 508.38,
+        "width": 115,
+        "height": 44,
+        "borderRadius": "6px",
+        "transition": "transform 0.14s cubic-bezier(0.16, 1, 0.3, 1)"
+      },
+      "selectedTab": {
+        "id": "publicLearningTab",
+        "left": 452.5,
+        "right": 567.05,
+        "width": 114.55,
+        "height": 44,
+        "borderRadius": "6px 6px 0px 0px",
+        "bg": "rgb(234, 234, 234)"
+      },
+      "overflowLeft": -4,
+      "overflowRight": -365.19
+    },
+    "tabIds": [
+      "publicLearningTab",
+      "publicToolsTab",
+      "publicFinanceTab",
+      "publicFilesTab"
+    ]
+  },
+  "tabLastMetrics": {
+    "overflowLeft": -366,
+    "overflowRight": -3.19,
+    "indRect": {},
+    "boxRect": {}
+  },
+  "sidebarFramesHome": [
+    {
+      "t": 1.8,
+      "sidebarW": 0,
+      "mainLeft": 0,
+      "mainW": 0,
+      "gap": 0,
+      "heroLeft": 0,
+      "gridCols": "240px minmax(0px, 1fr)"
+    },
+    {
+      "t": 3.3,
+      "sidebarW": 0,
+      "mainLeft": 0,
+      "mainW": 0,
+      "gap": 0,
+      "heroLeft": 0,
+      "gridCols": "240px minmax(0px, 1fr)"
+    },
+    {
+      "t": 5.7,
+      "sidebarW": 0,
+      "mainLeft": 0,
+      "mainW": 0,
+      "gap": 0,
+      "heroLeft": 0,
+      "gridCols": "240px minmax(0px, 1fr)"
+    },
+    {
+      "t": 10,
+      "sidebarW": 0,
+      "mainLeft": 0,
+      "mainW": 0,
+      "gap": 0,
+      "heroLeft": 0,
+      "gridCols": "240px minmax(0px, 1fr)"
+    },
+    {
+      "t": 14.1,
+      "sidebarW": 0,
+      "mainLeft": 0,
+      "mainW": 0,
+      "gap": 0,
+      "heroLeft": 0,
+      "gridCols": "240px minmax(0px, 1fr)"
+    },
+    {
+      "t": 18.3,
+      "sidebarW": 0,
+      "mainLeft": 0,
+      "mainW": 0,
+      "gap": 0,
+      "heroLeft": 0,
+      "gridCols": "240px minmax(0px, 1fr)"
+    },
+    {
+      "t": 22.3,
+      "sidebarW": 0,
+      "mainLeft": 0,
+      "mainW": 0,
+      "gap": 0,
+      "heroLeft": 0,
+      "gridCols": "240px minmax(0px, 1fr)"
+    },
+    {
+      "t": 26.8,
+      "sidebarW": 0,
+      "mainLeft": 0,
+      "mainW": 0,
+      "gap": 0,
+      "heroLeft": 0,
+      "gridCols": "240px minmax(0px, 1fr)"
+    },
+    {
+      "t": 31,
+      "sidebarW": 0,
+      "mainLeft": 0,
+      "mainW": 0,
+      "gap": 0,
+      "heroLeft": 0,
+      "gridCols": "240px minmax(0px, 1fr)"
+    },
+    {
+      "t": 35.8,
+      "sidebarW": 0,
+      "mainLeft": 0,
+      "mainW": 0,
+      "gap": 0,
+      "heroLeft": 0,
+      "gridCols": "240px minmax(0px, 1fr)"
+    },
+    {
+      "t": 39.1,
+      "sidebarW": 0,
+      "mainLeft": 0,
+      "mainW": 0,
+      "gap": 0,
+      "heroLeft": 0,
+      "gridCols": "240px minmax(0px, 1fr)"
+    },
+    {
+      "t": 43.3,
+      "sidebarW": 0,
+      "mainLeft": 0,
+      "mainW": 0,
+      "gap": 0,
+      "heroLeft": 0,
+      "gridCols": "240px minmax(0px, 1fr)"
+    }
+  ]
+}

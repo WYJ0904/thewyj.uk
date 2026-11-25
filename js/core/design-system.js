@@ -610,7 +610,7 @@ function setupContentNavigation() {
   // The public product demo already owns its tab behavior. These groups call
   // their existing click handlers, so routes, validation and permissions stay
   // with their current owners rather than being duplicated here.
-  const groups = [...document.querySelectorAll('.auth-tabs, .admin-tabs, .feedback-tabs, #workspace > .tabs')];
+  const groups = [...document.querySelectorAll('.auth-tabs, .admin-tabs, .feedback-tabs, .finance-subnav, #workspace > .tabs')];
   const refreshGroups = groups.map((group) => {
     const tabs = [...group.querySelectorAll('[role="tab"]')];
     const original = new Map(tabs.map((tab) => [tab, { index: tab.getAttribute("tabindex"), selected: tab.getAttribute("aria-selected") }]));

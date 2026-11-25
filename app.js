@@ -4721,11 +4721,18 @@ async function showFinance(pushHistory = true, generation = routeGeneration) {
   $("financePage")?.setAttribute("aria-hidden", "false");
   animateRouteViewEntrance($("financePage"));
   document.body.classList.remove("project-picker-active");
-  if (pushHistory) { pushRoute("/finance"); generation = routeGeneration; }
+  const initialTab = pushHistory ? "overview" : (history.state?.aerisFinanceTab || "overview");
+  if (pushHistory) {
+    pushRoute("/finance", false, { aerisFinanceTab: initialTab });
+    generation = routeGeneration;
+    if (location.pathname === "/finance" && typeof history?.replaceState === "function") {
+      try { history.replaceState({ ...(history.state || {}), aerisFinanceTab: initialTab }, "", location.href); } catch (_) {}
+    }
+  }
   renderAccountUi();
   const reapplyPopScroll = applyWorkspaceRouteScroll(pushHistory);
   try {
-    const financeVisible = await financeController?.show?.();
+    const financeVisible = await financeController?.show?.({ subView: initialTab });
     if (!isRouteGenerationCurrent(generation)) return;
     if (financeVisible) await financeCandidatesController?.show?.();
     else financeCandidatesController?.hide?.();
@@ -4736,6 +4743,7 @@ async function showFinance(pushHistory = true, generation = routeGeneration) {
     if (message) {
       message.textContent = error?.message || "财务账本暂时无法加载，本机数据仍然保留。";
       message.dataset.tone = "error";
+      message.hidden = false;
     }
     reapplyPopScroll();
   }
@@ -5448,7 +5456,7 @@ const loadCandidateModule = createRetryableImport(new URL("./js/finance/candidat
 const loadTransferModule = createRetryableImport(new URL("./js/transfer/app.js?release=20261121-aeris-i05-preview", import.meta.url));
 
 financeController = createLazyController({
-  methods: ["syncNow", "verifyTransaction", "render"],
+  methods: ["syncNow", "verifyTransaction", "render", "setSubView"],
   summary: () => ({ available: false, balance_minor: 0, pending: 0 }),
   onReady: () => renderDashboard(),
   load: async () => (await loadFinanceModule()).createFinanceController({

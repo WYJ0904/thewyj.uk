@@ -186,6 +186,12 @@
   --ds-card-finance-surface: #fdfdfd;
   --ds-card-finance-border: #e4e4e4;
   --ds-card-finance-accent: #166e46;
+  --ds-fin-chart-cat-1: #2d5a9e;
+  --ds-fin-chart-cat-2: #166e46;
+  --ds-fin-chart-cat-3: #8c5206;
+  --ds-fin-chart-cat-4: #7c5fa8;
+  --ds-fin-chart-cat-5: #2b7a78;
+  --ds-fin-chart-cat-6: #6b7280;
   --ds-card-tools-bg: #fdfdfd;
   --ds-card-tools-surface: #fdfdfd;
   --ds-card-tools-border: #e4e4e4;
@@ -393,6 +399,12 @@ body.modal-open .skip-link { visibility: hidden; }
   --ds-card-finance-surface: #282828;
   --ds-card-finance-border: #383838;
   --ds-card-finance-accent: #5ac18e;
+  --ds-fin-chart-cat-1: #6b9be0;
+  --ds-fin-chart-cat-2: #5ac18e;
+  --ds-fin-chart-cat-3: #d9a043;
+  --ds-fin-chart-cat-4: #b197d6;
+  --ds-fin-chart-cat-5: #5cb5b2;
+  --ds-fin-chart-cat-6: #9ca3af;
   --ds-card-tools-bg: #282828;
   --ds-card-tools-surface: #282828;
   --ds-card-tools-border: #383838;
@@ -483,6 +495,12 @@ body.modal-open .skip-link { visibility: hidden; }
     --ds-card-finance-surface: #282828;
     --ds-card-finance-border: #383838;
     --ds-card-finance-accent: #5ac18e;
+  --ds-fin-chart-cat-1: #6b9be0;
+  --ds-fin-chart-cat-2: #5ac18e;
+  --ds-fin-chart-cat-3: #d9a043;
+  --ds-fin-chart-cat-4: #b197d6;
+  --ds-fin-chart-cat-5: #5cb5b2;
+  --ds-fin-chart-cat-6: #9ca3af;
     --ds-card-tools-bg: #282828;
     --ds-card-tools-surface: #282828;
     --ds-card-tools-border: #383838;
@@ -723,20 +741,40 @@ article[data-aeris-pressed="true"],
   scale: 1;
 }
 
-.ds-motion-tabs { position: relative; isolation: isolate; overflow: hidden; }
+.ds-motion-tabs { position: relative; isolation: isolate; }
 .ds-tab-indicator {
   position: absolute; pointer-events: none; bottom: 0; left: 0; height: 2px;
   background: var(--ds-action-primary); border-radius: var(--ds-radius-pill);
-  transition: transform var(--ds-duration-expand) var(--ds-ease-emphasized);
+  transition:
+    transform var(--ds-duration-expand) var(--ds-ease-emphasized),
+    width var(--ds-duration-expand) var(--ds-ease-emphasized),
+    opacity var(--ds-duration-fast) var(--ds-ease-standard);
 }
 .ds-tab-indicator.seg-indicator {
   top: 0;
   bottom: auto;
-  z-index: -1;
-  border-radius: var(--ds-radius-sm);
+  z-index: 0;
+  box-sizing: border-box;
+  border-radius: var(--ds-seg-radius, var(--ds-radius-pill));
   background: var(--ds-surface);
   box-shadow: var(--ds-seg-shadow);
-  transition: transform var(--ds-duration-fast) var(--ds-ease-decelerate);
+  transition:
+    transform 240ms var(--ds-ease-spring),
+    width 240ms var(--ds-ease-spring),
+    height 240ms var(--ds-ease-spring),
+    border-radius 240ms var(--ds-ease-spring),
+    opacity 150ms var(--ds-ease-standard);
+}
+.ds-motion-tabs:is(.ds-segmented, [data-indicator-style="pill"]) > [role="tab"] {
+  position: relative;
+  z-index: 1;
+  border-radius: var(--ds-seg-radius, var(--ds-radius-pill));
+  transform: none;
+  scale: 1;
+}
+.ds-motion-tabs:is(.ds-segmented, [data-indicator-style="pill"]) > [role="tab"]:is([aria-selected="true"], .active) {
+  background: transparent;
+  box-shadow: none;
 }
 
 [data-skeleton-loading="true"] {
@@ -1118,8 +1156,7 @@ textarea[aria-invalid="true"] {
 
 /* Sheet backdrop scale removed to preserve 1:1 WebView/layout width invariants (Task27). */
 
-.app-scale-wrap,
-#v3AppFrame {
+.app-scale-wrap {
   transition: transform var(--ds-duration-expand) var(--ds-ease-standard);
 }
 

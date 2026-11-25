@@ -210,6 +210,7 @@ export function createFinanceCandidatesController({
   let bound = false;
   let active = false;
   let lifecycleVersion = 0;
+  let autoCollapsedEmpty = false;
   // Task 24 reopen #7: one *automatic* refresh at a time, and only the newest
   // list may paint. A manual refresh must never be answered by a load that
   // started before the user's click (legacy Task 21 gate: the second candidate
@@ -283,6 +284,13 @@ export function createFinanceCandidatesController({
     currentCandidates = [...candidates];
     if (element("financePendingCount")) element("financePendingCount").textContent = hasCanonicalObservation ? String(candidates.length) : "待核对";
     pendingDisclosure?.pending(candidates.map(item => item.canonical_id || item.id));
+    const cleanEmpty = hasCanonicalObservation && candidates.length === 0 && !message;
+    section.dataset.pendingEmpty = cleanEmpty ? "true" : "false";
+    if (candidates.length > 0) autoCollapsedEmpty = false;
+    else if (cleanEmpty && !autoCollapsedEmpty) {
+      autoCollapsedEmpty = true;
+      section.open = false;
+    }
     const banner = element("financeCandidateMessage");
     if (banner) { banner.textContent = message; banner.hidden = !message; }
     reconcileKeyedRows(list, candidates, {
@@ -723,6 +731,8 @@ export function createFinanceCandidatesController({
       recoveryRows.clear();
       renderedForAccount = "";
       currentCandidates = [];
+      hasCanonicalObservation = false;
+      autoCollapsedEmpty = false;
       canonicalRecords = [];
       hasCanonicalObservation = false;
     }

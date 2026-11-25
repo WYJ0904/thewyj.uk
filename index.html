@@ -435,8 +435,20 @@
 
       <section class="finance-page hidden" id="financePage" aria-labelledby="financeTitle" aria-hidden="true">
         <header class="finance-header">
-          <div><h1 id="financeTitle">财务</h1><p>Web 与 Android 共用账户与收支账本。</p></div>
-          <div class="finance-header-actions"><span class="status-badge" id="financeSyncStatus" data-tone="info">准备中</span><button class="button-ghost" id="financePrivacyBtn" type="button" aria-pressed="false">隐藏金额</button><button class="button-secondary" id="finOpenBackupBtn" type="button">导出与加密备份</button><button class="button-secondary" id="financeBackBtn" type="button">返回个人首页</button></div>
+          <div class="finance-header-title">
+            <div class="finance-title-row">
+              <h1 id="financeTitle">财务</h1>
+              <span class="status-badge" id="financeSyncStatus" data-tone="info">准备中</span>
+              <button class="button-ghost hidden" id="financeResolveConflictBtn" type="button">以本机修改重试</button>
+            </div>
+            <p class="finance-sync-subtitle" id="financeSyncDetail">本地修改会在联网后自动同步。</p>
+          </div>
+          <div class="finance-header-actions">
+            <button class="primary" id="financeAddTransactionBtn" type="button">新增账目</button>
+            <button class="button-secondary" id="financeSyncBtn" type="button">立即同步</button>
+            <button class="button-ghost" id="financePrivacyBtn" type="button" aria-pressed="false">隐藏金额</button>
+            <button class="button-ghost" id="financeBackBtn" type="button">返回个人首页</button>
+          </div>
         </header>
 
         <section class="finance-locked hidden" id="financeLocked" aria-labelledby="financeLockedTitle">
@@ -444,57 +456,107 @@
           <div><h2 id="financeLockedTitle">财务会员 8 CNY/月</h2><p>包含 Web 与 Android 共用财务账本。全功能包月和全功能永久会员已自动包含，无需重复购买。</p><button class="primary" id="financeUpgradeBtn" type="button">查看财务会员</button></div>
         </section>
 
-        <div class="finance-workspace hidden" id="financeWorkspace">
-          <div class="finance-sync-note" aria-live="polite"><span id="financeSyncDetail">本地修改会在联网后自动同步。</span><div><button class="button-secondary" id="financeSyncBtn" type="button">立即同步</button><button class="button-ghost hidden" id="financeResolveConflictBtn" type="button">以本机修改重试</button></div></div>
+        <div class="finance-workspace hidden" id="financeWorkspace" data-finance-active-tab="overview">
+          <nav class="finance-subnav" id="financeSubnav" role="tablist" aria-label="财务功能导航">
+            <button type="button" role="tab" id="financeTabOverview" data-finance-tab="overview" aria-selected="true" aria-controls="financePanelOverview">总览</button>
+            <button type="button" role="tab" id="financeTabLedger" data-finance-tab="ledger" aria-selected="false" aria-controls="financePanelLedger" tabindex="-1">账本 <span class="finance-tab-badge hidden" id="financeTabLedgerBadge">0</span></button>
+            <button type="button" role="tab" id="financeTabAnalytics" data-finance-tab="analytics" aria-selected="false" aria-controls="financePanelAnalytics" tabindex="-1">分析</button>
+            <button type="button" role="tab" id="financeTabSettings" data-finance-tab="settings" aria-selected="false" aria-controls="financePanelSettings" tabindex="-1">设置</button>
+          </nav>
 
-          <section class="finance-summary-section" aria-labelledby="financeSummaryTitle">
-            <div class="finance-section-heading"><div><h2 id="financeSummaryTitle">收支概览</h2><p id="financeSummaryPeriod">本月</p></div><button class="primary" id="financeAddTransactionBtn" type="button">新增账目</button></div>
-            <div class="finance-summary-grid">
-              <article><span>总收入</span><strong class="is-income" id="financeIncomeTotal">¥0.00</strong></article>
-              <article><span>总支出</span><strong class="is-expense" id="financeExpenseTotal">¥0.00</strong></article>
-              <article><span>退款</span><strong class="is-refund" id="financeRefundTotal">¥0.00</strong></article>
-              <article><span>余额</span><strong id="financeBalanceTotal">¥0.00</strong></article>
-            </div>
-            <div class="finance-form-grid finance-currency-grid"><label><span>展示币种</span><select id="financeDisplayCurrency"><option value="CNY">CNY</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="HKD">HKD</option><option value="GBP">GBP</option><option value="JPY">JPY</option></select></label><label><span>账户基准币种</span><select id="financeAccountCurrency"><option value="CNY">CNY</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="HKD">HKD</option><option value="GBP">GBP</option><option value="JPY">JPY</option></select></label><label><span>未标明币种时</span><select id="financeDefaultCurrency"><option value="">保持待核实</option><option value="CNY">CNY</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="HKD">HKD</option><option value="GBP">GBP</option><option value="JPY">JPY</option></select></label></div><p id="financeCurrencyStatus" class="muted" role="status"></p><p id="financeCurrencyGroups" class="muted"></p>
-          </section>
+          <p class="finance-inline-message" id="financeMessage" aria-live="polite" hidden></p>
 
-          <section class="finance-trend-section" id="financeTrendSection" aria-labelledby="financeTrendTitle">
-            <div class="finance-section-heading">
-              <div>
-                <h2 id="financeTrendTitle">收支走势</h2>
-                <p id="financeTrendPeriod">近 6 个月收支对比趋势</p>
-              </div>
-              <div class="finance-trend-heading-actions">
-                <div class="finance-trend-legend" aria-hidden="true">
-                  <span class="legend-income"><i class="legend-dot income-dot"></i>收入</span>
-                  <span class="legend-expense"><i class="legend-dot expense-dot"></i>支出</span>
+          <div class="finance-subview active" id="financePanelOverview" role="tabpanel" aria-labelledby="financeTabOverview" data-finance-panel="overview">
+            <section class="finance-summary-section" id="financeSummarySection" aria-labelledby="financeSummaryTitle">
+              <div class="finance-section-heading">
+                <div class="finance-summary-heading">
+                  <h2 id="financeSummaryTitle">收支概览</h2>
+                  <span class="finance-period-label" id="financeSummaryPeriod">本月</span>
+                  <span class="finance-currency-chip" id="financeOverviewCurrencyChip">展示币种：CNY</span>
                 </div>
-                <button class="button-secondary finance-trend-toggle-btn" id="toggleFinanceTrendBtn" type="button" aria-expanded="true" aria-controls="financeTrendChartWrap">收起走势图</button>
+                <button class="button-ghost finance-inline-link" type="button" data-finance-action="go-settings">币种与设置</button>
               </div>
-            </div>
-            <div class="finance-trend-chart-wrap" id="financeTrendChartWrap" role="group" aria-label="月度收支走势图">
-              <!-- Rendered via JS -->
-            </div>
-          </section>
+              <div class="finance-summary-grid finance-kpi-strip">
+                <article><span>本月收入</span><strong class="is-income" id="financeIncomeTotal">¥0.00</strong></article>
+                <article><span>本月支出</span><strong class="is-expense" id="financeExpenseTotal">¥0.00</strong></article>
+                <article><span>本月结余</span><strong id="financeBalanceTotal">¥0.00</strong></article>
+                <article><span>退款</span><strong class="is-refund" id="financeRefundTotal">¥0.00</strong></article>
+              </div>
+              <p id="financeCurrencyStatus" class="finance-currency-note" role="status"></p>
+              <p id="financeCurrencyGroups" class="finance-currency-note"></p>
+            </section>
 
-          <details class="finance-candidates-section finance-fold hidden" id="financeCandidatesSection" aria-labelledby="financeCandidatesTitle" aria-hidden="true" open>
-            <summary class="finance-fold-title"><span id="financeCandidatesTitle">待核实 / 待确认（<span id="financePendingCount">待核对</span>）</span></summary>
-            <div class="finance-section-heading">
-              <div><p>缺金额或方向的通知交易在这里核实；字段完整后自动记账。</p></div>
-              <button class="button-secondary" id="financeCandidatesRefreshBtn" type="button">刷新</button>
-            </div>
-            <p class="finance-candidate-message" id="financeCandidateMessage" role="status" hidden></p>
-            <div class="finance-candidate-list" id="financeCandidateList" aria-live="polite"></div>
-          </details>
+            <section class="finance-trend-section" id="financeTrendSection" aria-labelledby="financeTrendTitle">
+              <div class="finance-section-heading finance-trend-header">
+                <div>
+                  <h2 id="financeTrendTitle">收支走势</h2>
+                  <p id="financeTrendPeriod">近 6 个月收支对比趋势</p>
+                </div>
+                <div class="finance-trend-heading-actions">
+                  <div class="finance-trend-ranges" role="group" aria-label="走势时间范围">
+                    <button type="button" class="finance-range-btn" data-finance-trend-range="3" aria-pressed="false">3 个月</button>
+                    <button type="button" class="finance-range-btn active" data-finance-trend-range="6" aria-pressed="true">6 个月</button>
+                    <button type="button" class="finance-range-btn" data-finance-trend-range="12" aria-pressed="false">12 个月</button>
+                  </div>
+                  <div class="finance-trend-legend" aria-hidden="true">
+                    <span class="legend-income"><i class="legend-dot income-dot"></i>收入</span>
+                    <span class="legend-expense"><i class="legend-dot expense-dot"></i>支出</span>
+                  </div>
+                  <button class="button-ghost finance-trend-toggle-btn" id="toggleFinanceTrendBtn" type="button" aria-expanded="true" aria-controls="financeTrendChartWrap">收起走势图</button>
+                </div>
+              </div>
+              <div class="finance-trend-chart-wrap" id="financeTrendChartWrap" role="group" aria-label="月度收支走势图">
+                <!-- Rendered dynamically with ResizeObserver -->
+              </div>
+            </section>
 
-          <details class="finance-candidates-section finance-fold hidden" id="financeRecoverySection" aria-labelledby="financeRecoveryTitle">
-            <summary class="finance-fold-title"><span id="financeRecoveryTitle">本机恢复 / 未同步（<span id="financeRecoveryCount">0</span>）</span></summary>
-            <p>这些记录单独保留，不计入云端待处理数量。在 App 通知页的「查看本机恢复」中继续核实与同步。</p>
-            <div class="finance-candidate-list" id="financeRecoveryList" aria-live="polite"></div>
-          </details>
+            <section class="finance-overview-split" aria-label="近期账目与预算摘要">
+              <div class="finance-overview-block">
+                <div class="finance-section-heading">
+                  <div>
+                    <h3>近期动态</h3>
+                    <p>待核实通知与最近记账记录</p>
+                  </div>
+                  <button class="button-ghost finance-inline-link" type="button" data-finance-action="go-ledger">打开账本 →</button>
+                </div>
+                <div class="finance-overview-pending hidden" id="financeOverviewPendingBanner">
+                  <span id="financeOverviewPendingText">有待核实通知收支</span>
+                  <button class="button-secondary" type="button" data-finance-action="go-ledger">前往核实</button>
+                </div>
+                <div class="finance-overview-recent-list" id="financeOverviewRecentList"></div>
+              </div>
 
-          <section class="finance-content-grid">
-            <details class="finance-ledger-panel finance-fold" id="financeRecordedSection">
+              <div class="finance-overview-block">
+                <div class="finance-section-heading">
+                  <div>
+                    <h3>预算状态</h3>
+                    <p>当月预算执行情况</p>
+                  </div>
+                  <button class="button-ghost finance-inline-link" type="button" data-finance-action="go-analytics">深入分析 →</button>
+                </div>
+                <div class="finance-overview-budgets" id="financeOverviewBudgets"></div>
+              </div>
+            </section>
+          </div>
+
+          <div class="finance-subview" id="financePanelLedger" role="tabpanel" aria-labelledby="financeTabLedger" data-finance-panel="ledger" hidden>
+            <details class="finance-candidates-section finance-fold hidden" id="financeCandidatesSection" aria-labelledby="financeCandidatesTitle" aria-hidden="true" open>
+              <summary class="finance-fold-title"><span id="financeCandidatesTitle">待核实 / 待确认（<span id="financePendingCount">待核对</span>）</span></summary>
+              <div class="finance-section-heading">
+                <div><p>缺金额或方向的通知交易在这里核实；字段完整后自动记账。</p></div>
+                <button class="button-secondary" id="financeCandidatesRefreshBtn" type="button">刷新</button>
+              </div>
+              <p class="finance-candidate-message" id="financeCandidateMessage" role="status" hidden></p>
+              <div class="finance-candidate-list" id="financeCandidateList" aria-live="polite"></div>
+            </details>
+
+            <details class="finance-candidates-section finance-fold hidden" id="financeRecoverySection" aria-labelledby="financeRecoveryTitle">
+              <summary class="finance-fold-title"><span id="financeRecoveryTitle">本机恢复 / 未同步（<span id="financeRecoveryCount">0</span>）</span></summary>
+              <p>这些记录单独保留，不计入云端待处理数量。在 App 通知页的「查看本机恢复」中继续核实与同步。</p>
+              <div class="finance-candidate-list" id="financeRecoveryList" aria-live="polite"></div>
+            </details>
+
+            <details class="finance-ledger-panel finance-fold" id="financeRecordedSection" open>
               <summary class="finance-fold-title"><span>已记录（<span id="financeRecordedCount">0</span>）</span><small id="financeRecordedScope">当前月份 · 历史保留</small></summary>
               <div class="finance-history-controls" aria-label="查看历史账目">
                 <p id="financeHistoryNotice" aria-live="polite">当前只显示所选月份，历史账目仍然保留。</p>
@@ -504,11 +566,12 @@
                 </div>
                 <label><span>切换历史月份</span><select id="financeHistoryMonthSelect"><option value="">选择月份</option></select></label>
               </div>
-              <div class="finance-section-heading"><div><h2>账目</h2><p id="financeTransactionCount">0 笔</p></div></div>
-              <!-- 手机端默认收起：默认视图只保留概览与账目列表，
-                   搜索/月份/类型/分类/状态按需展开（详情见 setupResponsiveDisclosures）。 -->
+              <div class="finance-section-heading finance-ledger-toolbar-head">
+                <div><h2>收支明细</h2><p id="financeTransactionCount">0 笔</p></div>
+                <button class="button-secondary" type="button" data-finance-action="add">+ 新增账目</button>
+              </div>
               <details class="ds-collapse" id="financeFilterDisclosure" data-responsive-collapse open>
-                <summary><span>筛选账目</span><small id="financeFilterSummary">全部账目</small></summary>
+                <summary><span>筛选与搜索</span><small id="financeFilterSummary">全部账目</small></summary>
                 <div class="finance-filter-grid" aria-label="筛选账目">
                   <label><span>搜索</span><input id="financeSearchInput" type="search" maxlength="120" placeholder="商户、对手方或备注" /></label>
                   <label><span>统计月份</span><input id="financeMonthFilter" type="month" aria-label="月份（收支 / 分类统计）" title="收支与分类统计按此月份计算" /></label>
@@ -518,20 +581,115 @@
                 </div>
               </details>
               <div class="finance-undo hidden" id="financeUndoBar"><span>账目已删除。</span><button id="financeUndoBtn" type="button">撤销</button></div>
-              <div class="finance-register-head" aria-hidden="true"><span>类型 · 摘要与分类时间</span><span>金额 · 操作</span></div>
+              <div class="finance-register-head" aria-hidden="true">
+                <span>类型 · 商户与备注</span>
+                <span>分类</span>
+                <span>时间</span>
+                <span class="is-right">金额 · 操作</span>
+              </div>
               <div class="finance-transaction-list" id="financeTransactionList" aria-live="polite"></div>
               <div class="finance-pagination"><button class="button-secondary" id="financeLedgerMoreBtn" type="button" hidden>加载更多账目</button></div>
             </details>
+          </div>
+
+          <div class="finance-subview" id="financePanelAnalytics" role="tabpanel" aria-labelledby="financeTabAnalytics" data-finance-panel="analytics" hidden>
+            <div class="finance-analytics-toolbar">
+              <div>
+                <h2>月度分析与分类统计</h2>
+                <p id="financeAnalyticsPeriodNote">按当前筛选月份汇总分类支出与预算执行进度</p>
+              </div>
+              <div class="finance-analytics-actions">
+                <button class="button-secondary" id="financeManageBudgetsBtn" type="button">管理预算</button>
+                <button class="button-secondary" id="financeManageCategoriesBtn" type="button">管理分类</button>
+              </div>
+            </div>
 
             <details class="finance-insight-panel finance-fold" id="financeInsightDisclosure" data-responsive-collapse open>
-              <summary class="finance-fold-title"><span>预算与分类统计</span><small>按月统计</small></summary>
-              <div class="finance-side-column">
-                <section class="finance-side-panel"><div class="finance-section-heading"><div><h2>预算状态</h2><p>到期不删除历史账目</p></div><button class="button-ghost" id="financeManageBudgetsBtn" type="button">管理</button></div><div id="financeBudgetSummary"></div></section>
-                <section class="finance-side-panel"><div class="finance-section-heading"><div><h2>分类统计</h2><p>按当前筛选月份的支出</p></div><button class="button-ghost" id="financeManageCategoriesBtn" type="button">管理</button></div><div id="financeCategoryStats"></div></section>
+              <summary class="finance-fold-title"><span>分类支出与预算明细</span><small>按月统计</small></summary>
+              <div class="finance-analytics-grid">
+                <section class="finance-analytics-pane" aria-labelledby="financeCatStatsTitle">
+                  <div class="finance-section-heading">
+                    <div><h3 id="financeCatStatsTitle">分类支出分布</h3><p>按展示币种及历史参考汇率折算</p></div>
+                  </div>
+                  <div id="financeCategoryStats"></div>
+                </section>
+                <section class="finance-analytics-pane" aria-labelledby="financeAnalyticsBudgetTitle">
+                  <div class="finance-section-heading">
+                    <div><h3 id="financeAnalyticsBudgetTitle">预算状态</h3><p>到期不删除历史账目</p></div>
+                  </div>
+                  <div id="financeBudgetSummary"></div>
+                </section>
               </div>
             </details>
-          </section>
-          <p class="meta-line" id="financeMessage" aria-live="polite"></p>
+
+            <section class="finance-analytics-history" aria-labelledby="financeAnalyticsHistoryTitle">
+              <div class="finance-section-heading">
+                <div><h3 id="financeAnalyticsHistoryTitle">历史月份对比</h3><p>按有效记录月份实时汇总</p></div>
+              </div>
+              <div id="financeAnalyticsMonths"></div>
+            </section>
+          </div>
+
+          <div class="finance-subview" id="financePanelSettings" role="tabpanel" aria-labelledby="financeTabSettings" data-finance-panel="settings" hidden>
+            <section class="finance-settings-group" aria-labelledby="financeSettingsCurrencyTitle">
+              <div class="finance-settings-group-head">
+                <h2 id="financeSettingsCurrencyTitle">币种与汇率折算</h2>
+                <p>折算仅用于同屏对比展示，始终保留原始交易币种与精确最小单位。</p>
+              </div>
+              <div class="finance-settings-list">
+                <label class="finance-setting-row">
+                  <span class="finance-setting-copy"><strong>展示币种</strong><small>汇总 KPI 与图表统一展示的参考币种</small></span>
+                  <select id="financeDisplayCurrency"><option value="CNY">CNY</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="HKD">HKD</option><option value="GBP">GBP</option><option value="JPY">JPY</option></select>
+                </label>
+                <label class="finance-setting-row">
+                  <span class="finance-setting-copy"><strong>账户基准币种</strong><small>新增账目及预算的默认币种</small></span>
+                  <select id="financeAccountCurrency"><option value="CNY">CNY</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="HKD">HKD</option><option value="GBP">GBP</option><option value="JPY">JPY</option></select>
+                </label>
+                <label class="finance-setting-row">
+                  <span class="finance-setting-copy"><strong>未标明币种时</strong><small>Android 自动识别或导入未标明币种时的处理策略</small></span>
+                  <select id="financeDefaultCurrency"><option value="">保持待核实</option><option value="CNY">CNY</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="HKD">HKD</option><option value="GBP">GBP</option><option value="JPY">JPY</option></select>
+                </label>
+              </div>
+            </section>
+
+            <section class="finance-settings-group" aria-labelledby="financeSettingsStructureTitle">
+              <div class="finance-settings-group-head">
+                <h2 id="financeSettingsStructureTitle">分类与预算配置</h2>
+                <p>自定义收支分类标签与月度预算上限。</p>
+              </div>
+              <div class="finance-settings-list">
+                <div class="finance-setting-row">
+                  <div class="finance-setting-copy"><strong>收支分类管理</strong><small>新增、编辑或停用收入/支出分类及标识色</small></div>
+                  <button class="button-secondary" type="button" data-finance-action="categories">管理分类</button>
+                </div>
+                <div class="finance-setting-row">
+                  <div class="finance-setting-copy"><strong>月度预算设置</strong><small>设置总预算或单分类月度上限</small></div>
+                  <button class="button-secondary" type="button" data-finance-action="budgets">管理预算</button>
+                </div>
+              </div>
+            </section>
+
+            <section class="finance-settings-group" aria-labelledby="financeSettingsSyncTitle">
+              <div class="finance-settings-group-head">
+                <h2 id="financeSettingsSyncTitle">同步、备份与隐私</h2>
+                <p>支持离线暂存、冲突解决与端到端加密备份导入导出。</p>
+              </div>
+              <div class="finance-settings-list">
+                <div class="finance-setting-row">
+                  <div class="finance-setting-copy"><strong>立即云端同步</strong><small id="financeSettingsSyncCopy">检查待上传修改并拉取远端最新记录</small></div>
+                  <button class="button-secondary" type="button" data-finance-action="sync">立即同步</button>
+                </div>
+                <div class="finance-setting-row">
+                  <div class="finance-setting-copy"><strong>导出与加密备份</strong><small>导出账本快照或从加密备份文件导入恢复</small></div>
+                  <button class="button-secondary" id="finOpenBackupBtn" type="button">导出与加密备份</button>
+                </div>
+                <div class="finance-setting-row">
+                  <div class="finance-setting-copy"><strong>金额隐私遮罩</strong><small>隐藏界面中展示的具体收支金额数字</small></div>
+                  <button class="button-ghost" type="button" data-finance-action="toggle-privacy">切换隐藏状态</button>
+                </div>
+              </div>
+            </section>
+          </div>
         </div>
       </section>
 
@@ -1464,7 +1622,7 @@
           <kbd class="v3-kbd v3-cmd-esc-hint" aria-hidden="true">Esc</kbd>
           <button class="modal-close v3-cmd-close-btn" type="button" data-close-modal="commandPaletteModal" aria-label="关闭命令面板" title="关闭"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
         </header>
-        <div class="v3-cmd-filters" id="commandPaletteFilters" role="tablist" aria-label="结果分类">
+        <div class="v3-cmd-filters ds-segmented" id="commandPaletteFilters" role="tablist" aria-label="结果分类" data-indicator-style="pill">
           <button type="button" class="active" role="tab" aria-selected="true" data-cmd-filter="all">全部</button>
           <button type="button" role="tab" aria-selected="false" data-cmd-filter="tool">工具</button>
           <button type="button" role="tab" aria-selected="false" data-cmd-filter="module">模块</button>

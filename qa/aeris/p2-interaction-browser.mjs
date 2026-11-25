@@ -33,6 +33,7 @@ for(const width of [390,1366,1920]){
   const username=process.env.WYJ_TEST_ADMIN_USER||'wyj',secret=process.env.WYJ_TEST_ADMIN_SECRET;
   assert.ok(secret,'isolated CI admin fixture required');await page.setFields({'#usernameInput':username,'#secretInput':secret});await page.click('#loginSubmitBtn');await page.waitFor("location.pathname==='/'",30000);
   await page.navigate('/finance');await page.waitFor("document.documentElement.dataset.aerisMotionReady==='true' && !document.getElementById('entryScreen')");
+  await page.click('#financeTabAnalytics');await page.waitFor("document.querySelector('#financeWorkspace')?.dataset.financeActiveTab==='analytics'");
   const initialOpen=await page.evaluate("document.querySelector('#financeInsightDisclosure').open");
   const summary='#financeInsightDisclosure > summary';for(let i=0;i<4;i++)await page.click(summary);
   await page.waitFor(`document.querySelector('#financeInsightDisclosure').open===${initialOpen} && document.querySelector('#financeInsightDisclosure > summary').getAttribute('aria-expanded')===${JSON.stringify(String(initialOpen))}`);

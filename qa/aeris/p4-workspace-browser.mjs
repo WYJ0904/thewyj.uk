@@ -89,8 +89,8 @@ for(const width of [390,1366,1920]) {
         await page.waitFor("!document.getElementById('entryScreen') && document.documentElement.dataset.aerisMotionReady==='true'",30000,`${name} visible without entry overlay`);
         await page.click('#dismissVersionNoticeBtn');
         await page.evaluate(`document.documentElement.dataset.theme=${JSON.stringify(theme)};true`);
-        if(name==='finance')await page.evaluate("document.querySelector('#financeRecordedSection').open=true;document.querySelector('#financeCandidatesSection').open=false;document.querySelector('#financeTransactionList').scrollIntoView();true");
-        if(name==='notifications')await page.evaluate("document.querySelector('#financeCandidatesSection').open=true;document.querySelector('#financeCandidatesSection').scrollIntoView();true");
+        if(name==='finance')await page.evaluate("document.querySelector('#financeTabLedger').click();document.querySelector('#financeRecordedSection').open=true;document.querySelector('#financeCandidatesSection').open=false;document.querySelector('#financeTransactionList').scrollIntoView();true");
+        if(name==='notifications')await page.evaluate("document.querySelector('#financeTabLedger').click();document.querySelector('#financeCandidatesSection').open=true;document.querySelector('#financeCandidatesSection').scrollIntoView();true");
         const geometry=await page.evaluate(`(()=>{const rect=e=>{const r=e.getBoundingClientRect();return{x:r.x,y:r.y,w:r.width,h:r.height};};return{overflow:document.documentElement.scrollWidth-innerWidth,theme:document.documentElement.dataset.theme,path:location.pathname,ledgerRows:document.querySelectorAll('[data-finance-transaction]').length,pendingRows:document.querySelectorAll('[data-canonical-identity]').length,bodyNodes:document.body.querySelectorAll('*').length,ledger:rect(document.querySelector('#financeRecordedSection')),insights:rect(document.querySelector('#financeInsightDisclosure')),visibleDialogs:[...document.querySelectorAll('[role=dialog]')].filter(e=>e.getBoundingClientRect().height>0).length};})()`);
         cases.push({width,theme,name,geometry,screenshot:await screenshot(page,`${width}-${theme}-${name}`),scope:name==='notifications'?'Web canonical pending review; native history requires Android':name==='settings'?'Web account settings; native settings require Android':'actual Web workspace'});
         assert.ok(geometry.overflow<=1,`${name} ${width} ${theme} overflow ${geometry.overflow}`);
@@ -99,7 +99,7 @@ for(const width of [390,1366,1920]) {
     if (visualOnly) { assert.deepEqual(page.runtimeErrors,[]); continue; }
     // Identical large-ledger and input workload before and after implementation.
     await page.navigate('/finance');await page.waitFor("!document.getElementById('entryScreen') && document.querySelector('#financeRecordedCount').textContent==='1500'");
-    await page.evaluate("document.querySelector('#financeRecordedSection').open=true;window.__p4Start();window.__p4OriginalRow=document.querySelector('[data-finance-transaction]');true");
+    await page.evaluate("document.querySelector('#financeTabLedger').click();document.querySelector('#financeRecordedSection').open=true;window.__p4Start();window.__p4OriginalRow=document.querySelector('[data-finance-transaction]');true");
     const search=await page.evaluate(`(async()=>{const input=document.querySelector('#financeSearchInput');for(const value of ['P','P4','P4 ','P4 m','P4 me','P4 mer','P4 merc','P4 merch','P4 mercha','P4 merchant']){const at=performance.now();input.value=value;input.dispatchEvent(new Event('input',{bubbles:true}));const end=await new Promise(r=>requestAnimationFrame(()=>r(performance.now())));window.__p4Read().inputMs.push(end-at);}return true;})()`);
     assert.equal(search,true);await delay(300);
     const searchMetrics=await page.evaluate("window.__p4Read()");

@@ -466,6 +466,13 @@ export function createFinanceController({
   let insightsTimer = 0;
   let insightsFrame = 0;
   let insightsSignature = "";
+  let messageTimer = 0;
+  let activeSubView = "overview";
+  let trendRangeMonths = 6;
+  let activeChartHoverIdx = -1;
+  let lastChartWidth = 0;
+  let trendResizeObserver = null;
+  let trendResizeFrame = 0;
   // Currency preferences + historical reference snapshots are account-scoped;
   // every async result is checked against its owner before it may paint.
   let currencyPrefs = null; // { account_id, account_currency, display_currency, default_currency, revision, observed }
@@ -781,11 +788,62 @@ export function createFinanceController({
     return Object.values(store?.[kind] || {}).filter((item) => item.status !== "deleted");
   }
 
-  function setMessage(message = "", tone = "") {
+  function setMessage(message = "", tone = "", { autoDismissMs = 0 } = {}) {
+    window.clearTimeout(messageTimer);
+    messageTimer = 0;
     const target = element("financeMessage");
     if (!target) return;
     target.textContent = message;
     target.dataset.tone = tone;
+    target.hidden = !message;
+    if (message && autoDismissMs > 0) {
+      messageTimer = window.setTimeout(() => {
+        messageTimer = 0;
+        const current = element("financeMessage");
+        if (current && current.textContent === message) {
+          current.textContent = "";
+          current.dataset.tone = "";
+          current.hidden = true;
+        }
+      }, autoDismissMs);
+    }
+  }
+
+  const VALID_SUBVIEWS = new Set(["overview", "ledger", "analytics", "settings"]);
+
+  function setSubView(nextView = "overview", { syncHistory = true, focusTab = false } = {}) {
+    const resolved = VALID_SUBVIEWS.has(nextView) ? nextView : "overview";
+    activeSubView = resolved;
+    const workspace = element("financeWorkspace");
+    if (workspace) workspace.dataset.financeActiveTab = resolved;
+    const subnav = element("financeSubnav");
+    if (subnav) {
+      subnav.querySelectorAll?.("[data-finance-tab]")?.forEach?.((tab) => {
+        const active = tab.dataset.financeTab === resolved;
+        tab.setAttribute("aria-selected", String(active));
+        tab.classList.toggle("active", active);
+        tab.tabIndex = active ? 0 : -1;
+        if (active && focusTab) tab.focus({ preventScroll: true });
+      });
+    }
+    document.querySelectorAll?.("#financeWorkspace [data-finance-panel]")?.forEach?.((panel) => {
+      const active = panel.dataset.financePanel === resolved;
+      panel.hidden = !active;
+      panel.classList.toggle("active", active);
+    });
+    if (syncHistory && typeof history !== "undefined" && typeof history.replaceState === "function" && typeof location !== "undefined" && location?.pathname === "/finance") {
+      try {
+        history.replaceState({ ...(history.state || {}), aerisFinanceTab: resolved }, "", location.href);
+      } catch (_) {}
+    }
+    if (resolved === "overview") {
+      globalThis.window?.requestAnimationFrame?.(() => renderTrendChart());
+    }
+    if (resolved === "analytics" && store) {
+      renderBudgets();
+      renderCategoryStats();
+      renderAnalyticsHistory();
+    }
   }
 
   function invalidField(input, message) {
@@ -860,6 +918,10 @@ export function createFinanceController({
     if (element("financeRefundTotal")) element("financeRefundTotal").textContent = formatSummaryMoney(summary.refund_minor, currency);
     if (element("financeBalanceTotal")) element("financeBalanceTotal").textContent = formatSummaryMoney(summary.balance_minor, currency);
     if (element("financeSummaryPeriod")) element("financeSummaryPeriod").textContent = `${currentMonth().replace("-", " 年 ")} 月`;
+    if (element("financeOverviewCurrencyChip")) element("financeOverviewCurrencyChip").textContent = `展示币种：${currency}`;
+    if (element("financeAnalyticsPeriodNote")) {
+      element("financeAnalyticsPeriodNote").textContent = `${currentMonth().replace("-", " 年 ")} 月 · 按 ${currency} 展示分类支出与预算执行`;
+    }
     renderCurrencyControls();
     const status = element("financeCurrencyStatus");
     if (status) {
@@ -918,45 +980,51 @@ export function createFinanceController({
     applyTrendCollapse(isTrendOpen());
   }
 
-  function renderTrendChart() {
-    const wrap = element("financeTrendChartWrap");
-    if (!wrap || !store) return;
-    const allTx = Object.values(store.transactions).filter((item) => item && item.status !== "deleted" && !isAuthorizationControl(item));
-    if (!allTx.length) {
-      wrap.innerHTML = `
-        <div class="finance-chart-empty">
-          <svg class="finance-chart-empty-icon" viewBox="0 0 24 24" width="44" height="44" stroke="currentColor" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
-          <p class="finance-chart-empty-title">暂无月度收支走势数据</p>
-          <p class="finance-chart-empty-hint">记录你的第一笔收支或从手机同步账本后，将在此自动生成月度收支对比与走势曲线。</p>
-        </div>`;
-      restoreTrendState();
-      return;
-    }
+  function niceAxisScale(rawMax) {
+    if (!Number.isFinite(rawMax) || rawMax <= 0) return { max: 100, ticks: [0, 25, 50, 75, 100] };
+    const exponent = Math.floor(Math.log10(rawMax));
+    const base = 10 ** exponent;
+    const fraction = rawMax / base;
+    let niceFraction = 10;
+    if (fraction <= 1) niceFraction = 1;
+    else if (fraction <= 1.5) niceFraction = 1.5;
+    else if (fraction <= 2) niceFraction = 2;
+    else if (fraction <= 2.5) niceFraction = 2.5;
+    else if (fraction <= 3) niceFraction = 3;
+    else if (fraction <= 4) niceFraction = 4;
+    else if (fraction <= 5) niceFraction = 5;
+    else if (fraction <= 6) niceFraction = 6;
+    else if (fraction <= 8) niceFraction = 8;
+    const niceMax = niceFraction * base;
+    return {
+      max: niceMax,
+      ticks: [0, 0.25, 0.5, 0.75, 1].map((r) => niceMax * r),
+    };
+  }
 
-    // One display currency for the whole chart: original minor units of other
-    // currencies are only plotted through a valid historical reference.
+  function buildMonthlySeries(monthCount) {
     const primaryCurrency = displayCurrency();
     const digits = currencyDigits(primaryCurrency);
     const unit = 10 ** digits;
     const snapshots = referenceSnapshots();
     const now = new Date();
     const months = [];
-    for (let i = 5; i >= 0; i -= 1) {
+    for (let i = monthCount - 1; i >= 0; i -= 1) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const mKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-      const label = `${d.getMonth() + 1}月`;
-      months.push({ key: mKey, label, income: 0, expense: 0, incomeMinor: 0n, expenseMinor: 0n, hasData: false });
+      const shortYear = d.getFullYear() !== now.getFullYear() ? `${String(d.getFullYear()).slice(2)}/` : "";
+      const label = `${shortYear}${d.getMonth() + 1}月`;
+      months.push({ key: mKey, label, fullLabel: `${d.getFullYear()}年${d.getMonth() + 1}月`, income: 0, expense: 0, incomeMinor: 0n, expenseMinor: 0n, count: 0, hasData: false });
     }
-
+    const allTx = Object.values(store?.transactions || {}).filter((item) => item && item.status !== "deleted" && !isAuthorizationControl(item));
     let trendUnconverted = 0;
     for (const tx of allTx) {
       const txMonth = monthKey(tx.occurred_at_ms);
       const slot = months.find((m) => m.key === txMonth);
-      if (!slot || (tx.direction !== "income" && tx.direction !== "expense")) {
-        if (slot) slot.hasData = true;
-        continue;
-      }
+      if (!slot) continue;
       slot.hasData = true;
+      slot.count += 1;
+      if (tx.direction !== "income" && tx.direction !== "expense") continue;
       const value = referenceValue(tx, primaryCurrency, { snapshots });
       if (value.status !== "same_currency" && value.status !== "reference") { trendUnconverted += 1; continue; }
       if (tx.direction === "income") slot.incomeMinor += BigInt(value.amount_minor);
@@ -966,87 +1034,335 @@ export function createFinanceController({
       m.income = Number(m.incomeMinor) / unit;
       m.expense = Number(m.expenseMinor) / unit;
     }
+    return { months, primaryCurrency, unit, trendUnconverted, totalTx: allTx.length };
+  }
 
-    const maxVal = Math.max(...months.map((m) => Math.max(m.income, m.expense)), 100);
-    const svgWidth = 920;
-    const svgHeight = 220;
-    const padding = { top: 26, right: 36, bottom: 36, left: maxVal >= 100_000_000 ? 96 : (maxVal >= 10_000 ? 84 : 72) };
-    const chartW = svgWidth - padding.left - padding.right;
-    const chartH = svgHeight - padding.top - padding.bottom;
+  function renderTrendChart() {
+    const wrap = element("financeTrendChartWrap");
+    if (!wrap || !store) return;
+
+    const periodEl = element("financeTrendPeriod");
+    if (periodEl) periodEl.textContent = `近 ${trendRangeMonths} 个月收支对比趋势`;
+    document.querySelectorAll?.("#financeTrendSection [data-finance-trend-range]")?.forEach?.((btn) => {
+      const active = Number(btn.dataset.financeTrendRange) === trendRangeMonths;
+      btn.classList.toggle("active", active);
+      btn.setAttribute("aria-pressed", String(active));
+    });
+
+    const { months, primaryCurrency, unit, trendUnconverted, totalTx } = buildMonthlySeries(trendRangeMonths);
+
+    if (syncPromise && !store.last_sync_at && totalTx === 0) {
+      wrap.innerHTML = `
+        <div class="finance-chart-state finance-chart-loading" role="status" aria-live="polite">
+          <div class="finance-chart-skeleton-bars" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+          <p class="finance-chart-empty-title">正在同步云端账目与走势数据…</p>
+        </div>`;
+      restoreTrendState();
+      return;
+    }
+
+    if (!store.last_sync_at && store.last_error && totalTx === 0) {
+      wrap.innerHTML = `
+        <div class="finance-chart-state finance-chart-error" role="alert">
+          <p class="finance-chart-empty-title">收支走势加载失败</p>
+          <p class="finance-chart-empty-hint">${escapeHtml(safeText(store.last_error, 140) || "无法读取云端账目，未将缺失数据伪装为零。")}</p>
+          <button class="button-secondary" type="button" data-finance-action="sync">重试同步</button>
+        </div>`;
+      restoreTrendState();
+      return;
+    }
+
+    if (totalTx === 0) {
+      wrap.innerHTML = `
+        <div class="finance-chart-empty">
+          <svg class="finance-chart-empty-icon" viewBox="0 0 24 24" width="40" height="40" stroke="currentColor" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+          <p class="finance-chart-empty-title">暂无月度收支走势数据</p>
+          <p class="finance-chart-empty-hint">记入你的第一笔收支或从手机端同步账本后，这里会自动展示完整的月度趋势。</p>
+          <button class="button-secondary" type="button" data-finance-action="add">新增第一笔账目</button>
+        </div>`;
+      restoreTrendState();
+      return;
+    }
+
+    const measuredW = wrap.clientWidth || wrap.parentElement?.clientWidth || 880;
+    const svgWidth = Math.max(300, Math.round(measuredW));
+    lastChartWidth = svgWidth;
+    const compact = svgWidth < 560;
+    const svgHeight = compact ? 228 : 284;
+
+    const rawMax = Math.max(...months.map((m) => Math.max(m.income, m.expense)), 10);
+    const { max: maxVal, ticks } = niceAxisScale(rawMax);
+
+    const formatYVal = (v) => {
+      if (v === 0) return formatFinanceMoney(0, primaryCurrency).replace(/\.00$/, "");
+      if (primaryCurrency === "CNY") {
+        if (v >= 100_000_000) return `¥${(v / 100_000_000).toFixed(1)}亿`;
+        if (v >= 10_000) return `¥${(v / 10_000).toFixed(v % 10_000 === 0 ? 0 : 1)}万`;
+      } else if (v >= 10_000) {
+        return `${primaryCurrency} ${(v / 1_000).toFixed(0)}k`;
+      }
+      return formatFinanceMoney(Math.round(v * unit), primaryCurrency).replace(/\.00$/, "");
+    };
+
+    const maxTickLen = Math.max(...ticks.map((t) => formatYVal(t).length));
+    const leftPad = Math.min(92, Math.max(52, maxTickLen * 8 + 16));
+    const padding = { top: 20, right: compact ? 16 : 24, bottom: 34, left: leftPad };
+    const chartW = Math.max(120, svgWidth - padding.left - padding.right);
+    const chartH = Math.max(110, svgHeight - padding.top - padding.bottom);
+    const stepX = months.length > 1 ? chartW / (months.length - 1) : chartW / 2;
+
+    const calcY = (val) => {
+      if (val <= 0) return padding.top + chartH;
+      const ratio = Math.min(1, val / maxVal);
+      const lift = Math.max(3, ratio * chartH);
+      return padding.top + chartH - lift;
+    };
 
     const pointsIncome = [];
     const pointsExpense = [];
-    const stepX = chartW / (months.length - 1);
-
-    // Provide minimum visible lift of 5px for non-zero values so they never clip or merge invisibly onto axis
-    const minLift = 5;
-    const calcY = (val) => {
-      if (val <= 0) return padding.top + chartH;
-      const rawH = (val / maxVal) * chartH;
-      const h = Math.max(minLift, rawH);
-      return padding.top + chartH - h;
-    };
-
     months.forEach((m, idx) => {
-      const x = padding.left + idx * stepX;
-      const yInc = calcY(m.income);
-      const yExp = calcY(m.expense);
-      pointsIncome.push({ x, y: yInc, val: m.income, label: m.label, key: m.key, exp: m.expense, hasData: m.hasData });
-      pointsExpense.push({ x, y: yExp, val: m.expense, label: m.label, key: m.key, inc: m.income, hasData: m.hasData });
+      const x = months.length > 1 ? padding.left + idx * stepX : padding.left + chartW / 2;
+      pointsIncome.push({ idx, x, y: calcY(m.income), val: m.income, label: m.label, fullLabel: m.fullLabel, key: m.key, exp: m.expense, hasData: m.hasData, count: m.count });
+      pointsExpense.push({ idx, x, y: calcY(m.expense), val: m.expense, label: m.label, fullLabel: m.fullLabel, key: m.key, inc: m.income, hasData: m.hasData, count: m.count });
     });
 
-    const pathInc = pointsIncome.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" ");
-    const pathExp = pointsExpense.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" ");
-
-    const xLabels = pointsIncome.map((p) => `<text x="${p.x.toFixed(1)}" y="${svgHeight - 12}" text-anchor="middle" font-size="12" font-weight="500" fill="var(--ds-text-secondary)">${p.label}</text>`).join("");
-    
-    // Formatted Y axis labels with currency-aware formatting
-    const formatYVal = (v) => {
-      const rounded = Math.round(v);
-      if (primaryCurrency === "CNY") {
-        if (rounded >= 100_000_000) return "¥" + (rounded / 100_000_000).toFixed(1) + "亿";
-        if (rounded >= 10_000) return "¥" + (rounded / 10_000).toFixed(1) + "万";
+    const smoothPath = (pts) => {
+      if (pts.length <= 1) return pts.length ? `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}` : "";
+      if (pts.length === 2) return `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)} L ${pts[1].x.toFixed(1)} ${pts[1].y.toFixed(1)}`;
+      let d = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
+      for (let i = 0; i < pts.length - 1; i += 1) {
+        const p0 = pts[i];
+        const p1 = pts[i + 1];
+        const cx = (p0.x + p1.x) / 2;
+        d += ` C ${cx.toFixed(1)} ${p0.y.toFixed(1)}, ${cx.toFixed(1)} ${p1.y.toFixed(1)}, ${p1.x.toFixed(1)} ${p1.y.toFixed(1)}`;
       }
-      return formatFinanceMoney(rounded * 100, primaryCurrency).replace(/\.00$/, "");
+      return d;
     };
-    const gridLines = [0, 0.25, 0.5, 0.75, 1].map((ratio) => {
-      const y = padding.top + chartH * (1 - ratio);
-      const val = formatYVal(maxVal * ratio);
-      return `<line x1="${padding.left}" y1="${y}" x2="${svgWidth - padding.right}" y2="${y}" stroke="var(--ds-border-subtle)" stroke-dasharray="3 3"/><text x="${padding.left - 10}" y="${y + 4}" text-anchor="end" font-size="11" font-weight="500" fill="var(--ds-text-muted)">${val}</text>`;
+
+    const pathInc = smoothPath(pointsIncome);
+    const pathExp = smoothPath(pointsExpense);
+    const baseY = (padding.top + chartH).toFixed(1);
+    const areaInc = pointsIncome.length > 1
+      ? `${pathInc} L ${pointsIncome[pointsIncome.length - 1].x.toFixed(1)} ${baseY} L ${pointsIncome[0].x.toFixed(1)} ${baseY} Z`
+      : "";
+
+    const xLabelStep = compact && months.length > 8 ? 2 : 1;
+    const xLabels = pointsIncome.map((p, idx) => {
+      if (idx % xLabelStep !== 0 && idx !== pointsIncome.length - 1) return "";
+      return `<text x="${p.x.toFixed(1)}" y="${svgHeight - 10}" text-anchor="middle" font-size="12" font-weight="500" fill="var(--ds-text-secondary)">${escapeHtml(p.label)}</text>`;
     }).join("");
 
-    const formatMoney = (v) => formatFinanceMoney(Math.round(v * 100), primaryCurrency);
+    const gridLines = ticks.map((tickVal, idx) => {
+      const y = padding.top + chartH * (1 - idx / (ticks.length - 1));
+      const isBase = idx === 0;
+      return `<line x1="${padding.left}" y1="${y.toFixed(1)}" x2="${svgWidth - padding.right}" y2="${y.toFixed(1)}" stroke="${isBase ? "var(--ds-border)" : "var(--ds-border-subtle)"}" stroke-width="1" ${isBase ? "" : 'stroke-dasharray="3 4"'} /><text x="${padding.left - 10}" y="${(y + 4).toFixed(1)}" text-anchor="end" font-size="11.5" font-weight="500" fill="var(--ds-text-muted)">${escapeHtml(formatYVal(tickVal))}</text>`;
+    }).join("");
 
-    const circlesInc = pointsIncome.map((p) => `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="5" fill="#10b981" stroke="#ffffff" stroke-width="1.5" tabindex="0" role="graphics-symbol" aria-label="${p.label} 收入: ${formatMoney(p.val)} 支出: ${formatMoney(p.exp)} 结余: ${formatMoney(p.val - p.exp)}"><title>${p.label} · 收入: ${formatMoney(p.val)} | 支出: ${formatMoney(p.exp)} | 结余: ${formatMoney(p.val - p.exp)}</title></circle>`).join("");
-    const circlesExp = pointsExpense.map((p) => `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="5" fill="#ef4444" stroke="#ffffff" stroke-width="1.5" tabindex="0" role="graphics-symbol" aria-label="${p.label} 支出: ${formatMoney(p.val)} 收入: ${formatMoney(p.inc)} 结余: ${formatMoney(p.inc - p.val)}"><title>${p.label} · 支出: ${formatMoney(p.val)} | 收入: ${formatMoney(p.inc)} | 结余: ${formatMoney(p.inc - p.val)}</title></circle>`).join("");
+    const formatMoney = (v) => formatFinanceMoney(Math.round(v * unit), primaryCurrency);
+    const colW = months.length > 1 ? stepX : chartW;
 
-    // Monthly summary cards below chart
-    const monthCards = months.map((m) => {
+    const hitBands = pointsIncome.map((p, idx) => {
+      const bandX = Math.max(padding.left, p.x - colW / 2);
+      const bandRight = Math.min(svgWidth - padding.right, p.x + colW / 2);
+      const bandW = Math.max(16, bandRight - bandX);
+      const net = p.val - p.exp;
+      const aria = `${p.fullLabel}，收入 ${formatMoney(p.val)}，支出 ${formatMoney(p.exp)}，结余 ${formatMoney(net)}，共 ${p.count} 笔`;
+      return `<g class="finance-chart-band" data-trend-idx="${idx}" tabindex="0" role="graphics-symbol" aria-label="${escapeHtml(aria)}">
+        <line class="finance-chart-crosshair" x1="${p.x.toFixed(1)}" y1="${padding.top}" x2="${p.x.toFixed(1)}" y2="${baseY}" stroke="var(--ds-border-strong)" stroke-width="1" stroke-dasharray="3 3" opacity="0" />
+        <circle class="finance-dot-inc" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${compact ? 3.5 : 4.5}" fill="var(--ds-success)" stroke="var(--ds-surface)" stroke-width="2" />
+        <circle class="finance-dot-exp" cx="${pointsExpense[idx].x.toFixed(1)}" cy="${pointsExpense[idx].y.toFixed(1)}" r="${compact ? 3.5 : 4.5}" fill="var(--ds-error)" stroke="var(--ds-surface)" stroke-width="2" />
+        <rect x="${bandX.toFixed(1)}" y="${padding.top}" width="${bandW.toFixed(1)}" height="${chartH + 20}" fill="transparent" />
+      </g>`;
+    }).join("");
+
+    const monthRows = months.map((m, idx) => {
       const net = m.income - m.expense;
       const netSign = net > 0 ? "+" : "";
       const netClass = net >= 0 ? "is-income" : "is-expense";
-      return `<div class="trend-month-card" data-trend-month="${m.key}">
-        <strong class="trend-month-name">${m.label}</strong>
-        <span class="trend-month-inc">收入 ${formatMoney(m.income)}</span>
-        <span class="trend-month-exp">支出 ${formatMoney(m.expense)}</span>
-        <span class="trend-month-net ${netClass}">结余 ${netSign}${formatMoney(net)}</span>
-      </div>`;
+      return `<button type="button" class="trend-month-card" data-trend-month="${m.key}" data-trend-idx="${idx}" title="查看 ${escapeHtml(m.fullLabel)} 账目">
+        <span class="trend-month-name">${escapeHtml(m.label)}</span>
+        <span class="trend-month-inc">${escapeHtml(formatMoney(m.income))}</span>
+        <span class="trend-month-exp">${escapeHtml(formatMoney(m.expense))}</span>
+        <span class="trend-month-net ${netClass}">${netSign}${escapeHtml(formatMoney(net))}</span>
+      </button>`;
     }).join("");
 
+    const unconvertedBanner = trendUnconverted > 0
+      ? `<p class="finance-currency-note">走势图按 ${escapeHtml(primaryCurrency)} 历史参考汇率折算，另有 ${trendUnconverted} 笔缺少汇率快照的记录未计入曲线。</p>`
+      : "";
+
     wrap.innerHTML = `
-      <svg class="finance-chart-svg" viewBox="0 0 ${svgWidth} ${svgHeight}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="收支走势折线图">
-        ${gridLines}
-        <path d="${pathInc}" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="${pathExp}" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-        ${circlesInc}
-        ${circlesExp}
-        ${xLabels}
-      </svg>
-      <div class="finance-trend-month-grid" aria-label="月度收支明细">
-        ${monthCards}
+      <div class="finance-chart-stage">
+        <div class="finance-chart-tooltip hidden" id="financeChartTooltip" role="status" aria-live="polite"></div>
+        <svg class="finance-chart-svg" viewBox="0 0 ${svgWidth} ${svgHeight}" width="${svgWidth}" height="${svgHeight}" role="img" aria-label="近 ${trendRangeMonths} 个月收支走势折线图">
+          <defs>
+            <linearGradient id="finIncomeGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="var(--ds-success)" stop-opacity="0.16" />
+              <stop offset="100%" stop-color="var(--ds-success)" stop-opacity="0.01" />
+            </linearGradient>
+          </defs>
+          ${gridLines}
+          ${areaInc ? `<path d="${areaInc}" fill="url(#finIncomeGrad)" />` : ""}
+          <path d="${pathInc}" fill="none" stroke="var(--ds-success)" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="${pathExp}" fill="none" stroke="var(--ds-error)" stroke-width="2.25" stroke-dasharray="6 3" stroke-linecap="round" stroke-linejoin="round" />
+          ${xLabels}
+          ${hitBands}
+        </svg>
+      </div>
+      ${unconvertedBanner}
+      <div class="finance-trend-month-table">
+        <div class="finance-trend-month-head" aria-hidden="true"><span>月份</span><span>收入</span><span>支出</span><span>结余</span></div>
+        <div class="finance-trend-month-grid" id="financeTrendMonthList" aria-label="月度收支明细">${monthRows}</div>
       </div>`;
 
+    const stage = wrap.querySelector(".finance-chart-stage");
+    const tooltip = wrap.querySelector("#financeChartTooltip");
+    const bands = [...wrap.querySelectorAll(".finance-chart-band")];
+    const rowEls = [...wrap.querySelectorAll(".trend-month-card")];
+
+    const setActivePoint = (idx) => {
+      activeChartHoverIdx = idx;
+      bands.forEach((b, i) => {
+        const active = i === idx;
+        b.classList.toggle("is-active", active);
+        const line = b.querySelector(".finance-chart-crosshair");
+        if (line) line.setAttribute("opacity", active ? "1" : "0");
+        b.querySelector(".finance-dot-inc")?.setAttribute("r", active ? "6" : (compact ? "3.5" : "4.5"));
+        b.querySelector(".finance-dot-exp")?.setAttribute("r", active ? "6" : (compact ? "3.5" : "4.5"));
+      });
+      rowEls.forEach((r, i) => r.classList.toggle("is-highlighted", i === idx));
+      if (!tooltip) return;
+      if (idx < 0 || idx >= pointsIncome.length) {
+        tooltip.classList.add("hidden");
+        return;
+      }
+      const p = pointsIncome[idx];
+      const net = p.val - p.exp;
+      const netSign = net > 0 ? "+" : "";
+      tooltip.innerHTML = `
+        <strong>${escapeHtml(p.fullLabel)} <small>${p.count} 笔</small></strong>
+        <div class="finance-tooltip-row"><span class="is-income">收入</span><b>${escapeHtml(formatMoney(p.val))}</b></div>
+        <div class="finance-tooltip-row"><span class="is-expense">支出</span><b>${escapeHtml(formatMoney(p.exp))}</b></div>
+        <div class="finance-tooltip-row"><span>结余</span><b>${netSign}${escapeHtml(formatMoney(net))}</b></div>`;
+      tooltip.classList.remove("hidden");
+      const stageW = stage?.clientWidth || svgWidth;
+      const tipW = tooltip.offsetWidth || 156;
+      const anchorX = (p.x / svgWidth) * stageW;
+      const clampedX = Math.max(8, Math.min(stageW - tipW - 8, anchorX - tipW / 2));
+      tooltip.style.left = `${Math.round(clampedX)}px`;
+    };
+
+    bands.forEach((band, idx) => {
+      band.addEventListener("pointerenter", () => setActivePoint(idx));
+      band.addEventListener("pointerdown", () => setActivePoint(idx));
+      band.addEventListener("focus", () => setActivePoint(idx));
+      band.addEventListener("keydown", (event) => {
+        if (event.key === "ArrowRight" && idx + 1 < bands.length) {
+          event.preventDefault();
+          bands[idx + 1].focus();
+        } else if (event.key === "ArrowLeft" && idx - 1 >= 0) {
+          event.preventDefault();
+          bands[idx - 1].focus();
+        }
+      });
+    });
+    stage?.addEventListener("pointerleave", () => setActivePoint(-1));
+    rowEls.forEach((row, idx) => {
+      row.addEventListener("pointerenter", () => setActivePoint(idx));
+      row.addEventListener("pointerleave", () => setActivePoint(-1));
+      row.addEventListener("click", () => {
+        const targetMonth = row.dataset.trendMonth;
+        if (!targetMonth) return;
+        if (element("financeMonthFilter")) element("financeMonthFilter").value = targetMonth;
+        ledgerAllMonths = false;
+        setSubView("ledger");
+        renderAll();
+      });
+    });
+    if (activeChartHoverIdx >= 0 && activeChartHoverIdx < months.length) {
+      setActivePoint(activeChartHoverIdx);
+    }
+
     restoreTrendState();
+  }
+
+  function renderOverviewPanels() {
+    if (!store) return;
+    const recentHost = element("financeOverviewRecentList");
+    if (recentHost) {
+      const recent = Object.values(store.transactions || {})
+        .filter((item) => item && item.status === "active")
+        .sort((a, b) => Number(b.occurred_at_ms || 0) - Number(a.occurred_at_ms || 0))
+        .slice(0, 5);
+      if (!recent.length) {
+        recentHost.innerHTML = '<p class="finance-empty-inline">暂无最近账目记录。</p>';
+      } else {
+        recentHost.innerHTML = recent.map((item) => {
+          const title = item.merchant || item.counterparty || categoryName(item.category_id);
+          const sign = item.direction === "expense" ? "-" : "+";
+          const dirLabel = { income: "收入", expense: "支出", refund: "退款" }[item.direction] || "";
+          const dateShort = new Date(item.occurred_at_ms).toLocaleDateString("zh-CN", { month: "numeric", day: "numeric" });
+          return `<button type="button" class="finance-overview-tx-row" data-finance-edit="${escapeHtml(item.id)}">
+            <span class="finance-overview-tx-main"><span class="finance-direction is-${escapeHtml(item.direction)}">${dirLabel}</span><strong>${escapeHtml(title)}</strong><small>${escapeHtml(categoryName(item.category_id))} · ${escapeHtml(dateShort)}</small></span>
+            <strong class="finance-overview-tx-amt is-${escapeHtml(item.direction)}">${sign}${escapeHtml(formatFinanceMoney(item.amount_minor, item.currency))}</strong>
+          </button>`;
+        }).join("");
+      }
+    }
+    const budgetsHost = element("financeOverviewBudgets");
+    if (budgetsHost) {
+      const today = localDateKey();
+      const budgets = activeValues("budgets").filter((item) => (!item.starts_on || item.starts_on <= today) && (!item.ends_on || item.ends_on >= today));
+      if (!budgets.length) {
+        budgetsHost.innerHTML = '<div class="finance-empty-inline"><p>尚未设置本月预算。</p><button type="button" class="button-secondary" data-finance-action="budgets">设置月度预算</button></div>';
+      } else {
+        budgetsHost.innerHTML = budgets.slice(0, 4).map((item) => {
+          const currency = item.currency || "CNY";
+          const spent = categoryExpense(item.category_id, item);
+          const remaining = item.amount_minor - spent;
+          const percent = Math.min(100, Math.round((spent / Math.max(1, item.amount_minor)) * 100));
+          return `<article class="finance-budget-status${remaining < 0 ? " is-over" : ""}"><div><strong>${escapeHtml(item.category_id ? categoryName(item.category_id) : "月度总预算")}</strong><span>${remaining < 0 ? `超出 ${formatFinanceMoney(-remaining, currency)}` : `剩余 ${formatFinanceMoney(remaining, currency)}`}</span></div><progress class="finance-progress" max="100" value="${percent}"></progress><small>已用 ${percent}% · ${formatFinanceMoney(spent, currency)} / ${formatFinanceMoney(item.amount_minor, currency)}</small></article>`;
+        }).join("");
+      }
+    }
+    syncPendingBadges();
+  }
+
+  function syncPendingBadges() {
+    const candidateCount = Number(element("financePendingCount")?.textContent) || 0;
+    const recoveryCount = Number(element("financeRecoveryCount")?.textContent) || 0;
+    const totalPending = candidateCount + recoveryCount;
+    const tabBadge = element("financeTabLedgerBadge");
+    if (tabBadge) {
+      tabBadge.textContent = String(totalPending);
+      tabBadge.hidden = totalPending <= 0;
+      tabBadge.classList.toggle("hidden", totalPending <= 0);
+    }
+    const banner = element("financeOverviewPendingBanner");
+    const textEl = element("financeOverviewPendingText");
+    if (banner && textEl) {
+      banner.classList.toggle("hidden", totalPending <= 0);
+      if (totalPending > 0) textEl.textContent = `有 ${totalPending} 条待核实或本机恢复记录`;
+    }
+  }
+
+  function renderAnalyticsHistory() {
+    const host = element("financeAnalyticsMonths");
+    if (!host || !store) return;
+    const { months, primaryCurrency, unit } = buildMonthlySeries(12);
+    const activeMonths = months.filter((m) => m.hasData).reverse();
+    if (!activeMonths.length) {
+      host.innerHTML = '<p class="finance-empty-inline">近 12 个月暂无可对比账目。</p>';
+      return;
+    }
+    const fmt = (v) => formatFinanceMoney(Math.round(v * unit), primaryCurrency);
+    host.innerHTML = `<div class="finance-analytics-table">
+      <div class="finance-analytics-thead"><span>月份</span><span>收入</span><span>支出</span><span>结余</span><span>笔数</span></div>
+      ${activeMonths.map((m) => {
+        const net = m.income - m.expense;
+        return `<div class="finance-analytics-trow"><strong>${escapeHtml(m.fullLabel)}</strong><span class="is-income">${escapeHtml(fmt(m.income))}</span><span class="is-expense">${escapeHtml(fmt(m.expense))}</span><span class="${net >= 0 ? "is-income" : "is-expense"}">${net > 0 ? "+" : ""}${escapeHtml(fmt(net))}</span><small>${m.count} 笔</small></div>`;
+      }).join("")}
+    </div>`;
   }
 
   function renderTransactions() {
@@ -1105,7 +1421,9 @@ export function createFinanceController({
       const sign = item.direction === "expense" ? "-" : "+";
       const directionLabel = { income: "收入", expense: "支出", refund: "退款" }[item.direction];
       return `<article class="finance-transaction${item.status === "deleted" ? " is-deleted" : ""}" data-finance-transaction="${escapeHtml(item.id)}">
-        <div class="finance-transaction-main"><span class="finance-direction is-${escapeHtml(item.direction)}">${directionLabel}</span><div><strong title="${escapeHtml(title)}">${escapeHtml(title)}</strong><small>${escapeHtml(categoryName(item.category_id))} · ${escapeHtml(new Date(item.occurred_at_ms).toLocaleString("zh-CN"))}${item.source_kind === "automatic" ? " · Android 自动识别" : ""}${item.native_notification_pending ? " · 等待同步" : ""}${isAuthorizationControl(item) ? " · 预授权（未结算）" : ""}${item.currency_review_required ? " · 默认币种待复核" : ""}${item.status === "deleted" ? " · 已删除" : ""}</small>${item.note ? `<p title="${escapeHtml(item.note)}">${escapeHtml(item.note)}</p>` : ""}</div></div>
+        <div class="finance-transaction-main"><span class="finance-direction is-${escapeHtml(item.direction)}">${directionLabel}</span><div class="finance-transaction-title-col"><strong title="${escapeHtml(title)}">${escapeHtml(title)}</strong>${item.note ? `<p title="${escapeHtml(item.note)}">${escapeHtml(item.note)}</p>` : ""}</div></div>
+        <div class="finance-transaction-cat">${escapeHtml(categoryName(item.category_id))}${isAuthorizationControl(item) ? " · 预授权" : ""}${item.currency_review_required ? " · 待复核币种" : ""}</div>
+        <div class="finance-transaction-time">${escapeHtml(new Date(item.occurred_at_ms).toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }))}${item.source_kind === "automatic" ? " · Android 自动识别" : ""}${item.native_notification_pending ? " · 等待同步" : ""}${item.status === "deleted" ? " · 已删除" : ""}</div>
         <div class="finance-transaction-side"><strong class="is-${escapeHtml(item.direction)}">${sign}${escapeHtml(formatFinanceMoney(item.amount_minor, item.currency))}</strong><div class="finance-row-actions">${item.status === "deleted" ? `<button class="button-ghost" type="button" data-finance-restore="${escapeHtml(item.id)}">恢复</button>` : `<button class="button-ghost" type="button" data-finance-edit="${escapeHtml(item.id)}">编辑</button><button class="button-ghost danger-text" type="button" data-finance-delete="${escapeHtml(item.id)}">删除</button>`}</div></div>
       </article>`;
       },
@@ -1158,8 +1476,17 @@ export function createFinanceController({
       values.set(key, (values.get(key) || 0) + ref.amount_minor);
     }
     const entries = [...values.entries()].sort((a, b) => b[1] - a[1]);
+    const totalSpent = entries.reduce((sum, [, amt]) => sum + amt, 0) || 1;
     const maximum = entries[0]?.[1] || 1;
-    list.innerHTML = entries.length ? entries.slice(0, 8).map(([id, amount]) => `<div class="finance-category-stat"><span>${escapeHtml(id === "uncategorized" ? "未分类" : categoryName(id))}</span><progress max="${maximum}" value="${amount}" aria-label="${escapeHtml(id === "uncategorized" ? "未分类" : categoryName(id))} ${escapeHtml(formatFinanceMoney(amount, quote))}"></progress><strong>${escapeHtml(formatFinanceMoney(amount, quote))}</strong></div>`).join("") : '<p class="finance-empty-inline">本月还没有支出分类数据。</p>';
+    list.innerHTML = entries.length ? entries.slice(0, 8).map(([id, amount], idx) => {
+      const label = id === "uncategorized" ? "未分类" : categoryName(id);
+      const pct = Math.max(1, Math.round((amount / totalSpent) * 100));
+      const catColor = store.categories?.[id]?.color || `var(--ds-fin-chart-cat-${(idx % 6) + 1}, var(--ds-action-primary))`;
+      return `<div class="finance-category-stat"><span class="finance-cat-label"><i class="finance-cat-dot" data-dot-color="${escapeHtml(catColor)}" aria-hidden="true"></i>${escapeHtml(label)} <small>${pct}%</small></span><progress max="${maximum}" value="${amount}" aria-label="${escapeHtml(label)} ${escapeHtml(formatFinanceMoney(amount, quote))}"></progress><strong>${escapeHtml(formatFinanceMoney(amount, quote))}</strong></div>`;
+    }).join("") : '<p class="finance-empty-inline">本月还没有支出分类数据。</p>';
+    list.querySelectorAll?.("[data-dot-color]")?.forEach?.((dot) => {
+      dot.style.backgroundColor = dot.dataset.dotColor || "";
+    });
   }
 
   function cancelDeferredRendering() {
@@ -1185,6 +1512,7 @@ export function createFinanceController({
         if (!store || accountId !== currentAccountId || element("financePage")?.classList.contains("hidden")) return;
         renderBudgets();
         renderCategoryStats();
+        renderAnalyticsHistory();
         insightsSignature = signature;
         for (const id of ["financeBudgetSummary", "financeCategoryStats"]) element(id)?.setAttribute("aria-busy", "false");
       }, 0);
@@ -1206,6 +1534,7 @@ export function createFinanceController({
     renderCategoryOptions();
     renderSummary();
     renderTransactions();
+    renderOverviewPanels();
     scheduleInsights();
     renderUndo();
     const pending = store.pending.length + Object.values(store.transactions).filter(item => item.native_notification_pending).length;
@@ -1214,7 +1543,13 @@ export function createFinanceController({
     else if (syncPromise) setSyncState("同步中", "info", `${pending} 项本地修改正在同步。`);
     else if (store.last_error) setSyncState("同步失败", "error", `${store.last_error}${pending ? `；${pending} 项修改已安全保存在本机。` : ""}`);
     else if (pending) setSyncState(navigator.onLine === false ? "等待联网" : "等待同步", "warning", `${pending} 项本地修改尚未上传。`);
-    else setSyncState("已同步", "success", store.last_sync_at ? `最近同步：${new Date(store.last_sync_at).toLocaleString("zh-CN")}` : "云端数据已就绪。 ");
+    else {
+      setSyncState("已同步", "success", store.last_sync_at ? `最近同步：${new Date(store.last_sync_at).toLocaleString("zh-CN")}` : "云端数据已就绪。 ");
+      const msgEl = element("financeMessage");
+      if (msgEl && msgEl.textContent.includes("正在同步")) {
+        setMessage("已保存并同步至云端。", "success", { autoDismissMs: 2800 });
+      }
+    }
   }
 
   function queueOperation(type, entity, payload = null) {
@@ -1745,6 +2080,19 @@ export function createFinanceController({
       }
       return;
     }
+    if (button.dataset.financeTab) {
+      setSubView(button.dataset.financeTab);
+      return;
+    }
+    if (button.dataset.financeTrendRange) {
+      const months = Number(button.dataset.financeTrendRange);
+      if ([3, 6, 12].includes(months) && months !== trendRangeMonths) {
+        trendRangeMonths = months;
+        activeChartHoverIdx = -1;
+        renderTrendChart();
+      }
+      return;
+    }
     if (button.id === "financeAddTransactionBtn") openTransactionEditor();
     else if (button.id === "financeTransactionDrawerDeleteBtn") {
       const txId = element("financeTransactionId")?.value;
@@ -1760,14 +2108,17 @@ export function createFinanceController({
     else if (button.id === "toggleFinanceTrendBtn") {
       setTrendOpen(!isTrendOpen());
     }
-    else if (button.id === "financePrivacyBtn") {
+    else if (button.id === "financePrivacyBtn" || button.dataset.financeAction === "toggle-privacy") {
       const finPage = element("financePage");
+      const headerPrivacy = element("financePrivacyBtn");
       if (finPage) {
         const masked = finPage.dataset.privacyMask === "true";
         const next = !masked;
         finPage.dataset.privacyMask = String(next);
-        button.setAttribute("aria-pressed", String(next));
-        button.textContent = next ? "显示金额" : "隐藏金额";
+        if (headerPrivacy) {
+          headerPrivacy.setAttribute("aria-pressed", String(next));
+          headerPrivacy.textContent = next ? "显示金额" : "隐藏金额";
+        }
       }
     }
     else if (button.id === "financeUpgradeBtn") openRecharge("finance");
@@ -1782,6 +2133,11 @@ export function createFinanceController({
     else if (button.dataset.financeBudgetDelete) deleteBudget(button.dataset.financeBudgetDelete);
     else if (button.dataset.financeAction === "sync") syncNow();
     else if (button.dataset.financeAction === "add") openTransactionEditor();
+    else if (button.dataset.financeAction === "go-ledger") setSubView("ledger");
+    else if (button.dataset.financeAction === "go-analytics") setSubView("analytics");
+    else if (button.dataset.financeAction === "go-settings") setSubView("settings");
+    else if (button.dataset.financeAction === "categories") openCategoryManager();
+    else if (button.dataset.financeAction === "budgets") openBudgetManager();
     else if (button.dataset.financeAction === "all-months") { ledgerAllMonths = true; renderAll(); }
     else if (button.dataset.financeAction === "clear-filters") {
       if (element("financeSearchInput")) element("financeSearchInput").value = "";
@@ -1797,7 +2153,7 @@ export function createFinanceController({
     if (initialized) return;
     initialized = true;
     recordedDisclosure = createFinanceDisclosure({ element: element("financeRecordedSection"), storage,
-      accountId: () => account()?.id, section: "recorded", defaultOpen: false });
+      accountId: () => account()?.id, section: "recorded", defaultOpen: true });
     recordedDisclosure.restore();
     restoreTrendState();
     element("financePage")?.addEventListener("click", handlePageClick);
@@ -1832,7 +2188,7 @@ export function createFinanceController({
     });
   }
 
-  async function show() {
+  async function show(options = {}) {
     suspended = false;
     ledgerRows.resume();
     initialize();
@@ -1844,6 +2200,8 @@ export function createFinanceController({
       setSyncState("需要财务会员", "warning", "财务会员 8 CNY/月；全功能会员已自动包含。 ");
       return false;
     }
+    if (options?.subView) setSubView(options.subView, { syncHistory: false });
+    else setSubView(activeSubView || "overview", { syncHistory: false });
     if (element("financeMonthFilter") && !element("financeMonthFilter").value) element("financeMonthFilter").value = monthKey();
     renderAll();
     void fetchCurrencyPreferences();
@@ -1895,5 +2253,5 @@ export function createFinanceController({
     return { ...summary, pending: store.pending.length, available: hasAccess(), last_sync_at: store.last_sync_at };
   }
 
-  return Object.freeze({ show, hide, syncNow, verifyTransaction, resetAccount, accountUpdated, dashboardSummary, render: renderAll });
+  return Object.freeze({ show, hide, syncNow, verifyTransaction, resetAccount, accountUpdated, dashboardSummary, setSubView, render: renderAll });
 }
