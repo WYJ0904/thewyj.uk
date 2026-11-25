@@ -1,22 +1,185 @@
 export const CATEGORY_DEFINITIONS = [
-  { id: "text", name: "文本处理工具箱", description: "清理、转换、提取、编码与 JSON 处理" },
-  { id: "file", name: "文件处理中心", description: "哈希、转换、拆分、合并、PDF 与 ZIP" },
-  { id: "image", name: "图片与设计工具", description: "压缩、格式、尺寸、裁剪、水印与配色" },
-  { id: "random", name: "随机生成器中心", description: "安全密码、抽签、分组、颜色、日期与骰子" },
-  { id: "temporary", name: "临时工具", description: "临时文本、文件、剪贴板、二维码与留言房间" },
+  { id: "text", name: "文本处理工具箱", shortName: "文本处理", description: "清理、转换、提取、编码与 JSON 处理" },
+  { id: "file", name: "文件处理中心", shortName: "文件处理", description: "哈希、转换、拆分、合并、PDF 与 ZIP" },
+  { id: "image", name: "图片与设计工具", shortName: "图片设计", description: "压缩、格式、尺寸、裁剪、水印与配色" },
+  { id: "random", name: "随机生成器中心", shortName: "随机生成", description: "安全密码、抽签、分组、颜色、日期与骰子" },
+  { id: "temporary", name: "临时工具", shortName: "临时工具", description: "临时文本、文件、剪贴板、二维码与留言房间" },
 ];
 
 export const ICON_PATHS = {
-  text: '<path d="M4 4h16v16H4z"/><path d="M8 8h8M8 12h8M8 16h5"/>',
+  text: '<path d="M4 6h16M4 12h11M4 18h14"/>',
+  stats: '<path d="M5 19V11M10 19V6M15 19v-8M20 19V9M3 19h18"/>',
+  dedupe: '<path d="M4 7h11M4 12h8M4 17h11"/><path d="m16 10 2 2 3-3"/>',
+  trimLines: '<path d="M4 6h16M4 18h16M8 12h8"/><path d="m12 8-2 2h4l-2-2zm0 8-2-2h4l-2 2z"/>',
+  space: '<path d="M4 9v6h16V9"/><path d="M9 12h6"/>',
+  prefix: '<path d="M4 12h6M7 9l3 3-3 3M14 7h6M14 12h6M14 17h6"/>',
+  suffix: '<path d="M4 7h6M4 12h6M4 17h6M20 12h-6m3-3-3 3 3 3"/>',
+  numbered: '<path d="M10 7h10M10 12h10M10 17h10M4 7h2v3M4 16h2.5"/>',
+  shuffle: '<path d="M4 7h3.5l9 10H20"/><path d="m17 14 3 3-3 3M4 17h3.5l2.5-3M14 10l2.5-3H20M17 4l3 3-3 3"/>',
+  regex: '<circle cx="6.5" cy="16.5" r="1.5"/><path d="M14 5v8M10.5 7l7 4M17.5 7l-7 4M11 17h8"/>',
+  mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/>',
+  globe: '<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5a12 12 0 0 1 0 17M12 3.5a12 12 0 0 0 0 17"/>',
+  network: '<rect x="9" y="3.5" width="6" height="4.5" rx="1"/><rect x="3.5" y="16" width="6" height="4.5" rx="1"/><rect x="14.5" y="16" width="6" height="4.5" rx="1"/><path d="M12 8v4M6.5 16v-4h11v4"/>',
+  jsonCheck: '<path d="M7 5c-1.3 0-2 .8-2 2v3c0 1-.6 2-1.5 2 .9 0 1.5 1 1.5 2v3c0 1.2.7 2 2 2"/><path d="M17 5c1.3 0 2 .8 2 2v3c0 1 .6 2 1.5 2-.9 0-1.5 1-1.5 2v3c0 1.2-.7 2-2 2"/><path d="m9.5 12 1.8 1.8L15 10"/>',
+  jsonMin: '<path d="M9 5c-1.2 0-1.8.8-1.8 2v3c0 1-.5 2-1.4 2 .9 0 1.4 1 1.4 2v3c0 1.2.6 2 1.8 2"/><path d="M15 5c1.2 0 1.8.8 1.8 2v3c0 1 .5 2 1.4 2-.9 0-1.4 1-1.4 2v3c0 1.2-.6 2-1.8 2"/>',
   file: '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5M9 13h6M9 17h6"/>',
-  image: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m4 17 5-5 4 4 2-2 5 5"/>',
+  fileInfo: '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5M12 11.5v5M12 9h.01"/>',
+  rename: '<path d="M4 17h16M7 14l7.5-7.5 2.5 2.5L9.5 16.5H7z"/>',
+  image: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="9" r="1.8"/><path d="m4 17 5-5 4 4 2-2 5 5"/>',
+  compress: '<path d="M4 10h6V4M4 4l6 6M20 14h-6v6M20 20l-6-6"/>',
+  format: '<path d="M7 7h10l-2.5-2.5M17 17H7l2.5 2.5M17 7v4M7 17v-4"/>',
+  rounded: '<rect x="4" y="4" width="16" height="16" rx="5.5"/>',
+  avatar: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="9.5" r="2.7"/><path d="M7 18a5.5 5.5 0 0 1 10 0"/>',
+  mosaic: '<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M10 4v16M14 4v16M4 10h16M4 14h16"/>',
+  blur: '<circle cx="12" cy="12" r="8.5" stroke-dasharray="2 2.5"/><circle cx="12" cy="12" r="5" stroke-dasharray="2 2"/><circle cx="12" cy="12" r="1.8"/>',
+  redact: '<rect x="3.5" y="6" width="17" height="12" rx="2"/><path d="M7 12h10M7 9h6M7 15h8"/>',
+  exif: '<rect x="3.5" y="6" width="17" height="13" rx="2"/><path d="M8 6l1.5-2h5L16 6"/><circle cx="12" cy="12.5" r="3"/>',
+  gps: '<path d="M12 20.5s6-5.2 6-10a6 6 0 1 0-12 0c0 4.8 6 10 6 10z"/><circle cx="12" cy="10.5" r="2"/>',
+  gradient: '<rect x="4" y="4" width="16" height="16" rx="2.5"/><path d="M4 15 15 4M9 20 20 9"/>',
+  swatch: '<rect x="4.5" y="4.5" width="15" height="15" rx="3"/><path d="M9 15 15 9"/>',
   random: '<path d="M4 7h3l10 10h3"/><path d="m17 14 3 3-3 3M4 17h3l3-3M14 10l3-3h3M17 4l3 3-3 3"/>',
-  temporary: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  number: '<path d="M5 9h14M5 15h14M9 5l-1.5 14M16.5 5 15 19"/>',
+  string: '<rect x="3.5" y="6" width="17" height="12" rx="2"/><path d="M7 10.5h3M7 13.5h5M14 10.5l2 1.5-2 1.5"/>',
+  password: '<rect x="4.5" y="10.5" width="15" height="9.5" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/><circle cx="9.5" cy="15.2" r=".8"/><circle cx="12" cy="15.2" r=".8"/><circle cx="14.5" cy="15.2" r=".8"/>',
+  uuid: '<rect x="3.5" y="5.5" width="17" height="13" rx="2"/><path d="M7 10h3M12 10h5M7 14h5M14 14h3"/>',
+  wheel: '<circle cx="12" cy="12.5" r="8"/><path d="M12 4.5v16M4 12.5h16M6.3 6.8l11.4 11.4M17.7 6.8 6.3 18.2"/><path d="M12 2.2 10.5 4.5h3z"/>',
+  weightedWheel: '<circle cx="12" cy="12.5" r="8"/><path d="M12 12.5V4.5M12 12.5l6.8 4.2M12 12.5 5 16"/><circle cx="12" cy="12.5" r="1.8"/><path d="M12 2.2 10.5 4.5h3z"/>',
+  coin: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="6"/><path d="M12 8v8M10 10.2h4M10 13.2h4"/>',
+  d4: '<path d="M12 3.5 3.8 18.5h16.4z"/><path d="M12 3.5v15"/>',
+  d6: '<rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="9" r="1"/><circle cx="15" cy="9" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="9" cy="15" r="1"/><circle cx="15" cy="15" r="1"/>',
+  d8: '<path d="M12 3 4 12l8 9 8-9z"/><path d="M4 12h16M12 3v18"/>',
+  d10: '<path d="M12 3 4.5 11.5 12 21l7.5-9.5z"/><path d="M12 3 8.5 12.5 12 21M12 3l3.5 9.5L12 21M4.5 11.5l4 1h7l4-1"/>',
+  d12: '<path d="M12 3.2 4.2 9l3 10.8h9.6l3-10.8z"/><path d="M12 7.2 7.8 10.4l1.6 5.2h5.2l1.6-5.2z"/>',
+  d20: '<path d="M12 3 4.5 7.5v9L12 21l7.5-4.5v-9z"/><path d="M12 3 7.5 15h9L12 3zM4.5 7.5 7.5 15M19.5 7.5 16.5 15"/>',
+  customDice: '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M12 8.5v7M8.5 12h7"/>',
+  draw: '<rect x="4" y="8" width="16" height="12" rx="2"/><path d="M8 8V5h8v3M9 14h6"/>',
+  decision: '<path d="M12 4v16M5 7h11l2.5 2.5L16 12H5zM19 13H9l-2 2 2 2h10z"/>',
+  clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3.2 2.2"/>',
+  temporary: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
   bookmark: '<path d="M7 4h10v16l-5-3-5 3z"/>',
   delete: '<path d="M3 6h18M8 6V4h8v2m3 0-1 14H6L5 6M10 11v5m4-5v5"/>',
+  json: '<path d="M8 4c-1.5 0-2 1-2 2.5v3c0 1.2-.8 2.5-2 2.5 1.2 0 2 1.3 2 2.5v3C6 19 6.5 20 8 20"/><path d="M16 4c1.5 0 2 1 2 2.5v3c0 1.2.8 2.5 2 2.5-1.2 0-2 1.3-2 2.5v3c0 1.5-.5 2.5-2 2.5"/>',
+  code: '<path d="m8 8-4 4 4 4M16 8l4 4-4 4M14 5l-4 14"/>',
+  diff: '<rect x="3" y="4" width="8" height="16" rx="1.5"/><rect x="13" y="4" width="8" height="16" rx="1.5"/><path d="M6 9h2M16 9h2M17 8v2M6 14h2"/>',
+  search: '<circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/>',
+  sort: '<path d="M7 5v14M4 16l3 3 3-3M14 7h6M14 12h4M14 17h2"/>',
+  extract: '<path d="M4 6h16M7 12h10M10 18h4"/>',
+  case: '<path d="M4 17 8.5 6 13 17M5.5 14h6M16 11c1.8 0 3 1 3 3v3M19 14.5h-2.2c-1 0-1.8.6-1.8 1.5s.8 1.5 1.8 1.5H19"/>',
+  lang: '<path d="M4 6h10M9 4v2m3 0c-.8 4.2-3.4 7.6-7 9.5M6.5 9.5c1.5 2.4 3.8 4.5 6.5 5.8M14 19l3-8 3 8M15 16.5h4"/>',
+  hash: '<path d="M5 9h14M5 15h14M10 4 8 20M16 4l-2 16"/>',
+  table: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 4v16M15 10v10"/>',
+  split: '<path d="M4 6h6v12H4zM14 6h6v12h-6zM12 4v16"/>',
+  merge: '<path d="M6 4v5a3 3 0 0 0 3 3h6a3 3 0 0 0 3-3V4M12 12v8m-3-3 3 3 3-3"/>',
+  zip: '<path d="M6 3h8l4 4v14H6z"/><path d="M12 6v2M12 10v2M12 14v2M10 17h4"/>',
+  pdf: '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5M8.5 15.5h7M8.5 12.5h4.5"/>',
+  crop: '<path d="M6 3v13a2 2 0 0 0 2 2h13"/><path d="M3 6h13a2 2 0 0 1 2 2v13"/>',
+  resize: '<path d="M15 4h5v5M20 4l-6 6M9 20H4v-5M4 20l6-6"/>',
+  rotate: '<path d="M20 12a8 8 0 1 1-2.3-5.6L20 9"/><path d="M20 4v5h-5"/>',
+  flip: '<path d="M12 4v16M8 8l-4 4 4 4V8zM16 8l4 4-4 4V8z"/>',
+  watermark: '<path d="M4 7h16M8 7v10M16 7v10M6 17h12"/>',
+  shield: '<path d="M12 3 5 6v6c0 4.5 3 7.8 7 9 4-1.2 7-4.5 7-9V6z"/><path d="m9.5 12 2 2 3.5-4"/>',
+  palette: '<circle cx="12" cy="12" r="8.5"/><circle cx="9" cy="10" r="1"/><circle cx="13" cy="8.5" r="1"/><circle cx="15.5" cy="11.5" r="1"/><path d="M14 15.5a2 2 0 0 0 2 2h1.5"/>',
+  key: '<circle cx="8" cy="12" r="3.5"/><path d="M11.5 12H20M17 12v3M20 12v2.5"/>',
+  dice: '<rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="9" r="1"/><circle cx="15" cy="9" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="9" cy="15" r="1"/><circle cx="15" cy="15" r="1"/>',
+  calendar: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16"/>',
+  users: '<circle cx="9" cy="9" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><circle cx="16.5" cy="9.5" r="2.2"/><path d="M16.5 14a4 4 0 0 1 4 4"/>',
+  qr: '<rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><path d="M14 14h2v2h-2zM18 14h2v2h-2zM16 16h2v2h-2zM14 18h2v2h-2zM18 18h2v2h-2z"/>',
+  clipboard: '<rect x="6" y="4" width="12" height="16" rx="2"/><path d="M9 4h6v2.5H9zM9 11h6M9 15h4"/>',
+  chat: '<path d="M4 5h16v11H8l-4 4z"/><path d="M8 10h8M8 13h5"/>',
+  transfer: '<path d="M12 16V4m-4 4 4-4 4 4"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/>',
+  link: '<path d="M10 14a4 4 0 0 1 0-5.6l2.5-2.5a4 4 0 0 1 5.6 5.6L16.5 13"/><path d="M14 10a4 4 0 0 1 0 5.6L11.5 18a4 4 0 0 1-5.6-5.6L7.5 11"/>',
 };
 
-export const iconSvg = (name, className = "ui-icon") => `<svg class="${className}" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${ICON_PATHS[name] || ""}</svg>`;
+export const iconSvg = (name, className = "ui-icon") => `<svg class="${className}" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${ICON_PATHS[name] || ICON_PATHS.text}</svg>`;
+
+export function toolIconName(tool) {
+  const id = String(tool?.id || "");
+  if (id === "text-stats") return "stats";
+  if (id === "dedupe-lines") return "dedupe";
+  if (id === "remove-empty-lines") return "trimLines";
+  if (id === "collapse-spaces") return "space";
+  if (id === "line-prefix") return "prefix";
+  if (id === "line-suffix") return "suffix";
+  if (id === "line-numbers") return "numbered";
+  if (id === "sort-lines") return "sort";
+  if (id === "shuffle-lines") return "shuffle";
+  if (id === "find-replace") return "search";
+  if (id === "regex-replace") return "regex";
+  if (id === "text-diff") return "diff";
+  if (id === "extract-email") return "mail";
+  if (id === "extract-url") return "globe";
+  if (id === "extract-ip") return "network";
+  if (id === "extract-number-date") return "extract";
+  if (id === "json-validate") return "jsonCheck";
+  if (id === "json-minify") return "jsonMin";
+  if (id.startsWith("json-")) return "json";
+  if (["base64", "url-code", "html-entities", "unicode-code"].includes(id)) return "code";
+  if (["letter-case", "camel-case", "pascal-case", "snake-case", "kebab-case"].includes(id)) return "case";
+  if (id === "chinese-convert") return "lang";
+  if (id.startsWith("file-md5") || id.startsWith("file-sha")) return "hash";
+  if (id === "file-info") return "fileInfo";
+  if (id === "rename-preview") return "rename";
+  if (["csv-json", "json-csv", "csv-merge"].includes(id)) return "table";
+  if (id.endsWith("-split")) return "split";
+  if (id.endsWith("-merge")) return "merge";
+  if (id.includes("zip")) return "zip";
+  if (id.includes("pdf")) return "pdf";
+  if (["image-compress", "image-batch-compress"].includes(id)) return "compress";
+  if (id === "image-format") return "format";
+  if (id.includes("crop")) return "crop";
+  if (["image-resize", "image-scale", "favicon-generator"].includes(id)) return "resize";
+  if (id === "image-rotate") return "rotate";
+  if (id === "image-flip") return "flip";
+  if (id === "image-rounded") return "rounded";
+  if (id === "image-avatar") return "avatar";
+  if (id.includes("watermark")) return "watermark";
+  if (id === "image-mosaic") return "mosaic";
+  if (id === "image-blur") return "blur";
+  if (id === "image-redact") return "redact";
+  if (id === "exif-view") return "exif";
+  if (id === "gps-warning") return "gps";
+  if (id === "exif-remove") return "shield";
+  if (["gradient-generator", "gradient-css"].includes(id)) return "gradient";
+  if (["solid-image", "color-convert"].includes(id)) return "swatch";
+  if (["color-extract", "random-color", "random-palette"].includes(id)) return "palette";
+  if (["random-integer", "random-decimal"].includes(id)) return "number";
+  if (id === "random-string") return "string";
+  if (id === "random-password") return "password";
+  if (id === "random-uuid") return "uuid";
+  if (id === "random-wheel") return "wheel";
+  if (id === "weighted-wheel") return "weightedWheel";
+  if (id === "coin-flip") return "coin";
+  if (id === "dice-d4") return "d4";
+  if (id === "dice-d6") return "d6";
+  if (id === "dice-d8") return "d8";
+  if (id === "dice-d10") return "d10";
+  if (id === "dice-d12") return "d12";
+  if (id === "dice-d20") return "d20";
+  if (id === "custom-dice") return "customDice";
+  if (id === "random-draw") return "draw";
+  if (id === "random-decision") return "decision";
+  if (id === "random-groups") return "users";
+  if (id === "random-date") return "calendar";
+  if (id === "random-time") return "clock";
+  if (id === "temporary-qr") return "qr";
+  if (id === "temporary-clipboard") return "clipboard";
+  if (id === "temporary-room") return "chat";
+  if (id === "file-transfer" || id === "temporary-file") return "transfer";
+  if (id === "temporary-text") return "link";
+  return tool?.category || "text";
+}
+
+export const toolIconSvg = (tool, className = "ui-icon tool-tile-icon") => iconSvg(toolIconName(tool), className);
+
+export function toolLayoutType(tool) {
+  const id = String(tool?.id || "");
+  if (tool?.category === "text") return "split-editor";
+  if (tool?.category === "image") return "studio-preview";
+  if (tool?.category === "file") return "file-pipeline";
+  if (tool?.category === "random") return "compact-generator";
+  if (id === "temporary-qr") return "temporary-qr";
+  return "temporary-utility";
+}
 
 export const toolRows = {
   text: [

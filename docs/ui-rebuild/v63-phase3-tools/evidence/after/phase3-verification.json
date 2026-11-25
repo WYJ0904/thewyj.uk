@@ -1,0 +1,23 @@
+{
+  "status": "PASS",
+  "catalogAudit": {
+    "totalRegistered": 104,
+    "visibleCatalog": 103,
+    "renderedInitial": 24,
+    "categoryPills": 6,
+    "hasSecondSidebar": false,
+    "overflowX": -15
+  },
+  "perf": {
+    "toolsOpenMs": 1326,
+    "searchMs": 173
+  },
+  "video": {
+    "frames": 78,
+    "durationSec": 9.16,
+    "path": "docs\\ui-rebuild\\v63-phase3-tools\\evidence\\after\\phase3-tools-walkthrough.mp4"
+  },
+  "mobileDirOverflow": 0,
+  "mobileEditorOverflow": 0,
+  "runtimeErrors": []
+}

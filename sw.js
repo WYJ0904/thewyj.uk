@@ -99,17 +99,17 @@ const REQUIRED_SHELL = [...CORE_SHELL, ...TASK26_SHELL, ...FINANCE_SHELL, ...TAS
 const INSTALL_SHELL = REQUIRED_SHELL;
 // Canonical UTF-8 hashes bind the current S0 shell plus Task27 additions.
 const TASK26_INTEGRITY = Object.freeze({
-  "/": "a31376115615f57131c7ab546a65a1e5867b1af3a30dab0ca5dab774a48b18b9",
-  "/index.html": "a31376115615f57131c7ab546a65a1e5867b1af3a30dab0ca5dab774a48b18b9",
+  "/": "aef0e77fead41ddc5e83bf625b0a3c720ac6fd2b77a520a22cc233b41ff2cd1d",
+  "/index.html": "aef0e77fead41ddc5e83bf625b0a3c720ac6fd2b77a520a22cc233b41ff2cd1d",
   "/styles.css?release=20261121-aeris-i05-preview": "fced3f47c7568a08d5fe8bdae7345dd96aacfd545621651f63dee3b961907305",
   "/product-ui.css?release=20261121-aeris-i05-preview": "bb0e2293c3efd9cae84dd2386a2ddd39fd156051110d9f9c1725f0f5df6dc34c",
   "/design-system.css?release=20261121-aeris-i05-preview": "0edc01cffb80021d63c3ca1c272850fda86b1d9e86483d145ecf110eff08883d",
   "/public-experience.css?release=20261121-aeris-i05-preview": "9875692c2c19f78a43a1fb0991430c3aeb1db90508c31d3a7e10ecbbd3b9002e",
   "/workspace-experience.css?release=20261121-aeris-i05-preview": "713896d0d192154aadeee6278fd7fd216dfb1e46a96a4c84c580044f09e422ae",
-  "/spatial-experience.css?release=20261121-aeris-i05-preview": "3ec9aeb307c3c217a3ec954da15e856414d98cf8918719a792d1ce3f353e29b2",
+  "/spatial-experience.css?release=20261121-aeris-i05-preview": "d6d6c7b2a41ed4c8c65734f8836774b38137f0e1999e7602f07c2acb89aa9901",
   "/changelog.js?release=20261121-aeris-i05-preview": "e7dfbb4fc6c7c9fbdf2a677b6036bd895003a197d08908ee225aa40cce88eb4e",
   "/learning-sync.js?release=20261121-aeris-i05-preview": "74ced24b8dab7c8ad16dc6b4b68ff81a89e968d18a607bbba6b066a8bee7727d",
-  "/app.js?release=20261121-aeris-i05-preview": "95d1363002a5af2abb748d4ed216bf2b01cc438c477c46f306b9f150925aec2d",
+  "/app.js?release=20261121-aeris-i05-preview": "072c3ec3243f5c5e6e39da6a2697410787cff36090a3664177f1b36db390261c",
   "/js/core/api.js?release=20261121-aeris-i05-preview": "e43598b6e896e541f9a40d8b4b5741217ef7547774c99875c3e9ec4b636e0680",
   "/js/core/changelog.js?release=20261121-aeris-i05-preview": "52fe2296f6fb51a63585b6e6607a239d71e77021d8878664c06fc4745eeacef9",
   "/js/core/capabilities.js?release=20261121-aeris-i05-preview": "01a07b545f76a18aa05b1c98589b093f0c4a30597d4acd5a7efc5c9ec1ef2b56",
@@ -122,7 +122,7 @@ const TASK26_INTEGRITY = Object.freeze({
   "/js/core/public-ui-policy.js?release=20261121-aeris-i05-preview": "0ba84e2ad06a282b2805d8eb5886c6fb2779439adb95a2a4d79ea4027898f823",
   "/js/core/download.js?release=20261121-aeris-i05-preview": "74f6e124985edae142f0d636f07e25711e74ad2bd738a449ec5f20f82882c0fe",
   "/js/core/perf.js?release=20261121-aeris-i05-preview": "add801f4828b3de5510cab3aa278b388ebbfe63ab940afeeb7de0954b4d58779",
-  "/js/core/motion.js?release=20261121-aeris-i05-preview": "20ce2f630e009c45ad2700b80d38cf12720ba3e944a4aa126fb7b94ece14c9ae",
+  "/js/core/motion.js?release=20261121-aeris-i05-preview": "09d80045e9cfdf4813b923ae2dea532a37cf22cf323fea994f035ea05574267f",
   "/js/core/keyed-list.js?release=20261121-aeris-i05-preview": "b25531bc4ad00a867d067bc58f0358473abca58a7f803969dc371481e316de4d",
   "/js/core/public-experience.js?release=20261121-aeris-i05-preview": "76922782075a006edc4ad52020bab5c659944a62e6861c4278db22460187ea06",
   "/js/finance/app.js?release=20261121-aeris-i05-preview": "70796818ceb425609b0d882b4f1e626ce2399c757ef902f975d09e5b8ec8e13e",
@@ -146,11 +146,11 @@ const TASK26_INTEGRITY = Object.freeze({
   "/js/membership/plans.js?release=20261121-aeris-i05-preview": "3636e0bb273f9fb0443c97d0cac48d04d96d1252140cd174cf7661b6e2a5337a",
   "/js/membership/recharge.js?release=20261121-aeris-i05-preview": "b2e04cb1a4fdd788f3f5157a5924479389bb93ce4d382c05d525052448508c57",
   "/js/admin/formatters.js?release=20261121-aeris-i05-preview": "a9f836b1649a721af2df7d8d9100e10ebfc3cd5563d8de967db8178eca4f5ca9",
-  "/tools.js?release=20261121-aeris-i05-preview": "9bbf23168082b3d8a56fb7a52f3afbf93f8f9ea4d978f7145f330d90ca8afab8",
-  "/js/tools/catalog.js?release=20261121-aeris-i05-preview": "19f2165361ea595d5df4d8c0b7640ece5e273cbe8247676f57700b67b28dc643",
+  "/tools.js?release=20261121-aeris-i05-preview": "78410184740e9849dd0d058eeeb4236417f8ce5bab3895b7e116df72bf739505",
+  "/js/tools/catalog.js?release=20261121-aeris-i05-preview": "0bd0445f4cf9f8bee49e84c887d484d6a23287eba47ed0d26829ea133b8f65f7",
   "/js/tools/file.js?release=20261121-aeris-i05-preview": "a7a607f33e920f6001dda6336daaaf0a2ee4f89b6160ae24245e5c55822d96ca",
   "/js/tools/image.js?release=20261121-aeris-i05-preview": "2a5bc3501019c7136849150fcfcbd33718b738f1310e837726117544f8b70e40",
-  "/js/tools/random.js?release=20261121-aeris-i05-preview": "eb32c14573ee7c38badf8e504f6e72c327f9b89f74d61137db763ebe8bbc9b1d",
+  "/js/tools/random.js?release=20261121-aeris-i05-preview": "5e3ab30d9a0d1bcf84879f8518b40304f960da5a20c7352ebac27a74cb5e1439",
   "/js/tools/runner.js?release=20261121-aeris-i05-preview": "b0f0370cbb72b57b082016dc67802688652e08816a8c7a134538db2bdd123220",
   "/js/tools/temporary.js?release=20261121-aeris-i05-preview": "00d807346ed025da0618c1da40c1973b613782660d888c6c12286a48ea310fa2",
   "/js/tools/text.js?release=20261121-aeris-i05-preview": "f11678f0f05ecd70be282530091000090d31921aecdd87fc0ea5f0dd04849ce5",
@@ -180,7 +180,7 @@ const TASK26_INTEGRITY = Object.freeze({
   "/js/account/password-policy.js?release=20261121-aeris-i05-preview": "48fd3d494120682e5b8baac8c73fb6ff68714cbc89d567318e9ea39549c80c56",
   "/js/account/password-fields.js?release=20261121-aeris-i05-preview": "e67497c31748194bdba244723e45620dbfd9552840c7721b1a9b0530208c2e78"
 });
-const PUBLICATION_HASH = "d76da1967526d16d02e49628b7753aa17c90dfcffbc3d8c5cf126bbe370ea8f3";
+const PUBLICATION_HASH = "b0f5d6c1f2ace19b1e89545243522c0a02ea46ebb1e7cbee78bc4e7a8646e957";
 const PUBLICATION_CACHE = `${CACHE}-task26-${PUBLICATION_HASH.slice(0, 16)}`;
 const PUBLICATION_MARKER = "/__aeris/task26-publication";
 
