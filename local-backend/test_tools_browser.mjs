@@ -295,7 +295,23 @@ async function main() {
       }
       await delay(80);
     }
-    throw new Error(`timeout waiting for ${description}${lastError ? `: ${lastError}` : ""}`);
+    let diag = "";
+    try {
+      diag = await evaluate(`JSON.stringify({
+        href: location.href,
+        boot: document.documentElement.dataset.bootState,
+        mount: document.documentElement.dataset.workspaceMount,
+        policy: document.documentElement.dataset.interfacePolicy,
+        toolsHidden: document.querySelector('#toolsPanel')?.classList.contains('hidden'),
+        authHidden: document.querySelector('#authPanel')?.classList.contains('hidden'),
+        recoveryHidden: document.querySelector('#sessionRecovery')?.classList.contains('hidden'),
+        recoveryMsg: document.querySelector('#sessionRecoveryMessage')?.textContent || '',
+        ready: window.WYJTools?.isReady?.(),
+        toolsCount: window.WYJTools?.tools?.length || 0,
+        session: Boolean(localStorage.getItem('wyjAccountSession')),
+      })`);
+    } catch {}
+    throw new Error(`timeout waiting for ${description}${lastError ? `: ${lastError}` : ""}${diag ? ` diag=${diag}` : ""}`);
   };
 
   const setFields = async (fields) => evaluate(`(() => {
@@ -443,6 +459,30 @@ async function main() {
     message: document.querySelector('#toolWorkbenchMessage')?.textContent || '',
     textOutput: document.querySelector('#textToolOutput')?.value || '',
     randomOutput: document.querySelector('#randomResult')?.textContent || '',
+    randomState: document.querySelector('#randomResult')?.dataset?.randomState || '',
+    randomVisual: (() => {
+      const cube = document.querySelector('#diceCube');
+      const poly = document.querySelector('#dicePoly svg');
+      const polyVal = document.querySelector('#dicePolyValue');
+      const coin = document.querySelector('#coinBody');
+      const coinFront = document.querySelector('.coin-face-front')?.getBoundingClientRect();
+      const coinBack = document.querySelector('.coin-face-back')?.getBoundingClientRect();
+      const wheelPointer = document.querySelector('.wheel-pointer-overlay')?.getBoundingClientRect();
+      const wheelRotor = document.querySelector('#wheelRotor')?.getBoundingClientRect();
+      const winnerSlice = document.querySelector('.wheel-slice.is-winner');
+      const swatches = [...document.querySelectorAll('.color-swatch-card')].map((el) => el.textContent.trim());
+      return {
+        cubeFace: cube?.dataset?.face || '',
+        polyShape: poly?.dataset?.polyShape || '',
+        polyValue: polyVal?.textContent?.trim() || '',
+        coinSide: coin?.dataset?.side || '',
+        coinAligned: coinFront && coinBack ? Math.abs(coinFront.top - coinBack.top) < 4 : false,
+        wheelPointerAligned: wheelPointer && wheelRotor ? Math.abs((wheelPointer.left + wheelPointer.width / 2) - (wheelRotor.left + wheelRotor.width / 2)) < 4 : false,
+        hasWinnerSlice: Boolean(winnerSlice),
+        swatches,
+        optionInputCount: document.querySelectorAll('[data-option-name]').length,
+      };
+    })(),
     fileOutput: document.querySelector('#fileToolResult')?.textContent || '',
     imageOutput: document.querySelector('#imageToolResult')?.textContent || '',
     temporaryCode: document.querySelector('#temporaryResult code')?.textContent || '',
@@ -806,10 +846,33 @@ async function main() {
       await record("random", tool.id, async () => {
         const test = randomCases[tool.id];
         await openTool(tool.id);
+        if (["random-draw", "random-groups", "random-decision", "random-wheel", "weighted-wheel"].includes(tool.id)) {
+          const initialVisual = (await readState()).randomVisual;
+          assert.equal(initialVisual.optionInputCount, 4, `${tool.id} should default to 4 independent option inputs`);
+        }
         if (Object.keys(test.fields).length) await setFields(test.fields);
         await click("#runRandomToolBtn");
+        await waitFor(
+          "document.querySelector('#randomResult')?.dataset?.randomState === 'settled'",
+          10_000,
+          `${tool.id} random settle`,
+        );
         const state = await readState();
         assert.ok(test.check(state.randomOutput), `${tool.id}: ${state.randomOutput}`);
+        if (tool.id === "dice-d6") {
+          assert.equal(state.randomVisual.cubeFace, state.randomOutput, `${tool.id} 3D cube face mismatch`);
+        } else if (tool.id.startsWith("dice-") || tool.id === "custom-dice") {
+          assert.ok(state.randomVisual.polyShape, `${tool.id} missing polyhedral geometry`);
+          assert.equal(state.randomVisual.polyValue, state.randomOutput, `${tool.id} polyhedral readout mismatch`);
+        } else if (tool.id === "coin-flip") {
+          assert.equal(state.randomVisual.coinSide, state.randomOutput, `${tool.id} coin side mismatch`);
+          assert.ok(state.randomVisual.coinAligned, `${tool.id} coin faces must overlap as one 3D coin`);
+        } else if (tool.id === "random-wheel" || tool.id === "weighted-wheel") {
+          assert.ok(state.randomVisual.hasWinnerSlice, `${tool.id} missing winning sector highlight`);
+          assert.ok(state.randomVisual.wheelPointerAligned, `${tool.id} pointer must align to wheel center`);
+        } else if (tool.id === "random-color" || tool.id === "random-palette") {
+          assert.ok(state.randomVisual.swatches.length >= 1, `${tool.id} missing live swatch preview`);
+        }
       });
     }
 

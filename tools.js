@@ -20,7 +20,9 @@ import {
   formatWeightPercent,
   parseWeightedEntries,
   randomToolResult,
+  renderDicePolyhedronSvg,
   renderRmbOneYuanCoinSvg,
+  renderWheelPointerSvg,
   renderWheelSvg,
   serializeWeightedEntries,
 } from "./js/tools/random.js?release=20261121-aeris-i05-preview";
@@ -75,6 +77,8 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
   let activeRoomPoller = null;
   let activeUploadController = null;
   let activeRandomTimer = 0;
+  let activeRandomInterval = 0;
+  let activeRandomTransitionCleanup = null;
   let recentSyncRunning = false;
   let pendingRecentToolId = "";
   const TEMP_FILE_MAX_BYTES = 20 * 1024 * 1024;
@@ -94,6 +98,51 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
     if (activeRandomTimer) {
       window.clearTimeout(activeRandomTimer);
       activeRandomTimer = 0;
+    }
+    if (activeRandomInterval) {
+      window.clearInterval(activeRandomInterval);
+      activeRandomInterval = 0;
+    }
+    if (typeof activeRandomTransitionCleanup === "function") {
+      try { activeRandomTransitionCleanup(); } catch (_) {}
+      activeRandomTransitionCleanup = null;
+    }
+  }
+
+  function scheduleAnimatedSettlement(element, durationMs, onSettle) {
+    stopRandomAnimation();
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      stopRandomAnimation();
+      onSettle();
+    };
+    const handleTransitionEnd = (event) => {
+      if (event.target !== element || (event.propertyName && event.propertyName !== "transform")) return;
+      finish();
+    };
+    if (element && !isReducedMotion()) {
+      element.addEventListener("transitionend", handleTransitionEnd);
+      activeRandomTransitionCleanup = () => element.removeEventListener("transitionend", handleTransitionEnd);
+    }
+    activeRandomTimer = window.setTimeout(finish, durationMs + 70);
+  }
+
+  async function withButtonPending(button, pendingLabel, action) {
+    if (!button || button.disabled) return undefined;
+    const originalText = button.textContent;
+    button.disabled = true;
+    button.setAttribute("aria-busy", "true");
+    if (pendingLabel) button.textContent = pendingLabel;
+    try {
+      return await action();
+    } finally {
+      button.disabled = false;
+      button.removeAttribute("aria-busy");
+      if (pendingLabel && button.textContent === pendingLabel) {
+        button.textContent = originalText;
+      }
     }
   }
   const categoryFor = (tool) => CATEGORY_MAP.get(tool.category);
@@ -562,40 +611,175 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
     return window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches === true;
   }
 
+  function setRandomState(workspaceEl, state, resultEl) {
+    if (workspaceEl) workspaceEl.dataset.randomState = state;
+    if (resultEl) resultEl.dataset.randomState = state;
+  }
+
+  function mountMultiOptionList({
+    listEl,
+    addBtn,
+    hiddenEntriesEl,
+    legacyNoticeEl,
+    isWeighted = false,
+    defaultItems = [],
+    itemPlaceholder = "选项名称",
+    addLabelPrefix = "选项",
+    onRowsChange = () => {},
+  }) {
+    let rows = defaultItems.map((item) => ({ ...item }));
+    let syncingHidden = false;
+    let legacyMeta = { convertedFromLegacy: false, precisionPreserved: false };
+
+    const updateNotice = () => {
+      if (!legacyNoticeEl) return;
+      let text = "";
+      if (legacyMeta.precisionPreserved) {
+        text = "已保留原有精确权重比例；未手动调整滑杆前，抽取与转盘扇区均按精确原权重计算。";
+      } else if (legacyMeta.convertedFromLegacy) {
+        text = "已将旧版大权重配置按比例无损映射为 0%–100% 滑杆权重。";
+      }
+      legacyNoticeEl.textContent = text;
+      legacyNoticeEl.classList.toggle("hidden", !text);
+    };
+
+    const syncHidden = () => {
+      if (!hiddenEntriesEl || syncingHidden) return;
+      syncingHidden = true;
+      try {
+        hiddenEntriesEl.value = isWeighted
+          ? serializeWeightedEntries(rows)
+          : rows.map((r) => String(r.name || "").trim()).filter(Boolean).join("\n");
+      } finally {
+        syncingHidden = false;
+      }
+    };
+
+    const renderRows = () => {
+      if (!listEl) return;
+      const effectiveRows = isWeighted ? rows : rows.map((r) => ({ name: r.name, halfUnits: 50 }));
+      const model = computeWeightedSectors(effectiveRows);
+      listEl.innerHTML = model.rows.map((item, idx) => `
+        <div class="weight-option-row${item.excluded ? " is-zero-weight" : ""}" data-weight-row="${idx}" role="listitem">
+          <div class="weight-option-top">
+            <span class="weight-option-swatch" data-swatch-index="${idx % 8}" aria-hidden="true"></span>
+            <input class="weight-option-name" type="text" maxlength="60" value="${escapeHtml(rows[idx].name)}" placeholder="${escapeHtml(itemPlaceholder)}" aria-label="${escapeHtml(addLabelPrefix)} ${idx + 1} 名称" data-option-name="${idx}" />
+            <button class="button-ghost weight-option-delete" type="button" data-option-delete="${idx}" aria-label="删除 ${escapeHtml(rows[idx].name || `${addLabelPrefix} ${idx + 1}`)}" ${rows.length <= 1 ? "disabled" : ""}>${iconSvg("delete")}</button>
+          </div>
+          ${isWeighted ? `
+          <div class="weight-option-slider-bar">
+            <input class="aeris-weight-slider" type="range" min="0" max="${HALF_PERCENT_MAX}" step="1" value="${item.halfUnits}" aria-label="${escapeHtml(rows[idx].name || `${addLabelPrefix} ${idx + 1}`)} 权重" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${item.weightPercent}" aria-valuetext="${formatWeightPercent(item.halfUnits)}" data-option-slider="${idx}" />
+            <div class="weight-option-metrics">
+              <strong class="weight-metric-value" data-weight-display>${typeof rows[idx].exactWeight === "number" ? `${rows[idx].exactWeight}` : formatWeightPercent(item.halfUnits)}</strong>
+              <small class="weight-metric-prob${item.excluded ? " is-excluded" : ""}" data-prob-display>${item.excluded ? "不参与抽取" : `概率 ${item.probabilityPercent.toFixed(1)}%`}</small>
+            </div>
+          </div>` : ""}
+        </div>`).join("");
+      syncHidden();
+      updateNotice();
+      onRowsChange(rows, model);
+    };
+
+    const syncRowsFromHidden = () => {
+      if (!hiddenEntriesEl || syncingHidden) return;
+      const raw = String(hiddenEntriesEl.value || "");
+      const lines = raw.split(/\r?\n|,/).map((s) => s.trim()).filter(Boolean);
+      if (isWeighted) {
+        const parsed = lines.length
+          ? parseWeightedEntries(raw)
+          : { items: [], convertedFromLegacy: false, precisionPreserved: false };
+        rows = parsed.items;
+        legacyMeta = {
+          convertedFromLegacy: parsed.convertedFromLegacy,
+          precisionPreserved: Boolean(parsed.precisionPreserved),
+        };
+      } else {
+        rows = lines.map((name) => ({ name, halfUnits: 50 }));
+        legacyMeta = { convertedFromLegacy: false, precisionPreserved: false };
+      }
+      if (!rows.length) rows = [{ name: "", halfUnits: 50 }];
+      renderRows();
+    };
+
+    listEl?.addEventListener("input", (event) => {
+      const nameInput = event.target.closest("[data-option-name]");
+      if (nameInput) {
+        const idx = Number(nameInput.dataset.optionName);
+        if (rows[idx]) {
+          rows[idx].name = nameInput.value;
+          const model = computeWeightedSectors(isWeighted ? rows : rows.map((r) => ({ name: r.name, halfUnits: 50 })));
+          syncHidden();
+          onRowsChange(rows, model, { namesOnly: true });
+        }
+        return;
+      }
+      const sliderInput = event.target.closest("[data-option-slider]");
+      if (sliderInput) {
+        const idx = Number(sliderInput.dataset.optionSlider);
+        if (rows[idx]) {
+          delete rows[idx].exactWeight;
+          rows[idx].halfUnits = Math.max(0, Math.min(HALF_PERCENT_MAX, Math.round(Number(sliderInput.value) || 0)));
+          if (!rows.some((r) => typeof r.exactWeight === "number")) {
+            legacyMeta.precisionPreserved = false;
+            updateNotice();
+          }
+          const model = computeWeightedSectors(rows);
+          syncHidden();
+          onRowsChange(rows, model, { sliderOnly: true });
+        }
+      }
+    });
+
+    listEl?.addEventListener("click", (event) => {
+      const deleteBtn = event.target.closest("[data-option-delete]");
+      if (!deleteBtn || rows.length <= 1) return;
+      const idx = Number(deleteBtn.dataset.optionDelete);
+      rows.splice(idx, 1);
+      renderRows();
+    });
+
+    addBtn?.addEventListener("click", () => {
+      rows.push({ name: `${addLabelPrefix} ${rows.length + 1}`, halfUnits: 50 });
+      renderRows();
+      const lastInput = listEl?.querySelector(`[data-option-name="${rows.length - 1}"]`);
+      lastInput?.focus({ preventScroll: true });
+      lastInput?.select?.();
+    });
+
+    hiddenEntriesEl?.addEventListener("change", syncRowsFromHidden);
+    hiddenEntriesEl?.addEventListener("input", syncRowsFromHidden);
+    renderRows();
+
+    return {
+      getRows: () => rows,
+      setRows: (next) => {
+        rows = next.length ? next : [{ name: "", halfUnits: 50 }];
+        renderRows();
+      },
+    };
+  }
+
   function renderWheelRandomTool(tool) {
     const isWeighted = tool.id === "weighted-wheel";
-    const defaultEntries = isWeighted
-      ? "方案 A|50\n方案 B|30\n方案 C|20"
-      : "选项 A\n选项 B\n选项 C\n选项 D";
-    const initialParsed = isWeighted
-      ? parseWeightedEntries(defaultEntries)
-      : {
-        items: defaultEntries.split("\n").map((name) => ({ name, halfUnits: 50 })),
-        convertedFromLegacy: false,
-      };
-    let rows = initialParsed.items;
+    const defaultItems = isWeighted
+      ? [
+        { name: "方案 A", halfUnits: 80 },
+        { name: "方案 B", halfUnits: 60 },
+        { name: "方案 C", halfUnits: 40 },
+        { name: "方案 D", halfUnits: 20 },
+      ]
+      : [
+        { name: "选项 A", halfUnits: 50 },
+        { name: "选项 B", halfUnits: 50 },
+        { name: "选项 C", halfUnits: 50 },
+        { name: "选项 D", halfUnits: 50 },
+      ];
     let currentRotation = 0;
     let spinning = false;
     let winnerIndex = -1;
 
-    byId("toolWorkbenchBody").innerHTML = `<div class="tool-form random-tool-form random-wheel-workspace" data-workspace-kind="random-wheel">
+    byId("toolWorkbenchBody").innerHTML = `<div class="tool-form random-tool-form random-wheel-workspace" data-workspace-kind="random-wheel" data-random-state="idle">
       <div class="wheel-workspace-grid">
-        <div class="wheel-stage-card">
-          <div class="wheel-stage-shell">
-            <div class="wheel-pointer" aria-hidden="true">
-              <svg viewBox="0 0 28 32" width="28" height="32"><path d="M14 30 3 6a3 3 0 0 1 2.7-4.3h16.6A3 3 0 0 1 25 6z" fill="currentColor"/></svg>
-            </div>
-            <div class="wheel-rotor" id="wheelRotor"></div>
-            <button class="wheel-center-trigger" id="wheelCenterSpinBtn" type="button" aria-label="开始旋转转盘">旋转</button>
-          </div>
-          <div class="wheel-stage-footer">
-            <output class="random-result wheel-result-banner" id="randomResult">点击“开始旋转”抽取结果</output>
-            <div class="tool-command-row">
-              <button class="primary" id="runRandomToolBtn" type="button">开始旋转</button>
-              <button class="button-secondary" id="copyRandomResultBtn" type="button">复制结果</button>
-            </div>
-          </div>
-        </div>
         <div class="wheel-controls-card">
           <div class="wheel-controls-head">
             <h3>${isWeighted ? "选项与权重" : "转盘选项"}</h3>
@@ -607,11 +791,27 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
             <button class="button-secondary" id="addWeightOptionBtn" type="button">+ 添加选项</button>
           </div>
           <textarea class="hidden" data-config="entries" id="randomEntries"></textarea>
+          <div class="wheel-stage-footer">
+            <output class="random-result wheel-result-banner" id="randomResult" data-random-state="idle">点击“开始旋转”抽取结果</output>
+            <div class="tool-command-row">
+              <button class="primary" id="runRandomToolBtn" type="button">开始旋转</button>
+              <button class="button-secondary" id="copyRandomResultBtn" type="button">复制结果</button>
+            </div>
+          </div>
+        </div>
+        <div class="wheel-stage-card">
+          <div class="wheel-stage-shell">
+            <div class="wheel-rotor" id="wheelRotor"></div>
+            ${renderWheelPointerSvg()}
+            <button class="wheel-center-trigger" id="wheelCenterSpinBtn" type="button" aria-label="开始旋转转盘">旋转</button>
+          </div>
+          <p class="wheel-stage-caption">上方指针锁定 12 点钟方向 · 扇区实时联动</p>
         </div>
       </div>
       ${renderConfigControls(tool.id)}
     </div>`;
 
+    const workspaceEl = byId("toolWorkbenchBody")?.querySelector("[data-workspace-kind='random-wheel']");
     const rotorEl = byId("wheelRotor");
     const listEl = byId("weightSliderList");
     const summaryEl = byId("wheelWeightSummary");
@@ -621,45 +821,45 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
     const centerSpinBtn = byId("wheelCenterSpinBtn");
     const resultEl = byId("randomResult");
 
-    const syncHiddenEntries = () => {
-      if (!hiddenEntriesEl) return;
-      hiddenEntriesEl.value = isWeighted
-        ? serializeWeightedEntries(rows)
-        : rows.map((r) => String(r.name || "").trim()).filter(Boolean).join("\n");
-    };
-
-    const updateWheelVisual = () => {
+    const updateWheelVisual = (rows, modelOverride = null) => {
       const effectiveRows = isWeighted ? rows : rows.map((r) => ({ name: r.name, halfUnits: 50 }));
-      const model = computeWeightedSectors(effectiveRows);
-      if (rotorEl) rotorEl.innerHTML = renderWheelSvg(model.activeSectors, winnerIndex);
+      const model = modelOverride || computeWeightedSectors(effectiveRows);
+      const validCount = rows.filter((r) => String(r.name || "").trim()).length;
+      if (rotorEl) rotorEl.innerHTML = renderWheelSvg(validCount ? model.activeSectors : [], winnerIndex);
       if (summaryEl) {
         if (!isWeighted) {
-          summaryEl.textContent = `${model.activeSectors.length} 项均等概率`;
-        } else if (model.totalHalfUnits === 0) {
+          summaryEl.classList.remove("is-warning");
+          summaryEl.textContent = `${validCount} 项均等概率`;
+        } else if (model.totalDrawWeight === 0 || !validCount) {
           summaryEl.textContent = "权重合计 0% · 请调高至少一项";
           summaryEl.classList.add("is-warning");
         } else {
           summaryEl.classList.remove("is-warning");
-          summaryEl.textContent = model.totalWeightPercent === 100
-            ? "权重合计 100%"
-            : `权重合计 ${formatWeightPercent(model.totalHalfUnits)} · 已自动归一化`;
+          summaryEl.textContent = model.precisionPreserved
+            ? `${model.activeSectors.length} 项精确比例`
+            : model.totalWeightPercent === 100
+              ? "权重合计 100%"
+              : `权重合计 ${formatWeightPercent(model.totalHalfUnits)} · 已自动归一化`;
         }
       }
-      if (spinBtn && !spinning) spinBtn.disabled = model.totalHalfUnits === 0;
-      if (centerSpinBtn && !spinning) centerSpinBtn.disabled = model.totalHalfUnits === 0;
-      // Refresh per-row live weight & normalized probability displays without rebuilding inputs
+      const blocked = !validCount || (isWeighted && model.totalDrawWeight === 0);
+      if (spinBtn && !spinning) spinBtn.disabled = blocked;
+      if (centerSpinBtn && !spinning) centerSpinBtn.disabled = blocked;
       listEl?.querySelectorAll("[data-weight-row]").forEach((rowNode) => {
         const idx = Number(rowNode.dataset.weightRow);
         const info = model.rows[idx];
-        if (!info) return;
+        const rawRow = rows[idx];
+        if (!info || !rawRow) return;
         const weightOut = rowNode.querySelector("[data-weight-display]");
         const probOut = rowNode.querySelector("[data-prob-display]");
         const rangeInput = rowNode.querySelector('input[type="range"]');
-        if (weightOut) weightOut.textContent = formatWeightPercent(info.halfUnits);
+        if (weightOut) {
+          weightOut.textContent = typeof rawRow.exactWeight === "number"
+            ? String(rawRow.exactWeight)
+            : formatWeightPercent(info.halfUnits);
+        }
         if (probOut) {
-          probOut.textContent = info.excluded
-            ? "不参与抽取"
-            : `概率 ${info.probabilityPercent.toFixed(1)}%`;
+          probOut.textContent = info.excluded ? "不参与抽取" : `概率 ${info.probabilityPercent.toFixed(1)}%`;
           probOut.classList.toggle("is-excluded", info.excluded);
         }
         if (rangeInput) {
@@ -670,116 +870,48 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
         }
         rowNode.classList.toggle("is-zero-weight", info.excluded);
       });
-      syncHiddenEntries();
     };
 
-    const renderOptionRows = () => {
-      if (!listEl) return;
-      const effectiveRows = isWeighted ? rows : rows.map((r) => ({ name: r.name, halfUnits: 50 }));
-      const model = computeWeightedSectors(effectiveRows);
-      listEl.innerHTML = model.rows.map((item, idx) => `
-        <div class="weight-option-row${item.excluded ? " is-zero-weight" : ""}" data-weight-row="${idx}" role="listitem">
-          <div class="weight-option-top">
-            <span class="weight-option-swatch" data-swatch-index="${idx % 8}" aria-hidden="true"></span>
-            <input class="weight-option-name" type="text" maxlength="60" value="${escapeHtml(rows[idx].name)}" placeholder="选项名称" aria-label="选项 ${idx + 1} 名称" data-option-name="${idx}" />
-            <button class="button-ghost weight-option-delete" type="button" data-option-delete="${idx}" aria-label="删除 ${escapeHtml(rows[idx].name || `选项 ${idx + 1}`)}" ${rows.length <= 1 ? "disabled" : ""}>${iconSvg("delete")}</button>
-          </div>
-          ${isWeighted ? `
-          <div class="weight-option-slider-bar">
-            <input class="aeris-weight-slider" type="range" min="0" max="${HALF_PERCENT_MAX}" step="1" value="${item.halfUnits}" aria-label="${escapeHtml(rows[idx].name || `选项 ${idx + 1}`)} 权重" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${item.weightPercent}" aria-valuetext="${formatWeightPercent(item.halfUnits)}" data-option-slider="${idx}" />
-            <div class="weight-option-metrics">
-              <strong class="weight-metric-value" data-weight-display>${formatWeightPercent(item.halfUnits)}</strong>
-              <small class="weight-metric-prob${item.excluded ? " is-excluded" : ""}" data-prob-display>${item.excluded ? "不参与抽取" : `概率 ${item.probabilityPercent.toFixed(1)}%`}</small>
-            </div>
-          </div>` : ""}
-        </div>`).join("");
-      updateWheelVisual();
-    };
-
-    listEl?.addEventListener("input", (event) => {
-      const nameInput = event.target.closest("[data-option-name]");
-      if (nameInput) {
-        const idx = Number(nameInput.dataset.optionName);
-        if (rows[idx]) {
-          rows[idx].name = nameInput.value;
-          winnerIndex = -1;
-          updateWheelVisual();
-        }
-        return;
-      }
-      const sliderInput = event.target.closest("[data-option-slider]");
-      if (sliderInput) {
-        const idx = Number(sliderInput.dataset.optionSlider);
-        if (rows[idx]) {
-          rows[idx].halfUnits = Math.max(0, Math.min(HALF_PERCENT_MAX, Math.round(Number(sliderInput.value) || 0)));
-          winnerIndex = -1;
-          updateWheelVisual();
-        }
-      }
-    });
-
-    listEl?.addEventListener("click", (event) => {
-      const deleteBtn = event.target.closest("[data-option-delete]");
-      if (!deleteBtn || rows.length <= 1) return;
-      const idx = Number(deleteBtn.dataset.optionDelete);
-      rows.splice(idx, 1);
-      winnerIndex = -1;
-      renderOptionRows();
-    });
-
-    byId("addWeightOptionBtn")?.addEventListener("click", () => {
-      rows.push({ name: `选项 ${rows.length + 1}`, halfUnits: 50 });
-      winnerIndex = -1;
-      renderOptionRows();
-      const lastInput = listEl?.querySelector(`[data-option-name="${rows.length - 1}"]`);
-      lastInput?.focus({ preventScroll: true });
-      lastInput?.select?.();
-    });
-
-    // Sync when a saved parameter preset is loaded into #randomEntries
-    hiddenEntriesEl?.addEventListener("change", () => {
-      const parsed = isWeighted
-        ? parseWeightedEntries(hiddenEntriesEl.value)
-        : {
-          items: String(hiddenEntriesEl.value || "").split(/\r?\n|,/).map((s) => s.trim()).filter(Boolean).map((name) => ({ name, halfUnits: 50 })),
-          convertedFromLegacy: false,
-        };
-      if (parsed.items.length) {
-        rows = parsed.items;
-        winnerIndex = -1;
-        if (legacyNoticeEl) {
-          legacyNoticeEl.textContent = parsed.convertedFromLegacy ? "已将旧版大权重配置按比例换算为 0%–100% 滑杆权重（保持相对概率不变）。" : "";
-          legacyNoticeEl.classList.toggle("hidden", !parsed.convertedFromLegacy);
-        }
-        renderOptionRows();
-      }
+    const optionController = mountMultiOptionList({
+      listEl,
+      addBtn: byId("addWeightOptionBtn"),
+      hiddenEntriesEl,
+      legacyNoticeEl,
+      isWeighted,
+      defaultItems,
+      onRowsChange: (rows, model) => {
+        if (!spinning) winnerIndex = -1;
+        updateWheelVisual(rows, model);
+      },
     });
 
     const triggerSpin = () => {
       if (spinning) return;
       try {
-        const effectiveRows = isWeighted ? rows : rows.map((r) => ({ name: r.name, halfUnits: 50 }));
+        const rows = optionController.getRows();
+        const namedRows = rows.filter((r) => String(r.name || "").trim());
+        if (!namedRows.length) throw new Error("请至少输入一个选项");
+        const effectiveRows = isWeighted ? namedRows : namedRows.map((r) => ({ name: r.name, halfUnits: 50 }));
         const draw = drawWeightedSector(effectiveRows);
         spinning = true;
         winnerIndex = -1;
-        updateWheelVisual();
+        setRandomState(workspaceEl, "running", resultEl);
+        updateWheelVisual(rows);
         if (spinBtn) spinBtn.disabled = true;
         if (centerSpinBtn) centerSpinBtn.disabled = true;
         setMessage("转盘旋转中…");
         const nextRotation = computeWheelNextRotation(currentRotation, draw.pointerAlignedMod, 6);
         currentRotation = nextRotation;
         const reduced = isReducedMotion();
-        const durationMs = reduced ? 60 : 3800;
+        const durationMs = reduced ? 60 : 3400;
         if (rotorEl) {
           rotorEl.style.transition = reduced ? "none" : `transform ${durationMs}ms cubic-bezier(0.14, 0.85, 0.22, 1)`;
           rotorEl.style.transform = `rotate(${nextRotation.toFixed(3)}deg)`;
         }
-        stopRandomAnimation();
-        activeRandomTimer = window.setTimeout(() => {
-          activeRandomTimer = 0;
+        scheduleAnimatedSettlement(rotorEl, durationMs, () => {
           spinning = false;
           winnerIndex = draw.sector.index;
-          updateWheelVisual();
+          updateWheelVisual(optionController.getRows());
           if (spinBtn) spinBtn.disabled = false;
           if (centerSpinBtn) centerSpinBtn.disabled = false;
           if (resultEl) {
@@ -789,10 +921,12 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
             void resultEl.offsetWidth;
             resultEl.classList.add("is-fresh");
           }
+          setRandomState(workspaceEl, "settled", resultEl);
           setMessage(`抽中：${draw.winner}（概率 ${draw.sector.probabilityPercent.toFixed(1)}%）`);
-        }, durationMs + 40);
+        });
       } catch (error) {
         spinning = false;
+        setRandomState(workspaceEl, "idle", resultEl);
         if (spinBtn) spinBtn.disabled = false;
         if (centerSpinBtn) centerSpinBtn.disabled = false;
         setMessage(error.message, true);
@@ -802,7 +936,6 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
     spinBtn?.addEventListener("click", triggerSpin);
     centerSpinBtn?.addEventListener("click", triggerSpin);
     byId("copyRandomResultBtn")?.addEventListener("click", (event) => copyText(resultEl?.textContent || "", event.currentTarget));
-    renderOptionRows();
     bindConfigControls();
   }
 
@@ -822,59 +955,78 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
   function renderDiceRandomTool(tool) {
     const isD6 = tool.id === "dice-d6";
     const isCustom = tool.id === "custom-dice";
-    const sidesLabel = isCustom ? "自定义" : tool.id.slice(5).toUpperCase();
+    const sidesLabel = isCustom ? "自定义多面骰" : `${tool.id.slice(5).toUpperCase()} 立体骰子`;
     let rx = 0;
     let ry = 0;
+    let rz = 0;
     let rolling = false;
 
-    byId("toolWorkbenchBody").innerHTML = `<div class="tool-form random-tool-form random-dice-workspace" data-workspace-kind="random-dice">
-      <div class="dice-stage-card">
-        <div class="dice-stage-arena" id="diceArena">
-          ${isD6 ? `
-          <div class="dice-cube-scene">
-            <div class="dice-cube" id="diceCube" data-face="1">
-              <div class="dice-face dice-face-1">${renderDiceFacePips(1)}</div>
-              <div class="dice-face dice-face-2">${renderDiceFacePips(2)}</div>
-              <div class="dice-face dice-face-3">${renderDiceFacePips(3)}</div>
-              <div class="dice-face dice-face-4">${renderDiceFacePips(4)}</div>
-              <div class="dice-face dice-face-5">${renderDiceFacePips(5)}</div>
-              <div class="dice-face dice-face-6">${renderDiceFacePips(6)}</div>
+    byId("toolWorkbenchBody").innerHTML = `<div class="tool-form random-tool-form random-dice-workspace" data-workspace-kind="random-dice" data-random-state="idle">
+      <div class="random-stage-grid random-stage-grid-40-60">
+        <div class="random-controls-card">
+          <div class="random-controls-head">
+            <h3>${escapeHtml(sidesLabel)}</h3>
+            <span class="random-mode-pill">${isD6 ? "正六面体点阵" : isCustom ? "精确数值抽取" : "几何多面体"}</span>
+          </div>
+          ${isCustom ? '<div class="tool-options"><label class="tool-wide"><span>骰子面数 (2 - 1,000,000)</span><input data-config="sides" id="randomSides" type="number" min="2" max="1000000" value="6" /></label></div>' : ""}
+          <div class="dice-stage-footer">
+            <output class="random-result" id="randomResult" data-random-state="idle">点击“投掷骰子”开始</output>
+            <div class="tool-command-row">
+              <button class="primary" id="runRandomToolBtn" type="button">投掷骰子</button>
+              <button class="button-secondary" id="copyRandomResultBtn" type="button">复制结果</button>
             </div>
-          </div>` : `
-          <div class="dice-poly-scene">
-            <div class="dice-poly-body" id="dicePoly" data-die-kind="${escapeHtml(tool.id)}">
-              <span class="dice-poly-badge">${escapeHtml(sidesLabel)}</span>
-              <strong class="dice-poly-value" id="dicePolyValue">1</strong>
-            </div>
-          </div>`}
-          <div class="dice-ground-shadow" aria-hidden="true"></div>
+          </div>
         </div>
-        ${isCustom ? '<div class="tool-options"><label><span>骰子面数</span><input data-config="sides" id="randomSides" type="number" min="2" max="1000000" value="6" /></label></div>' : ""}
-        <div class="dice-stage-footer">
-          <output class="random-result" id="randomResult">点击“投掷骰子”开始</output>
-          <div class="tool-command-row">
-            <button class="primary" id="runRandomToolBtn" type="button">投掷骰子</button>
-            <button class="button-secondary" id="copyRandomResultBtn" type="button">复制结果</button>
+        <div class="dice-stage-card">
+          <div class="dice-stage-arena" id="diceArena">
+            ${isD6 ? `
+            <div class="dice-cube-scene">
+              <div class="dice-cube" id="diceCube" data-face="1">
+                <div class="dice-face dice-face-1">${renderDiceFacePips(1)}</div>
+                <div class="dice-face dice-face-2">${renderDiceFacePips(2)}</div>
+                <div class="dice-face dice-face-3">${renderDiceFacePips(3)}</div>
+                <div class="dice-face dice-face-4">${renderDiceFacePips(4)}</div>
+                <div class="dice-face dice-face-5">${renderDiceFacePips(5)}</div>
+                <div class="dice-face dice-face-6">${renderDiceFacePips(6)}</div>
+              </div>
+            </div>` : `
+            <div class="dice-poly-scene">
+              <div class="dice-poly-body" id="dicePoly" data-die-kind="${escapeHtml(tool.id)}">
+                ${renderDicePolyhedronSvg(tool.id, 1, 6)}
+              </div>
+            </div>`}
+            <div class="dice-ground-shadow" aria-hidden="true"></div>
           </div>
         </div>
       </div>
       ${renderConfigControls(tool.id)}
     </div>`;
 
+    const workspaceEl = byId("toolWorkbenchBody")?.querySelector("[data-workspace-kind='random-dice']");
     const rollBtn = byId("runRandomToolBtn");
     const resultEl = byId("randomResult");
     const arenaEl = byId("diceArena");
     const cubeEl = byId("diceCube");
     const polyEl = byId("dicePoly");
-    const polyValEl = byId("dicePolyValue");
+    const sidesInput = byId("randomSides");
+
+    sidesInput?.addEventListener("input", () => {
+      const kindNode = byId("customDiceKind");
+      if (kindNode) {
+        const s = Math.max(2, Math.min(1_000_000, Number(sidesInput.value) || 6));
+        kindNode.textContent = `D${s}`;
+      }
+    });
 
     rollBtn?.addEventListener("click", () => {
       if (rolling) return;
       try {
-        const result = randomToolResult(tool.id, { sides: byId("randomSides")?.value });
+        const maxSides = isCustom ? Math.max(2, Math.min(1_000_000, Number(sidesInput?.value || 6))) : Number(tool.id.slice(6));
+        const result = randomToolResult(tool.id, { sides: sidesInput?.value });
         const faceNum = Number(result);
         rolling = true;
         rollBtn.disabled = true;
+        setRandomState(workspaceEl, "running", resultEl);
         setMessage("骰子滚动中…");
         const reduced = isReducedMotion();
         const durationMs = reduced ? 60 : 1150;
@@ -882,6 +1034,7 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
         void arenaEl?.offsetWidth;
         if (!reduced) arenaEl?.classList.add("is-tossing");
 
+        const targetElement = isD6 ? cubeEl : polyEl;
         if (isD6 && cubeEl) {
           const next = computeDiceTargetTransform(faceNum, rx, ry, 2, 3);
           rx = next.rx;
@@ -890,29 +1043,39 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
           cubeEl.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg)`;
           cubeEl.dataset.face = String(faceNum);
         } else if (polyEl) {
+          rx += 360;
           ry += 720;
+          rz += 360;
           polyEl.style.transition = reduced ? "none" : `transform ${durationMs}ms cubic-bezier(0.2, 0.85, 0.25, 1)`;
-          polyEl.style.transform = `rotateY(${ry}deg) rotateX(360deg)`;
+          polyEl.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg) rotateZ(${rz}deg)`;
+          if (!reduced) {
+            activeRandomInterval = window.setInterval(() => {
+              const polyValEl = byId("dicePolyValue");
+              if (polyValEl) polyValEl.textContent = String(1 + Math.floor(Math.random() * maxSides));
+            }, 95);
+          }
         }
 
-        stopRandomAnimation();
-        activeRandomTimer = window.setTimeout(() => {
-          activeRandomTimer = 0;
+        scheduleAnimatedSettlement(targetElement, durationMs, () => {
           rolling = false;
           rollBtn.disabled = false;
           arenaEl?.classList.remove("is-tossing");
+          const polyValEl = byId("dicePolyValue");
           if (polyValEl) polyValEl.textContent = result;
+          if (polyEl) polyEl.dataset.dieResult = result;
           if (resultEl) {
             resultEl.textContent = result;
             resultEl.classList.remove("is-fresh");
             void resultEl.offsetWidth;
             resultEl.classList.add("is-fresh");
           }
+          setRandomState(workspaceEl, "settled", resultEl);
           setMessage(`投掷结果：${result} 点`);
-        }, durationMs + 30);
+        });
       } catch (error) {
         rolling = false;
         rollBtn.disabled = false;
+        setRandomState(workspaceEl, "idle", resultEl);
         setMessage(error.message, true);
       }
     });
@@ -925,33 +1088,38 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
     let flipping = false;
     const edgeLayers = Array.from({ length: 6 }, (_, i) => `<div class="coin-edge-layer coin-edge-layer-${i + 1}" aria-hidden="true"></div>`).join("");
 
-    byId("toolWorkbenchBody").innerHTML = `<div class="tool-form random-tool-form random-coin-workspace" data-workspace-kind="random-coin" data-coin-currency="CNY">
-      <div class="coin-stage-card">
-        <div class="coin-meta-bar">
-          <span class="coin-currency-tag">人民币 1 元（2019 版第五套人民币）</span>
-          <small>正面：中国人民银行 1 元 · 反面：菊花</small>
-        </div>
-        <div class="coin-stage-arena" id="coinArena">
-          <div class="coin-3d-scene">
-            <div class="coin-3d-body" id="coinBody" data-side="正面">
-              <div class="coin-face coin-face-front">${renderRmbOneYuanCoinSvg("正面")}</div>
-              ${edgeLayers}
-              <div class="coin-face coin-face-back">${renderRmbOneYuanCoinSvg("反面")}</div>
+    byId("toolWorkbenchBody").innerHTML = `<div class="tool-form random-tool-form random-coin-workspace" data-workspace-kind="random-coin" data-coin-currency="CNY" data-random-state="idle">
+      <div class="random-stage-grid random-stage-grid-40-60">
+        <div class="random-controls-card">
+          <div class="coin-meta-bar">
+            <span class="coin-currency-tag">人民币 1 元（2019 版第五套人民币）</span>
+            <small>正面：中国人民银行 1 元 · 反面：菊花</small>
+          </div>
+          <div class="coin-stage-footer">
+            <output class="random-result" id="randomResult" data-random-state="idle">点击“抛硬币”开始</output>
+            <div class="tool-command-row">
+              <button class="primary" id="runRandomToolBtn" type="button">抛硬币</button>
+              <button class="button-secondary" id="copyRandomResultBtn" type="button">复制结果</button>
             </div>
           </div>
-          <div class="coin-ground-shadow" aria-hidden="true"></div>
         </div>
-        <div class="coin-stage-footer">
-          <output class="random-result" id="randomResult">点击“抛硬币”开始</output>
-          <div class="tool-command-row">
-            <button class="primary" id="runRandomToolBtn" type="button">抛硬币</button>
-            <button class="button-secondary" id="copyRandomResultBtn" type="button">复制结果</button>
+        <div class="coin-stage-card">
+          <div class="coin-stage-arena" id="coinArena">
+            <div class="coin-3d-scene">
+              <div class="coin-3d-body" id="coinBody" data-side="正面">
+                <div class="coin-face coin-face-front">${renderRmbOneYuanCoinSvg("正面")}</div>
+                ${edgeLayers}
+                <div class="coin-face coin-face-back">${renderRmbOneYuanCoinSvg("反面")}</div>
+              </div>
+            </div>
+            <div class="coin-ground-shadow" aria-hidden="true"></div>
           </div>
         </div>
       </div>
       ${renderConfigControls(tool.id)}
     </div>`;
 
+    const workspaceEl = byId("toolWorkbenchBody")?.querySelector("[data-workspace-kind='random-coin']");
     const flipBtn = byId("runRandomToolBtn");
     const resultEl = byId("randomResult");
     const arenaEl = byId("coinArena");
@@ -965,6 +1133,7 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
         angleY = target.angleY;
         flipping = true;
         flipBtn.disabled = true;
+        setRandomState(workspaceEl, "running", resultEl);
         setMessage("硬币翻转中…");
         const reduced = isReducedMotion();
         const durationMs = reduced ? 60 : 1350;
@@ -976,9 +1145,7 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
           coinBodyEl.style.transform = `rotateY(${angleY}deg)`;
           coinBodyEl.dataset.side = target.side;
         }
-        stopRandomAnimation();
-        activeRandomTimer = window.setTimeout(() => {
-          activeRandomTimer = 0;
+        scheduleAnimatedSettlement(coinBodyEl, durationMs, () => {
           flipping = false;
           flipBtn.disabled = false;
           arenaEl?.classList.remove("is-flipping");
@@ -988,16 +1155,55 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
             void resultEl.offsetWidth;
             resultEl.classList.add("is-fresh");
           }
+          setRandomState(workspaceEl, "settled", resultEl);
           setMessage(`结果：${target.side}（${target.side === "正面" ? "1 元面" : "菊花面"}）`);
-        }, durationMs + 30);
+        });
       } catch (error) {
         flipping = false;
         flipBtn.disabled = false;
+        setRandomState(workspaceEl, "idle", resultEl);
         setMessage(error.message, true);
       }
     });
     byId("copyRandomResultBtn")?.addEventListener("click", (event) => copyText(resultEl?.textContent || "", event.currentTarget));
     bindConfigControls();
+  }
+
+  function hexLuminance(hex) {
+    const clean = String(hex || "").replace(/^#/, "");
+    if (clean.length !== 6) return 0;
+    const [r, g, b] = [0, 2, 4].map((offset) => {
+      const c = parseInt(clean.slice(offset, offset + 2), 16) / 255;
+      return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  }
+
+  function renderColorSwatches(container, resultText) {
+    if (!container) return;
+    const colors = String(resultText || "").split(/\r?\n/).map((s) => s.trim()).filter((c) => /^#[0-9a-f]{6}$/i.test(c));
+    container.innerHTML = "";
+    if (!colors.length) {
+      const empty = document.createElement("p");
+      empty.className = "color-swatch-empty";
+      empty.textContent = "点击“生成”预览色块并点击复制 HEX";
+      container.appendChild(empty);
+      return;
+    }
+    colors.forEach((hex) => {
+      const card = document.createElement("button");
+      card.type = "button";
+      card.className = "color-swatch-card";
+      card.style.backgroundColor = hex;
+      card.style.color = hexLuminance(hex) > 0.42 ? "#111827" : "#ffffff";
+      card.setAttribute("aria-label", `复制颜色 ${hex.toUpperCase()}`);
+      const label = document.createElement("span");
+      label.className = "color-swatch-code";
+      label.textContent = hex.toUpperCase();
+      card.appendChild(label);
+      card.addEventListener("click", () => copyText(hex.toUpperCase(), card));
+      container.appendChild(card);
+    });
   }
 
   function renderRandomTool(tool) {
@@ -1014,36 +1220,141 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
       return;
     }
     const needsEntries = ["random-draw", "random-groups", "random-decision"].includes(tool.id);
+    const isColorTool = ["random-color", "random-palette"].includes(tool.id);
     const numeric = ["random-integer", "random-decimal"].includes(tool.id);
     const strings = ["random-string", "random-password"].includes(tool.id);
-    byId("toolWorkbenchBody").innerHTML = `<div class="tool-form random-tool-form" data-workspace-kind="compact-generator">
+
+    if (needsEntries) {
+      const isGroups = tool.id === "random-groups";
+      const prefix = isGroups ? "成员" : "选项";
+      const defaultItems = [1, 2, 3, 4].map((n) => ({ name: `${prefix} ${n}`, halfUnits: 50 }));
+      byId("toolWorkbenchBody").innerHTML = `<div class="tool-form random-tool-form" data-workspace-kind="random-multi-option" data-random-state="idle">
+        <div class="random-stage-grid random-stage-grid-40-60">
+          <div class="random-controls-card">
+            <div class="wheel-controls-head">
+              <h3>${isGroups ? "参与分组的成员" : "候选选项"}</h3>
+              <span class="wheel-weight-summary" id="multiOptionSummary"></span>
+            </div>
+            ${isGroups ? '<div class="tool-options"><label class="tool-wide"><span>组数</span><input data-config="groups" id="randomGroups" type="number" min="1" value="2" /></label></div>' : ""}
+            <div class="weight-slider-list" id="multiOptionList" role="list"></div>
+            <div class="wheel-controls-actions">
+              <button class="button-secondary" id="addMultiOptionBtn" type="button">+ 添加${prefix}</button>
+            </div>
+            <textarea class="hidden" data-config="entries" id="randomEntries"></textarea>
+          </div>
+          <div class="tool-random-stage">
+            <div class="tool-random-stage-head"><span>抽取结果</span><div class="tool-command-row"><button class="primary" id="runRandomToolBtn" type="button">${isGroups ? "开始分组" : "开始抽取"}</button><button class="button-secondary" id="copyRandomResultBtn" type="button">复制结果</button></div></div>
+            <output class="random-result" id="randomResult" data-random-state="idle">点击按钮获取结果</output>
+          </div>
+        </div>
+        ${renderConfigControls(tool.id)}
+      </div>`;
+
+      const workspaceEl = byId("toolWorkbenchBody")?.querySelector("[data-workspace-kind='random-multi-option']");
+      const summaryEl = byId("multiOptionSummary");
+      const outEl = byId("randomResult");
+      mountMultiOptionList({
+        listEl: byId("multiOptionList"),
+        addBtn: byId("addMultiOptionBtn"),
+        hiddenEntriesEl: byId("randomEntries"),
+        itemPlaceholder: `${prefix}名称`,
+        addLabelPrefix: prefix,
+        defaultItems,
+        onRowsChange: (rows) => {
+          const valid = rows.filter((r) => String(r.name || "").trim()).length;
+          if (summaryEl) summaryEl.textContent = `${valid} 个有效${prefix}`;
+        },
+      });
+      byId("runRandomToolBtn").addEventListener("click", () => {
+        try {
+          const result = randomToolResult(tool.id, {
+            groups: byId("randomGroups")?.value,
+            entries: byId("randomEntries")?.value,
+          });
+          outEl.textContent = result;
+          outEl.classList.remove("is-fresh");
+          void outEl.offsetWidth;
+          outEl.classList.add("is-fresh");
+          setRandomState(workspaceEl, "settled", outEl);
+          setMessage("生成完成");
+        } catch (error) {
+          setRandomState(workspaceEl, "idle", outEl);
+          setMessage(error.message, true);
+        }
+      });
+      byId("copyRandomResultBtn").addEventListener("click", (event) => copyText(outEl?.textContent || "", event.currentTarget));
+      bindConfigControls();
+      return;
+    }
+
+    if (isColorTool) {
+      byId("toolWorkbenchBody").innerHTML = `<div class="tool-form random-tool-form" data-workspace-kind="random-color" data-random-state="idle">
+        <div class="random-stage-grid random-stage-grid-40-60">
+          <div class="random-controls-card">
+            <div class="random-controls-head">
+              <h3>${tool.id === "random-palette" ? "调色板参数" : "颜色生成参数"}</h3>
+              <span class="random-mode-pill">HEX 实时预览</span>
+            </div>
+            ${tool.id === "random-palette" ? '<div class="tool-options"><label class="tool-wide"><span>色板数量 (2 - 20)</span><input data-config="count" id="randomCount" type="number" min="2" max="20" value="5" /></label></div>' : ""}
+            <div class="tool-command-row"><button class="primary" id="runRandomToolBtn" type="button">生成</button><button class="button-secondary" id="copyRandomResultBtn" type="button">复制结果</button></div>
+            <output class="random-result" id="randomResult" data-random-state="idle">点击“生成”获取色值</output>
+          </div>
+          <div class="color-stage-card">
+            <div class="color-swatch-grid" id="colorPreviewGrid" aria-live="polite"></div>
+          </div>
+        </div>
+        ${renderConfigControls(tool.id)}
+      </div>`;
+
+      const workspaceEl = byId("toolWorkbenchBody")?.querySelector("[data-workspace-kind='random-color']");
+      const outEl = byId("randomResult");
+      const previewEl = byId("colorPreviewGrid");
+      const generateColors = () => {
+        const result = randomToolResult(tool.id, { count: byId("randomCount")?.value });
+        outEl.textContent = result;
+        renderColorSwatches(previewEl, result);
+        setRandomState(workspaceEl, "settled", outEl);
+      };
+      generateColors();
+      byId("runRandomToolBtn").addEventListener("click", () => {
+        try {
+          generateColors();
+          outEl.classList.remove("is-fresh");
+          void outEl.offsetWidth;
+          outEl.classList.add("is-fresh");
+          setMessage("生成完成");
+        } catch (error) { setMessage(error.message, true); }
+      });
+      byId("copyRandomResultBtn").addEventListener("click", (event) => copyText(outEl?.textContent || "", event.currentTarget));
+      bindConfigControls();
+      return;
+    }
+
+    byId("toolWorkbenchBody").innerHTML = `<div class="tool-form random-tool-form" data-workspace-kind="compact-generator" data-random-state="idle">
       <div class="tool-random-stage">
         <div class="tool-random-stage-head"><span>生成结果</span><div class="tool-command-row"><button class="primary" id="runRandomToolBtn" type="button">生成</button><button class="button-secondary" id="copyRandomResultBtn" type="button">复制结果</button></div></div>
-        <output class="random-result" id="randomResult">点击“生成”获取结果</output>
+        <output class="random-result" id="randomResult" data-random-state="idle">点击“生成”获取结果</output>
       </div>
       <div class="tool-options">
         ${numeric ? '<label><span>最小值</span><input data-config="minimum" id="randomMinimum" type="number" value="0" /></label><label><span>最大值</span><input data-config="maximum" id="randomMaximum" type="number" value="100" /></label>' : ""}
         ${tool.id === "random-decimal" ? '<label><span>小数位</span><input data-config="precision" id="randomPrecision" type="number" min="0" max="12" value="2" /></label>' : ""}
-        ${numeric || tool.id === "random-uuid" || tool.id === "random-palette" ? '<label><span>数量</span><input data-config="count" id="randomCount" type="number" min="1" max="1000" value="1" /></label>' : ""}
+        ${numeric || tool.id === "random-uuid" ? '<label><span>数量</span><input data-config="count" id="randomCount" type="number" min="1" max="1000" value="1" /></label>' : ""}
         ${strings ? `<label><span>长度</span><input data-config="length" id="randomLength" type="number" min="1" max="4096" value="${tool.id === "random-password" ? 20 : 16}" /></label>` : ""}
         ${tool.id === "random-string" ? '<label class="tool-wide"><span>字符集</span><input data-config="alphabet" id="randomAlphabet" value="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789" /></label>' : ""}
         ${tool.id === "random-password" ? '<label class="admin-checkbox"><input data-config="passwordUpper" id="passwordUpper" type="checkbox" checked /> 大写字母</label><label class="admin-checkbox"><input data-config="passwordLower" id="passwordLower" type="checkbox" checked /> 小写字母</label><label class="admin-checkbox"><input data-config="passwordDigits" id="passwordDigits" type="checkbox" checked /> 数字</label><label class="admin-checkbox"><input data-config="passwordSymbols" id="passwordSymbols" type="checkbox" checked /> 符号</label>' : ""}
-        ${tool.id === "random-groups" ? '<label><span>组数</span><input data-config="groups" id="randomGroups" type="number" min="1" value="2" /></label>' : ""}
         ${tool.id === "random-date" ? '<label><span>开始日期</span><input data-config="startDate" id="randomStartDate" type="date" value="2000-01-01" /></label><label><span>结束日期</span><input data-config="endDate" id="randomEndDate" type="date" /></label>' : ""}
       </div>
-      ${needsEntries ? `<label class="tool-wide"><span>选项（每行一个）</span><textarea data-config="entries" id="randomEntries" placeholder="每行输入一个选项…"></textarea></label>` : ""}
       ${renderConfigControls(tool.id)}
     </div>`;
     if (byId("randomEndDate")) byId("randomEndDate").value = new Date().toISOString().slice(0, 10);
+    const workspaceEl = byId("toolWorkbenchBody")?.querySelector("[data-workspace-kind='compact-generator']");
     byId("runRandomToolBtn").addEventListener("click", () => {
       try {
         const values = {
           minimum: byId("randomMinimum")?.value, maximum: byId("randomMaximum")?.value,
           precision: byId("randomPrecision")?.value, count: byId("randomCount")?.value,
           length: byId("randomLength")?.value, alphabet: byId("randomAlphabet")?.value,
-          groups: byId("randomGroups")?.value,
           startDate: byId("randomStartDate")?.value, endDate: byId("randomEndDate")?.value,
-          entries: byId("randomEntries")?.value,
           passwordUpper: byId("passwordUpper")?.checked, passwordLower: byId("passwordLower")?.checked,
           passwordDigits: byId("passwordDigits")?.checked, passwordSymbols: byId("passwordSymbols")?.checked,
         };
@@ -1053,8 +1364,12 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
         outEl.classList.remove("is-fresh");
         void outEl.offsetWidth;
         outEl.classList.add("is-fresh");
+        setRandomState(workspaceEl, "settled", outEl);
         setMessage(tool.id === "random-password" ? "密码只在本机生成，未上传服务器" : "生成完成");
-      } catch (error) { setMessage(error.message, true); }
+      } catch (error) {
+        setRandomState(workspaceEl, "idle", byId("randomResult"));
+        setMessage(error.message, true);
+      }
     });
     byId("copyRandomResultBtn").addEventListener("click", (event) => copyText(byId("randomResult").textContent, event.currentTarget));
     bindConfigControls();
@@ -1542,17 +1857,29 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
     </div>`;
     currentDownload = null;
     bindAerisDropzone({ dropzoneId: "fileToolDropzone", inputId: "fileToolInput", manifestId: "fileToolManifest", emptyLabel: "文件", maxPreview: 8 });
+    byId("fileToolInput")?.addEventListener("change", () => {
+      byId("fileToolResult")?.classList.remove("is-error");
+    });
     byId("runFileToolBtn").addEventListener("click", async () => {
-      const button = byId("runFileToolBtn"); button.disabled = true; setMessage("正在处理…");
+      const button = byId("runFileToolBtn");
+      const outEl = byId("fileToolResult");
+      button.disabled = true;
+      outEl?.classList.remove("is-error");
+      setMessage("正在处理…");
       try {
         const files = await readLocalFiles(byId("fileToolInput"));
         const result = await processFileTool(tool, files, byId("fileToolParameter").value, byId("fileToolEncoding").value);
-        byId("fileToolResult").textContent = result.text || "处理完成";
+        if (outEl) outEl.textContent = result.text || "处理完成";
         currentDownload = result.blob ? { blob: result.blob, name: result.name } : null;
         byId("downloadFileToolBtn").disabled = !currentDownload;
         setMessage("本地处理完成");
-      } catch (error) { setMessage(error.message, true); }
-      finally { button.disabled = false; }
+      } catch (error) {
+        if (outEl) {
+          outEl.textContent = error.message;
+          outEl.classList.add("is-error");
+        }
+        setMessage(error.message, true);
+      } finally { button.disabled = false; }
     });
     byId("downloadFileToolBtn").addEventListener("click", () => currentDownload && downloadBlob(currentDownload.name, currentDownload.blob));
     byId("copyFileToolBtn").addEventListener("click", (event) => copyText(byId("fileToolResult").textContent, event.currentTarget));
@@ -1914,14 +2241,23 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
   }
 
   function renderTemporaryText(tool) {
-    byId("toolWorkbenchBody").innerHTML = `<div class="tool-form temporary-tool-form">
-      <label class="tool-wide"><span>临时文本</span><textarea id="tempContent" maxlength="102400"></textarea></label>
-      ${temporaryCommonFields(60)}
-      <label><span>最大访问次数</span><input id="tempMaxViews" data-config="maxViews" type="number" min="1" max="1000" value="10" /></label>
-      <div class="tool-command-row"><button class="primary" id="createTempBtn" type="button">生成分享链接</button></div>
-      <div class="temporary-result" id="temporaryResult"></div>${renderConfigControls(tool.id)}
+    byId("toolWorkbenchBody").innerHTML = `<div class="tool-form temporary-tool-form" data-workspace-kind="temporary-text">
+      <div class="temporary-split-grid">
+        <div class="temporary-card temporary-input-card">
+          <div class="tool-pane-head"><span>写入与到期配置</span><small>最多 100 KB</small></div>
+          <label class="tool-wide"><span>临时文本</span><textarea id="tempContent" maxlength="102400"></textarea></label>
+          ${temporaryCommonFields(60)}
+          <label><span>最大访问次数</span><input id="tempMaxViews" data-config="maxViews" type="number" min="1" max="1000" value="10" /></label>
+          <div class="tool-command-row"><button class="primary" id="createTempBtn" type="button">生成分享链接</button></div>
+        </div>
+        <div class="temporary-card temporary-output-card">
+          <div class="tool-pane-head"><span>分享结果与二维码</span><small>自动销毁</small></div>
+          <div class="temporary-result" id="temporaryResult"><span class="temporary-result-empty">填写左侧内容后生成分享链接</span></div>
+        </div>
+      </div>
+      ${renderConfigControls(tool.id)}
     </div>`;
-    byId("createTempBtn").addEventListener("click", async () => {
+    byId("createTempBtn").addEventListener("click", (event) => withButtonPending(event.currentTarget, "生成中…", async () => {
       try {
         const data = await bridge.api("/api/temporary/text", {
           content: byId("tempContent").value, password: byId("tempPassword").value,
@@ -1930,7 +2266,7 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
         });
         const url = shareUrl("text", data.share.id); renderTemporaryResult(byId("temporaryResult"), "分享链接", url, url); setMessage(`有效至 ${bridge.formatDate(data.share.expires_at)}`);
       } catch (error) { setMessage(error.message, true); }
-    });
+    }));
     bindConfigControls();
   }
 
@@ -1943,24 +2279,36 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
   }
 
   function renderTemporaryClipboard(tool) {
-    byId("toolWorkbenchBody").innerHTML = `<div class="tool-form temporary-tool-form">
-      <label class="tool-wide"><span>要发送的文本</span><textarea id="tempContent" maxlength="102400"></textarea></label>
-      <div class="tool-options"><label><span>有效分钟</span><input id="tempMinutes" data-config="minutes" type="number" min="1" max="10080" value="10" /></label><label class="admin-checkbox"><input id="tempDestroy" data-config="destroy" type="checkbox" checked /> 首次读取后销毁</label></div>
-      <div class="tool-command-row"><button class="primary" id="createTempBtn" type="button">生成六位连接码</button></div>
-      <div class="temporary-result" id="temporaryResult"></div>
-      <hr /><div class="tool-options"><label><span>读取连接码</span><input id="clipboardReadCode" inputmode="numeric" maxlength="6" /></label><button id="readClipboardBtn" type="button">读取</button></div><pre class="share-output" id="clipboardReadOutput"></pre>
+    byId("toolWorkbenchBody").innerHTML = `<div class="tool-form temporary-tool-form" data-workspace-kind="temporary-clipboard">
+      <div class="temporary-split-grid">
+        <section class="temporary-card temporary-send-card" aria-label="发送文本">
+          <div class="tool-pane-head"><span>发送端 · 生成连接码</span><small>6 位数字口令</small></div>
+          <label class="tool-wide"><span>要发送的文本</span><textarea id="tempContent" maxlength="102400"></textarea></label>
+          <div class="tool-options"><label><span>有效分钟</span><input id="tempMinutes" data-config="minutes" type="number" min="1" max="10080" value="10" /></label><label class="admin-checkbox"><input id="tempDestroy" data-config="destroy" type="checkbox" checked /> 首次读取后销毁</label></div>
+          <div class="tool-command-row"><button class="primary" id="createTempBtn" type="button">生成六位连接码</button></div>
+          <div class="temporary-result" id="temporaryResult"><span class="temporary-result-empty">生成后的六位连接码与二维码将显示在此处</span></div>
+        </section>
+        <section class="temporary-card temporary-read-card" aria-label="读取剪贴板">
+          <div class="tool-pane-head"><span>接收端 · 读取文本</span><small>跨设备同步</small></div>
+          <div class="temporary-inline-action">
+            <label><span>读取连接码</span><input id="clipboardReadCode" inputmode="numeric" maxlength="6" placeholder="输入 6 位数字码" /></label>
+            <button class="primary" id="readClipboardBtn" type="button">读取</button>
+          </div>
+          <pre class="share-output" id="clipboardReadOutput">等待输入连接码后读取内容</pre>
+        </section>
+      </div>
       ${renderConfigControls(tool.id)}
     </div>`;
-    byId("createTempBtn").addEventListener("click", async () => {
+    byId("createTempBtn").addEventListener("click", (event) => withButtonPending(event.currentTarget, "生成中…", async () => {
       try {
         const data = await bridge.api("/api/temporary/clipboard", { content: byId("tempContent").value, minutes: byId("tempMinutes").value, destroy_after_read: byId("tempDestroy").checked });
         const url = shareUrl("clipboard", data.clipboard.code); renderTemporaryResult(byId("temporaryResult"), "六位连接码", data.clipboard.code, url); setMessage(`有效至 ${bridge.formatDate(data.clipboard.expires_at)}`);
       } catch (error) { setMessage(error.message, true); }
-    });
-    byId("readClipboardBtn").addEventListener("click", async () => {
+    }));
+    byId("readClipboardBtn").addEventListener("click", (event) => withButtonPending(event.currentTarget, "读取中…", async () => {
       try { const data = await bridge.publicApi("/api/share/clipboard/read", { code: byId("clipboardReadCode").value }); byId("clipboardReadOutput").textContent = data.clipboard.content; setMessage(data.clipboard.destroyed ? "已读取并销毁" : "读取成功"); }
       catch (error) { setMessage(error.message, true); }
-    });
+    }));
     bindConfigControls();
   }
 
@@ -2177,12 +2525,25 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
   }
 
   function renderTemporaryRoom(tool) {
-    byId("toolWorkbenchBody").innerHTML = `<div class="tool-form temporary-tool-form">
-      ${temporaryCommonFields(60)}<label><span>\u6700\u5927\u6d88\u606f\u6570</span><input id="roomMaxMessages" data-config="maxMessages" type="number" min="1" max="200" value="50" /></label>
-      <div class="tool-command-row"><button class="primary" id="createTempBtn" type="button">\u521b\u5efa\u79c1\u5bc6\u623f\u95f4</button></div><div class="temporary-result" id="temporaryResult"></div>
-      <hr /><div class="tool-options"><label><span>\u623f\u95f4 ID</span><input id="roomId" autocomplete="off" /></label><label><span>\u623f\u95f4\u5bc6\u7801</span><input id="roomPassword" type="password" autocomplete="off" /></label><button id="openRoomBtn" type="button">\u6253\u5f00\u5e76\u81ea\u52a8\u540c\u6b65</button></div>
-      <p class="room-sync-status" id="roomSyncStatus" aria-live="polite">\u5c1a\u672a\u6253\u5f00\u623f\u95f4</p>
-      <div class="room-messages" id="roomMessages"></div><div class="tool-options"><label><span>\u663e\u793a\u540d\u79f0</span><input id="roomAuthor" maxlength="30" value="\u8bbf\u5ba2" /></label><label class="tool-wide"><span>\u7559\u8a00</span><textarea id="roomMessage" maxlength="4000"></textarea></label><button id="postRoomBtn" type="button">\u53d1\u9001\u7559\u8a00</button><button id="clearRoomBtn" type="button">\u6e05\u7a7a\u6211\u7684\u623f\u95f4</button></div>
+    byId("toolWorkbenchBody").innerHTML = `<div class="tool-form temporary-tool-form" data-workspace-kind="temporary-room">
+      <div class="temporary-split-grid">
+        <div class="temporary-card temporary-room-setup">
+          <div class="tool-pane-head"><span>创建或进入私密房间</span><small>自动轮询同步</small></div>
+          ${temporaryCommonFields(60)}<label><span>\u6700\u5927\u6d88\u606f\u6570</span><input id="roomMaxMessages" data-config="maxMessages" type="number" min="1" max="200" value="50" /></label>
+          <div class="tool-command-row"><button class="primary" id="createTempBtn" type="button">\u521b\u5efa\u79c1\u5bc6\u623f\u95f4</button></div>
+          <div class="temporary-result" id="temporaryResult"><span class="temporary-result-empty">创建后可复制房间链接或直接自动进入</span></div>
+          <hr class="temporary-divider" />
+          <div class="tool-options"><label><span>\u623f\u95f4 ID</span><input id="roomId" autocomplete="off" /></label><label><span>\u623f\u95f4\u5bc6\u7801</span><input id="roomPassword" type="password" autocomplete="off" /></label></div>
+          <div class="tool-command-row"><button class="button-secondary" id="openRoomBtn" type="button">\u6253\u5f00\u5e76\u81ea\u52a8\u540c\u6b65</button></div>
+        </div>
+        <div class="temporary-card temporary-room-chat">
+          <div class="tool-pane-head"><span>房间留言流</span><small>实时更新</small></div>
+          <p class="room-sync-status" id="roomSyncStatus" aria-live="polite">\u5c1a\u672a\u6253\u5f00\u623f\u95f4</p>
+          <div class="room-messages" id="roomMessages"></div>
+          <div class="tool-options"><label><span>\u663e\u793a\u540d\u79f0</span><input id="roomAuthor" maxlength="30" value="\u8bbf\u5ba2" /></label><label class="tool-wide"><span>\u7559\u8a00</span><textarea id="roomMessage" maxlength="4000"></textarea></label></div>
+          <div class="tool-command-row"><button class="primary" id="postRoomBtn" type="button">\u53d1\u9001\u7559\u8a00</button><button class="button-secondary" id="clearRoomBtn" type="button">\u6e05\u7a7a\u6211\u7684\u623f\u95f4</button></div>
+        </div>
+      </div>
       ${renderConfigControls(tool.id)}
     </div>`;
     const status = (message, error = false) => {
@@ -2207,7 +2568,7 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
       setMessage("\u623f\u95f4\u5df2\u6253\u5f00\uff0c\u7559\u8a00\u4f1a\u81ea\u52a8\u540c\u6b65");
       return data;
     };
-    byId("createTempBtn").addEventListener("click", async () => {
+    byId("createTempBtn").addEventListener("click", (event) => withButtonPending(event.currentTarget, "创建中…", async () => {
       try {
         const data = await bridge.api("/api/temporary/room", { password: byId("tempPassword").value, minutes: byId("tempMinutes").value, max_messages: byId("roomMaxMessages").value });
         byId("roomId").value = data.room.id;
@@ -2217,8 +2578,8 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
         await openRoom();
         setMessage(`\u623f\u95f4\u5df2\u521b\u5efa\uff0c\u6709\u6548\u81f3 ${bridge.formatDate(data.room.expires_at)}`);
       } catch (error) { status(error.message, true); setMessage(error.message, true); }
-    });
-    byId("openRoomBtn").addEventListener("click", () => openRoom().catch((error) => { status(error.message, true); setMessage(error.message, true); }));
+    }));
+    byId("openRoomBtn").addEventListener("click", (event) => withButtonPending(event.currentTarget, "连接中…", () => openRoom().catch((error) => { status(error.message, true); setMessage(error.message, true); })));
     byId("postRoomBtn").addEventListener("click", async (event) => {
       const button = event.currentTarget;
       const messageField = byId("roomMessage");
@@ -2236,7 +2597,7 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
       } catch (error) { status(error.message, true); setMessage(`\u53d1\u9001\u5931\u8d25\uff1a${error.message}\uff0c\u8349\u7a3f\u5df2\u4fdd\u7559`, true); }
       finally { button.disabled = false; }
     });
-    byId("clearRoomBtn").addEventListener("click", async () => {
+    byId("clearRoomBtn").addEventListener("click", (event) => withButtonPending(event.currentTarget, "清空中…", async () => {
       try {
         const id = roomCredentials().id;
         if (!id) throw new Error("\u8bf7\u5148\u6253\u5f00\u623f\u95f4");
@@ -2245,7 +2606,7 @@ import { createParkedRows } from "./js/core/parked-rows.js?release=20261121-aeri
         renderRoomMessages(data.room);
         setMessage("\u623f\u95f4\u5df2\u6e05\u7a7a");
       } catch (error) { setMessage(error.message, true); }
-    });
+    }));
     bindConfigControls();
   }
 

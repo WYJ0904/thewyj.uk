@@ -143,11 +143,13 @@ export function parseWeightedEntries(rawText, { defaultHalfUnits = 50 } = {}) {
   if (!lines.length) {
     return {
       items: [
-        { name: "选项 A", halfUnits: 100 },
-        { name: "选项 B", halfUnits: 60 },
-        { name: "选项 C", halfUnits: 40 },
+        { name: "方案 A", halfUnits: 80 },
+        { name: "方案 B", halfUnits: 60 },
+        { name: "方案 C", halfUnits: 40 },
+        { name: "方案 D", halfUnits: 20 },
       ],
       convertedFromLegacy: false,
+      precisionPreserved: false,
     };
   }
   const parsed = lines.map((line) => {
@@ -159,46 +161,83 @@ export function parseWeightedEntries(rawText, { defaultHalfUnits = 50 } = {}) {
   }).filter((item) => item.name);
 
   if (!parsed.length) {
-    return { items: [], convertedFromLegacy: false };
+    return { items: [], convertedFromLegacy: false, precisionPreserved: false };
   }
 
   const maxRaw = parsed.reduce((max, item) => (Number.isFinite(item.rawNum) && item.rawNum > max ? item.rawNum : max), 0);
   const convertedFromLegacy = maxRaw > 100;
-  const items = parsed.map((item) => {
+  let precisionPreserved = false;
+  const preliminary = parsed.map((item) => {
     if (!item.hasWeight || !Number.isFinite(item.rawNum)) {
-      return { name: item.name, halfUnits: defaultHalfUnits };
+      return { name: item.name, halfUnits: defaultHalfUnits, exact: true, rawPositive: halfUnitsToPercent(defaultHalfUnits) };
     }
     const clampedNonNeg = Math.max(0, item.rawNum);
     const pct = convertedFromLegacy && maxRaw > 0 ? (clampedNonNeg / maxRaw) * 100 : clampedNonNeg;
-    return { name: item.name, halfUnits: percentToHalfUnits(pct) };
+    const halfUnits = percentToHalfUnits(pct);
+    const isExactHalfStep = Math.abs(halfUnits / 2 - pct) < 1e-9;
+    if (!isExactHalfStep) precisionPreserved = true;
+    return {
+      name: item.name,
+      halfUnits,
+      exact: !convertedFromLegacy && isExactHalfStep,
+      rawPositive: clampedNonNeg,
+    };
   });
-  return { items, convertedFromLegacy };
+
+  const needsExactWeights = precisionPreserved;
+  const items = preliminary.map((entry) => (
+    needsExactWeights
+      ? { name: entry.name, halfUnits: entry.halfUnits, exactWeight: entry.rawPositive }
+      : { name: entry.name, halfUnits: entry.halfUnits }
+  ));
+  return { items, convertedFromLegacy, precisionPreserved };
+}
+
+function effectiveItemWeight(item, useExactWeights) {
+  if (useExactWeights && typeof item?.exactWeight === "number" && Number.isFinite(item.exactWeight) && item.exactWeight >= 0) {
+    return item.exactWeight;
+  }
+  return Math.max(0, Math.min(HALF_PERCENT_MAX, Math.round(Number(item?.halfUnits) || 0))) / 2;
 }
 
 export function serializeWeightedEntries(items) {
-  return (Array.isArray(items) ? items : [])
+  const list = Array.isArray(items) ? items : [];
+  const hasAnyExact = list.some((item) => typeof item?.exactWeight === "number" && Number.isFinite(item.exactWeight));
+  return list
     .map((item) => ({
       name: String(item?.name || "").trim(),
       halfUnits: Math.max(0, Math.min(HALF_PERCENT_MAX, Math.round(Number(item?.halfUnits) || 0))),
+      exactWeight: typeof item?.exactWeight === "number" && Number.isFinite(item.exactWeight) ? Math.max(0, item.exactWeight) : null,
     }))
     .filter((item) => item.name)
-    .map((item) => `${item.name}|${halfUnitsToPercent(item.halfUnits)}`)
+    .map((item) => `${item.name}|${hasAnyExact && item.exactWeight !== null ? item.exactWeight : halfUnitsToPercent(item.halfUnits)}`)
     .join("\n");
 }
 
 export function computeWeightedSectors(items) {
-  const normalizedItems = (Array.isArray(items) ? items : []).map((item, idx) => ({
-    index: idx,
-    name: String(item?.name || "").trim() || `选项 ${idx + 1}`,
-    halfUnits: Math.max(0, Math.min(HALF_PERCENT_MAX, Math.round(Number(item?.halfUnits) || 0))),
-  }));
+  const sourceList = Array.isArray(items) ? items : [];
+  const hasAnyExact = sourceList.some((item) => typeof item?.exactWeight === "number" && Number.isFinite(item.exactWeight));
+  const normalizedItems = sourceList.map((item, idx) => {
+    const halfUnits = Math.max(0, Math.min(HALF_PERCENT_MAX, Math.round(Number(item?.halfUnits) || 0)));
+    const exactWeight = hasAnyExact ? effectiveItemWeight(item, true) : undefined;
+    return {
+      index: idx,
+      name: String(item?.name || "").trim() || `选项 ${idx + 1}`,
+      halfUnits,
+      ...(hasAnyExact ? { exactWeight } : {}),
+    };
+  });
   const totalHalfUnits = normalizedItems.reduce((sum, item) => sum + item.halfUnits, 0);
+  const totalDrawWeight = hasAnyExact
+    ? normalizedItems.reduce((sum, item) => sum + (item.exactWeight || 0), 0)
+    : totalHalfUnits;
   let cursorDeg = 0;
   const activeSectors = [];
   const allRows = normalizedItems.map((item, idx) => {
-    const probability = totalHalfUnits > 0 ? item.halfUnits / totalHalfUnits : 0;
+    const itemWeight = hasAnyExact ? (item.exactWeight || 0) : item.halfUnits;
+    const probability = totalDrawWeight > 0 ? itemWeight / totalDrawWeight : 0;
     const sweepDeg = probability * 360;
-    const excluded = item.halfUnits <= 0;
+    const excluded = itemWeight <= 0;
     const startDeg = cursorDeg;
     const endDeg = excluded ? cursorDeg : cursorDeg + sweepDeg;
     const midDeg = excluded ? cursorDeg : startDeg + sweepDeg / 2;
@@ -222,6 +261,8 @@ export function computeWeightedSectors(items) {
   return {
     totalHalfUnits,
     totalWeightPercent: totalHalfUnits / 2,
+    totalDrawWeight,
+    precisionPreserved: hasAnyExact,
     rows: allRows,
     activeSectors,
   };
@@ -229,14 +270,14 @@ export function computeWeightedSectors(items) {
 
 export function drawWeightedSector(items, rng = randomUnit) {
   const model = computeWeightedSectors(items);
-  if (!model.totalHalfUnits || !model.activeSectors.length) {
+  if (!model.totalDrawWeight || !model.activeSectors.length) {
     throw new Error("所有选项权重均为 0%，请至少将一个选项调至大于 0%");
   }
-  const drawValue = Math.max(0, Math.min(0.999999999999, Number(rng()))) * model.totalHalfUnits;
+  const drawValue = Math.max(0, Math.min(0.999999999999, Number(rng()))) * model.totalDrawWeight;
   let acc = 0;
   let chosen = model.activeSectors[model.activeSectors.length - 1];
   for (const sector of model.activeSectors) {
-    acc += sector.halfUnits;
+    acc += model.precisionPreserved ? (sector.exactWeight || 0) : sector.halfUnits;
     if (drawValue < acc) {
       chosen = sector;
       break;
@@ -279,10 +320,16 @@ function escapeSvgText(value) {
   }[ch]));
 }
 
+export function renderWheelPointerSvg() {
+  return `<svg class="wheel-pointer-overlay" viewBox="0 0 320 320" aria-hidden="true">
+    <path d="M160 28 148 6a2.5 2.5 0 0 1 2.2-3.7h19.6A2.5 2.5 0 0 1 172 6Z" fill="currentColor" stroke="#ffffff" stroke-width="1.6" stroke-linejoin="round" />
+  </svg>`;
+}
+
 export function renderWheelSvg(activeSectors, winnerIndex = -1) {
   const cx = 160;
   const cy = 160;
-  const r = 148;
+  const r = 138;
   if (!activeSectors.length) {
     return `<svg class="wheel-svg" viewBox="0 0 320 320" role="img" aria-label="空转盘">
       <circle cx="${cx}" cy="${cy}" r="${r}" class="wheel-empty-ring" />
@@ -327,6 +374,133 @@ export function renderWheelSvg(activeSectors, winnerIndex = -1) {
     <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="rgba(15,23,42,0.16)" stroke-width="2" />
     <circle cx="${cx}" cy="${cy}" r="22" class="wheel-hub-outer" />
     <circle cx="${cx}" cy="${cy}" r="10" class="wheel-hub-inner" />
+  </svg>`;
+}
+
+/**
+ * Faceted 3D polyhedral visuals matched to each RPG die topology (D4/D8/D10/D12/D20)
+ * plus a clean precision medallion for arbitrary custom-dice side counts.
+ */
+export function renderDicePolyhedronSvg(toolId, value = 1, customSides = 6) {
+  const safeVal = escapeSvgText(value);
+  const commonDefs = `<defs>
+    <linearGradient id="polyFaceTop-${toolId}" x1="15%" y1="10%" x2="85%" y2="90%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#e3e9f2" />
+    </linearGradient>
+    <linearGradient id="polyFaceLeft-${toolId}" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#dfe6f0" />
+      <stop offset="100%" stop-color="#bfc9d8" />
+    </linearGradient>
+    <linearGradient id="polyFaceRight-${toolId}" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#cdd6e4" />
+      <stop offset="100%" stop-color="#9fb0c6" />
+    </linearGradient>
+    <linearGradient id="polyFaceCenter-${toolId}" x1="25%" y1="15%" x2="75%" y2="85%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="55%" stop-color="#f4f7fb" />
+      <stop offset="100%" stop-color="#dce4ef" />
+    </linearGradient>
+  </defs>`;
+
+  if (toolId === "dice-d4") {
+    return `<svg class="dice-poly-svg" viewBox="0 0 200 200" data-poly-shape="tetrahedron" role="img" aria-label="正四面体骰子">
+      ${commonDefs}
+      <polygon points="100,18 182,158 18,158" fill="url(#polyFaceCenter-${toolId})" stroke="#5e6b7c" stroke-width="2.2" stroke-linejoin="round" />
+      <polygon points="100,18 18,158 100,118" fill="url(#polyFaceLeft-${toolId})" opacity="0.82" />
+      <polygon points="100,18 182,158 100,118" fill="url(#polyFaceRight-${toolId})" opacity="0.72" />
+      <polygon points="18,158 182,158 100,118" fill="#aebacb" opacity="0.58" />
+      <line x1="100" y1="18" x2="100" y2="118" stroke="#64748b" stroke-width="1.5" />
+      <line x1="18" y1="158" x2="100" y2="118" stroke="#64748b" stroke-width="1.5" />
+      <line x1="182" y1="158" x2="100" y2="118" stroke="#64748b" stroke-width="1.5" />
+      <polygon points="100,44 148,136 52,136" fill="url(#polyFaceCenter-${toolId})" stroke="#7c8b9e" stroke-width="1.4" stroke-linejoin="round" />
+      <text x="100" y="72" text-anchor="middle" class="dice-poly-svg-kind">D4</text>
+      <text x="100" y="114" text-anchor="middle" dominant-baseline="central" class="dice-poly-svg-value" id="dicePolyValue">${safeVal}</text>
+    </svg>`;
+  }
+
+  if (toolId === "dice-d8") {
+    return `<svg class="dice-poly-svg" viewBox="0 0 200 200" data-poly-shape="octahedron" role="img" aria-label="正八面体骰子">
+      ${commonDefs}
+      <polygon points="100,14 176,58 176,142 100,186 24,142 24,58" fill="url(#polyFaceLeft-${toolId})" stroke="#5e6b7c" stroke-width="2.2" stroke-linejoin="round" />
+      <polygon points="100,14 176,58 148,100" fill="url(#polyFaceTop-${toolId})" stroke="#748396" stroke-width="1.3" />
+      <polygon points="100,14 24,58 52,100" fill="url(#polyFaceTop-${toolId})" stroke="#748396" stroke-width="1.3" />
+      <polygon points="176,58 176,142 148,100" fill="url(#polyFaceRight-${toolId})" stroke="#748396" stroke-width="1.3" />
+      <polygon points="24,58 24,142 52,100" fill="url(#polyFaceLeft-${toolId})" stroke="#748396" stroke-width="1.3" />
+      <polygon points="100,186 176,142 148,100" fill="#9fb0c6" stroke="#748396" stroke-width="1.3" />
+      <polygon points="100,186 24,142 52,100" fill="#b4c2d5" stroke="#748396" stroke-width="1.3" />
+      <polygon points="100,14 148,100 100,186 52,100" fill="url(#polyFaceCenter-${toolId})" stroke="#64748b" stroke-width="1.8" stroke-linejoin="round" />
+      <text x="100" y="64" text-anchor="middle" class="dice-poly-svg-kind">D8</text>
+      <text x="100" y="106" text-anchor="middle" dominant-baseline="central" class="dice-poly-svg-value" id="dicePolyValue">${safeVal}</text>
+    </svg>`;
+  }
+
+  if (toolId === "dice-d10") {
+    return `<svg class="dice-poly-svg" viewBox="0 0 200 200" data-poly-shape="pentagonal-trapezohedron" role="img" aria-label="十面体骰子">
+      ${commonDefs}
+      <polygon points="100,14 172,72 178,120 100,186 22,120 28,72" fill="url(#polyFaceLeft-${toolId})" stroke="#5e6b7c" stroke-width="2.2" stroke-linejoin="round" />
+      <polygon points="100,14 172,72 144,108" fill="url(#polyFaceTop-${toolId})" stroke="#748396" stroke-width="1.3" />
+      <polygon points="100,14 28,72 56,108" fill="url(#polyFaceTop-${toolId})" stroke="#748396" stroke-width="1.3" />
+      <polygon points="172,72 178,120 144,108" fill="url(#polyFaceRight-${toolId})" stroke="#748396" stroke-width="1.3" />
+      <polygon points="28,72 22,120 56,108" fill="url(#polyFaceLeft-${toolId})" stroke="#748396" stroke-width="1.3" />
+      <polygon points="100,186 178,120 144,108 100,136" fill="#9fb0c6" stroke="#748396" stroke-width="1.3" />
+      <polygon points="100,186 22,120 56,108 100,136" fill="#b4c2d5" stroke="#748396" stroke-width="1.3" />
+      <polygon points="100,20 144,104 100,136 56,104" fill="url(#polyFaceCenter-${toolId})" stroke="#64748b" stroke-width="1.8" stroke-linejoin="round" />
+      <text x="100" y="64" text-anchor="middle" class="dice-poly-svg-kind">D10</text>
+      <text x="100" y="98" text-anchor="middle" dominant-baseline="central" class="dice-poly-svg-value" id="dicePolyValue">${safeVal}</text>
+    </svg>`;
+  }
+
+  if (toolId === "dice-d12") {
+    return `<svg class="dice-poly-svg" viewBox="0 0 200 200" data-poly-shape="dodecahedron" role="img" aria-label="正十二面体骰子">
+      ${commonDefs}
+      <polygon points="100,14 148,28 180,68 182,118 156,162 100,186 44,162 18,118 20,68 52,28" fill="url(#polyFaceLeft-${toolId})" stroke="#5e6b7c" stroke-width="2.2" stroke-linejoin="round" />
+      <polygon points="100,48 148,84 130,142 70,142 52,84" fill="url(#polyFaceCenter-${toolId})" stroke="#64748b" stroke-width="1.9" stroke-linejoin="round" />
+      <line x1="100" y1="48" x2="100" y2="14" stroke="#748396" stroke-width="1.5" />
+      <line x1="148" y1="84" x2="180" y2="68" stroke="#748396" stroke-width="1.5" />
+      <line x1="130" y1="142" x2="156" y2="162" stroke="#748396" stroke-width="1.5" />
+      <line x1="70" y1="142" x2="44" y2="162" stroke="#748396" stroke-width="1.5" />
+      <line x1="52" y1="84" x2="20" y2="68" stroke="#748396" stroke-width="1.5" />
+      <text x="100" y="75" text-anchor="middle" class="dice-poly-svg-kind">D12</text>
+      <text x="100" y="108" text-anchor="middle" dominant-baseline="central" class="dice-poly-svg-value" id="dicePolyValue">${safeVal}</text>
+    </svg>`;
+  }
+
+  if (toolId === "dice-d20") {
+    return `<svg class="dice-poly-svg" viewBox="0 0 200 200" data-poly-shape="icosahedron" role="img" aria-label="正二十面体骰子">
+      ${commonDefs}
+      <polygon points="100,14 176,57 176,143 100,186 24,143 24,57" fill="url(#polyFaceLeft-${toolId})" stroke="#5e6b7c" stroke-width="2.2" stroke-linejoin="round" />
+      <polygon points="100,14 146,66 54,66" fill="url(#polyFaceTop-${toolId})" stroke="#748396" stroke-width="1.35" />
+      <polygon points="100,14 176,57 146,66" fill="#eef3f8" stroke="#748396" stroke-width="1.35" />
+      <polygon points="100,14 24,57 54,66" fill="#dfe6f0" stroke="#748396" stroke-width="1.35" />
+      <polygon points="176,57 176,143 146,66" fill="url(#polyFaceRight-${toolId})" stroke="#748396" stroke-width="1.35" />
+      <polygon points="24,57 24,143 54,66" fill="url(#polyFaceLeft-${toolId})" stroke="#748396" stroke-width="1.35" />
+      <polygon points="176,143 146,66 100,144" fill="#c7d2e1" stroke="#748396" stroke-width="1.35" />
+      <polygon points="24,143 54,66 100,144" fill="#d5deeb" stroke="#748396" stroke-width="1.35" />
+      <polygon points="100,186 176,143 100,144" fill="#9fb0c6" stroke="#748396" stroke-width="1.35" />
+      <polygon points="100,186 24,143 100,144" fill="#b4c2d5" stroke="#748396" stroke-width="1.35" />
+      <polygon points="54,66 146,66 100,144" fill="url(#polyFaceCenter-${toolId})" stroke="#64748b" stroke-width="1.9" stroke-linejoin="round" />
+      <text x="100" y="84" text-anchor="middle" class="dice-poly-svg-kind">D20</text>
+      <text x="100" y="109" text-anchor="middle" dominant-baseline="central" class="dice-poly-svg-value" id="dicePolyValue">${safeVal}</text>
+    </svg>`;
+  }
+
+  const safeSides = Math.max(2, Math.min(1_000_000, Number(customSides) || 6));
+  const ticks = Array.from({ length: 16 }, (_, idx) => {
+    const a = (idx * 22.5) * Math.PI / 180;
+    const x1 = (100 + 78 * Math.cos(a)).toFixed(1);
+    const y1 = (100 + 78 * Math.sin(a)).toFixed(1);
+    const x2 = (100 + 84 * Math.cos(a)).toFixed(1);
+    const y2 = (100 + 84 * Math.sin(a)).toFixed(1);
+    return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#8391a4" stroke-width="1.4" stroke-linecap="round" />`;
+  }).join("");
+  return `<svg class="dice-poly-svg" viewBox="0 0 200 200" data-poly-shape="custom-medallion" role="img" aria-label="自定义 ${safeSides} 面随机骰子">
+    ${commonDefs}
+    <circle cx="100" cy="100" r="88" fill="url(#polyFaceLeft-${toolId})" stroke="#5e6b7c" stroke-width="2.2" />
+    ${ticks}
+    <circle cx="100" cy="100" r="68" fill="url(#polyFaceCenter-${toolId})" stroke="#64748b" stroke-width="1.8" />
+    <text x="100" y="68" text-anchor="middle" class="dice-poly-svg-kind" id="customDiceKind">D${safeSides}</text>
+    <text x="100" y="108" text-anchor="middle" dominant-baseline="central" class="dice-poly-svg-value" id="dicePolyValue">${safeVal}</text>
   </svg>`;
 }
 

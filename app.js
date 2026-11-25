@@ -4313,6 +4313,7 @@ async function mountVerifiedCurrentRoute(owner, strictOwner = false) {
 }
 
 function showStartupRecovery(reason) {
+  if (startupMounted) return;
   const timeoutMessage = isThewyjAndroidApp()
     ? '连接较慢，正在安全恢复页面。你可以等待或点击重试。'
     : '连接较慢，正在安全恢复页面。你可以等待、重试或返回公开首页。';
@@ -4347,9 +4348,9 @@ function hidePrimaryScreens() {
   setExperienceMode("workspace");
   const leavingTrial = Boolean($("trialPage") && !$("trialPage").classList.contains("hidden"));
   ["sessionRecovery", "publicHome", "changelogPage", "downloadPage", "trialPage", "modulePicker", "projectPicker", "projectApp", "toolsPanel", "financePage", "transferPage", "shareViewer", "adminPanel", "membershipModal", "accountModal"].forEach((id) => {
-    // The staged route owns its pages; presentation owns recovery until that
-    // route completes, including when recovery appeared before mounting began.
-    if (id === 'sessionRecovery' && document.documentElement.dataset.workspaceMount === 'pending') return;
+    // The staged route owns its pages; presentation owns recovery until initial
+    // startup mounts cleanly, including when recovery appeared before mounting began.
+    if (id === 'sessionRecovery' && !startupMounted && document.documentElement.dataset.workspaceMount === 'pending') return;
     const element = $(id);
     if (!element) return;
     if ((id === "membershipModal" || id === "accountModal") && element.classList.contains("is-closing") && modalClosingRoutePass === element) {
@@ -4585,45 +4586,58 @@ async function showTools(path = "/tools", pushHistory = true, generation = route
   renderAccountUi();
   const reapplyPopScroll = applyWorkspaceRouteScroll(pushHistory);
   try {
-    const preparing = cachedAccess
-      ? Promise.resolve(window.WYJTools.prepare()).catch((error) => ({ error }))
-      : Promise.resolve(null);
-    if (cachedAccess && !offline) {
-      // Prefetch user preferences in parallel with /api/tools/access to avoid
-      // a sequential network waterfall on cold /tools entry.
+    if (cachedAccess) {
+      const accessPromise = apiGet("/api/tools/access");
       window.WYJTools.prefetchPreferences?.();
+      await window.WYJTools.prepare();
+      if (!isRouteGenerationCurrent(generation)) return;
+      await window.WYJTools.show(path, { access: { account: state.account }, offline: false });
+      if (isRouteGenerationCurrent(generation)) reapplyPopScroll();
+      accessPromise.then((fresh) => {
+        if (!isRouteGenerationCurrent(generation) || !fresh?.account) return;
+        const summary = fresh.account.membership_summary || {};
+        const statusEl = $("toolsMembershipStatus");
+        if (statusEl) {
+          statusEl.textContent = summary.permanent
+            ? `${summary.name} · 永久有效`
+            : `${summary.name || "工具箱会员"}${summary.expires_at ? ` · 到期 ${formatDate(summary.expires_at)}` : ""}`;
+        }
+      }, (error) => {
+        if (error?.code === "membership_required" && isRouteGenerationCurrent(generation)) {
+          void handleToolsAccessFailure(error, generation);
+        } else if (isRouteGenerationCurrent(generation)) {
+          const statusEl = $("toolsMembershipStatus");
+          if (statusEl && !statusEl.textContent.includes("离线本地模式")) {
+            statusEl.textContent = `${statusEl.textContent} · 离线本地模式`;
+          }
+        }
+      });
+      return;
     }
-    if (!access) {
-      try {
-        access = await apiGet("/api/tools/access");
-      } catch (error) {
-        if (error.code === "membership_required" || !cachedAccess) throw error;
-        offline = true;
-      }
+    try {
+      access = await apiGet("/api/tools/access");
+    } catch (error) {
+      if (error.code === "membership_required" || !cachedAccess) throw error;
+      offline = true;
     }
     if (!isRouteGenerationCurrent(generation)) return;
-    if (!cachedAccess) {
-      if (path.startsWith("/tools/workflows")) {
-        $("toolsDashboard")?.classList.add("hidden");
-        $("toolWorkbench")?.classList.add("hidden");
-        $("workflowWorkspace")?.classList.remove("hidden");
-        $("workflowWorkspace")?.setAttribute("aria-hidden", "false");
-        $("toolsPanel")?.querySelector(".tools-header")?.classList.add("hidden");
-      } else if (path === "/tools") {
-        $("toolsDashboard")?.classList.remove("hidden");
-        $("workflowWorkspace")?.classList.add("hidden");
-        $("toolWorkbench")?.classList.add("hidden");
-        $("toolsPanel")?.querySelector(".tools-header")?.classList.remove("hidden");
-      } else if (path.startsWith("/tools/")) {
-        $("toolsDashboard")?.classList.add("hidden");
-        $("workflowWorkspace")?.classList.add("hidden");
-        $("toolWorkbench")?.classList.remove("hidden");
-      }
+    if (path.startsWith("/tools/workflows")) {
+      $("toolsDashboard")?.classList.add("hidden");
+      $("toolWorkbench")?.classList.add("hidden");
+      $("workflowWorkspace")?.classList.remove("hidden");
+      $("workflowWorkspace")?.setAttribute("aria-hidden", "false");
+      $("toolsPanel")?.querySelector(".tools-header")?.classList.add("hidden");
+    } else if (path === "/tools") {
+      $("toolsDashboard")?.classList.remove("hidden");
+      $("workflowWorkspace")?.classList.add("hidden");
+      $("toolWorkbench")?.classList.add("hidden");
+      $("toolsPanel")?.querySelector(".tools-header")?.classList.remove("hidden");
+    } else if (path.startsWith("/tools/")) {
+      $("toolsDashboard")?.classList.add("hidden");
+      $("workflowWorkspace")?.classList.add("hidden");
+      $("toolWorkbench")?.classList.remove("hidden");
     }
-    const prepared = cachedAccess
-      ? await preparing
-      : await Promise.resolve(window.WYJTools.prepare()).catch((error) => ({ error }));
-    if (prepared?.error) throw prepared.error;
+    await window.WYJTools.prepare();
     if (!isRouteGenerationCurrent(generation)) return;
     await window.WYJTools.show(path, { access, offline });
     if (isRouteGenerationCurrent(generation)) reapplyPopScroll();

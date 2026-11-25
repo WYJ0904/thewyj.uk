@@ -13,7 +13,9 @@ import {
   parseWeightedEntries,
   percentToHalfUnits,
   randomToolResult,
+  renderDicePolyhedronSvg,
   renderRmbOneYuanCoinSvg,
+  renderWheelPointerSvg,
   renderWheelSvg,
   sectorAtPointerAngle,
   serializeWeightedEntries,
@@ -135,4 +137,45 @@ test("distinct fine-line SVG icons differentiate similar text and random tools",
   assert.equal(new Set(groupA.map((id) => toolIconName(byId.get(id)))).size, groupA.length);
   const groupB = ["random-password", "random-uuid", "dice-d6", "coin-flip", "random-wheel", "weighted-wheel"];
   assert.equal(new Set(groupB.map((id) => toolIconName(byId.get(id)))).size, groupB.length);
+});
+
+test("lossless legacy weight compatibility preserves non-0.5% precision and 4-option defaults", () => {
+  const defaults = parseWeightedEntries("");
+  assert.equal(defaults.items.length, 4);
+  assert.equal(computeWeightedSectors(defaults.items).totalWeightPercent, 100);
+
+  const exactFrac = parseWeightedEntries("方案 A|33.33\n方案 B|66.67");
+  assert.equal(exactFrac.precisionPreserved, true);
+  assert.equal(serializeWeightedEntries(exactFrac.items), "方案 A|33.33\n方案 B|66.67");
+  const fracModel = computeWeightedSectors(exactFrac.items);
+  assert.ok(Math.abs(fracModel.rows[0].probabilityPercent - 33.33) < 0.01);
+  assert.ok(Math.abs(fracModel.rows[1].probabilityPercent - 66.67) < 0.01);
+
+  const largeNonExact = parseWeightedEntries("大奖|300\n中奖|100\n小奖|50");
+  assert.equal(largeNonExact.convertedFromLegacy, true);
+  assert.equal(largeNonExact.precisionPreserved, true);
+  const largeModel = computeWeightedSectors(largeNonExact.items);
+  assert.ok(Math.abs(largeModel.rows[0].probability - 300 / 450) < 1e-9);
+  assert.ok(Math.abs(largeModel.rows[2].probability - 50 / 450) < 1e-9);
+});
+
+test("distinct SVG polyhedra and wheel pointer overlay render per die geometry", () => {
+  const pointer = renderWheelPointerSvg();
+  assert.match(pointer, /class="wheel-pointer-overlay"/);
+  assert.match(pointer, /viewBox="0 0 320 320"/);
+  const expectedShapes = [
+    ["dice-d4", "tetrahedron"],
+    ["dice-d8", "octahedron"],
+    ["dice-d10", "pentagonal-trapezohedron"],
+    ["dice-d12", "dodecahedron"],
+    ["dice-d20", "icosahedron"],
+    ["custom-dice", "custom-medallion"],
+  ];
+  for (const [id, shape] of expectedShapes) {
+    const svg = renderDicePolyhedronSvg(id, 3, 19);
+    assert.ok(svg.includes(`data-poly-shape="${shape}"`), `${id} missing ${shape}`);
+    assert.ok(svg.includes('>3<'), `${id} missing rendered outcome`);
+  }
+  const customSvg = renderDicePolyhedronSvg("custom-dice", 12, 19);
+  assert.ok(customSvg.includes("D19"), "custom-dice displays live side badge without fabricating Platonic polyhedron");
 });
