@@ -86,8 +86,8 @@ async function register(username) {
   return (await first('SELECT id FROM task12_users WHERE username=?', username)).id;
 }
 
-async function login(username, pwd = password) {
-  const result = await identity('login', { username, secret: pwd }, { binding: token() });
+async function login(username, pwd = password, grantVersion) {
+  const result = await identity('login', { username, secret: pwd }, { binding: token(), grant_version: grantVersion });
   assert.equal(result.status, 200, JSON.stringify(result.body));
   assert.equal(result.body.stage, 'authenticated');
   return { grant: result.body.claims.grant_id, claims: result.body.claims };
@@ -223,6 +223,177 @@ test('formal native registration scopes signed requests and current grants to th
   await db.prepare('UPDATE task27_security SET version=version+1 WHERE user_id=?').bind(sub).run();
   assert.deepEqual((await call('introspect', {}, { grant })).body, { active: false });
   assert.equal((await call('profile', {}, { grant })).status, 401);
+});
+
+test('renewal schema is additive and signed opt-in preserves legacy login and grant lifetime', async () => {
+  const user = await register('native-renewal-schema');
+  const legacy = await login('native-renewal-schema');
+  const snapshot = await first('SELECT issued_at,expires_at,revoked_at FROM aeris_ds_sso_grants WHERE grant_id=?', legacy.grant);
+  const sessions = await first('SELECT count(*) AS count FROM task12_sessions WHERE user_id=?', user);
+  const unavailable = await identity('login', { username: 'native-renewal-schema', secret: password },
+    { binding: token(), grant_version: 2 });
+  assert.equal(unavailable.status, 503);
+  assert.equal((await identity('renew', {}, { grant: legacy.grant })).status, 503);
+  assert.deepEqual(await first('SELECT count(*) AS count FROM task12_sessions WHERE user_id=?', user), sessions);
+  await migrate('0046_ds_grant_renewal.sql');
+  assert.deepEqual(await first(`SELECT issued_at,expires_at,revoked_at,renewal_ceiling,renewed_at,legacy_expires_at
+    FROM aeris_ds_sso_grants WHERE grant_id=?`, legacy.grant),
+  { ...snapshot, renewal_ceiling: null, renewed_at: null, legacy_expires_at: null });
+  assert.deepEqual((await identity('introspect', {}, { grant: legacy.grant })).body, { active: true, ...legacy.claims });
+  assert.deepEqual((await identity('renew', {}, { grant: legacy.grant })).body, { active: false });
+  const badVersion = await identity('login', { username: 'native-renewal-schema', secret: password },
+    { binding: token(), grant_version: '2' });
+  assert.equal(badVersion.status, 400);
+  assert.equal(await first('PRAGMA foreign_key_check'), null);
+});
+
+const epoch = () => Math.floor(Date.now() / 1000);
+const renewalState = grant => first(`SELECT g.*, unixepoch(s.expires_at) AS source_expires_at, s.last_seen_at AS source_seen_at
+  FROM aeris_ds_sso_grants g JOIN task12_sessions s ON s.token_digest=g.session_digest WHERE g.grant_id=?`, grant);
+const renew = grant => identity('renew', {}, { grant, grant_version: 2 });
+
+async function ageRenewalFixture(grant, expires, ceiling) {
+  const digest = await sessionStorageKey(grant);
+  const issuedAt = Math.min(epoch() - 1, expires - 13 * 60 * 60);
+  await db.batch([
+    db.prepare(`UPDATE aeris_ds_sso_grants SET issued_at=?, expires_at=?, renewed_at=NULL,
+      renewal_ceiling=coalesce(?, renewal_ceiling) WHERE grant_id=?`).bind(issuedAt, expires, ceiling ?? null, grant),
+    db.prepare("UPDATE aeris_ds_native_envelopes SET expires_at=? WHERE kind='source' AND id=?").bind(expires, digest),
+  ]);
+}
+
+test('signed activity upgrades a live legacy grant without widening the legacy view or reviving an expired grant', async () => {
+  await register('native-renewal-upgrade');
+  const legacy = await login('native-renewal-upgrade');
+  assert.deepEqual((await identity('introspect', {}, { grant: legacy.grant, grant_version: 2 })).body,
+    { active: true, ...legacy.claims });
+  const proof = (await renew(legacy.grant)).body;
+  assert.equal(proof.active, true);
+  assert.equal(proof.grant_version, 2);
+  assert.equal(proof.grant_id, legacy.grant);
+  assert.equal(proof.exp - proof.iat, 13 * 60 * 60);
+  assert.equal((await renewalState(legacy.grant)).legacy_expires_at, legacy.claims.exp);
+  assert.deepEqual((await identity('introspect', {}, { grant: legacy.grant })).body, { active: true, ...legacy.claims });
+  assert.deepEqual((await identity('introspect', {}, { grant: legacy.grant, grant_version: 2 })).body, proof);
+  await update('UPDATE aeris_ds_sso_grants SET issued_at=issued_at-28800, legacy_expires_at=? WHERE grant_id=?',
+    epoch() - 1, legacy.grant);
+  assert.deepEqual((await identity('introspect', {}, { grant: legacy.grant })).body, { active: false });
+  assert.deepEqual((await identity('introspect', {}, { grant: legacy.grant, grant_version: 2 })).body, proof);
+  assert.equal((await renewalState(legacy.grant)).revoked_at, null);
+
+  const capped = await login('native-renewal-upgrade');
+  const ceiling = epoch() + 2 * 60 * 60;
+  await ageRenewalFixture(capped.grant, ceiling - 60);
+  await update("UPDATE task12_sessions SET created_at=datetime(?,'unixepoch') WHERE token_digest=?",
+    ceiling - 7 * 24 * 60 * 60, (await renewalState(capped.grant)).session_digest);
+  const cappedProof = (await renew(capped.grant)).body;
+  assert.equal(cappedProof.exp, ceiling);
+  assert.equal(cappedProof.source_exp, ceiling);
+
+  const expired = await login('native-renewal-upgrade');
+  await ageRenewalFixture(expired.grant, epoch() - 1);
+  assert.deepEqual((await renew(expired.grant)).body, { active: false });
+  assert.equal((await renewalState(expired.grant)).revoke_reason, 'expired');
+});
+
+test('passive introspection and early renewal are read-only, while concurrent activity renews atomically past eight hours', async () => {
+  await register('native-renewal-active');
+  const actor = await login('native-renewal-active', password, 2);
+  const initial = await renewalState(actor.grant);
+  assert.equal(actor.claims.grant_version, 2);
+  assert.equal(actor.claims.source_exp, initial.source_expires_at);
+  assert.equal(actor.claims.exp - actor.claims.iat, 13 * 60 * 60);
+  assert.deepEqual((await renew(actor.grant)).body, { active: true, ...actor.claims });
+  assert.deepEqual(await renewalState(actor.grant), initial);
+  const expiresAt = epoch() + 3 * 60 * 60;
+  await ageRenewalFixture(actor.grant, expiresAt);
+  const prior = await renewalState(actor.grant);
+  assert.ok(epoch() - prior.issued_at > 8 * 60 * 60);
+
+  const polled = await identity('introspect', {}, { grant: actor.grant });
+  assert.equal(polled.body.exp, expiresAt);
+  assert.deepEqual(await renewalState(actor.grant), prior);
+  const wrongScope = await identity('renew', {}, { grant: actor.grant }, { origin: 'http://127.0.0.1:19001' });
+  assert.equal(wrongScope.status, 401);
+  assert.equal((await identity('renew', { expires_in: 30 * 86400 }, { grant: actor.grant })).status, 400);
+
+  const responses = await Promise.all([renew(actor.grant), renew(actor.grant)]);
+  assert.deepEqual(responses.map(result => result.status), [200, 200]);
+  assert.deepEqual(responses[0].body, responses[1].body);
+  const proof = responses[0].body;
+  assert.equal(proof.active, true);
+  assert.equal(proof.grant_id, actor.grant);
+  assert.equal(proof.exp - proof.iat, 13 * 60 * 60);
+  assert.equal(proof.source_exp, actor.claims.source_exp);
+  const after = await renewalState(actor.grant);
+  assert.equal(after.issued_at, prior.issued_at);
+  assert.equal(after.renewed_at, proof.iat);
+  assert.equal(after.source_expires_at, prior.source_expires_at);
+  assert.equal(after.source_seen_at, prior.source_seen_at);
+  assert.equal((await first(`SELECT expires_at FROM aeris_ds_native_envelopes WHERE kind='source' AND id=?`,
+    await sessionStorageKey(actor.grant))).expires_at, proof.exp);
+  assert.deepEqual((await identity('introspect', {}, { grant: actor.grant })).body, proof);
+  assert.equal((await identity('profile', {}, { grant: actor.grant })).status, 200);
+});
+
+test('renewal is capped by the original and current source expiry and denies expired grants without resurrection', async () => {
+  await register('native-renewal-ceiling');
+  const capped = await login('native-renewal-ceiling', password, 2);
+  const prior = await renewalState(capped.grant);
+  const ceiling = epoch() + 120;
+  assert.ok(prior.source_expires_at > ceiling);
+  await ageRenewalFixture(capped.grant, epoch() + 30, ceiling);
+  const cappedProof = (await renew(capped.grant)).body;
+  assert.equal(cappedProof.exp, ceiling);
+  assert.equal(cappedProof.source_exp, ceiling);
+  assert.deepEqual((await renew(capped.grant)).body, cappedProof);
+
+  const shortened = await login('native-renewal-ceiling', password, 2);
+  await ageRenewalFixture(shortened.grant, epoch() + 20);
+  const sourceExpiresAt = epoch() + 60;
+  await update("UPDATE task12_sessions SET expires_at = datetime(?, 'unixepoch') WHERE token_digest=?",
+    sourceExpiresAt, (await renewalState(shortened.grant)).session_digest);
+  const shortenedProof = (await renew(shortened.grant)).body;
+  assert.equal(shortenedProof.exp, sourceExpiresAt);
+  assert.equal(shortenedProof.source_exp, shortened.claims.source_exp);
+  await ageRenewalFixture(shortened.grant, epoch() - 1);
+  assert.deepEqual((await renew(shortened.grant)).body, { active: false });
+  assert.equal((await renewalState(shortened.grant)).revoke_reason, 'expired');
+});
+
+test('renewal preserves Aeris source expiry, security version, bans, logout and canonical password revocation', async () => {
+  const user = await register('native-renewal-security');
+  const expiredSource = await login('native-renewal-security', password, 2);
+  await update("UPDATE task12_sessions SET expires_at=datetime('now', '-1 minute') WHERE token_digest=?",
+    (await renewalState(expiredSource.grant)).session_digest);
+  assert.deepEqual((await renew(expiredSource.grant)).body, { active: false });
+  assert.equal((await renewalState(expiredSource.grant)).revoke_reason, 'source_invalid');
+
+  const versioned = await login('native-renewal-security', password, 2);
+  await update('UPDATE task27_security SET version=version+1 WHERE user_id=?', user);
+  assert.deepEqual((await renew(versioned.grant)).body, { active: false });
+  assert.equal((await renewalState(versioned.grant)).revoke_reason, 'source_invalid');
+
+  const banned = await login('native-renewal-security', password, 2);
+  await update('UPDATE task12_users SET banned=1 WHERE id=?', user);
+  assert.deepEqual((await renew(banned.grant)).body, { active: false });
+  await update('UPDATE task12_users SET banned=0 WHERE id=?', user);
+  assert.deepEqual((await renew(banned.grant)).body, { active: false });
+
+  const logout = await login('native-renewal-security', password, 2);
+  assert.deepEqual((await identity('revoke', {}, { grant: logout.grant })).body, { revoked: true });
+  assert.deepEqual((await renew(logout.grant)).body, { active: false });
+  const passwordSession = await login('native-renewal-security', password, 2);
+  const secondSession = await login('native-renewal-security', password, 2);
+  const proof = await stepup({ grant: passwordSession.grant }, 'password_change');
+  const changed = await identity('password_change', {
+    ref: proof.ref, new_secret: changedPassword, confirm_secret: changedPassword,
+  }, { grant: passwordSession.grant });
+  assert.equal(changed.status, 200);
+  for (const agreement of [passwordSession, secondSession]) {
+    assert.deepEqual((await renew(agreement.grant)).body, { active: false });
+  }
+  assert.equal((await login('native-renewal-security', changedPassword, 2)).claims.sub, user);
 });
 
 test('DS registration creates one Aeris account; only successful Aeris login issues a grant', async () => {
