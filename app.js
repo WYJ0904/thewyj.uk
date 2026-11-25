@@ -4301,19 +4301,33 @@ async function mountVerifiedCurrentRoute(owner, strictOwner = false) {
     if (canPresentWorkspace(current)) {
       // Startup's finite recovery must not tear down an in-flight destination.
       // Reveal that same completed mount, rather than re-entering its controller.
-      $('sessionRecovery').classList.add('hidden');
-      $('sessionRecovery').setAttribute('aria-hidden', 'true');
-      renderAccountUi();
-      document.documentElement.dataset.workspaceMount = 'ready';
-      startupMounted = true;
-      if (startupRevealed) document.documentElement.dataset.bootState = 'ready';
+      markStartupScreenPresented();
       return;
     }
   }
 }
 
+function markStartupScreenPresented() {
+  const recovery = $('sessionRecovery');
+  recovery?.classList.add('hidden');
+  recovery?.setAttribute('aria-hidden', 'true');
+  renderAccountUi();
+  document.documentElement.dataset.workspaceMount = 'ready';
+  startupMounted = true;
+  if (startupRevealed) document.documentElement.dataset.bootState = 'ready';
+}
+
 function showStartupRecovery(reason) {
   if (startupMounted) return;
+  const anyPrimaryVisible = [
+    'publicHome', 'changelogPage', 'downloadPage', 'trialPage',
+    'modulePicker', 'projectPicker', 'projectApp', 'toolsPanel',
+    'financePage', 'transferPage', 'shareViewer', 'adminPanel', 'authPanel',
+  ].some((id) => {
+    const el = $(id);
+    return Boolean(el && !el.classList.contains('hidden'));
+  });
+  if (anyPrimaryVisible) return;
   const timeoutMessage = isThewyjAndroidApp()
     ? '连接较慢，正在安全恢复页面。你可以等待或点击重试。'
     : '连接较慢，正在安全恢复页面。你可以等待、重试或返回公开首页。';
@@ -4592,6 +4606,7 @@ async function showTools(path = "/tools", pushHistory = true, generation = route
       await window.WYJTools.prepare();
       if (!isRouteGenerationCurrent(generation)) return;
       await window.WYJTools.show(path, { access: { account: state.account }, offline: false });
+      markStartupScreenPresented();
       if (isRouteGenerationCurrent(generation)) reapplyPopScroll();
       accessPromise.then((fresh) => {
         if (!isRouteGenerationCurrent(generation) || !fresh?.account) return;
@@ -4640,6 +4655,7 @@ async function showTools(path = "/tools", pushHistory = true, generation = route
     await window.WYJTools.prepare();
     if (!isRouteGenerationCurrent(generation)) return;
     await window.WYJTools.show(path, { access, offline });
+    markStartupScreenPresented();
     if (isRouteGenerationCurrent(generation)) reapplyPopScroll();
   } catch (error) {
     await handleToolsAccessFailure(error, generation);
