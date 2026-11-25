@@ -272,9 +272,11 @@ try {
   await new Promise((r) => setTimeout(r, 450));
   await snap("after-tools-category-1440.png");
 
-  // Switch back to all and favorite json-format
+  // Switch back to all, expand catalog if needed, and favorite json-format
   await evalJs("document.querySelector('#toolCategoryList [data-tool-category=\"all\"]').click(); true");
   await waitFor("document.querySelector('#toolCatalogTitle').textContent === '全部工具'");
+  await evalJs("if (!document.querySelector('[data-toggle-favorite=\"json-format\"]')) document.querySelector('#toolCatalogMoreBtn')?.click(); true");
+  await waitFor("Boolean(document.querySelector('[data-toggle-favorite=\"json-format\"]'))");
   await evalJs("document.querySelector('[data-toggle-favorite=\"json-format\"]').click(); true");
   await waitFor("!document.querySelector('#favoriteToolsSection').classList.contains('hidden')");
   await new Promise((r) => setTimeout(r, 400));

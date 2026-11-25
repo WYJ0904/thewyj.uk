@@ -156,14 +156,16 @@ async function main() {
     timings.openToolMs = Date.now() - tOpen0;
     await delay(300);
 
-    // Drag slider 0 to 150 (75%) and slider 1 to 1 (0.5%) and slider 2 to 0 (0%)
+    // Drag slider 0 to 150 (75%), slider 1 to 1 (0.5%), slider 2 to 0 (0%), slider 3 to 0 (0%)
     const sliderLive = await page.evaluate(`(() => {
       const s0 = document.querySelector('[data-option-slider="0"]');
       const s1 = document.querySelector('[data-option-slider="1"]');
       const s2 = document.querySelector('[data-option-slider="2"]');
+      const s3 = document.querySelector('[data-option-slider="3"]');
       s0.value = '150'; s0.dispatchEvent(new Event('input', { bubbles: true }));
       s1.value = '1'; s1.dispatchEvent(new Event('input', { bubbles: true }));
       s2.value = '0'; s2.dispatchEvent(new Event('input', { bubbles: true }));
+      if (s3) { s3.value = '0'; s3.dispatchEvent(new Event('input', { bubbles: true })); }
       const slices = document.querySelectorAll('#wheelRotor .wheel-slice').length;
       const w0 = document.querySelector('[data-weight-row="0"] [data-weight-display]')?.textContent;
       const w1 = document.querySelector('[data-weight-row="1"] [data-weight-display]')?.textContent;
@@ -183,15 +185,17 @@ async function main() {
       const s0 = document.querySelector('[data-option-slider="0"]');
       const s1 = document.querySelector('[data-option-slider="1"]');
       const s2 = document.querySelector('[data-option-slider="2"]');
+      const s3 = document.querySelector('[data-option-slider="3"]');
       s0.value = '100'; s0.dispatchEvent(new Event('input', { bubbles: true }));
-      s1.value = '60'; s1.dispatchEvent(new Event('input', { bubbles: true }));
-      s2.value = '40'; s2.dispatchEvent(new Event('input', { bubbles: true }));
+      s1.value = '50'; s1.dispatchEvent(new Event('input', { bubbles: true }));
+      s2.value = '30'; s2.dispatchEvent(new Event('input', { bubbles: true }));
+      if (s3) { s3.value = '20'; s3.dispatchEvent(new Event('input', { bubbles: true })); }
     })()`);
     await delay(250);
     await page.click("#runRandomToolBtn");
-    await delay(4100);
+    await page.waitFor("document.querySelector('[data-random-state]')?.dataset.randomState === 'settled'", 10000, "wheel settled");
     const wheelResult = await page.evaluate("document.getElementById('randomResult')?.textContent?.trim()");
-    assert.ok(["方案 A", "方案 B", "方案 C"].includes(wheelResult), `Unexpected wheel result: ${wheelResult}`);
+    assert.ok(["方案 A", "方案 B", "方案 C", "方案 D"].includes(wheelResult), `Unexpected wheel result: ${wheelResult}`);
     await saveShot(page, "06-weighted-wheel.png");
 
     // 6b. 3D Dice D6 (2 rolls)
@@ -199,11 +203,11 @@ async function main() {
     await page.waitFor("Boolean(document.getElementById('diceCube'))", 10000, "dice cube mounted");
     await delay(250);
     await page.click("#runRandomToolBtn");
-    await delay(1400);
+    await page.waitFor("document.querySelector('[data-random-state]')?.dataset.randomState === 'settled'", 6000, "dice roll 1 settled");
     const dice1 = await page.evaluate("document.getElementById('randomResult')?.textContent?.trim()");
     assert.match(dice1, /^[1-6]$/);
     await page.click("#runRandomToolBtn");
-    await delay(1400);
+    await page.waitFor("document.querySelector('[data-random-state]')?.dataset.randomState === 'settled'", 6000, "dice roll 2 settled");
     const dice2 = await page.evaluate("document.getElementById('randomResult')?.textContent?.trim()");
     assert.match(dice2, /^[1-6]$/);
     await saveShot(page, "07-dice-3d.png");
@@ -213,11 +217,11 @@ async function main() {
     await page.waitFor("Boolean(document.getElementById('coinBody'))", 10000, "coin body mounted");
     await delay(250);
     await page.click("#runRandomToolBtn");
-    await delay(1550);
+    await page.waitFor("document.querySelector('[data-random-state]')?.dataset.randomState === 'settled'", 6000, "coin flip 1 settled");
     const coin1 = await page.evaluate("document.getElementById('randomResult')?.textContent?.trim()");
     assert.ok(["正面", "反面"].includes(coin1));
     await page.click("#runRandomToolBtn");
-    await delay(1550);
+    await page.waitFor("document.querySelector('[data-random-state]')?.dataset.randomState === 'settled'", 6000, "coin flip 2 settled");
     const coin2 = await page.evaluate("document.getElementById('randomResult')?.textContent?.trim()");
     assert.ok(["正面", "反面"].includes(coin2));
     await saveShot(page, "08-coin-rmb-1yuan.png");
