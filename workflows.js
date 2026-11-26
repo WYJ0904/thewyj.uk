@@ -653,11 +653,309 @@
     throw new Error("所选文件类型与首个步骤不兼容");
   }
 
+  const CAPABILITY_META = Object.freeze({
+    "text-encoding": { category: "text", categoryLabel: "文本处理", icon: "text", description: "按指定字符编码读取本地文本或表格文件，输出标准 UTF-8 文本。" },
+    "remove-empty-lines": { category: "text", categoryLabel: "文本处理", icon: "trimLines", description: "移除所有空白行，保留有效文本行顺序。" },
+    "dedupe-lines": { category: "text", categoryLabel: "文本处理", icon: "dedupe", description: "按首次出现顺序去除完全重复的行。" },
+    "sort-lines": { category: "text", categoryLabel: "文本处理", icon: "sort", description: "对全部文本行执行升序或降序排列。" },
+    "csv-json": { category: "convert", categoryLabel: "数据转换", icon: "table", description: "将带表头的 CSV 文本解析为结构化 JSON 对象数组。" },
+    "json-csv": { category: "convert", categoryLabel: "数据转换", icon: "table", description: "将 JSON 对象数组序列化为标准逗号分隔 CSV 文本。" },
+    "text-split": { category: "archive", categoryLabel: "文件打包", icon: "split", description: "按指定行数切分长文本，并打包为多文件 ZIP 压缩包。" },
+    "image-resize": { category: "image", categoryLabel: "图片处理", icon: "resize", description: "按目标像素宽高重新调整单张或批量图片尺寸。" },
+    "image-format": { category: "image", categoryLabel: "图片处理", icon: "format", description: "将图片转换为 PNG、JPG 或 WebP，并可调节输出质量。" },
+    "text-watermark": { category: "image", categoryLabel: "图片处理", icon: "watermark", description: "在图片右下角叠加半透明文字水印与指定颜色。" },
+    "exif-remove": { category: "image", categoryLabel: "图片处理", icon: "shield", description: "清除图片中的 EXIF 元数据与拍摄隐私信息。" },
+    "files-zip": { category: "archive", categoryLabel: "文件打包", icon: "zip", description: "将多文件或批量图片结果就地打包为单个 ZIP 文件。" },
+  });
+
+  const NODE_CATEGORIES = Object.freeze([
+    { id: "all", label: "全部" },
+    { id: "text", label: "文本处理" },
+    { id: "convert", label: "数据转换" },
+    { id: "image", label: "图片处理" },
+    { id: "archive", label: "文件打包" },
+  ]);
+
+  const TYPE_LABELS = Object.freeze({
+    "text-file": "文本文件",
+    text: "文本",
+    json: "JSON",
+    image: "单张图片",
+    "image-list": "批量图片",
+    "file-list": "多文件",
+    archive: "ZIP 压缩包",
+  });
+
+  const WF_ICON_PATHS = Object.freeze({
+    text: '<path d="M4 6h16M4 12h11M4 18h14"/>',
+    trimLines: '<path d="M4 6h16M4 18h16M8 12h8"/><path d="m12 8-2 2h4l-2-2zm0 8-2-2h4l-2 2z"/>',
+    dedupe: '<path d="M4 7h11M4 12h8M4 17h11"/><path d="m16 10 2 2 3-3"/>',
+    sort: '<path d="M7 5v14M4 16l3 3 3-3M14 7h6M14 12h4M14 17h2"/>',
+    table: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 4v16M15 10v10"/>',
+    split: '<path d="M4 6h6v12H4zM14 6h6v12h-6zM12 4v16"/>',
+    resize: '<path d="M15 4h5v5M20 4l-6 6M9 20H4v-5M4 20l6-6"/>',
+    format: '<path d="M7 7h10l-2.5-2.5M17 17H7l2.5 2.5M17 7v4M7 17v-4"/>',
+    watermark: '<path d="M4 7h16M8 7v10M16 7v10M6 17h12"/>',
+    shield: '<path d="M12 3 5 6v6c0 4.5 3 7.8 7 9 4-1.2 7-4.5 7-9V6z"/><path d="m9.5 12 2 2 3.5-4"/>',
+    zip: '<path d="M6 3h8l4 4v14H6z"/><path d="M12 6v2M12 10v2M12 14v2M10 17h4"/>',
+    play: '<polygon points="6 4 20 12 6 20 6 4"/>',
+    plus: '<path d="M12 5v14M5 12h14"/>',
+    grip: '<circle cx="9" cy="6" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="18" r="1"/>',
+    arrowRight: '<path d="m9 6 6 6-6 6"/>',
+    check: '<path d="m5 12 4.5 4.5L19 7"/>',
+    alert: '<circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/>',
+  });
+
+  const COLOR_SWATCHES = Object.freeze(["#ffffff", "#242424", "#b83328", "#2d5a9e"]);
+
+  let viewMode = "list";
+  let selectedStepId = "";
+  let runnerExpanded = false;
+  let workflowSearchQuery = "";
+  let pickerOpen = false;
+  let pickerInsertIndex = -1;
+  let pickerCategory = "all";
+  let pickerSearchQuery = "";
+  let pickerActiveIndex = 0;
+  let openRowMenuId = "";
+  let canvasViewport = { panX: 0, panY: 0, zoom: 1 };
+  let lastStatuses = [];
+  let lastRunError = null;
+  let edgeSyncRaf = 0;
+  let edgeSyncUntil = 0;
+  let pointerDragState = null;
+  let canvasPanState = null;
+  let canvasResizeObserver = null;
+  let pickerReturnFocus = null;
+  let listFeedbackTimer = 0;
+  let canvasAlertTimer = 0;
+
+  function isReducedMotion() {
+    return Boolean(
+      root.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches
+      || root.document?.documentElement?.dataset?.androidReducedMotion === "true",
+    );
+  }
+
+  function isMobileCanvas() {
+    return (root.innerWidth || 1280) <= 768;
+  }
+
+  function capabilityIconSvg(toolId, className = "wf-svg-icon") {
+    const iconName = CAPABILITY_META[toolId]?.icon || "text";
+    return `<svg class="${className}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${WF_ICON_PATHS[iconName] || WF_ICON_PATHS.text}</svg>`;
+  }
+
+  function uiIconSvg(name, className = "wf-svg-icon") {
+    return `<svg class="${className}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${WF_ICON_PATHS[name] || WF_ICON_PATHS.text}</svg>`;
+  }
+
+  function formatTypesLabel(types = []) {
+    return (types || []).map((t) => TYPE_LABELS[t] || t).join(" / ");
+  }
+
+  function formatTimestamp(iso) {
+    const ms = Date.parse(String(iso || ""));
+    if (!Number.isFinite(ms)) return "刚刚";
+    try {
+      const date = new Date(ms);
+      const pad = (n) => String(n).padStart(2, "0");
+      return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    } catch (_) {
+      return String(iso).slice(0, 16).replace("T", " ");
+    }
+  }
+
+  function formatBytes(bytes) {
+    const n = Number(bytes) || 0;
+    if (n < 1024) return `${n} B`;
+    if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+    return `${(n / (1024 * 1024)).toFixed(2)} MB`;
+  }
+
+  function summarizeStepConfig(step) {
+    const schema = CONFIG_SCHEMAS[step.tool_id] || {};
+    const cfg = step.config || {};
+    if (step.tool_id === "text-encoding") return `编码 ${String(cfg.encoding || "utf-8").toUpperCase()}`;
+    if (step.tool_id === "sort-lines") return schema.order?.labels?.[cfg.order] || cfg.order || "升序";
+    if (step.tool_id === "text-split") return `每份 ${cfg.lines ?? 1000} 行`;
+    if (step.tool_id === "image-resize") return `${cfg.width ?? 1200} × ${cfg.height ?? 1200} px`;
+    if (step.tool_id === "image-format") {
+      const fmt = schema.format?.labels?.[cfg.format] || cfg.format || "WebP";
+      return `${fmt} · 质量 ${Math.round(Number(cfg.quality ?? 0.85) * 100)}%`;
+    }
+    if (step.tool_id === "text-watermark") {
+      const text = String(cfg.text || "WYJ");
+      const clipped = text.length > 12 ? `${text.slice(0, 12)}…` : text;
+      return `“${clipped}” · ${cfg.color || "#ffffff"}`;
+    }
+    return "无需额外参数";
+  }
+
+  function workflowFlowSummary(workflow) {
+    const active = (workflow?.steps || []).filter((s) => s.enabled);
+    if (!active.length) return { inputLabel: "未配置", outputLabel: "未配置" };
+    const inTypes = inputTypesFor(workflow);
+    let outTypes = [];
+    try { outTypes = sequenceOutputTypes(workflow); } catch (_) { outTypes = []; }
+    return {
+      inputLabel: formatTypesLabel(inTypes) || "未配置",
+      outputLabel: formatTypesLabel(outTypes) || "不兼容",
+    };
+  }
+
+  function canvasUiStorageKey() {
+    return `wyjWorkflowCanvasUi:v1:${accountId()}`;
+  }
+
+  function loadCanvasViewportFor(workflowId) {
+    if (!workflowId) return { panX: 0, panY: 0, zoom: 1 };
+    try {
+      const map = JSON.parse(safeLocalGet(canvasUiStorageKey()) || "{}");
+      const saved = map?.[workflowId];
+      if (saved && Number.isFinite(saved.zoom) && Number.isFinite(saved.panX) && Number.isFinite(saved.panY)) {
+        return {
+          panX: Number(saved.panX),
+          panY: Number(saved.panY),
+          zoom: Math.min(1.6, Math.max(0.5, Number(saved.zoom))),
+        };
+      }
+    } catch (_) {}
+    return { panX: 0, panY: 0, zoom: 1 };
+  }
+
+  function persistCanvasViewport() {
+    const workflow = selectedWorkflow();
+    if (!workflow) return;
+    try {
+      const map = JSON.parse(safeLocalGet(canvasUiStorageKey()) || "{}");
+      map[workflow.id] = {
+        panX: Math.round(canvasViewport.panX),
+        panY: Math.round(canvasViewport.panY),
+        zoom: Number(canvasViewport.zoom.toFixed(3)),
+      };
+      safeLocalSet(canvasUiStorageKey(), JSON.stringify(map));
+    } catch (_) {}
+  }
+
+  function applyCanvasTransform({ animate = false } = {}) {
+    const stage = byId("workflowCanvasStage");
+    const grid = byId("workflowCanvasGrid");
+    const readout = byId("canvasZoomResetBtn");
+    if (!stage) return;
+    const reduced = isReducedMotion();
+    if (animate && !reduced) stage.classList.add("is-animating");
+    else stage.classList.remove("is-animating");
+    const mobile = isMobileCanvas();
+    if (mobile) {
+      stage.style.transform = "";
+      stage.style.transformOrigin = "";
+    } else {
+      stage.style.transform = `translate3d(${canvasViewport.panX.toFixed(1)}px, ${canvasViewport.panY.toFixed(1)}px, 0) scale(${canvasViewport.zoom.toFixed(3)})`;
+      stage.style.transformOrigin = "0 0";
+    }
+    if (grid) {
+      const effectiveZoom = mobile ? 1 : canvasViewport.zoom;
+      const step = Math.max(12, 20 * effectiveZoom);
+      grid.style.backgroundSize = `${step.toFixed(1)}px ${step.toFixed(1)}px`;
+      grid.style.backgroundPosition = mobile
+        ? "0px 0px"
+        : `${(canvasViewport.panX % step).toFixed(1)}px ${(canvasViewport.panY % step).toFixed(1)}px`;
+    }
+    if (readout) readout.textContent = `${Math.round((mobile ? 1 : canvasViewport.zoom) * 100)}%`;
+  }
+
+  function fitCanvasToView({ animate = true } = {}) {
+    const viewport = byId("workflowCanvasViewport");
+    const stage = byId("workflowCanvasStage");
+    if (!viewport || !stage) return;
+    if (isMobileCanvas()) {
+      canvasViewport = { panX: 0, panY: 0, zoom: 1 };
+      applyCanvasTransform({ animate });
+      scheduleEdgeSync(animate ? 260 : 0);
+      return;
+    }
+    const vw = viewport.clientWidth;
+    const vh = viewport.clientHeight;
+    if (!vw || !vh) return;
+    const contentW = Math.max(stage.scrollWidth, 260);
+    const contentH = Math.max(stage.scrollHeight, 160);
+    const padX = 40;
+    const padY = 40;
+    const fitZoom = Math.min((vw - padX) / contentW, (vh - padY) / contentH);
+    const zoom = Math.min(1, Math.max(0.55, fitZoom));
+    const panX = Math.max(16, Math.round((vw - contentW * zoom) / 2));
+    const panY = Math.max(12, Math.round((vh - contentH * zoom) / 2));
+    canvasViewport = { panX, panY, zoom };
+    applyCanvasTransform({ animate });
+    persistCanvasViewport();
+    scheduleEdgeSync(animate ? 280 : 0);
+  }
+
+  function setCanvasZoom(nextZoom, focalClientX = null, focalClientY = null) {
+    const viewport = byId("workflowCanvasViewport");
+    const clamped = Math.min(1.6, Math.max(0.5, Number(nextZoom) || 1));
+    if (viewport && focalClientX !== null && focalClientY !== null && !isMobileCanvas()) {
+      const rect = viewport.getBoundingClientRect();
+      const vx = focalClientX - rect.left;
+      const vy = focalClientY - rect.top;
+      const worldX = (vx - canvasViewport.panX) / canvasViewport.zoom;
+      const worldY = (vy - canvasViewport.panY) / canvasViewport.zoom;
+      canvasViewport.zoom = clamped;
+      canvasViewport.panX = vx - worldX * clamped;
+      canvasViewport.panY = vy - worldY * clamped;
+    } else {
+      canvasViewport.zoom = clamped;
+    }
+    applyCanvasTransform({ animate: false });
+    persistCanvasViewport();
+    syncCanvasEdges();
+  }
+
   function setSaveMessage(message, error = false) {
     const element = byId("workflowSaveState");
     if (!element) return;
     element.textContent = message || "";
     element.classList.toggle("error", Boolean(error));
+    element.dataset.tone = error ? "error" : message ? "saved" : "idle";
+  }
+
+  function setListFeedback(message, error = false) {
+    const el = byId("workflowListFeedback");
+    if (!el) return;
+    if (listFeedbackTimer) root.clearTimeout(listFeedbackTimer);
+    if (!message) {
+      el.textContent = "";
+      el.classList.add("hidden");
+      delete el.dataset.tone;
+      return;
+    }
+    el.textContent = message;
+    el.classList.remove("hidden");
+    el.dataset.tone = error ? "error" : "info";
+    if (!error) {
+      listFeedbackTimer = root.setTimeout(() => {
+        el.classList.add("hidden");
+      }, 4000);
+    }
+  }
+
+  function showCanvasAlert(message, tone = "error") {
+    const el = byId("workflowCanvasAlert");
+    if (!el) return;
+    if (canvasAlertTimer) root.clearTimeout(canvasAlertTimer);
+    if (!message) {
+      el.textContent = "";
+      el.classList.add("hidden");
+      delete el.dataset.tone;
+      return;
+    }
+    el.textContent = message;
+    el.classList.remove("hidden");
+    el.dataset.tone = tone;
+    canvasAlertTimer = root.setTimeout(() => {
+      if (el.isConnected) el.classList.add("hidden");
+    }, 5200);
   }
 
   function markWorkflowUpdated() {
@@ -665,119 +963,868 @@
     if (!workflow) return;
     workflow.updated_at = nowIso();
     persistLocalWorkflows();
-    setSaveMessage("修改已保存在本机，点击“保存”可同步到云端");
+    setSaveMessage("本地已保存，点击保存可同步云端");
   }
 
   function escapeHtml(value) {
     return String(value ?? "").replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[char]));
   }
 
+  function setViewMode(nextMode, options = {}) {
+    viewMode = nextMode === "editor" ? "editor" : "list";
+    const workspace = byId("workflowWorkspace");
+    if (workspace) workspace.dataset.wfView = viewMode;
+    openRowMenuId = "";
+    closeEditorMoreMenu();
+    if (viewMode === "list") {
+      closeNodePicker({ restoreFocus: false });
+      selectedStepId = "";
+      syncInspectorVisibility();
+      renderWorkflowList();
+      renderTemplates();
+    } else {
+      if (options.openRunner) setRunnerExpanded(true, { scroll: true });
+      else if (options.closeRunner) setRunnerExpanded(false);
+      renderEditor({ fitView: options.fitView !== false });
+    }
+  }
+
+  function setRunnerExpanded(expanded, options = {}) {
+    runnerExpanded = Boolean(expanded);
+    const workspace = byId("workflowWorkspace");
+    const panel = byId("workflowRunnerPanel");
+    const toggleBtn = byId("toggleWorkflowRunnerBtn");
+    if (workspace) workspace.dataset.wfRunner = runnerExpanded ? "open" : "closed";
+    if (panel) panel.setAttribute("aria-hidden", String(!runnerExpanded));
+    if (toggleBtn) toggleBtn.setAttribute("aria-expanded", String(runnerExpanded));
+    if (runnerExpanded && options.scroll && panel) {
+      root.requestAnimationFrame?.(() => {
+        panel.scrollIntoView?.({ block: "nearest", behavior: isReducedMotion() ? "auto" : "smooth" });
+      });
+    }
+  }
+
+  function syncInspectorVisibility() {
+    const workspace = byId("workflowWorkspace");
+    const panel = byId("workflowInspectorPanel");
+    const workflow = selectedWorkflow();
+    const step = workflow?.steps?.find((item) => item.id === selectedStepId) || null;
+    const isOpen = viewMode === "editor" && Boolean(step);
+    if (!step) selectedStepId = "";
+    if (workspace) workspace.dataset.wfInspector = isOpen ? "open" : "closed";
+    if (panel) panel.setAttribute("aria-hidden", String(!isOpen));
+    byId("workflowStepList")?.querySelectorAll("[data-step-id]").forEach((node) => {
+      node.dataset.selected = String(node.dataset.stepId === selectedStepId);
+    });
+  }
+
+  function closeEditorMoreMenu() {
+    const btn = byId("workflowMoreMenuBtn");
+    const menu = byId("workflowEditorMoreMenu");
+    if (menu) menu.classList.add("hidden");
+    if (btn) btn.setAttribute("aria-expanded", "false");
+  }
+
   function renderWorkflowList() {
     const target = byId("workflowList");
+    const countBadge = byId("workflowCountBadge");
+    if (countBadge) countBadge.textContent = String(workflows.length);
     if (!target) return;
-    target.innerHTML = workflows.map((workflow) => `<button class="${workflow.id === selectedWorkflowId ? "active" : ""}" type="button" data-workflow-id="${workflow.id}"><strong>${escapeHtml(workflow.name)}</strong><small>${workflow.steps.length} 个步骤</small></button>`).join("") || '<p class="workflow-empty">还没有工作流。</p>';
+    const q = workflowSearchQuery.trim().toLowerCase();
+    const filtered = q
+      ? workflows.filter((wf) => {
+        if (wf.name.toLowerCase().includes(q)) return true;
+        return wf.steps.some((step) => {
+          const cap = CAPABILITY_REGISTRY[step.tool_id];
+          return step.tool_id.toLowerCase().includes(q) || (cap?.name || "").toLowerCase().includes(q);
+        });
+      })
+      : workflows;
+
+    if (!workflows.length) {
+      target.innerHTML = `<div class="wf-empty-box">
+        <p class="workflow-empty">还没有保存的工作流。可以从空白画布创建，或直接选用下方内置模板。</p>
+        <button class="primary" type="button" data-wf-empty-create>新建空白工作流</button>
+      </div>`;
+      target.querySelector("[data-wf-empty-create]")?.addEventListener("click", () => createAndOpenBlankWorkflow());
+      return;
+    }
+
+    if (!filtered.length) {
+      target.innerHTML = `<div class="wf-empty-box">
+        <p class="workflow-empty">没有匹配“${escapeHtml(workflowSearchQuery)}”的工作流。</p>
+        <button class="button-secondary" type="button" data-wf-clear-search>清空筛选</button>
+      </div>`;
+      target.querySelector("[data-wf-clear-search]")?.addEventListener("click", () => {
+        workflowSearchQuery = "";
+        const input = byId("workflowSearchInput");
+        if (input) input.value = "";
+        renderWorkflowList();
+      });
+      return;
+    }
+
+    target.innerHTML = filtered.map((workflow) => {
+      const flow = workflowFlowSummary(workflow);
+      const isSynced = cloudConfigIds.has(workflow.id);
+      const isMenuOpen = openRowMenuId === workflow.id;
+      const isActive = workflow.id === selectedWorkflowId;
+      return `<article class="wf-list-row${isActive ? " is-selected" : ""}" role="listitem" data-workflow-row="${workflow.id}">
+        <button class="wf-row-main${isActive ? " active" : ""}" type="button" data-workflow-id="${workflow.id}">
+          <div class="wf-row-head">
+            <strong class="wf-row-title">${escapeHtml(workflow.name)}</strong>
+            ${isSynced ? '<span class="wf-sync-tag">已同步</span>' : '<span class="wf-local-tag">本机草稿</span>'}
+          </div>
+          <div class="wf-row-meta">
+            <span>${workflow.steps.length} 个步骤</span>
+            <span class="wf-row-flow">${escapeHtml(flow.inputLabel)} → ${escapeHtml(flow.outputLabel)}</span>
+            <time datetime="${escapeHtml(workflow.updated_at)}">${escapeHtml(formatTimestamp(workflow.updated_at))}</time>
+          </div>
+        </button>
+        <div class="wf-row-actions">
+          <button class="button-secondary wf-row-btn" type="button" data-wf-edit="${workflow.id}">编辑</button>
+          <button class="button-ghost wf-row-btn" type="button" data-wf-run="${workflow.id}">运行</button>
+          <div class="wf-row-menu-wrap">
+            <button class="button-ghost wf-icon-btn" type="button" data-wf-row-menu="${workflow.id}" aria-haspopup="menu" aria-expanded="${isMenuOpen}" aria-label="更多操作：${escapeHtml(workflow.name)}">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg>
+            </button>
+            <div class="wf-popover-menu${isMenuOpen ? "" : " hidden"}" role="menu" aria-label="工作流操作">
+              <button type="button" role="menuitem" data-wf-row-dup="${workflow.id}">复制流程</button>
+              <button type="button" role="menuitem" data-wf-row-export="${workflow.id}">导出 JSON</button>
+              <div class="wf-menu-divider" role="separator"></div>
+              <button type="button" role="menuitem" class="danger-text" data-wf-row-delete="${workflow.id}">删除</button>
+            </div>
+          </div>
+        </div>
+      </article>`;
+    }).join("");
+
     target.querySelectorAll("[data-workflow-id]").forEach((button) => button.addEventListener("click", () => {
-      selectedWorkflowId = button.dataset.workflowId;
-      persistLocalWorkflows();
-      renderAll();
+      openWorkflowInEditor(button.dataset.workflowId);
+    }));
+    target.querySelectorAll("[data-wf-edit]").forEach((button) => button.addEventListener("click", () => {
+      openWorkflowInEditor(button.dataset.wfEdit);
+    }));
+    target.querySelectorAll("[data-wf-run]").forEach((button) => button.addEventListener("click", () => {
+      openWorkflowInEditor(button.dataset.wfRun, { openRunner: true });
+    }));
+    target.querySelectorAll("[data-wf-row-menu]").forEach((button) => button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const id = button.dataset.wfRowMenu;
+      openRowMenuId = openRowMenuId === id ? "" : id;
+      renderWorkflowList();
+      if (openRowMenuId) {
+        const firstItem = target.querySelector(`[data-workflow-row="${id}"] [role="menuitem"]`);
+        firstItem?.focus?.({ preventScroll: true });
+      }
+    }));
+    target.querySelectorAll("[data-wf-row-dup]").forEach((button) => button.addEventListener("click", () => {
+      duplicateWorkflowById(button.dataset.wfRowDup);
+    }));
+    target.querySelectorAll("[data-wf-row-export]").forEach((button) => button.addEventListener("click", () => {
+      try {
+        const wf = workflows.find((item) => item.id === button.dataset.wfRowExport);
+        if (wf) exportWorkflowObject(wf);
+      } catch (error) { setListFeedback(error.message, true); }
+      openRowMenuId = "";
+      renderWorkflowList();
+    }));
+    target.querySelectorAll("[data-wf-row-delete]").forEach((button) => button.addEventListener("click", () => {
+      void deleteWorkflowById(button.dataset.wfRowDelete);
     }));
   }
 
   function renderTemplates() {
     const target = byId("workflowTemplateList");
     if (!target) return;
-    target.innerHTML = TEMPLATE_DEFINITIONS.map((template) => `<button type="button" data-workflow-template="${template.id}"><strong>${template.name}</strong><small>${template.description}</small></button>`).join("");
+    target.innerHTML = TEMPLATE_DEFINITIONS.map((template) => {
+      const dummyWorkflow = {
+        steps: template.steps.map(([toolId, cfg], idx) => ({
+          id: `step_tpl_${idx}`,
+          tool_id: toolId,
+          enabled: true,
+          config: cfg || {},
+        })),
+      };
+      const flow = workflowFlowSummary(dummyWorkflow);
+      const miniSteps = template.steps.map(([toolId], idx) => {
+        const capName = CAPABILITY_REGISTRY[toolId]?.name || toolId;
+        return `<span class="wf-tpl-node" title="${escapeHtml(capName)}">${capabilityIconSvg(toolId, "wf-tpl-node-icon")}<span>${escapeHtml(capName)}</span></span>${idx < template.steps.length - 1 ? `<span class="wf-tpl-arrow" aria-hidden="true">${uiIconSvg("arrowRight", "wf-tpl-arrow-svg")}</span>` : ""}`;
+      }).join("");
+      return `<button class="wf-template-card" type="button" data-workflow-template="${template.id}">
+        <div class="wf-tpl-head">
+          <strong>${escapeHtml(template.name)}</strong>
+          <span class="wf-tpl-io">${escapeHtml(flow.inputLabel)} → ${escapeHtml(flow.outputLabel)}</span>
+        </div>
+        <p class="wf-tpl-desc">${escapeHtml(template.description)}</p>
+        <div class="wf-tpl-flow" aria-hidden="true">${miniSteps}</div>
+      </button>`;
+    }).join("");
+
     target.querySelectorAll("[data-workflow-template]").forEach((button) => button.addEventListener("click", () => {
-      if (workflows.length >= MAX_WORKFLOWS) return setSaveMessage(`最多保存 ${MAX_WORKFLOWS} 个工作流`, true);
+      if (workflows.length >= MAX_WORKFLOWS) {
+        setListFeedback(`最多保存 ${MAX_WORKFLOWS} 个工作流`, true);
+        setSaveMessage(`最多保存 ${MAX_WORKFLOWS} 个工作流`, true);
+        return;
+      }
       const workflow = workflowFromTemplate(button.dataset.workflowTemplate);
       workflows.unshift(workflow);
       selectedWorkflowId = workflow.id;
+      selectedStepId = "";
+      lastStatuses = [];
+      lastRunError = null;
+      canvasViewport = { panX: 0, panY: 0, zoom: 1 };
       persistLocalWorkflows();
-      renderAll();
+      setSaveMessage("已从模板创建，点击保存可同步云端");
+      setViewMode("editor", { fitView: true, closeRunner: true });
     }));
   }
 
-  function configFields(step) {
-    const schema = CONFIG_SCHEMAS[step.tool_id];
-    const fields = Object.entries(schema).map(([key, rule]) => {
-      const id = `workflow-config-${step.id}-${key}`;
-      if (rule.type === "enum") {
-        return `<label><span>${rule.label}</span><select id="${id}" data-step-config="${key}">${rule.values.map((value) => `<option value="${escapeHtml(value)}"${step.config[key] === value ? " selected" : ""}>${escapeHtml(rule.labels?.[value] || value)}</option>`).join("")}</select></label>`;
+  function openWorkflowInEditor(workflowId, options = {}) {
+    if (!workflows.some((item) => item.id === workflowId)) return;
+    selectedWorkflowId = workflowId;
+    selectedStepId = "";
+    lastStatuses = [];
+    lastRunError = null;
+    canvasViewport = loadCanvasViewportFor(workflowId);
+    persistLocalWorkflows();
+    setSaveMessage("");
+    setViewMode("editor", { openRunner: Boolean(options.openRunner), closeRunner: !options.openRunner, fitView: true });
+  }
+
+  function createAndOpenBlankWorkflow() {
+    if (workflows.length >= MAX_WORKFLOWS) {
+      setListFeedback(`最多保存 ${MAX_WORKFLOWS} 个工作流`, true);
+      setSaveMessage(`最多保存 ${MAX_WORKFLOWS} 个工作流`, true);
+      return;
+    }
+    const workflow = blankWorkflow();
+    workflows.unshift(workflow);
+    selectedWorkflowId = workflow.id;
+    selectedStepId = "";
+    lastStatuses = [];
+    lastRunError = null;
+    canvasViewport = { panX: 0, panY: 0, zoom: 1 };
+    persistLocalWorkflows();
+    setSaveMessage("已新建空白工作流");
+    setViewMode("editor", { fitView: true, closeRunner: true });
+  }
+
+  function candidateCompatibility(workflow, toolId, insertIndex) {
+    const cap = CAPABILITY_REGISTRY[toolId];
+    if (!cap) return { compatible: false, reason: "未注册的能力" };
+    const steps = workflow?.steps || [];
+    const idx = insertIndex < 0 || insertIndex > steps.length ? steps.length : insertIndex;
+    const prevSteps = steps.slice(0, idx).filter((s) => s.enabled);
+    const nextSteps = steps.slice(idx).filter((s) => s.enabled);
+
+    let incomingTypes = new Set(cap.input_types);
+    if (prevSteps.length) {
+      let prevOut;
+      try {
+        prevOut = validateStepSequence(prevSteps);
+      } catch (err) {
+        return { compatible: false, reason: err.message };
       }
-      if (rule.type === "color") return `<label><span>${rule.label}</span><input id="${id}" data-step-config="${key}" type="color" value="${escapeHtml(step.config[key])}" /></label>`;
-      const type = ["integer", "number"].includes(rule.type) ? "number" : "text";
-      const limits = type === "number" ? ` min="${rule.min}" max="${rule.max}"${rule.type === "number" ? ' step="0.05"' : ""}` : ` maxlength="${rule.maxLength}"`;
-      return `<label><span>${rule.label}</span><input id="${id}" data-step-config="${key}" type="${type}"${limits} value="${escapeHtml(step.config[key])}" /></label>`;
-    }).join("");
-    return fields ? `<div class="workflow-step-config">${fields}</div>` : '<p class="workflow-step-no-config">无需额外参数</p>';
+      incomingTypes = new Set([...prevOut].filter((t) => cap.input_types.includes(t)));
+      if (!incomingTypes.size) {
+        return {
+          compatible: false,
+          reason: `需要 ${formatTypesLabel(cap.input_types)}，但前序输出为 ${formatTypesLabel([...prevOut])}`,
+        };
+      }
+    }
+
+    if (nextSteps.length) {
+      const candidateOut = outputTypesFor(cap, incomingTypes);
+      const nextCap = CAPABILITY_REGISTRY[nextSteps[0].tool_id];
+      const nextAccepted = new Set(nextCap.input_types);
+      const bridgeTypes = new Set([...candidateOut].filter((t) => nextAccepted.has(t)));
+      if (!bridgeTypes.size) {
+        return {
+          compatible: false,
+          reason: `输出 ${formatTypesLabel([...candidateOut])}，无法衔接后续“${nextCap.name}”(${formatTypesLabel(nextCap.input_types)})`,
+        };
+      }
+      // Verify the remainder of the sequence stays valid with this inserted step.
+      const trial = [
+        ...steps.slice(0, idx),
+        { id: "step_trial_check", tool_id: toolId, enabled: true, config: normalizeConfig(toolId, {}) },
+        ...steps.slice(idx),
+      ];
+      try {
+        validateStepSequence(trial);
+      } catch (err) {
+        return { compatible: false, reason: err.message };
+      }
+    }
+
+    return { compatible: true, reason: "可与当前流程衔接" };
+  }
+
+  function addableCapabilities(workflow, insertIndex = -1) {
+    return Object.entries(CAPABILITY_REGISTRY).filter(([toolId]) => candidateCompatibility(workflow, toolId, insertIndex).compatible);
+  }
+
+  function insertStepAt(toolId, insertIndex = -1) {
+    const workflow = selectedWorkflow();
+    if (!workflow || !CAPABILITY_REGISTRY[toolId]) return;
+    if (workflow.steps.length >= MAX_STEPS) {
+      showCanvasAlert(`每个工作流最多包含 ${MAX_STEPS} 个步骤`, "error");
+      setSaveMessage(`最多 ${MAX_STEPS} 个步骤`, true);
+      return;
+    }
+    const compat = candidateCompatibility(workflow, toolId, insertIndex);
+    if (!compat.compatible) {
+      showCanvasAlert(`无法添加“${CAPABILITY_REGISTRY[toolId].name}”：${compat.reason}`, "error");
+      return;
+    }
+    const idx = insertIndex < 0 || insertIndex > workflow.steps.length ? workflow.steps.length : insertIndex;
+    const newStep = { id: randomId("step"), tool_id: toolId, enabled: true, config: normalizeConfig(toolId, {}) };
+    const snap = captureNodeFlip();
+    workflow.steps.splice(idx, 0, newStep);
+    selectedStepId = newStep.id;
+    lastStatuses = [];
+    lastRunError = null;
+    markWorkflowUpdated();
+    renderEditor({ flipSnapshot: snap, fitView: workflow.steps.length <= 2 });
+  }
+
+  function captureNodeFlip() {
+    const list = byId("workflowStepList");
+    if (!list || isReducedMotion()) return null;
+    if (root.WYJMotion?.captureFlipSnapshot) {
+      return root.WYJMotion.captureFlipSnapshot(list, { selector: ":scope > li.wf-node", getKey: (el) => el.dataset.stepId });
+    }
+    const map = new Map();
+    list.querySelectorAll(":scope > li.wf-node").forEach((el) => {
+      const rect = el.getBoundingClientRect();
+      if (rect.width > 0) map.set(el.dataset.stepId, { element: el, rect });
+    });
+    return map;
+  }
+
+  function playNodeFlip(beforeSnapshot) {
+    const list = byId("workflowStepList");
+    if (!list || !beforeSnapshot || isReducedMotion()) return;
+    if (root.WYJMotion?.playFlipSnapshot) {
+      root.WYJMotion.playFlipSnapshot(list, beforeSnapshot, {
+        selector: ":scope > li.wf-node",
+        getKey: (el) => el.dataset.stepId,
+        duration: 280,
+        scale: false,
+        animateEnter: true,
+      });
+      scheduleEdgeSync(300);
+      return;
+    }
+    scheduleEdgeSync(20);
+  }
+
+  function tryCommitReorderedSteps(mutateCandidateFn, failurePrefix = "无法调整节点顺序") {
+    const workflow = selectedWorkflow();
+    if (!workflow) return false;
+    const candidate = cloneJson(workflow.steps);
+    mutateCandidateFn(candidate);
+    try {
+      validateStepSequence(candidate);
+    } catch (error) {
+      showCanvasAlert(`${failurePrefix}：${error.message}`, "error");
+      return false;
+    }
+    const snap = captureNodeFlip();
+    workflow.steps = candidate;
+    lastStatuses = [];
+    lastRunError = null;
+    showCanvasAlert("");
+    markWorkflowUpdated();
+    renderEditor({ flipSnapshot: snap, fitView: false });
+    return true;
   }
 
   function moveStep(stepId, offset) {
     const workflow = selectedWorkflow();
+    if (!workflow) return;
     const index = workflow.steps.findIndex((step) => step.id === stepId);
     const target = index + offset;
     if (index < 0 || target < 0 || target >= workflow.steps.length) return;
-    [workflow.steps[index], workflow.steps[target]] = [workflow.steps[target], workflow.steps[index]];
-    markWorkflowUpdated();
-    renderEditor();
+    tryCommitReorderedSteps((steps) => {
+      [steps[index], steps[target]] = [steps[target], steps[index]];
+    });
   }
 
   function reorderStep(sourceId, targetId) {
     const workflow = selectedWorkflow();
+    if (!workflow) return;
     const source = workflow.steps.findIndex((step) => step.id === sourceId);
     const target = workflow.steps.findIndex((step) => step.id === targetId);
     if (source < 0 || target < 0 || source === target) return;
-    const [item] = workflow.steps.splice(source, 1);
-    workflow.steps.splice(target, 0, item);
+    tryCommitReorderedSteps((steps) => {
+      const [item] = steps.splice(source, 1);
+      steps.splice(target, 0, item);
+    });
+  }
+
+  function computeBezierEdge(x1, y1, x2, y2, vertical) {
+    const c = 0.28;
+    if (vertical) {
+      const dy = y2 - y1;
+      const offset = dy >= 0 ? 0.5 * dy : c * 25 * Math.sqrt(-dy);
+      const cy1 = y1 + offset;
+      const cy2 = y2 - offset;
+      const mx = x1 * 0.5 + x2 * 0.5;
+      const my = y1 * 0.125 + cy1 * 0.375 + cy2 * 0.375 + y2 * 0.125;
+      return { path: `M ${x1.toFixed(1)} ${y1.toFixed(1)} C ${x1.toFixed(1)} ${cy1.toFixed(1)}, ${x2.toFixed(1)} ${cy2.toFixed(1)}, ${x2.toFixed(1)} ${y2.toFixed(1)}`, mx, my };
+    }
+    const dx = x2 - x1;
+    const offset = dx >= 0 ? 0.5 * dx : c * 25 * Math.sqrt(-dx);
+    const cx1 = x1 + offset;
+    const cx2 = x2 - offset;
+    const mx = x1 * 0.125 + cx1 * 0.375 + cx2 * 0.375 + x2 * 0.125;
+    const my = y1 * 0.5 + y2 * 0.5;
+    return { path: `M ${x1.toFixed(1)} ${y1.toFixed(1)} C ${cx1.toFixed(1)} ${y1.toFixed(1)}, ${cx2.toFixed(1)} ${y2.toFixed(1)}, ${x2.toFixed(1)} ${y2.toFixed(1)}`, mx, my };
+  }
+
+  function syncCanvasEdges() {
+    const stage = byId("workflowCanvasStage");
+    const svg = byId("workflowCanvasEdges");
+    const inserts = byId("workflowEdgeInserts");
+    const list = byId("workflowStepList");
+    const workflow = selectedWorkflow();
+    if (!stage || !svg || !inserts || !list || !workflow || viewMode !== "editor") return;
+
+    const nodes = [...list.querySelectorAll(":scope > li.wf-node")];
+    const stageRect = stage.getBoundingClientRect();
+    const zoom = isMobileCanvas() ? 1 : (canvasViewport.zoom || 1);
+    const w = Math.max(stage.scrollWidth, Math.round(stageRect.width / zoom), 100);
+    const h = Math.max(stage.scrollHeight, Math.round(stageRect.height / zoom), 100);
+    svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+    svg.setAttribute("width", String(w));
+    svg.setAttribute("height", String(h));
+
+    if (nodes.length < 2) {
+      svg.innerHTML = "";
+      inserts.innerHTML = "";
+      return;
+    }
+
+    const vertical = isMobileCanvas();
+    const statusById = new Map(lastStatuses.map((s) => [s.id, s]));
+    let pathsHtml = `<defs>
+      <marker id="wf-arrow-idle" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="currentColor"/></marker>
+    </defs>`;
+    const insertButtons = [];
+
+    for (let i = 0; i < nodes.length - 1; i += 1) {
+      const fromNode = nodes[i];
+      const toNode = nodes[i + 1];
+      const outPort = fromNode.querySelector('[data-port="out"]') || fromNode;
+      const inPort = toNode.querySelector('[data-port="in"]') || toNode;
+      const outRect = outPort.getBoundingClientRect();
+      const inRect = inPort.getBoundingClientRect();
+      const x1 = (outRect.left + outRect.width / 2 - stageRect.left) / zoom;
+      const y1 = (outRect.top + outRect.height / 2 - stageRect.top) / zoom;
+      const x2 = (inRect.left + inRect.width / 2 - stageRect.left) / zoom;
+      const y2 = (inRect.top + inRect.height / 2 - stageRect.top) / zoom;
+
+      const { path, mx, my } = computeBezierEdge(x1, y1, x2, y2, vertical);
+      const fromStep = workflow.steps[i];
+      const toStep = workflow.steps[i + 1];
+      const fromStatus = statusById.get(fromStep?.id)?.status || "waiting";
+      const toStatus = statusById.get(toStep?.id)?.status || "waiting";
+      let edgeState = "idle";
+      if (toStatus === "running") edgeState = "running";
+      else if (fromStatus === "failed" || toStatus === "failed") edgeState = "failed";
+      else if (fromStatus === "success" && (toStatus === "success" || toStatus === "running")) edgeState = "success";
+      else if (fromStatus === "skipped" || toStatus === "skipped") edgeState = "skipped";
+      else if (fromStatus === "cancelled" || toStatus === "cancelled") edgeState = "cancelled";
+
+      let edgeValid = true;
+      try { validateStepSequence([fromStep, toStep].filter((s) => s && s.enabled)); } catch (_) { edgeValid = false; }
+      if (!edgeValid) edgeState = "invalid";
+
+      pathsHtml += `<g class="wf-edge-group" data-edge-state="${edgeState}" data-edge-valid="${edgeValid}">
+        <path class="wf-edge-hit" d="${path}" fill="none" stroke="transparent" stroke-width="14"/>
+        <path class="wf-edge-path" d="${path}" fill="none" marker-end="url(#wf-arrow-idle)"/>
+      </g>`;
+
+      insertButtons.push({ index: i + 1, mx, my });
+    }
+
+    svg.innerHTML = pathsHtml;
+
+    // Position edge insert buttons using DOM style (no inline HTML style attr).
+    inserts.innerHTML = "";
+    insertButtons.forEach(({ index, mx, my }) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "wf-edge-insert-btn";
+      btn.dataset.insertIndex = String(index);
+      btn.setAttribute("aria-label", `在第 ${index} 与 ${index + 1} 步之间插入节点`);
+      btn.title = "在此处插入节点";
+      btn.innerHTML = uiIconSvg("plus", "wf-edge-plus-icon");
+      btn.style.left = `${mx.toFixed(1)}px`;
+      btn.style.top = `${my.toFixed(1)}px`;
+      btn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        openNodePicker(index, btn);
+      });
+      inserts.append(btn);
+    });
+  }
+
+  function scheduleEdgeSync(durationMs = 0) {
+    const targetEnd = root.performance?.now ? root.performance.now() + durationMs : Date.now() + durationMs;
+    edgeSyncUntil = Math.max(edgeSyncUntil, targetEnd);
+    if (edgeSyncRaf || typeof root.requestAnimationFrame !== "function") {
+      if (typeof root.requestAnimationFrame !== "function") syncCanvasEdges();
+      return;
+    }
+    const tick = () => {
+      edgeSyncRaf = 0;
+      syncCanvasEdges();
+      const now = root.performance?.now ? root.performance.now() : Date.now();
+      if (now < edgeSyncUntil) {
+        edgeSyncRaf = root.requestAnimationFrame(tick);
+      }
+    };
+    edgeSyncRaf = root.requestAnimationFrame(tick);
+  }
+
+  function renderInspector() {
+    const workflow = selectedWorkflow();
+    const step = workflow?.steps?.find((item) => item.id === selectedStepId) || null;
+    syncInspectorVisibility();
+    if (!workflow || !step) return;
+
+    const index = workflow.steps.findIndex((item) => item.id === step.id);
+    const cap = CAPABILITY_REGISTRY[step.tool_id];
+    const meta = CAPABILITY_META[step.tool_id] || {};
+    const schema = CONFIG_SCHEMAS[step.tool_id] || {};
+    const statusObj = lastStatuses.find((item) => item.id === step.id);
+    const status = statusObj?.status || "waiting";
+
+    const iconEl = byId("inspectorNodeIcon");
+    if (iconEl) iconEl.innerHTML = capabilityIconSvg(step.tool_id);
+    if (byId("inspectorStepBadge")) byId("inspectorStepBadge").textContent = `第 ${index + 1} 步 · ${meta.categoryLabel || "处理"}`;
+    if (byId("inspectorNodeTitle")) byId("inspectorNodeTitle").textContent = cap.name;
+
+    const fieldsHtml = Object.entries(schema).map(([key, rule]) => {
+      const id = `wf-insp-${step.id}-${key}`;
+      const val = step.config[key];
+      if (rule.type === "enum") {
+        // <= 5 options: direct segmented pills + synced native select for contract compatibility.
+        const pills = rule.values.map((opt) => {
+          const label = rule.labels?.[opt] || opt;
+          const active = val === opt;
+          return `<button type="button" class="wf-seg-btn${active ? " is-active" : ""}" role="radio" aria-checked="${active}" data-inspector-enum-key="${key}" data-inspector-enum-val="${escapeHtml(opt)}">${escapeHtml(label)}</button>`;
+        }).join("");
+        const selectOpts = rule.values.map((opt) => `<option value="${escapeHtml(opt)}"${val === opt ? " selected" : ""}>${escapeHtml(rule.labels?.[opt] || opt)}</option>`).join("");
+        return `<div class="wf-field-group">
+          <span class="wf-field-label">${escapeHtml(rule.label)}</span>
+          <div class="wf-seg-group" role="radiogroup" aria-label="${escapeHtml(rule.label)}">${pills}</div>
+          <select id="${id}" class="sr-only" data-ds-select="native" data-step-config="${key}" tabindex="-1" aria-hidden="true">${selectOpts}</select>
+        </div>`;
+      }
+      if (rule.type === "number") {
+        const pct = Math.round(Number(val) * 100);
+        return `<div class="wf-field-group">
+          <div class="wf-field-head"><label class="wf-field-label" for="${id}">${escapeHtml(rule.label)}</label><strong class="wf-field-readout" data-readout-for="${key}">${pct}% (${escapeHtml(val)})</strong></div>
+          <div class="wf-slider-row">
+            <input type="range" class="wf-range-input" min="${rule.min}" max="${rule.max}" step="0.05" value="${escapeHtml(val)}" data-step-slider="${key}" aria-label="${escapeHtml(rule.label)}" />
+            <input id="${id}" type="number" class="wf-compact-num" min="${rule.min}" max="${rule.max}" step="0.05" value="${escapeHtml(val)}" data-step-config="${key}" />
+          </div>
+          <p class="wf-field-error hidden" data-field-error="${key}" role="alert"></p>
+        </div>`;
+      }
+      if (rule.type === "integer") {
+        return `<div class="wf-field-group">
+          <div class="wf-field-head"><label class="wf-field-label" for="${id}">${escapeHtml(rule.label)}</label><small class="wf-field-hint">${rule.min} – ${rule.max}</small></div>
+          <input id="${id}" type="number" min="${rule.min}" max="${rule.max}" step="1" value="${escapeHtml(val)}" data-step-config="${key}" />
+          <p class="wf-field-error hidden" data-field-error="${key}" role="alert"></p>
+        </div>`;
+      }
+      if (rule.type === "color") {
+        const swatches = COLOR_SWATCHES.map((hex) => `<button type="button" class="wf-color-swatch${val === hex ? " is-active" : ""}" data-swatch-color="${hex}" data-swatch-key="${key}" aria-label="选择颜色 ${hex}" title="${hex}"><span class="wf-swatch-chip" data-swatch-hex="${hex}"></span></button>`).join("");
+        return `<div class="wf-field-group">
+          <div class="wf-field-head"><label class="wf-field-label" for="${id}">${escapeHtml(rule.label)}</label><code class="wf-hex-code" data-readout-for="${key}">${escapeHtml(val)}</code></div>
+          <div class="wf-color-row">
+            <input id="${id}" type="color" value="${escapeHtml(val)}" data-step-config="${key}" />
+            <div class="wf-swatch-list">${swatches}</div>
+          </div>
+          <p class="wf-field-error hidden" data-field-error="${key}" role="alert"></p>
+        </div>`;
+      }
+      return `<div class="wf-field-group">
+        <div class="wf-field-head"><label class="wf-field-label" for="${id}">${escapeHtml(rule.label)}</label><small class="wf-field-hint" data-readout-for="${key}">${String(val || "").length} / ${rule.maxLength}</small></div>
+        <input id="${id}" type="text" maxlength="${rule.maxLength}" value="${escapeHtml(val)}" data-step-config="${key}" />
+        <p class="wf-field-error hidden" data-field-error="${key}" role="alert"></p>
+      </div>`;
+    }).join("");
+
+    const body = byId("workflowInspectorBody");
+    if (!body) return;
+    body.innerHTML = `
+      <div class="wf-insp-meta">
+        <p class="wf-insp-desc">${escapeHtml(meta.description || "")}</p>
+        <div class="wf-insp-io">
+          <span class="wf-io-pill">输入：${escapeHtml(formatTypesLabel(cap.input_types))}</span>
+          <span class="wf-io-arrow" aria-hidden="true">→</span>
+          <span class="wf-io-pill">输出：${escapeHtml(formatTypesLabel(cap.output_types))}</span>
+        </div>
+        ${statusObj ? `<div class="wf-insp-status" data-status="${status}"><span>运行状态：${escapeHtml(STATUS_LABELS[status] || status)}</span>${statusObj.duration_ms ? `<small>${statusObj.duration_ms} ms</small>` : ""}${statusObj.error ? `<p class="wf-insp-err-detail">${escapeHtml(statusObj.error)}</p>` : ""}</div>` : ""}
+      </div>
+
+      <div class="wf-insp-toggle-row">
+        <label class="wf-switch-label" for="wfInspectorEnabled">
+          <input id="wfInspectorEnabled" type="checkbox"${step.enabled ? " checked" : ""} data-inspector-enabled />
+          <span>启用此步骤</span>
+        </label>
+        <span class="wf-id-tag">${escapeHtml(step.tool_id)}</span>
+      </div>
+
+      <section class="wf-insp-params" aria-label="节点参数">
+        <h3>参数配置</h3>
+        ${fieldsHtml || '<p class="workflow-step-no-config">此节点无需额外配置参数，将直接按当前顺序执行。</p>'}
+      </section>
+
+      <section class="wf-insp-actions" aria-label="节点操作">
+        <h3>节点管理</h3>
+        <div class="wf-insp-action-grid">
+          <button class="button-secondary" type="button" data-inspector-up${index === 0 ? " disabled" : ""}>前移一步</button>
+          <button class="button-secondary" type="button" data-inspector-down${index >= workflow.steps.length - 1 ? " disabled" : ""}>后移一步</button>
+          <button class="button-secondary" type="button" data-inspector-duplicate>复制节点</button>
+          <button class="button-ghost danger-text" type="button" data-inspector-delete>删除节点</button>
+        </div>
+      </section>
+    `;
+
+    // Apply swatch background colors via CSSOM (CSP-safe, zero inline style attr).
+    body.querySelectorAll(".wf-swatch-chip[data-swatch-hex]").forEach((chip) => {
+      chip.style.backgroundColor = chip.dataset.swatchHex;
+    });
+
+    const commitConfigValue = (key, rawVal) => {
+      const rule = schema[key];
+      if (!rule) return;
+      const errEl = body.querySelector(`[data-field-error="${key}"]`);
+      const nextConfig = { ...step.config };
+      nextConfig[key] = ["integer", "number"].includes(rule.type) ? Number(rawVal) : rawVal;
+      try {
+        step.config = normalizeConfig(step.tool_id, nextConfig);
+        if (errEl) { errEl.textContent = ""; errEl.classList.add("hidden"); }
+        markWorkflowUpdated();
+        // Refresh canvas node summary without closing or rebuilding inspector inputs.
+        const nodeSummary = byId("workflowStepList")?.querySelector(`[data-step-id="${step.id}"] .wf-node-summary`);
+        if (nodeSummary) nodeSummary.textContent = summarizeStepConfig(step);
+      } catch (error) {
+        if (errEl) { errEl.textContent = error.message; errEl.classList.remove("hidden"); }
+        setSaveMessage(error.message, true);
+      }
+    };
+
+    body.querySelectorAll("[data-inspector-enum-key]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const key = btn.dataset.inspectorEnumKey;
+        const value = btn.dataset.inspectorEnumVal;
+        const hiddenSel = body.querySelector(`select[data-step-config="${key}"]`);
+        if (hiddenSel) hiddenSel.value = value;
+        body.querySelectorAll(`[data-inspector-enum-key="${key}"]`).forEach((b) => {
+          const active = b === btn;
+          b.classList.toggle("is-active", active);
+          b.setAttribute("aria-checked", String(active));
+        });
+        commitConfigValue(key, value);
+      });
+    });
+
+    body.querySelectorAll("[data-step-slider]").forEach((slider) => {
+      slider.addEventListener("input", () => {
+        const key = slider.dataset.stepSlider;
+        const numInput = body.querySelector(`[data-step-config="${key}"]`);
+        const readout = body.querySelector(`[data-readout-for="${key}"]`);
+        if (numInput) numInput.value = slider.value;
+        if (readout) readout.textContent = `${Math.round(Number(slider.value) * 100)}% (${slider.value})`;
+        commitConfigValue(key, slider.value);
+      });
+    });
+
+    body.querySelectorAll("[data-swatch-color]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const key = btn.dataset.swatchKey;
+        const hex = btn.dataset.swatchColor;
+        const colorInput = body.querySelector(`input[data-step-config="${key}"]`);
+        const readout = body.querySelector(`[data-readout-for="${key}"]`);
+        if (colorInput) colorInput.value = hex;
+        if (readout) readout.textContent = hex;
+        body.querySelectorAll(`[data-swatch-key="${key}"]`).forEach((b) => b.classList.toggle("is-active", b === btn));
+        commitConfigValue(key, hex);
+      });
+    });
+
+    body.querySelectorAll("[data-step-config]").forEach((field) => {
+      const key = field.dataset.stepConfig;
+      const syncDisplay = () => {
+        const rule = schema[key];
+        const readout = body.querySelector(`[data-readout-for="${key}"]`);
+        if (rule?.type === "number") {
+          const slider = body.querySelector(`[data-step-slider="${key}"]`);
+          if (slider) slider.value = field.value;
+          if (readout) readout.textContent = `${Math.round(Number(field.value) * 100)}% (${field.value})`;
+        } else if (rule?.type === "color") {
+          if (readout) readout.textContent = String(field.value).toLowerCase();
+          body.querySelectorAll(`[data-swatch-key="${key}"]`).forEach((b) => b.classList.toggle("is-active", b.dataset.swatchColor === String(field.value).toLowerCase()));
+        } else if (rule?.type === "string" && readout) {
+          readout.textContent = `${String(field.value || "").length} / ${rule.maxLength}`;
+        }
+      };
+      field.addEventListener("input", () => {
+        syncDisplay();
+        if (field.tagName !== "SELECT") commitConfigValue(key, field.value);
+      });
+      field.addEventListener("change", () => {
+        syncDisplay();
+        commitConfigValue(key, field.value);
+      });
+    });
+
+    body.querySelector("[data-inspector-enabled]")?.addEventListener("change", (event) => {
+      toggleStepEnabled(step.id, event.currentTarget.checked);
+    });
+    body.querySelector("[data-inspector-up]")?.addEventListener("click", () => moveStep(step.id, -1));
+    body.querySelector("[data-inspector-down]")?.addEventListener("click", () => moveStep(step.id, 1));
+    body.querySelector("[data-inspector-duplicate]")?.addEventListener("click", () => duplicateStepById(step.id));
+    body.querySelector("[data-inspector-delete]")?.addEventListener("click", () => deleteStepById(step.id));
+  }
+
+  function toggleStepEnabled(stepId, enabled) {
+    const workflow = selectedWorkflow();
+    const step = workflow?.steps?.find((value) => value.id === stepId);
+    if (!step) return;
+    const prev = step.enabled;
+    step.enabled = Boolean(enabled);
+    try {
+      validateStepSequence(workflow.steps);
+    } catch (error) {
+      step.enabled = prev;
+      showCanvasAlert(`无法${enabled ? "启用" : "停用"}节点：${error.message}`, "error");
+      renderEditor({ fitView: false });
+      return;
+    }
+    showCanvasAlert("");
     markWorkflowUpdated();
-    renderEditor();
+    renderEditor({ fitView: false });
+  }
+
+  function duplicateStepById(stepId) {
+    const workflow = selectedWorkflow();
+    if (!workflow) return;
+    if (workflow.steps.length >= MAX_STEPS) {
+      showCanvasAlert(`最多 ${MAX_STEPS} 个步骤`, "error");
+      return setSaveMessage(`最多 ${MAX_STEPS} 个步骤`, true);
+    }
+    const index = workflow.steps.findIndex((step) => step.id === stepId);
+    if (index < 0) return;
+    const dup = { ...cloneJson(workflow.steps[index]), id: randomId("step") };
+    const snap = captureNodeFlip();
+    workflow.steps.splice(index + 1, 0, dup);
+    try {
+      validateStepSequence(workflow.steps);
+    } catch (error) {
+      workflow.steps.splice(index + 1, 1);
+      showCanvasAlert(`无法复制该步骤：${error.message}`, "error");
+      return;
+    }
+    selectedStepId = dup.id;
+    markWorkflowUpdated();
+    renderEditor({ flipSnapshot: snap, fitView: false });
+  }
+
+  function deleteStepById(stepId) {
+    const workflow = selectedWorkflow();
+    if (!workflow) return;
+    const index = workflow.steps.findIndex((step) => step.id === stepId);
+    if (index < 0) return;
+    const removed = workflow.steps.splice(index, 1)[0];
+    try {
+      validateStepSequence(workflow.steps);
+    } catch (error) {
+      workflow.steps.splice(index, 0, removed);
+      showCanvasAlert(`删除后后续节点不兼容：${error.message}`, "error");
+      return;
+    }
+    if (selectedStepId === stepId) selectedStepId = "";
+    lastStatuses = lastStatuses.filter((item) => item.id !== stepId);
+    const snap = captureNodeFlip();
+    showCanvasAlert("");
+    markWorkflowUpdated();
+    renderEditor({ flipSnapshot: snap, fitView: false });
   }
 
   function bindStepEvents() {
-    const workflow = selectedWorkflow();
     const list = byId("workflowStepList");
     list?.querySelectorAll("[data-step-id]").forEach((item) => {
       const stepId = item.dataset.stepId;
+
+      item.addEventListener("click", (event) => {
+        if (event.target.closest("button, input, select, label")) return;
+        selectedStepId = stepId;
+        renderInspector();
+      });
+
+      item.addEventListener("keydown", (event) => {
+        if (event.target !== item) return;
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          selectedStepId = stepId;
+          renderInspector();
+        } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+          event.preventDefault();
+          moveStep(stepId, -1);
+          byId("workflowStepList")?.querySelector(`[data-step-id="${stepId}"]`)?.focus({ preventScroll: true });
+        } else if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+          event.preventDefault();
+          moveStep(stepId, 1);
+          byId("workflowStepList")?.querySelector(`[data-step-id="${stepId}"]`)?.focus({ preventScroll: true });
+        }
+      });
+
+      // HTML5 drag-drop kept for full compatibility + automated drag tests.
       item.addEventListener("dragstart", () => { draggedStepId = stepId; item.classList.add("dragging"); });
       item.addEventListener("dragend", () => { draggedStepId = ""; item.classList.remove("dragging"); });
       item.addEventListener("dragover", (event) => event.preventDefault());
       item.addEventListener("drop", (event) => { event.preventDefault(); reorderStep(draggedStepId, stepId); });
-      item.querySelector("[data-step-up]")?.addEventListener("click", () => moveStep(stepId, -1));
-      item.querySelector("[data-step-down]")?.addEventListener("click", () => moveStep(stepId, 1));
-      item.querySelector("[data-step-duplicate]")?.addEventListener("click", () => {
-        if (workflow.steps.length >= MAX_STEPS) return setSaveMessage(`最多 ${MAX_STEPS} 个步骤`, true);
-        const index = workflow.steps.findIndex((step) => step.id === stepId);
-        workflow.steps.splice(index + 1, 0, { ...cloneJson(workflow.steps[index]), id: randomId("step") });
-        markWorkflowUpdated();
-        renderEditor();
-      });
-      item.querySelector("[data-step-delete]")?.addEventListener("click", () => {
-        workflow.steps = workflow.steps.filter((step) => step.id !== stepId);
-        markWorkflowUpdated();
-        renderEditor();
-      });
-      item.querySelector("[data-step-enabled]")?.addEventListener("change", (event) => {
-        const step = workflow.steps.find((value) => value.id === stepId);
-        step.enabled = event.currentTarget.checked;
-        markWorkflowUpdated();
-        renderEditor();
-      });
-      item.querySelectorAll("[data-step-config]").forEach((field) => field.addEventListener("change", () => {
-        const step = workflow.steps.find((value) => value.id === stepId);
-        const rule = CONFIG_SCHEMAS[step.tool_id][field.dataset.stepConfig];
-        step.config[field.dataset.stepConfig] = ["integer", "number"].includes(rule.type) ? Number(field.value) : field.value;
-        try { step.config = normalizeConfig(step.tool_id, step.config); markWorkflowUpdated(); }
-        catch (error) { setSaveMessage(error.message, true); }
-      }));
-    });
-  }
 
-  function addableCapabilities(workflow) {
-    const active = workflow.steps.filter((step) => step.enabled);
-    if (!active.length) return Object.entries(CAPABILITY_REGISTRY);
-    let possible;
-    try { possible = validateStepSequence(workflow.steps); } catch (_) { return Object.entries(CAPABILITY_REGISTRY); }
-    return Object.entries(CAPABILITY_REGISTRY).filter(([, item]) => item.input_types.some((type) => possible.has(type)));
+      // Smooth Pointer Drag Reorder on the dedicated drag handle.
+      const handle = item.querySelector("[data-wf-drag-handle]");
+      handle?.addEventListener("pointerdown", (event) => {
+        if (event.button !== 0 || event.isPrimary === false) return;
+        event.preventDefault();
+        event.stopPropagation();
+        const nodes = [...list.querySelectorAll(":scope > li.wf-node")];
+        pointerDragState = {
+          stepId,
+          item,
+          pointerId: event.pointerId,
+          startX: event.clientX,
+          startY: event.clientY,
+          latestX: event.clientX,
+          latestY: event.clientY,
+          moved: false,
+          hoverTargetId: "",
+          nodes,
+        };
+      });
+
+      item.querySelector("[data-step-up]")?.addEventListener("click", (e) => { e.stopPropagation(); moveStep(stepId, -1); });
+      item.querySelector("[data-step-down]")?.addEventListener("click", (e) => { e.stopPropagation(); moveStep(stepId, 1); });
+      item.querySelector("[data-step-duplicate]")?.addEventListener("click", (e) => { e.stopPropagation(); duplicateStepById(stepId); });
+      item.querySelector("[data-step-delete]")?.addEventListener("click", (e) => { e.stopPropagation(); deleteStepById(stepId); });
+      item.querySelector("[data-step-enabled]")?.addEventListener("change", (event) => {
+        event.stopPropagation();
+        toggleStepEnabled(stepId, event.currentTarget.checked);
+      });
+    });
   }
 
   function renderInputControls(workflow) {
@@ -796,32 +1843,277 @@
       fileInput.multiple = batchCapable || types.includes("file-list");
       fileInput.accept = image ? "image/png,image/jpeg,image/webp" : textFile ? ".txt,.csv,.json,text/plain,text/csv,application/json" : "";
     }
-    if (byId("workflowFileInputLabel")) byId("workflowFileInputLabel").textContent = image ? (batchCapable ? "选择一组图片" : "选择一张图片") : "选择文本或数据文件";
-    if (byId("workflowInputHint")) byId("workflowInputHint").textContent = types.length ? `首步输入：${types.join(" / ")}；单次最多 50 MB。` : "请先添加并启用步骤。";
-    byId("runWorkflowBtn").disabled = !types.length || Boolean(activeRun);
+    if (byId("workflowFileInputLabel")) byId("workflowFileInputLabel").textContent = image ? (batchCapable ? "选择一组图片（最多 20 张）" : "选择一张图片") : "选择文本或数据文件";
+    if (byId("workflowInputHint")) byId("workflowInputHint").textContent = types.length ? `首步输入：${formatTypesLabel(types)}；单次最多 50 个文件且总计不超过 50 MB。` : "请先在画布中添加并启用至少一个处理节点。";
+    const runBtn = byId("runWorkflowBtn");
+    if (runBtn) runBtn.disabled = !types.length || Boolean(activeRun);
+    renderSelectedFilesManifest();
   }
 
-  function renderEditor() {
+  function renderSelectedFilesManifest() {
+    const container = byId("workflowSelectedFiles");
+    const fileInput = byId("workflowFileInput");
+    if (!container || !fileInput) return;
+    const files = [...(fileInput.files || [])];
+    if (!files.length) {
+      container.innerHTML = "";
+      container.classList.add("hidden");
+      return;
+    }
+    const total = fileSizeTotal(files);
+    container.classList.remove("hidden");
+    container.innerHTML = `
+      <div class="wf-files-head">
+        <span>已选 ${files.length} 个文件 · 共 ${formatBytes(total)}</span>
+        <button class="button-ghost wf-files-clear" type="button" id="clearWorkflowFilesBtn">清空重选</button>
+      </div>
+      <ul class="wf-files-list">
+        ${files.slice(0, 8).map((file) => `<li><span class="wf-file-name">${escapeHtml(file.name)}</span><small>${formatBytes(file.size)}</small></li>`).join("")}
+        ${files.length > 8 ? `<li class="wf-files-more">其余 ${files.length - 8} 个文件已就绪</li>` : ""}
+      </ul>
+    `;
+    byId("clearWorkflowFilesBtn")?.addEventListener("click", () => {
+      fileInput.value = "";
+      renderSelectedFilesManifest();
+    });
+  }
+
+  function renderEditor(options = {}) {
     const workflow = selectedWorkflow();
     byId("workflowEmptyState")?.classList.toggle("hidden", Boolean(workflow));
     byId("workflowEditorBody")?.classList.toggle("hidden", !workflow);
     if (!workflow) return;
-    byId("workflowNameInput").value = workflow.name;
+
+    const nameInput = byId("workflowNameInput");
+    if (nameInput && nameInput !== document.activeElement) nameInput.value = workflow.name;
+
+    const flow = workflowFlowSummary(workflow);
+    const summaryEl = byId("workflowCanvasSummary");
+    if (summaryEl) {
+      summaryEl.innerHTML = `<span class="wf-summary-chip">${workflow.steps.length} / ${MAX_STEPS} 节点</span><span class="wf-summary-chip">${escapeHtml(flow.inputLabel)} → ${escapeHtml(flow.outputLabel)}</span>`;
+    }
+
     const list = byId("workflowStepList");
-    list.innerHTML = workflow.steps.map((step, index) => `<li class="workflow-step${step.enabled ? "" : " disabled"}" data-step-id="${step.id}" draggable="true">
-      <div class="workflow-step-heading"><span class="workflow-step-number">${index + 1}</span><div><strong>${escapeHtml(CAPABILITY_REGISTRY[step.tool_id].name)}</strong><small>${escapeHtml(step.tool_id)} · ${CAPABILITY_REGISTRY[step.tool_id].input_types.join("/")} → ${CAPABILITY_REGISTRY[step.tool_id].output_types.join("/")}</small></div><label><input data-step-enabled type="checkbox"${step.enabled ? " checked" : ""} /> 启用</label></div>
-      ${configFields(step)}
-      <div class="workflow-step-actions"><button class="button-ghost" data-step-up type="button" aria-label="上移第 ${index + 1} 步">上移</button><button class="button-ghost" data-step-down type="button" aria-label="下移第 ${index + 1} 步">下移</button><button class="button-ghost" data-step-duplicate type="button">复制步骤</button><button class="button-ghost danger-text" data-step-delete type="button">删除</button></div>
-    </li>`).join("") || '<li class="workflow-empty">还没有步骤，请从下方列表添加。</li>';
+    const statusById = new Map(lastStatuses.map((s) => [s.id, s]));
+    const hasSteps = workflow.steps.length > 0;
+    byId("workflowCanvasEmpty")?.classList.toggle("hidden", hasSteps);
+    byId("canvasTrailingAddBtn")?.classList.toggle("hidden", !hasSteps || workflow.steps.length >= MAX_STEPS);
+
+    list.innerHTML = workflow.steps.map((step, index) => {
+      const cap = CAPABILITY_REGISTRY[step.tool_id];
+      const statusObj = statusById.get(step.id);
+      const status = statusObj?.status || (step.enabled ? "waiting" : "skipped");
+      const statusLabel = STATUS_LABELS[status] || status;
+      const isSelected = step.id === selectedStepId;
+      return `<li class="workflow-step wf-node${step.enabled ? "" : " disabled"}" data-step-id="${step.id}" data-flip-key="${step.id}" data-step-status="${status}" data-selected="${isSelected}" data-enabled="${step.enabled}" draggable="true" tabindex="0" aria-label="第 ${index + 1} 步：${escapeHtml(cap.name)}，状态：${escapeHtml(statusLabel)}">
+        <span class="wf-port wf-port-in" data-port="in" aria-hidden="true"></span>
+        <div class="wf-node-header">
+          <button class="wf-node-drag-handle" type="button" data-wf-drag-handle aria-label="拖动调整第 ${index + 1} 步顺序" title="拖动调整顺序">${uiIconSvg("grip", "wf-grip-icon")}</button>
+          <span class="wf-node-index">${index + 1}</span>
+          <span class="wf-node-icon">${capabilityIconSvg(step.tool_id)}</span>
+          <div class="wf-node-title-col">
+            <strong class="wf-node-name">${escapeHtml(cap.name)}</strong>
+            <small class="wf-node-io-text">${escapeHtml(formatTypesLabel(cap.input_types))} → ${escapeHtml(formatTypesLabel(cap.output_types))}</small>
+          </div>
+          <span class="wf-node-status-pill" data-status="${status}">${escapeHtml(statusLabel)}${statusObj?.duration_ms ? ` · ${statusObj.duration_ms}ms` : ""}</span>
+        </div>
+        <p class="wf-node-summary">${escapeHtml(summarizeStepConfig(step))}</p>
+        ${statusObj?.error ? `<p class="wf-node-error" role="status">${escapeHtml(statusObj.error)}</p>` : ""}
+        <div class="wf-node-footer">
+          <label class="wf-node-enable"><input data-step-enabled type="checkbox"${step.enabled ? " checked" : ""} /><span>启用</span></label>
+          <div class="workflow-step-actions wf-node-actions">
+            <button class="button-ghost wf-node-act" data-step-up type="button" aria-label="上移第 ${index + 1} 步" title="前移"${index === 0 ? " disabled" : ""}>前移</button>
+            <button class="button-ghost wf-node-act" data-step-down type="button" aria-label="下移第 ${index + 1} 步" title="后移"${index >= workflow.steps.length - 1 ? " disabled" : ""}>后移</button>
+            <button class="button-ghost wf-node-act" data-step-duplicate type="button" title="复制节点">复制</button>
+            <button class="button-ghost wf-node-act danger-text" data-step-delete type="button" title="删除节点">删除</button>
+          </div>
+        </div>
+        <span class="wf-port wf-port-out" data-port="out" aria-hidden="true"></span>
+      </li>`;
+    }).join("");
+
+    // Keep hidden compatibility select synced.
     const addable = addableCapabilities(workflow);
-    byId("workflowToolSelect").innerHTML = addable.map(([id, item]) => `<option value="${id}">${item.name}</option>`).join("");
-    byId("addWorkflowStepBtn").disabled = !addable.length || workflow.steps.length >= MAX_STEPS;
+    const toolSelect = byId("workflowToolSelect");
+    if (toolSelect) {
+      toolSelect.innerHTML = addable.map(([id, item]) => `<option value="${id}">${escapeHtml(item.name)}</option>`).join("");
+    }
+    const addBtn = byId("addWorkflowStepBtn");
+    if (addBtn) addBtn.disabled = !addable.length || workflow.steps.length >= MAX_STEPS;
+
     bindStepEvents();
     renderInputControls(workflow);
+
+    if (selectedStepId && workflow.steps.some((s) => s.id === selectedStepId)) {
+      const inspBody = byId("workflowInspectorBody");
+      const activeInsideInspector = inspBody && inspBody.contains(document.activeElement);
+      if (!activeInsideInspector) renderInspector();
+      else syncInspectorVisibility();
+    } else {
+      selectedStepId = "";
+      syncInspectorVisibility();
+    }
+
+    if (options.flipSnapshot) playNodeFlip(options.flipSnapshot);
+    applyCanvasTransform({ animate: false });
+    if (options.fitView) {
+      root.requestAnimationFrame?.(() => fitCanvasToView({ animate: false }));
+    } else {
+      scheduleEdgeSync(options.flipSnapshot ? 300 : 40);
+    }
+  }
+
+  function renderNodePickerList() {
+    const workflow = selectedWorkflow();
+    const listEl = byId("workflowNodePickerList");
+    const catsEl = byId("workflowNodeCategories");
+    if (!workflow || !listEl || !catsEl) return;
+
+    catsEl.innerHTML = NODE_CATEGORIES.map((cat) => {
+      const active = pickerCategory === cat.id;
+      return `<button type="button" role="tab" aria-selected="${active}" class="wf-picker-cat-pill${active ? " is-active" : ""}" data-picker-cat="${cat.id}">${escapeHtml(cat.label)}</button>`;
+    }).join("");
+
+    catsEl.querySelectorAll("[data-picker-cat]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        pickerCategory = btn.dataset.pickerCat;
+        pickerActiveIndex = 0;
+        renderNodePickerList();
+      });
+    });
+
+    const q = pickerSearchQuery.trim().toLowerCase();
+    const entries = Object.entries(CAPABILITY_REGISTRY).map(([toolId, cap]) => {
+      const meta = CAPABILITY_META[toolId] || {};
+      const compat = candidateCompatibility(workflow, toolId, pickerInsertIndex);
+      return { toolId, cap, meta, compat };
+    }).filter(({ toolId, cap, meta }) => {
+      if (pickerCategory !== "all" && meta.category !== pickerCategory) return false;
+      if (!q) return true;
+      const haystack = `${cap.name} ${toolId} ${meta.description || ""} ${meta.categoryLabel || ""} ${cap.input_types.join(" ")} ${cap.output_types.join(" ")}`.toLowerCase();
+      return haystack.includes(q);
+    });
+
+    if (!entries.length) {
+      listEl.innerHTML = `<div class="wf-picker-empty"><p>没有找到匹配的节点能力，可以清空搜索词查看全部 12 项能力。</p></div>`;
+      return;
+    }
+
+    if (pickerActiveIndex >= entries.length) pickerActiveIndex = 0;
+
+    listEl.innerHTML = entries.map(({ toolId, cap, meta, compat }, idx) => {
+      const isActive = idx === pickerActiveIndex;
+      return `<button type="button" role="option" aria-selected="${isActive}" class="wf-picker-item${compat.compatible ? "" : " is-incompatible"}${isActive ? " is-active" : ""}" data-picker-tool="${toolId}" ${compat.compatible ? "" : 'disabled aria-disabled="true"'}>
+        <span class="wf-picker-item-icon">${capabilityIconSvg(toolId)}</span>
+        <span class="wf-picker-item-copy">
+          <span class="wf-picker-item-title-row">
+            <strong>${escapeHtml(cap.name)}</strong>
+            <span class="wf-picker-cat-tag">${escapeHtml(meta.categoryLabel || "")}</span>
+          </span>
+          <small class="wf-picker-item-desc">${escapeHtml(meta.description || "")}</small>
+          <span class="wf-picker-item-io">
+            <span>${escapeHtml(formatTypesLabel(cap.input_types))} → ${escapeHtml(formatTypesLabel(cap.output_types))}</span>
+            <em class="wf-compat-pill" data-compatible="${compat.compatible}">${compat.compatible ? "可衔接" : escapeHtml(compat.reason)}</em>
+          </span>
+        </span>
+      </button>`;
+    }).join("");
+
+    listEl.querySelectorAll("[data-picker-tool]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const toolId = btn.dataset.pickerTool;
+        const idx = pickerInsertIndex;
+        closeNodePicker({ restoreFocus: false });
+        insertStepAt(toolId, idx);
+      });
+    });
+  }
+
+  function openNodePicker(insertIndex = -1, triggerEl = null) {
+    const workflow = selectedWorkflow();
+    if (!workflow) return;
+    pickerReturnFocus = triggerEl || document.activeElement;
+    pickerInsertIndex = insertIndex;
+    pickerCategory = "all";
+    pickerSearchQuery = "";
+    pickerActiveIndex = 0;
+    pickerOpen = true;
+    const searchInput = byId("workflowNodeSearch");
+    if (searchInput) searchInput.value = "";
+    const sub = byId("wfNodePickerSubtitle");
+    if (sub) {
+      sub.textContent = insertIndex >= 0 && insertIndex < workflow.steps.length
+        ? `在第 ${insertIndex} 步与第 ${insertIndex + 1} 步之间插入兼容节点`
+        : "选择要追加到流程末尾的处理能力";
+    }
+    const layer = byId("workflowNodePicker");
+    if (layer) {
+      layer.classList.remove("hidden");
+      layer.setAttribute("aria-hidden", "false");
+    }
+    renderNodePickerList();
+    root.requestAnimationFrame?.(() => {
+      searchInput?.focus?.({ preventScroll: true });
+    });
+  }
+
+  function closeNodePicker({ restoreFocus = true } = {}) {
+    if (!pickerOpen) return;
+    pickerOpen = false;
+    const layer = byId("workflowNodePicker");
+    if (layer) {
+      layer.classList.add("hidden");
+      layer.setAttribute("aria-hidden", "true");
+    }
+    if (restoreFocus && pickerReturnFocus?.isConnected) {
+      pickerReturnFocus.focus?.({ preventScroll: true });
+    }
+    pickerReturnFocus = null;
   }
 
   function renderStepStatuses(statuses = []) {
+    lastStatuses = Array.isArray(statuses) ? cloneJson(statuses) : [];
     const target = byId("workflowStepStatuses");
+    const progressEl = byId("workflowRunProgressText");
+    if (progressEl) {
+      const activeTotal = statuses.filter((s) => s.status !== "skipped").length || statuses.length;
+      const doneCount = statuses.filter((s) => s.status === "success").length;
+      const runningStep = statuses.find((s) => s.status === "running");
+      if (runningStep) {
+        progressEl.textContent = `正在执行：${CAPABILITY_REGISTRY[runningStep.tool_id]?.name || runningStep.tool_id}（已完成 ${doneCount}/${activeTotal}）`;
+      } else if (statuses.length) {
+        progressEl.textContent = `已完成 ${doneCount}/${activeTotal} 步`;
+      } else {
+        progressEl.textContent = "";
+      }
+    }
+    // Sync live status onto canvas node cards and edges without tearing down the DOM.
+    const list = byId("workflowStepList");
+    if (list) {
+      statuses.forEach((status) => {
+        const node = list.querySelector(`[data-step-id="${status.id}"]`);
+        if (!node) return;
+        node.dataset.stepStatus = status.status;
+        const pill = node.querySelector(".wf-node-status-pill");
+        if (pill) {
+          pill.dataset.status = status.status;
+          pill.textContent = `${STATUS_LABELS[status.status] || status.status}${status.duration_ms ? ` · ${status.duration_ms}ms` : ""}`;
+        }
+        let errNode = node.querySelector(".wf-node-error");
+        if (status.error) {
+          if (!errNode) {
+            errNode = document.createElement("p");
+            errNode.className = "wf-node-error";
+            errNode.setAttribute("role", "status");
+            node.querySelector(".wf-node-summary")?.after(errNode);
+          }
+          errNode.textContent = status.error;
+        } else if (errNode) {
+          errNode.remove();
+        }
+      });
+      syncCanvasEdges();
+    }
     if (!target) return;
     target.innerHTML = statuses.map((status, index) => `<div data-workflow-step-status="${status.id}" data-status="${status.status}"><span>${index + 1}. ${escapeHtml(CAPABILITY_REGISTRY[status.tool_id]?.name || status.tool_id)}</span><strong>${STATUS_LABELS[status.status] || status.status}${status.duration_ms ? ` · ${status.duration_ms} ms` : ""}</strong>${status.error ? `<small>${escapeHtml(status.error)}</small>` : ""}</div>`).join("");
   }
@@ -846,44 +2138,108 @@
     lastOutput = null;
   }
 
+  function renderTypedOutputCard(kind, detailHtml) {
+    const typed = byId("workflowTypedOutput");
+    if (!typed) return;
+    if (!kind) {
+      typed.innerHTML = "";
+      typed.classList.add("hidden");
+      return;
+    }
+    typed.classList.remove("hidden");
+    typed.dataset.outputKind = kind;
+    typed.innerHTML = detailHtml;
+    typed.querySelectorAll("[data-focus-failed-step]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        selectedStepId = btn.dataset.focusFailedStep;
+        renderInspector();
+      });
+    });
+  }
+
+  function displayErrorOutput(error) {
+    const failedStep = lastStatuses.find((s) => s.status === "failed");
+    const stepName = failedStep ? (CAPABILITY_REGISTRY[failedStep.tool_id]?.name || failedStep.tool_id) : "";
+    lastRunError = { stepId: failedStep?.id || "", message: error.message };
+    byId("workflowResultTextWrap")?.classList.remove("hidden");
+    if (byId("workflowResultTextLabel")) byId("workflowResultTextLabel").textContent = "错误详情";
+    renderTypedOutputCard("error", `
+      <div class="wf-output-banner" data-tone="error">
+        <div>
+          <strong>${failedStep ? `步骤“${escapeHtml(stepName)}”执行失败` : "工作流未能执行"}</strong>
+          <p>${escapeHtml(error.message)}</p>
+        </div>
+        ${failedStep ? `<button class="button-secondary" type="button" data-focus-failed-step="${failedStep.id}">定位到失败节点</button>` : ""}
+      </div>
+    `);
+  }
+
   function displayOutput(resource) {
     const textTarget = byId("workflowResultText");
+    const textWrap = byId("workflowResultTextWrap");
+    const textLabel = byId("workflowResultTextLabel");
     const copyButton = byId("copyWorkflowResultBtn");
     const downloadButton = byId("downloadWorkflowResultBtn");
     textTarget.value = "";
     copyButton.disabled = true;
     downloadButton.disabled = true;
+    lastRunError = null;
     clearPreview();
+
     if (resource.type === "text") {
-      textTarget.value = String(resource.value);
+      const value = String(resource.value);
+      textTarget.value = value;
+      textWrap?.classList.remove("hidden");
+      if (textLabel) textLabel.textContent = "文本输出结果";
       copyButton.disabled = false;
-      const blob = new Blob([resource.value], { type: resource.mime || "text/plain;charset=utf-8" });
+      const blob = new Blob([value], { type: resource.mime || "text/plain;charset=utf-8" });
       lastOutput = createResource("file", blob, { name: resource.name || "workflow-result.txt", mime: blob.type, owned: true });
       downloadButton.disabled = false;
+      const lines = value ? value.split(/\r?\n/).length : 0;
+      renderTypedOutputCard("text", `<div class="wf-output-banner" data-tone="success"><div><strong>文本处理完成</strong><p>${escapeHtml(resource.name || "workflow-result.txt")} · ${value.length} 字符 · ${lines} 行</p></div></div>`);
     } else if (resource.type === "json") {
-      textTarget.value = JSON.stringify(resource.value, null, 2);
+      const formatted = JSON.stringify(resource.value, null, 2);
+      textTarget.value = formatted;
+      textWrap?.classList.remove("hidden");
+      if (textLabel) textLabel.textContent = "结构化 JSON 输出";
       copyButton.disabled = false;
-      const blob = new Blob([textTarget.value], { type: "application/json" });
+      const blob = new Blob([formatted], { type: "application/json" });
       lastOutput = createResource("file", blob, { name: resource.name || "workflow-result.json", mime: blob.type, owned: true });
       downloadButton.disabled = false;
-    } else if (["image", "archive", "file"].includes(resource.type)) {
+      const countText = Array.isArray(resource.value) ? `${resource.value.length} 条记录` : "JSON 对象";
+      renderTypedOutputCard("json", `<div class="wf-output-banner" data-tone="success"><div><strong>JSON 转换完成</strong><p>${escapeHtml(resource.name || "workflow.json")} · ${countText} · ${formatBytes(blob.size)}</p></div></div>`);
+    } else if (resource.type === "image") {
       lastOutput = resource;
       downloadButton.disabled = false;
       textTarget.value = `${resource.name || "处理结果"}\n${resource.mime || resource.value?.type || ""}\n${resource.value?.size ?? 0} 字节`;
-      if (resource.type === "image") {
-        previewUrl = URL.createObjectURL(resource.value);
-        const image = document.createElement("img"); image.src = previewUrl; image.alt = "工作流图片结果预览"; byId("workflowResultPreview").appendChild(image);
-      }
+      textWrap?.classList.add("hidden");
+      previewUrl = URL.createObjectURL(resource.value);
+      const image = document.createElement("img");
+      image.src = previewUrl;
+      image.alt = "工作流图片结果预览";
+      byId("workflowResultPreview").appendChild(image);
+      renderTypedOutputCard("image", `<div class="wf-output-banner" data-tone="success"><div><strong>图片处理完成</strong><p>${escapeHtml(resource.name || "output-image")} · ${escapeHtml(resource.mime || resource.value?.type || "")} · ${formatBytes(resource.value?.size || 0)}</p></div></div>`);
+    } else if (resource.type === "archive" || resource.type === "file") {
+      lastOutput = resource;
+      downloadButton.disabled = false;
+      textTarget.value = `${resource.name || "处理结果"}\n${resource.mime || resource.value?.type || ""}\n${resource.value?.size ?? 0} 字节`;
+      textWrap?.classList.add("hidden");
+      const itemCount = Array.isArray(resource.items) ? resource.items.filter((i) => i.status === "success").length : 0;
+      renderTypedOutputCard("archive", `<div class="wf-output-banner" data-tone="success"><div><strong>${resource.type === "archive" ? "ZIP 压缩包已生成" : "文件产物已生成"}</strong><p>${escapeHtml(resource.name || "workflow-results.zip")} · ${formatBytes(resource.value?.size || 0)}${itemCount ? ` · 包含 ${itemCount} 项成功产物` : ""}</p></div></div>`);
     } else {
       lastOutput = resource;
       textTarget.value = "工作流已完成";
+      textWrap?.classList.remove("hidden");
+      renderTypedOutputCard("text", `<div class="wf-output-banner" data-tone="success"><div><strong>工作流已完成</strong></div></div>`);
     }
   }
 
   async function runSelectedWorkflow() {
     if (activeRun) return;
+    setRunnerExpanded(true, { scroll: true });
     const workflow = validateWorkflow(selectedWorkflow());
     await releaseLastOutput();
+    renderTypedOutputCard(null);
     const files = [...(byId("workflowFileInput")?.files || [])];
     const batchRequested = Boolean(byId("workflowBatchToggle")?.checked);
     const types = inputTypesFor(workflow);
@@ -892,8 +2248,9 @@
       : resourceFromFiles(workflow, files, batchRequested);
     if (batchRequested && !sequenceOutputTypes(workflow).includes("archive")) throw new Error("批量流程最后必须生成 ZIP");
     const controller = new AbortController();
+    const cancelBtn = byId("cancelWorkflowBtn");
     byId("runWorkflowBtn").disabled = true;
-    byId("cancelWorkflowBtn").disabled = false;
+    if (cancelBtn) { cancelBtn.disabled = false; cancelBtn.classList.remove("hidden"); }
     byId("workflowRunState").textContent = "运行中";
     byId("workflowRunState").dataset.status = "running";
     renderItemResults([]);
@@ -916,9 +2273,10 @@
       byId("workflowRunState").textContent = error.name === "AbortError" ? "已取消" : "失败";
       byId("workflowRunState").dataset.status = error.name === "AbortError" ? "cancelled" : "failed";
       byId("workflowResultText").value = error.message;
+      if (error.name !== "AbortError") displayErrorOutput(error);
     } finally {
       activeRun = null;
-      byId("cancelWorkflowBtn").disabled = true;
+      if (cancelBtn) { cancelBtn.disabled = true; cancelBtn.classList.add("hidden"); }
       renderInputControls(workflow);
     }
   }
@@ -970,37 +2328,71 @@
       });
       cloudConfigIds.set(validated.id, data.id);
       setSaveMessage("已保存到本机并同步到云端");
+      renderWorkflowList();
     } catch (error) {
       setSaveMessage(`云端保存失败，本地草稿已保留：${error.message}`, true);
     }
   }
 
-  async function deleteCurrentWorkflow() {
-    const workflow = selectedWorkflow();
+  async function deleteWorkflowById(id) {
+    const workflow = workflows.find((item) => item.id === id);
     if (!workflow) return;
     const cloudId = cloudConfigIds.get(workflow.id);
     workflows = workflows.filter((item) => item.id !== workflow.id);
-    selectedWorkflowId = workflows[0]?.id || "";
+    if (selectedWorkflowId === workflow.id) {
+      selectedWorkflowId = workflows[0]?.id || "";
+      selectedStepId = "";
+    }
+    openRowMenuId = "";
     persistLocalWorkflows();
-    renderAll();
+    if (viewMode === "editor" && !selectedWorkflow()) {
+      setViewMode("list");
+    } else {
+      renderAll();
+    }
+    setListFeedback(`已删除工作流“${workflow.name}”`);
     if (cloudId && !accessOptions.offline && hasEntitlement("save_tool_config")) {
       try { await bridge.api("/api/tools/config/delete", { id: cloudId }); cloudConfigIds.delete(workflow.id); }
       catch (error) { setSaveMessage(`本地已删除，但云端删除失败：${error.message}`, true); }
     }
   }
 
-  function duplicateCurrentWorkflow() {
+  async function deleteCurrentWorkflow() {
     const workflow = selectedWorkflow();
+    if (!workflow) return;
+    await deleteWorkflowById(workflow.id);
+  }
+
+  function duplicateWorkflowById(id) {
+    const workflow = workflows.find((item) => item.id === id);
     if (!workflow || workflows.length >= MAX_WORKFLOWS) return;
     const copy = cloneJson(workflow);
-    copy.id = randomId("wf"); copy.name = `${copy.name} 副本`.slice(0, 80); copy.created_at = nowIso(); copy.updated_at = copy.created_at;
+    copy.id = randomId("wf");
+    copy.name = `${copy.name} 副本`.slice(0, 80);
+    copy.created_at = nowIso();
+    copy.updated_at = copy.created_at;
     copy.steps = copy.steps.map((step) => ({ ...step, id: randomId("step") }));
-    workflows.unshift(validateWorkflow(copy)); selectedWorkflowId = copy.id; persistLocalWorkflows(); renderAll();
+    workflows.unshift(validateWorkflow(copy));
+    selectedWorkflowId = copy.id;
+    selectedStepId = "";
+    openRowMenuId = "";
+    persistLocalWorkflows();
+    renderAll();
+    setSaveMessage("已复制为新工作流");
+  }
+
+  function duplicateCurrentWorkflow() {
+    const workflow = selectedWorkflow();
+    if (workflow) duplicateWorkflowById(workflow.id);
+  }
+
+  function exportWorkflowObject(workflow) {
+    const valid = validateWorkflow(workflow);
+    downloadBlob(`${valid.name.replace(/[\\/:*?"<>|]+/g, "_")}.workflow.json`, new Blob([JSON.stringify(valid, null, 2)], { type: "application/json" }));
   }
 
   function exportCurrentWorkflow() {
-    const workflow = validateWorkflow(selectedWorkflow());
-    downloadBlob(`${workflow.name.replace(/[\\/:*?"<>|]+/g, "_")}.workflow.json`, new Blob([JSON.stringify(workflow, null, 2)], { type: "application/json" }));
+    exportWorkflowObject(selectedWorkflow());
   }
 
   async function importWorkflowFile(file) {
@@ -1013,8 +2405,16 @@
       workflow = validateWorkflow(workflow);
     }
     if (workflows.length >= MAX_WORKFLOWS) throw new Error(`最多保存 ${MAX_WORKFLOWS} 个工作流`);
-    workflows.unshift(workflow); selectedWorkflowId = workflow.id; persistLocalWorkflows(); renderAll();
+    workflows.unshift(workflow);
+    selectedWorkflowId = workflow.id;
+    selectedStepId = "";
+    lastStatuses = [];
+    lastRunError = null;
+    canvasViewport = { panX: 0, panY: 0, zoom: 1 };
+    persistLocalWorkflows();
+    setViewMode("editor", { fitView: true, closeRunner: true });
     setSaveMessage("导入成功，权限将在运行和云端保存时重新验证");
+    setListFeedback(`已导入工作流“${workflow.name}”`);
   }
 
   function renderAccess() {
@@ -1024,27 +2424,33 @@
     else badge.textContent = hasEntitlement("tools_batch_access") ? "支持批量与云端配置" : hasEntitlement("tools_access") ? "支持本地工作流" : "无工作流权限";
   }
 
-  function renderAll() {
+  function renderAll(options = {}) {
     renderWorkflowList();
     renderTemplates();
-    renderEditor();
+    if (viewMode === "editor") renderEditor(options);
     renderAccess();
   }
 
   async function show(_path = "/tools/workflows", options = {}) {
+    const alreadyVisible = !byId("workflowWorkspace")?.classList.contains("hidden");
     setAccess(options);
     byId("toolsDashboard")?.classList.add("hidden");
     byId("toolWorkbench")?.classList.add("hidden");
     byId("workflowWorkspace")?.classList.remove("hidden");
     byId("workflowWorkspace")?.setAttribute("aria-hidden", "false");
+    if (!alreadyVisible) viewMode = "list";
     loadLocalWorkflows();
-    renderAll();
+    renderAll({ fitView: false });
     await loadCloudWorkflows();
-    renderAll();
+    // Preserve active editor/inspector/typing state when background cloud sync resolves.
+    renderAll({ fitView: false });
   }
 
   function hide(options = {}) {
     if (options.cancel && activeRun) activeRun.controller.abort();
+    closeNodePicker({ restoreFocus: false });
+    closeEditorMoreMenu();
+    openRowMenuId = "";
     byId("workflowWorkspace")?.classList.add("hidden");
     byId("workflowWorkspace")?.setAttribute("aria-hidden", "true");
     void releaseLastOutput();
@@ -1054,10 +2460,117 @@
     return /^\/tools\/workflows\/?$/.test(String(path || ""));
   }
 
+  function bindCanvasInteractions() {
+    const viewport = byId("workflowCanvasViewport");
+    if (!viewport) return;
+
+    viewport.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0 || event.isPrimary === false) return;
+      if (event.target.closest(".wf-node, .wf-edge-insert-btn, .wf-trailing-add-node, button, input, select")) return;
+      if (isMobileCanvas()) return;
+      canvasPanState = {
+        pointerId: event.pointerId,
+        startX: event.clientX,
+        startY: event.clientY,
+        originPanX: canvasViewport.panX,
+        originPanY: canvasViewport.panY,
+        moved: false,
+      };
+      viewport.classList.add("is-panning");
+    });
+
+    viewport.addEventListener("wheel", (event) => {
+      if (isMobileCanvas() || viewMode !== "editor") return;
+      event.preventDefault();
+      const delta = event.deltaY < 0 ? 0.08 : -0.08;
+      setCanvasZoom(canvasViewport.zoom + delta, event.clientX, event.clientY);
+    }, { passive: false });
+
+    root.addEventListener?.("pointermove", (event) => {
+      if (canvasPanState && event.pointerId === canvasPanState.pointerId) {
+        const dx = event.clientX - canvasPanState.startX;
+        const dy = event.clientY - canvasPanState.startY;
+        if (Math.hypot(dx, dy) > 3) canvasPanState.moved = true;
+        canvasViewport.panX = canvasPanState.originPanX + dx;
+        canvasViewport.panY = canvasPanState.originPanY + dy;
+        applyCanvasTransform({ animate: false });
+        return;
+      }
+      if (pointerDragState && event.pointerId === pointerDragState.pointerId) {
+        const dx = event.clientX - pointerDragState.startX;
+        const dy = event.clientY - pointerDragState.startY;
+        if (!pointerDragState.moved && Math.hypot(dx, dy) < 6) return;
+        if (!pointerDragState.moved) {
+          pointerDragState.moved = true;
+          pointerDragState.item.classList.add("is-pointer-dragging");
+        }
+        const zoom = isMobileCanvas() ? 1 : (canvasViewport.zoom || 1);
+        pointerDragState.item.style.transform = `translate3d(${(dx / zoom).toFixed(1)}px, ${(dy / zoom).toFixed(1)}px, 0) scale(1.02)`;
+        pointerDragState.item.style.zIndex = "15";
+
+        let hoverTargetId = "";
+        for (const node of pointerDragState.nodes) {
+          if (node === pointerDragState.item) continue;
+          const r = node.getBoundingClientRect();
+          if (event.clientX >= r.left && event.clientX <= r.right && event.clientY >= r.top && event.clientY <= r.bottom) {
+            hoverTargetId = node.dataset.stepId;
+          }
+          node.classList.toggle("is-drop-target", node.dataset.stepId === hoverTargetId);
+        }
+        pointerDragState.hoverTargetId = hoverTargetId;
+        syncCanvasEdges();
+      }
+    });
+
+    const endPointer = (event) => {
+      if (canvasPanState && event.pointerId === canvasPanState.pointerId) {
+        const wasMoved = canvasPanState.moved;
+        canvasPanState = null;
+        viewport.classList.remove("is-panning");
+        if (wasMoved) {
+          persistCanvasViewport();
+        } else if (!event.target.closest(".wf-node")) {
+          // Clicking empty canvas collapses inspector softly.
+          if (selectedStepId) {
+            selectedStepId = "";
+            syncInspectorVisibility();
+          }
+        }
+      }
+      if (pointerDragState && event.pointerId === pointerDragState.pointerId) {
+        const drag = pointerDragState;
+        pointerDragState = null;
+        drag.item.classList.remove("is-pointer-dragging");
+        drag.item.style.transform = "";
+        drag.item.style.zIndex = "";
+        drag.nodes.forEach((n) => n.classList.remove("is-drop-target"));
+        if (drag.moved && drag.hoverTargetId && event.type !== "pointercancel") {
+          reorderStep(drag.stepId, drag.hoverTargetId);
+        } else {
+          syncCanvasEdges();
+        }
+      }
+    };
+
+    root.addEventListener?.("pointerup", endPointer);
+    root.addEventListener?.("pointercancel", endPointer);
+
+    if (typeof ResizeObserver === "function") {
+      canvasResizeObserver = new ResizeObserver(() => {
+        if (viewMode === "editor") {
+          applyCanvasTransform({ animate: false });
+          scheduleEdgeSync(30);
+        }
+      });
+      canvasResizeObserver.observe(viewport);
+    }
+  }
+
   function init(context) {
     if (initialized) { bridge = context; return; }
     initialized = true;
     bridge = context;
+
     byId("closeWorkflowBtn")?.addEventListener("click", () => {
       if (activeRun) activeRun.controller.abort();
       hide({ cancel: true });
@@ -1068,34 +2581,175 @@
       const openBtn = byId("openWorkflowBtn");
       (openBtn && !openBtn.disabled ? openBtn : byId("toolSearchInput"))?.focus?.({ preventScroll: true });
     });
-    byId("createWorkflowBtn")?.addEventListener("click", () => {
-      if (workflows.length >= MAX_WORKFLOWS) return setSaveMessage(`最多保存 ${MAX_WORKFLOWS} 个工作流`, true);
-      const workflow = blankWorkflow(); workflows.unshift(workflow); selectedWorkflowId = workflow.id; persistLocalWorkflows(); renderAll();
+
+    byId("workflowBackToListBtn")?.addEventListener("click", () => {
+      if (activeRun) activeRun.controller.abort();
+      setViewMode("list");
     });
+    byId("workflowEmptyBackBtn")?.addEventListener("click", () => setViewMode("list"));
+    byId("workflowEmptyCreateBtn")?.addEventListener("click", () => createAndOpenBlankWorkflow());
+
+    byId("workflowSearchInput")?.addEventListener("input", (event) => {
+      workflowSearchQuery = event.currentTarget.value || "";
+      renderWorkflowList();
+    });
+
+    byId("createWorkflowBtn")?.addEventListener("click", () => createAndOpenBlankWorkflow());
+
     byId("addWorkflowStepBtn")?.addEventListener("click", () => {
-      const workflow = selectedWorkflow(); const toolId = byId("workflowToolSelect").value;
-      if (!workflow || !CAPABILITY_REGISTRY[toolId] || workflow.steps.length >= MAX_STEPS) return;
-      workflow.steps.push({ id: randomId("step"), tool_id: toolId, enabled: true, config: normalizeConfig(toolId, {}) });
-      markWorkflowUpdated(); renderEditor();
+      const toolId = byId("workflowToolSelect")?.value;
+      if (toolId) insertStepAt(toolId, -1);
     });
+
+    byId("openNodePickerBtn")?.addEventListener("click", (e) => openNodePicker(-1, e.currentTarget));
+    byId("canvasTrailingAddBtn")?.addEventListener("click", (e) => openNodePicker(-1, e.currentTarget));
+    byId("canvasEmptyAddBtn")?.addEventListener("click", (e) => openNodePicker(0, e.currentTarget));
+    byId("closeNodePickerBtn")?.addEventListener("click", () => closeNodePicker());
+    byId("workflowNodePickerBackdrop")?.addEventListener("click", () => closeNodePicker());
+
+    byId("workflowNodeSearch")?.addEventListener("input", (event) => {
+      pickerSearchQuery = event.currentTarget.value || "";
+      pickerActiveIndex = 0;
+      renderNodePickerList();
+    });
+
+    byId("workflowNodePicker")?.addEventListener("keydown", (event) => {
+      if (!pickerOpen) return;
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeNodePicker();
+        return;
+      }
+      const items = [...(byId("workflowNodePickerList")?.querySelectorAll("[data-picker-tool]") || [])];
+      if (!items.length) return;
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        event.preventDefault();
+        const dir = event.key === "ArrowDown" ? 1 : -1;
+        pickerActiveIndex = (pickerActiveIndex + dir + items.length) % items.length;
+        items.forEach((btn, idx) => {
+          btn.classList.toggle("is-active", idx === pickerActiveIndex);
+          btn.setAttribute("aria-selected", String(idx === pickerActiveIndex));
+        });
+        items[pickerActiveIndex]?.scrollIntoView?.({ block: "nearest" });
+      } else if (event.key === "Enter" && event.target === byId("workflowNodeSearch")) {
+        const chosen = items[pickerActiveIndex];
+        if (chosen && !chosen.disabled) {
+          event.preventDefault();
+          chosen.click();
+        }
+      }
+    });
+
+    byId("closeInspectorBtn")?.addEventListener("click", () => {
+      selectedStepId = "";
+      syncInspectorVisibility();
+    });
+    byId("workflowInspectorBackdrop")?.addEventListener("click", () => {
+      selectedStepId = "";
+      syncInspectorVisibility();
+    });
+
+    byId("toggleWorkflowRunnerBtn")?.addEventListener("click", () => {
+      setRunnerExpanded(!runnerExpanded, { scroll: !runnerExpanded });
+    });
+    byId("closeRunnerPanelBtn")?.addEventListener("click", () => setRunnerExpanded(false));
+
+    byId("canvasZoomInBtn")?.addEventListener("click", () => setCanvasZoom(canvasViewport.zoom + 0.15));
+    byId("canvasZoomOutBtn")?.addEventListener("click", () => setCanvasZoom(canvasViewport.zoom - 0.15));
+    byId("canvasZoomResetBtn")?.addEventListener("click", () => setCanvasZoom(1));
+    byId("canvasFitViewBtn")?.addEventListener("click", () => fitCanvasToView({ animate: true }));
+
+    byId("workflowMoreMenuBtn")?.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const menu = byId("workflowEditorMoreMenu");
+      const btn = event.currentTarget;
+      if (!menu) return;
+      const nextOpen = menu.classList.contains("hidden");
+      menu.classList.toggle("hidden", !nextOpen);
+      btn.setAttribute("aria-expanded", String(nextOpen));
+      if (nextOpen) menu.querySelector('[role="menuitem"]')?.focus?.({ preventScroll: true });
+    });
+
+    if (typeof document !== "undefined") {
+      document.addEventListener("pointerdown", (event) => {
+        if (openRowMenuId && !event.target.closest(".wf-row-menu-wrap")) {
+          openRowMenuId = "";
+          renderWorkflowList();
+        }
+        const moreMenu = byId("workflowEditorMoreMenu");
+        if (moreMenu && !moreMenu.classList.contains("hidden") && !event.target.closest(".wf-more-wrap")) {
+          closeEditorMoreMenu();
+        }
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          if (openRowMenuId) { openRowMenuId = ""; renderWorkflowList(); }
+          closeEditorMoreMenu();
+          if (selectedStepId && viewMode === "editor" && !pickerOpen) {
+            selectedStepId = "";
+            syncInspectorVisibility();
+          }
+        }
+      });
+    }
+
     byId("workflowNameInput")?.addEventListener("input", () => {
-      const workflow = selectedWorkflow(); if (!workflow) return; workflow.name = byId("workflowNameInput").value.slice(0, 80); markWorkflowUpdated(); renderWorkflowList();
+      const workflow = selectedWorkflow();
+      if (!workflow) return;
+      workflow.name = byId("workflowNameInput").value.slice(0, 80);
+      markWorkflowUpdated();
+      renderWorkflowList();
     });
+
     byId("saveWorkflowBtn")?.addEventListener("click", () => saveCurrentWorkflow().catch((error) => setSaveMessage(error.message, true)));
-    byId("duplicateWorkflowBtn")?.addEventListener("click", duplicateCurrentWorkflow);
-    byId("deleteWorkflowBtn")?.addEventListener("click", () => deleteCurrentWorkflow());
-    byId("exportWorkflowBtn")?.addEventListener("click", () => { try { exportCurrentWorkflow(); } catch (error) { setSaveMessage(error.message, true); } });
+    byId("duplicateWorkflowBtn")?.addEventListener("click", () => { closeEditorMoreMenu(); duplicateCurrentWorkflow(); });
+    byId("deleteWorkflowBtn")?.addEventListener("click", () => { closeEditorMoreMenu(); void deleteCurrentWorkflow(); });
+    byId("exportWorkflowBtn")?.addEventListener("click", () => {
+      closeEditorMoreMenu();
+      try { exportCurrentWorkflow(); } catch (error) { setSaveMessage(error.message, true); }
+    });
     byId("importWorkflowBtn")?.addEventListener("click", () => byId("workflowImportInput").click());
     byId("workflowImportInput")?.addEventListener("change", async (event) => {
       const input = event.currentTarget;
       try {
         await withFeedback(byId("importWorkflowBtn"), "workflow-import", () =>
           importWorkflowFile(input.files?.[0]));
-      } catch (error) { setSaveMessage(`导入失败：${error.message}`, true); }
-      finally { input.value = ""; }
+      } catch (error) {
+        setSaveMessage(`导入失败：${error.message}`, true);
+        setListFeedback(`导入失败：${error.message}`, true);
+      } finally { input.value = ""; }
     });
+
+    const fileInput = byId("workflowFileInput");
+    const dropLabel = byId("workflowFileInputWrap");
+    fileInput?.addEventListener("change", () => renderSelectedFilesManifest());
+    dropLabel?.addEventListener("dragover", (event) => {
+      event.preventDefault();
+      dropLabel.dataset.dropState = "active";
+    });
+    dropLabel?.addEventListener("dragleave", () => {
+      delete dropLabel.dataset.dropState;
+    });
+    dropLabel?.addEventListener("drop", (event) => {
+      event.preventDefault();
+      delete dropLabel.dataset.dropState;
+      const dropped = event.dataTransfer?.files;
+      if (dropped?.length && fileInput) {
+        try {
+          const dt = new DataTransfer();
+          for (const f of dropped) dt.items.add(f);
+          fileInput.files = dt.files;
+          fileInput.dispatchEvent(new Event("change", { bubbles: true }));
+        } catch (_) {}
+      }
+    });
+
     byId("runWorkflowBtn")?.addEventListener("click", () => runSelectedWorkflow().catch((error) => {
-      byId("workflowRunState").textContent = "失败"; byId("workflowRunState").dataset.status = "failed"; byId("workflowResultText").value = error.message;
+      byId("workflowRunState").textContent = "失败";
+      byId("workflowRunState").dataset.status = "failed";
+      byId("workflowResultText").value = error.message;
+      displayErrorOutput(error);
     }));
     byId("cancelWorkflowBtn")?.addEventListener("click", () => activeRun?.controller.abort());
     byId("downloadWorkflowResultBtn")?.addEventListener("click", () => lastOutput && downloadBlob(lastOutput.name || "workflow-result", lastOutput.value));
@@ -1112,6 +2766,8 @@
         if (button.isConnected && button.dataset.originalLabel) button.textContent = button.dataset.originalLabel;
       }, 1200));
     });
+
+    bindCanvasInteractions();
   }
 
   root.WYJWorkflows = Object.freeze({
@@ -1146,6 +2802,11 @@
       workflows: () => cloneJson(workflows),
       lastOutput: () => lastOutput,
       isRunning: () => Boolean(activeRun),
+      viewMode: () => viewMode,
+      selectedStepId: () => selectedStepId,
+      viewport: () => ({ ...canvasViewport }),
+      selectStep: (stepId) => { selectedStepId = stepId; renderInspector(); },
+      setViewMode: (mode) => setViewMode(mode),
     }),
   });
 })();
