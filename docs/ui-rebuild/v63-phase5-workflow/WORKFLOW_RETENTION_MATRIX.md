@@ -50,3 +50,12 @@
 | 2 | `image-batch` | 图片批量发布 | 批量图片压缩转码清理后打包 ZIP | `image-resize` → `image-format` → `exif-remove` → `files-zip` | `image` / `image-list` | `archive` (`.zip`) |
 | 3 | `text-clean` | 文本清理排序 | 读取文本编码后清除空行、去重并排序 | `text-encoding` → `remove-empty-lines` → `dedupe-lines` → `sort-lines` | `text-file` | `text` |
 | 4 | `csv-roundtrip` | CSV 规范转换 | 解析 CSV 为结构化 JSON 再序列化为规范 CSV | `text-encoding` → `csv-json` → `json-csv` | `text-file` | `text` (`.csv`) |
+
+
+---
+
+## 最终整改能力与数据契约复核（2026-11-26）
+
+- **12 项核心能力与 27 项工作流流程**：经 `python scripts/functional_audit_gate.py` 与 `node local-backend/test_workflows_js.mjs` 验证全部保留（11/11 自检组通过）。
+- **Schema v1 零污染隔离**：节点区域内 2D 自由拖拽偏移 (`nodeOffsets: { [stepId]: { x, y } }`) 与视图状态均持久化于独立 UI 存储键 `wyjWorkflowCanvasUi:v1:<accountId>`，在删除步骤、删除/复制/导入工作流与跨账户切换时自动清理隔离；导出的工作流 JSON (`schema_version: 1`) 与云端保存配置保持纯净零注入（已由 Chrome CDP 实测断言 `"nodeOffsets" in wfBeforeReload === false`）。
+- **执行真实性保障**：`executeWorkflow()` 不受动画时长阻塞或延迟；超快文本流程 (`text-clean`) 运行结束后立即解锁结果文本、“复制结果”与“下载结果”，无节点伪装留在 `running` 状态。

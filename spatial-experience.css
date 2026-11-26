@@ -3784,311 +3784,7 @@ html[data-p07-ui="enabled"] .transfer-qr {
   background: #ffffff;
 }
 
-/* --------------------------------------------------------------------------
- * E-02: Workflow Editor (10-工具工作流编辑器)
- * -------------------------------------------------------------------------- */
-html[data-p07-ui="enabled"] #toolsPanel:has(#workflowWorkspace:not(.hidden)) > .tools-header {
-  display: none !important;
-}
-
-html[data-p07-ui="enabled"] #workflowWorkspace {
-  width: calc(100% - clamp(32px, 5vw, 64px));
-  max-width: 1240px;
-  margin: 24px auto 48px;
-  min-height: auto;
-}
-
-@media (max-width: 768px) {
-  html[data-p07-ui="enabled"] #workflowWorkspace {
-    width: calc(100% - 24px);
-    margin: 16px auto 36px;
-  }
-}
-
-html[data-p07-ui="enabled"] .workflow-layout {
-  display: grid;
-  grid-template-columns: 320px minmax(0, 1fr);
-  gap: 24px;
-  align-items: start;
-  padding-top: 0;
-}
-
-@media (max-width: 900px) {
-  html[data-p07-ui="enabled"] .workflow-layout {
-    grid-template-columns: 1fr;
-  }
-}
-
-html[data-p07-ui="enabled"] .workflow-sidebar {
-  background: var(--ds-surface);
-  border: 1px solid var(--ds-border);
-  border-radius: var(--ds-density-radius, var(--ds-radius-sm));
-  padding: 24px;
-  box-shadow: var(--ds-shadow-card);
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  position: sticky;
-  top: calc(var(--site-nav-height, 62px) + 20px);
-  max-height: calc(100dvh - var(--site-nav-height, 62px) - 40px);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-}
-
-@media (max-width: 900px) {
-  html[data-p07-ui="enabled"] .workflow-sidebar {
-    position: static;
-    max-height: none;
-    overflow-y: visible;
-  }
-}
-
-html[data-p07-ui="enabled"] .workflow-sidebar-heading :is(h2, h3),
-html[data-p07-ui="enabled"] .workflow-template-box :is(h2, h3) {
-  font-size: 1.0625rem;
-  font-weight: 750;
-  color: var(--ds-text);
-  margin: 0;
-}
-
-html[data-p07-ui="enabled"] .workflow-sidebar-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-html[data-p07-ui="enabled"] #createWorkflowBtn {
-  padding: 6px 14px;
-  font-size: 0.8125rem;
-  border-radius: 8px;
-  font-weight: 600;
-}
-
-html[data-p07-ui="enabled"] .workflow-list button,
-html[data-p07-ui="enabled"] #workflowTemplateList button {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  width: 100%;
-  padding: 12px 14px;
-  border-radius: var(--ds-radius-card);
-  border: 1px solid var(--ds-border-subtle);
-  background: var(--ds-surface);
-  color: var(--ds-text);
-  text-align: left;
-  transition: all 0.15s ease;
-  cursor: pointer;
-  margin-bottom: 8px;
-}
-
-html[data-p07-ui="enabled"] .workflow-list button:hover,
-html[data-p07-ui="enabled"] #workflowTemplateList button:hover {
-  border-color: var(--ds-border-strong);
-  background: var(--ds-surface-subtle);
-}
-
-html[data-p07-ui="enabled"] .workflow-list button.active {
-  border-color: var(--ds-action-primary);
-  background: var(--ds-surface-subtle);
-  color: var(--ds-text);
-  box-shadow: 0 0 0 1px var(--ds-action-primary);
-}
-
-html[data-p07-ui="enabled"] .workflow-list button strong,
-html[data-p07-ui="enabled"] #workflowTemplateList button strong {
-  font-size: 0.875rem;
-  font-weight: 700;
-}
-
-html[data-p07-ui="enabled"] .workflow-list button small,
-html[data-p07-ui="enabled"] #workflowTemplateList button small {
-  font-size: 0.75rem;
-  color: var(--ds-text-secondary);
-}
-
-html[data-p07-ui="enabled"] #importWorkflowBtn {
-  width: 100%;
-  padding: 9px;
-  border-radius: var(--ds-radius-card);
-  font-size: 0.875rem;
-  font-weight: 600;
-}
-
-html[data-p07-ui="enabled"] .workflow-editor {
-  background: var(--ds-surface);
-  border: 1px solid var(--ds-border);
-  border-radius: var(--ds-density-radius, var(--ds-radius-sm));
-  padding: 28px;
-  box-shadow: var(--ds-shadow-card);
-}
-
-html[data-p07-ui="enabled"] .workflow-editor-empty {
-  text-align: center;
-  padding: 60px 20px;
-  color: var(--ds-text-secondary);
-}
-
-html[data-p07-ui="enabled"] .workflow-editor-empty :is(h2, h3) {
-  font-size: 1.25rem;
-  font-weight: 750;
-  color: var(--ds-text);
-  margin-bottom: 8px;
-}
-
-html[data-p07-ui="enabled"] .workflow-title-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid var(--ds-border-subtle);
-}
-
-html[data-p07-ui="enabled"] .workflow-title-row label {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex: 1 1 240px;
-}
-
-html[data-p07-ui="enabled"] .workflow-title-row label span {
-  font-weight: 700;
-  font-size: 0.875rem;
-  color: var(--ds-text);
-}
-
-html[data-p07-ui="enabled"] #workflowNameInput {
-  flex: 1;
-  min-height: var(--ds-touch-min);
-  padding: 8px 14px;
-  border: 1px solid var(--ds-border);
-  border-radius: var(--ds-radius-sm);
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--ds-text);
-  background: var(--ds-surface);
-}
-
-html[data-p07-ui="enabled"] .workflow-section-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin: 24px 0 16px;
-}
-
-html[data-p07-ui="enabled"] .workflow-section-heading :is(h2, h3) {
-  font-size: 1.125rem;
-  font-weight: 750;
-  color: var(--ds-text);
-  margin: 0;
-}
-
-html[data-p07-ui="enabled"] #workflowStepList {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-html[data-p07-ui="enabled"] .workflow-step {
-  position: relative;
-  background: var(--ds-surface-subtle);
-  border: 1px solid var(--ds-border);
-  border-radius: var(--ds-radius-card);
-  padding: 18px 20px;
-  margin-bottom: 24px;
-  transition: box-shadow 0.15s ease, border-color 0.15s ease;
-}
-
-html[data-p07-ui="enabled"] #workflowStepList > li:not(:last-child)::after {
-  content: "";
-  position: absolute;
-  bottom: -24px;
-  left: 36px;
-  width: 2px;
-  height: 24px;
-  background: var(--ds-brand);
-  z-index: 1;
-}
-
-html[data-p07-ui="enabled"] .workflow-step-heading {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-bottom: 12px;
-}
-
-html[data-p07-ui="enabled"] .workflow-step-number {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--ds-radius-sm);
-  background: var(--ds-action-primary);
-  color: var(--ds-on-action-primary);
-  font-weight: 750;
-  font-size: 0.8125rem;
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-}
-
-html[data-p07-ui="enabled"] .workflow-step-heading strong {
-  font-size: 0.9375rem;
-  font-weight: 750;
-  color: var(--ds-text);
-}
-
-html[data-p07-ui="enabled"] .workflow-step-heading small {
-  font-size: 0.75rem;
-  color: var(--ds-text-secondary);
-}
-
-html[data-p07-ui="enabled"] .workflow-step-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 14px;
-  padding-top: 12px;
-  border-top: 1px solid var(--ds-border-subtle);
-}
-
-html[data-p07-ui="enabled"] .workflow-step-actions button {
-  padding: 5px 12px;
-  font-size: 0.8125rem;
-  border-radius: 6px;
-}
-
-html[data-p07-ui="enabled"] .workflow-runner {
-  background: var(--ds-surface-subtle);
-  border: 1px solid var(--ds-border);
-  border-radius: var(--ds-density-radius, var(--ds-radius-sm));
-  padding: 24px;
-  margin-top: 28px;
-}
-
-html[data-p07-ui="enabled"] #runWorkflowBtn {
-  min-height: 44px;
-  padding: 10px 24px;
-  border-radius: var(--ds-radius-card);
-  font-size: 0.9375rem;
-  font-weight: 700;
-}
-
-html[data-p07-ui="enabled"] #workflowResultText {
-  width: 100%;
-  min-height: 120px;
-  padding: 12px 14px;
-  border: 1px solid var(--ds-border);
-  border-radius: var(--ds-radius-card);
-  background: var(--ds-surface);
-  color: var(--ds-text);
-  font-family: var(--ds-font-mono, monospace);
-  font-size: 0.875rem;
-  line-height: 1.5;
-  box-sizing: border-box;
-}
+/* E-02 Workflows: Retired in V6.3 Phase 5 -> consolidated in Phase 5 Workflow Layer */
 
 /* --------------------------------------------------------------------------
  * E-03: Admin Console & Feature Flags (08-管理后台功能开关)
@@ -5533,117 +5229,7 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #adminFeatureFlagsView fi
   margin-bottom: 8px;
 }
 
-/* C02 Workflows: Continuous Grouped Lists & Single-Line Step Toolbar */
-html[data-p07-ui="enabled"] body[data-workspace-route] :is(.workflow-list, #workflowTemplateList) {
-  display: grid;
-  gap: 0;
-  border: 1px solid var(--ds-divider);
-  border-radius: var(--ds-radius-md);
-  background: var(--ds-surface-subtle);
-  overflow: hidden;
-}
-
-html[data-p07-ui="enabled"] body[data-workspace-route] :is(.workflow-list, #workflowTemplateList) > p {
-  margin: 0;
-  padding: 12px 14px;
-  font-size: 0.8125rem;
-  color: var(--ds-text-muted);
-}
-
-html[data-p07-ui="enabled"] body[data-workspace-route] :is(.workflow-list button, #workflowTemplateList button) {
-  border: 0;
-  border-bottom: 1px solid var(--ds-divider);
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-  margin-bottom: 0;
-  padding: 11px 14px;
-}
-
-html[data-p07-ui="enabled"] body[data-workspace-route] :is(.workflow-list button, #workflowTemplateList button):last-child {
-  border-bottom: 0;
-}
-
-html[data-p07-ui="enabled"] body[data-workspace-route] :is(.workflow-list button, #workflowTemplateList button):hover {
-  border-color: var(--ds-divider);
-  background: var(--ds-surface-hover);
-}
-
-html[data-p07-ui="enabled"] body[data-workspace-route] .workflow-list button.active {
-  border-color: var(--ds-brand-border);
-  background: var(--ds-brand-soft);
-  color: var(--ds-text);
-  font-weight: 600;
-  box-shadow: none;
-}
-
-html[data-p07-ui="enabled"] body[data-workspace-route] .workflow-runner {
-  border: 0;
-  border-top: 1px solid var(--ds-divider);
-  border-radius: 0;
-  background: transparent;
-  padding: 20px 0 0;
-  margin-top: 24px;
-}
-
-html[data-p07-ui="enabled"] body[data-workspace-route] .workflow-title-row {
-  gap: 12px;
-}
-
-html[data-p07-ui="enabled"] body[data-workspace-route] .workflow-title-row > label {
-  flex: 1 1 180px;
-  min-width: 160px;
-}
-
-html[data-p07-ui="enabled"] body[data-workspace-route] .workflow-title-row .action-row {
-  flex: 0 0 auto;
-  flex-wrap: nowrap;
-  gap: 6px;
-  margin-top: 0;
-}
-
-html[data-p07-ui="enabled"] body[data-workspace-route] .workflow-title-row .action-row button {
-  flex: 0 0 auto;
-  padding-inline: 12px;
-  white-space: nowrap;
-}
-
-@media (max-width: 760px) {
-  html[data-p07-ui="enabled"] body[data-workspace-route] .workflow-title-row .action-row {
-    width: 100%;
-    flex-wrap: wrap;
-  }
-}
-
-html[data-p07-ui="enabled"] body[data-workspace-route] .workflow-section-heading > div:last-child {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: nowrap;
-  min-width: 0;
-}
-
-html[data-p07-ui="enabled"] body[data-workspace-route] #workflowToolSelect {
-  flex: 1 1 200px;
-  min-width: 0;
-  width: auto;
-}
-
-html[data-p07-ui="enabled"] body[data-workspace-route] #addWorkflowStepBtn {
-  flex: 0 0 auto;
-  white-space: nowrap;
-}
-
-@media (max-width: 640px) {
-  html[data-p07-ui="enabled"] body[data-workspace-route] .workflow-section-heading {
-    flex-wrap: wrap;
-  }
-
-  html[data-p07-ui="enabled"] body[data-workspace-route] .workflow-section-heading > div:last-child {
-    width: 100%;
-    flex-wrap: wrap;
-  }
-}
+/* C02 Workflows: Retired in V6.3 Phase 5 -> consolidated in Phase 5 Workflow Layer */
 
 /* C02 Recharge: Converge Outer/Inner Duplicate Borders into Clean Step Rhythm */
 html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal :is(#membershipGoalField, #membershipPlanStep, #paymentMethodField) {
@@ -8617,166 +8203,7 @@ html[data-p07-ui="enabled"] body[data-workspace-route] .tools-index-rail .tool-c
 
 /* Phase 3 owns #toolsPanel directory grid styling cleanly below (I06 hairline list removed to avoid specificity clash). */
 
-/* ==========================================================================
- * Workflows (/tools/workflows): n8n Canvas & Split Input/Output (P0-E)
- * ========================================================================== */
-html[data-p07-ui="enabled"] #workflowWorkspace .workflow-header {
-  border: 0;
-  border-bottom: 1px solid var(--ds-divider);
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-  padding: 6px 0 12px;
-  justify-content: flex-start;
-  align-items: center;
-  gap: 12px 16px;
-}
-
-html[data-p07-ui="enabled"] #workflowWorkspace .workflow-header #workflowAccessBadge {
-  margin-left: auto;
-}
-
-html[data-p07-ui="enabled"] #workflowWorkspace .workflow-layout {
-  display: grid;
-  grid-template-columns: 268px minmax(0, 1fr);
-  gap: 20px;
-  align-items: start;
-}
-
-html[data-p07-ui="enabled"] #workflowWorkspace .workflow-sidebar {
-  border: 0;
-  border-right: 1px solid var(--ds-divider);
-  border-radius: 0;
-  background: transparent;
-  padding: 0 16px 0 0;
-}
-
-html[data-p07-ui="enabled"] #workflowWorkspace .workflow-editor {
-  border: 1px solid var(--ds-divider);
-  border-radius: var(--ds-radius-lg);
-  background-color: var(--ds-surface-subtle);
-  background-image: radial-gradient(var(--ds-border) 1px, transparent 1px);
-  background-size: 16px 16px;
-  padding: 18px;
-  min-height: 460px;
-}
-
-html[data-p07-ui="enabled"] #workflowWorkspace .workflow-editor-empty {
-  border: 1px solid var(--ds-divider);
-  border-radius: var(--ds-radius-md);
-  background: var(--ds-surface);
-  max-width: 460px;
-  margin: 48px auto;
-  padding: 24px;
-  box-shadow: var(--ds-shadow-card);
-}
-
-html[data-p07-ui="enabled"] #workflowWorkspace #workflowStepList {
-  position: relative;
-  display: grid;
-  gap: 18px;
-  padding-left: 12px;
-}
-
-html[data-p07-ui="enabled"] #workflowWorkspace #workflowStepList::before {
-  content: "";
-  position: absolute;
-  left: 23px;
-  top: 16px;
-  bottom: 16px;
-  width: 2px;
-  background: var(--ds-border-strong);
-}
-
-html[data-p07-ui="enabled"] #workflowWorkspace .workflow-step {
-  position: relative;
-  border: 1px solid var(--ds-border);
-  border-radius: var(--ds-radius-md);
-  background: var(--ds-surface);
-  box-shadow: var(--ds-shadow-card);
-  padding: 14px 16px;
-  transition: border-color var(--ds-duration-fast) var(--ds-ease-standard);
-}
-
-html[data-p07-ui="enabled"] #workflowWorkspace .workflow-step:not(:last-child)::after {
-  content: "";
-  position: absolute;
-  left: 8px;
-  bottom: -14px;
-  width: 7px;
-  height: 7px;
-  border-right: 2px solid var(--ds-text-muted);
-  border-bottom: 2px solid var(--ds-text-muted);
-  transform: rotate(45deg);
-  background: transparent;
-  padding: 0;
-}
-
-html[data-p07-ui="enabled"] #workflowWorkspace .workflow-runner {
-  border: 0;
-  padding: 0;
-  margin: 0;
-}
-
-html[data-p07-ui="enabled"] #workflowWorkspace .workflow-runner-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 0;
-  margin-top: 16px;
-  border: 0;
-  border-top: 1px solid var(--ds-divider);
-  border-bottom: 1px solid var(--ds-divider);
-  border-radius: var(--ds-radius-md);
-  background: var(--ds-surface);
-  overflow: hidden;
-}
-
-html[data-p07-ui="enabled"] #workflowWorkspace .workflow-runner-pane {
-  padding: 14px 16px;
-  display: grid;
-  gap: 10px;
-  align-content: start;
-  min-width: 0;
-}
-
-html[data-p07-ui="enabled"] #workflowWorkspace .workflow-runner-pane .workflow-section-heading {
-  flex-wrap: wrap;
-  gap: 8px 10px;
-}
-
-html[data-p07-ui="enabled"] #workflowWorkspace .workflow-runner-pane .workflow-section-heading :is(h2, h3, button) {
-  white-space: nowrap;
-}
-
-html[data-p07-ui="enabled"] #workflowWorkspace .workflow-runner-input {
-  border-right: 1px solid var(--ds-divider);
-}
-
-html[data-p07-ui="enabled"] #workflowWorkspace .workflow-step-statuses {
-  display: grid;
-  gap: 6px;
-}
-
-html[data-p07-ui="enabled"] #workflowWorkspace .workflow-step-statuses > div {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 6px 10px;
-  border-radius: var(--ds-radius-sm);
-  border: 1px solid var(--ds-divider);
-  background: var(--ds-surface-subtle);
-  font-size: 0.8125rem;
-}
-
-html[data-p07-ui="enabled"] #workflowWorkspace .workflow-step-statuses > div[data-status="running"] {
-  border-color: var(--ds-brand-border);
-  background: var(--ds-brand-soft);
-}
-
-html[data-p07-ui="enabled"] #workflowWorkspace .workflow-step-statuses > div[data-status="success"] {
-  border-color: var(--ds-success);
-}
+/* P0-E Workflows: Retired in V6.3 Phase 5 -> consolidated in Phase 5 Workflow Layer */
 
 /* Transfer Drop Zone & Task27/28/29/30 Harmonization */
 html[data-p07-ui="enabled"] #transferPage .transfer-drop-zone {
@@ -8919,22 +8346,6 @@ html[data-p07-ui="enabled"] #financePage .finance-currency-grid {
     font-size: 0.75rem;
   }
 
-  html[data-p07-ui="enabled"] #workflowWorkspace .workflow-layout,
-  html[data-p07-ui="enabled"] #workflowWorkspace .workflow-runner-grid {
-    grid-template-columns: 1fr;
-  }
-
-  html[data-p07-ui="enabled"] #workflowWorkspace .workflow-sidebar {
-    border-right: 0;
-    border-bottom: 1px solid var(--ds-divider);
-    padding: 0 0 14px;
-  }
-
-  html[data-p07-ui="enabled"] #workflowWorkspace .workflow-runner-input {
-    border-right: 0;
-    border-bottom: 1px solid var(--ds-divider);
-  }
-
   html[data-p07-ui="enabled"] #financePage .finance-side-column {
     border-left: 0;
     padding-left: 0;
@@ -8998,20 +8409,16 @@ html[data-p07-ui="enabled"] #financePage .finance-currency-grid {
 }
 
 @media (max-width: 760px) {
-  html[data-p07-ui="enabled"] :is(#financePage .finance-header, #toolsPanel .tools-header, #transferPage .transfer-header, #adminPanel .admin-header, #workflowWorkspace .workflow-header) {
+  html[data-p07-ui="enabled"] :is(#financePage .finance-header, #toolsPanel .tools-header, #transferPage .transfer-header, #adminPanel .admin-header) {
     flex-direction: column;
     align-items: flex-start;
     justify-content: flex-start;
     text-align: left;
   }
 
-  html[data-p07-ui="enabled"] :is(#financePage .finance-header, #toolsPanel .tools-header, #transferPage .transfer-header, #adminPanel .admin-header, #workflowWorkspace .workflow-header) > div:first-child {
+  html[data-p07-ui="enabled"] :is(#financePage .finance-header, #toolsPanel .tools-header, #transferPage .transfer-header, #adminPanel .admin-header) > div:first-child {
     width: 100%;
     text-align: left;
-    margin-left: 0;
-  }
-
-  html[data-p07-ui="enabled"] #workflowWorkspace .workflow-header #workflowAccessBadge {
     margin-left: 0;
   }
 
@@ -9112,7 +8519,6 @@ html[data-p07-ui="enabled"] #financePage .finance-currency-grid {
   html[data-p07-ui="enabled"] #authWorkspaceSection .workspace-bento-card,
   html[data-p07-ui="enabled"] #financePage .finance-transaction,
   html[data-p07-ui="enabled"] #toolsPanel .tool-card,
-  html[data-p07-ui="enabled"] #workflowWorkspace .workflow-step,
   html[data-p07-ui="enabled"] #transferPage .transfer-drop-zone,
   html[data-p07-ui="enabled"] .v3-nav-indicator,
   html[data-p07-ui="enabled"] .v3-cmd-trigger {
@@ -13457,6 +12863,20 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #achievementsView .achiev
    Strict CSP safe, zero important overrides, p07_accessibility fallback-safe
    ============================================================================ */
 
+:is(html, html[data-p07-ui="enabled"]) :is(body, body[data-workspace-route]) #toolsPanel:has(#workflowWorkspace:not(.hidden)) > .tools-header {
+  display: none;
+}
+
+#workflowWorkspace {
+  --wf-exec-flow: var(--ds-wf-flow);
+  --wf-exec-flow-head: var(--ds-wf-flow-head);
+  --wf-exec-flow-soft: var(--ds-wf-flow-soft);
+  --wf-exec-flow-border: var(--ds-wf-flow-border);
+  --wf-exec-success: var(--ds-wf-success);
+  --wf-exec-success-soft: var(--ds-wf-success-soft);
+  --wf-exec-idle-stroke: var(--ds-wf-idle-stroke);
+}
+
 :is(html, html[data-p07-ui="enabled"]) :is(body, body[data-workspace-route]) #workflowWorkspace {
   width: 100%;
   max-width: min(1640px, 100%);
@@ -14191,10 +13611,11 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #achievementsView .achiev
 
 #workflowWorkspace .wf-canvas-viewport {
   position: relative;
-  height: clamp(390px, 52vh, 580px);
+  height: clamp(380px, 48vh, 520px);
   min-height: 340px;
   width: 100%;
   overflow: hidden;
+  overflow-anchor: none;
   background: var(--ds-workspace-canvas);
   cursor: grab;
   user-select: none;
@@ -14222,12 +13643,14 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #achievementsView .achiev
 #workflowWorkspace .wf-canvas-stage {
   position: relative;
   display: inline-flex;
-  align-items: center;
-  gap: 28px;
-  padding: 36px 40px;
+  align-items: flex-start;
+  gap: 32px;
+  padding: 84px 52px;
   width: max-content;
+  min-width: 100%;
   min-height: 100%;
   box-sizing: border-box;
+  overflow: visible;
   will-change: transform;
 }
 
@@ -14245,28 +13668,41 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #achievementsView .achiev
 }
 
 #workflowWorkspace .wf-edge-group {
-  color: var(--ds-border-strong);
+  color: var(--wf-exec-idle-stroke);
 }
 
-#workflowWorkspace .wf-edge-path {
+#workflowWorkspace .wf-edge-base {
   stroke: currentColor;
   stroke-width: 2px;
   stroke-linecap: round;
-  transition: stroke 180ms ease;
+  fill: none;
+  transition: stroke 220ms ease, opacity 220ms ease, stroke-width 220ms ease;
+}
+
+#workflowWorkspace .wf-edge-pulse {
+  stroke-width: 3px;
+  stroke-linecap: round;
+  fill: none;
+  opacity: 0;
+  pointer-events: none;
+}
+
+#workflowWorkspace .wf-edge-entry .wf-edge-base,
+#workflowWorkspace .wf-edge-exit .wf-edge-base {
+  stroke-dasharray: 4 4;
+  opacity: 0.72;
 }
 
 #workflowWorkspace .wf-edge-group[data-edge-state="running"] {
-  color: var(--ds-brand);
+  color: color-mix(in srgb, var(--wf-exec-flow) 62%, var(--wf-exec-idle-stroke));
 }
 
-#workflowWorkspace .wf-edge-group[data-edge-state="running"] .wf-edge-path {
-  stroke-dasharray: 6 4;
-  stroke-width: 2.4px;
-  animation: wfEdgeFlow 640ms linear infinite;
+#workflowWorkspace .wf-edge-group[data-edge-state="running"] .wf-edge-base {
+  stroke-width: 2.35px;
 }
 
 #workflowWorkspace .wf-edge-group[data-edge-state="success"] {
-  color: var(--ds-success);
+  color: var(--wf-exec-success);
 }
 
 #workflowWorkspace .wf-edge-group[data-edge-state="failed"],
@@ -14274,23 +13710,14 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #achievementsView .achiev
   color: var(--ds-error);
 }
 
-#workflowWorkspace .wf-edge-group[data-edge-state="invalid"] .wf-edge-path {
+#workflowWorkspace .wf-edge-group[data-edge-state="invalid"] .wf-edge-base {
   stroke-dasharray: 4 4;
 }
 
 #workflowWorkspace .wf-edge-group[data-edge-state="skipped"],
 #workflowWorkspace .wf-edge-group[data-edge-state="cancelled"] {
   color: var(--ds-text-muted);
-  opacity: 0.6;
-}
-
-@keyframes wfEdgeFlow {
-  from {
-    stroke-dashoffset: 20;
-  }
-  to {
-    stroke-dashoffset: 0;
-  }
+  opacity: 0.56;
 }
 
 #workflowWorkspace .wf-edge-inserts {
@@ -14339,7 +13766,15 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #achievementsView .achiev
 }
 
 /* Node Layer & Node Cards */
-#workflowWorkspace .wf-node-layer {
+#workflowWorkspace #workflowStepList::before,
+#workflowWorkspace #workflowStepList::after,
+#workflowWorkspace .workflow-step::before,
+#workflowWorkspace .workflow-step::after {
+  content: none;
+  display: none;
+}
+
+#workflowWorkspace #workflowStepList.wf-node-layer {
   position: relative;
   z-index: 2;
   list-style: none;
@@ -14347,14 +13782,16 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #achievementsView .achiev
   padding: 0;
   display: flex;
   flex-direction: row;
-  align-items: stretch;
-  gap: 46px;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  gap: 56px;
+  flex-shrink: 0;
 }
 
 :is(html, html[data-p07-ui="enabled"]) :is(body, body[data-workspace-route]) #workflowWorkspace .workflow-step.wf-node {
   position: relative;
-  width: 238px;
-  flex: 0 0 238px;
+  width: 260px;
+  flex: 0 0 260px;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -14363,14 +13800,16 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #achievementsView .achiev
   background: var(--ds-surface);
   border: 1px solid var(--ds-border);
   box-shadow: var(--ds-shadow-card);
-  cursor: pointer;
+  cursor: grab;
   user-select: none;
-  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1), border-color 150ms ease, box-shadow 180ms ease, opacity 150ms ease;
+  overflow: visible;
+  translate: var(--wf-off-x, 0px) var(--wf-off-y, 0px);
+  transition: border-color 180ms ease, box-shadow 200ms ease, background-color 220ms ease, opacity 150ms ease;
 }
 
-:is(html, html[data-p07-ui="enabled"]) :is(body, body[data-workspace-route]) #workflowWorkspace .workflow-step.wf-node:hover {
+:is(html, html[data-p07-ui="enabled"]) :is(body, body[data-workspace-route]) #workflowWorkspace .workflow-step.wf-node:not(.is-pointer-dragging):hover {
   border-color: var(--ds-border-strong);
-  transform: translateY(-2px);
+  box-shadow: var(--ds-shadow-dialog);
 }
 
 #workflowWorkspace .workflow-step.wf-node[data-selected="true"] {
@@ -14379,12 +13818,13 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #achievementsView .achiev
 }
 
 #workflowWorkspace .workflow-step.wf-node[data-step-status="running"] {
-  border-color: var(--ds-brand);
-  box-shadow: 0 0 0 3px var(--ds-brand-soft), var(--ds-shadow-card);
+  border-color: var(--wf-exec-flow-border);
+  background: var(--wf-exec-flow-soft);
+  box-shadow: 0 8px 20px -12px color-mix(in srgb, var(--wf-exec-flow) 40%, transparent), var(--ds-shadow-card);
 }
 
 #workflowWorkspace .workflow-step.wf-node[data-step-status="success"] {
-  border-color: var(--ds-success-border);
+  border-color: color-mix(in srgb, var(--wf-exec-success) 55%, var(--ds-border));
 }
 
 #workflowWorkspace .workflow-step.wf-node[data-step-status="failed"] {
@@ -14399,14 +13839,44 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #achievementsView .achiev
 
 #workflowWorkspace .workflow-step.wf-node.dragging,
 #workflowWorkspace .workflow-step.wf-node.is-pointer-dragging {
-  opacity: 0.92;
-  box-shadow: var(--ds-shadow-dialog);
+  opacity: 0.96;
+  box-shadow: 0 18px 36px -14px color-mix(in srgb, var(--ds-text) 22%, transparent);
   cursor: grabbing;
+  z-index: 20;
+  transition: none;
 }
 
-#workflowWorkspace .workflow-step.wf-node.is-drop-target {
-  outline: 2px dashed var(--ds-brand);
-  outline-offset: 4px;
+#workflowWorkspace .workflow-step.wf-node.is-drag-settling {
+  z-index: 12;
+}
+
+#workflowWorkspace .workflow-step.wf-node.is-swap-invalid,
+#workflowWorkspace .wf-canvas-viewport[data-swap-valid="false"] .workflow-step.wf-node.is-pointer-dragging {
+  border-color: var(--ds-error);
+  box-shadow: 0 0 0 2px var(--ds-error-soft), var(--ds-shadow-dialog);
+}
+
+#workflowWorkspace .wf-node-trace-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+  z-index: 4;
+}
+
+#workflowWorkspace .wf-node-trace-rect {
+  fill: none;
+  stroke: var(--wf-exec-flow);
+  stroke-width: 2.25px;
+  stroke-linecap: round;
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+
+#workflowWorkspace .workflow-step.wf-node[data-step-status="running"] .wf-node-trace-rect {
+  opacity: 1;
 }
 
 #workflowWorkspace .wf-port {
@@ -14419,7 +13889,7 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #achievementsView .achiev
   border: 2px solid var(--ds-border-strong);
   transform: translateY(-50%);
   pointer-events: none;
-  z-index: 3;
+  z-index: 5;
 }
 
 #workflowWorkspace .wf-port-in {
@@ -14431,16 +13901,19 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #achievementsView .achiev
 }
 
 #workflowWorkspace .wf-node:first-child .wf-port-in {
-  opacity: 0.45;
+  opacity: 0.55;
 }
 
-#workflowWorkspace .wf-node[data-selected="true"] .wf-port,
-#workflowWorkspace .wf-node[data-step-status="running"] .wf-port {
+#workflowWorkspace .wf-node[data-selected="true"] .wf-port {
   border-color: var(--ds-brand);
 }
 
+#workflowWorkspace .wf-node[data-step-status="running"] .wf-port {
+  border-color: var(--wf-exec-flow);
+}
+
 #workflowWorkspace .wf-node[data-step-status="success"] .wf-port {
-  border-color: var(--ds-success);
+  border-color: var(--wf-exec-success);
 }
 
 #workflowWorkspace .wf-node[data-step-status="failed"] .wf-port {
@@ -14521,18 +13994,17 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #achievementsView .achiev
 #workflowWorkspace .wf-node-name {
   font-size: 13.5px;
   font-weight: 600;
+  line-height: 1.32;
   color: var(--ds-text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  word-break: break-word;
 }
 
 #workflowWorkspace .wf-node-io-text {
   font-size: 11px;
+  line-height: 1.35;
   color: var(--ds-text-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 #workflowWorkspace .wf-node-status-pill {
@@ -14552,15 +14024,15 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #achievementsView .achiev
 }
 
 #workflowWorkspace .wf-node-status-pill[data-status="running"] {
-  background: var(--ds-brand-soft);
-  color: var(--ds-brand);
-  border-color: var(--ds-brand-border);
+  background: var(--wf-exec-flow-soft);
+  color: var(--wf-exec-flow);
+  border-color: var(--wf-exec-flow-border);
 }
 
 #workflowWorkspace .wf-node-status-pill[data-status="success"] {
-  background: var(--ds-success-soft);
-  color: var(--ds-success);
-  border-color: var(--ds-success-border);
+  background: var(--wf-exec-success-soft);
+  color: var(--wf-exec-success);
+  border-color: color-mix(in srgb, var(--wf-exec-success) 38%, transparent);
 }
 
 #workflowWorkspace .wf-node-status-pill[data-status="failed"] {
@@ -14578,9 +14050,12 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #achievementsView .achiev
   font-size: 12px;
   line-height: 1.4;
   color: var(--ds-text-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  min-height: 36px;
 }
 
 #workflowWorkspace .wf-node-error {
@@ -14610,6 +14085,12 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #achievementsView .achiev
   font-size: 12px;
   color: var(--ds-text-secondary);
   cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+#workflowWorkspace .wf-node-enable span {
+  white-space: nowrap;
 }
 
 #workflowWorkspace .wf-node-actions {
@@ -15575,7 +15056,7 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #achievementsView .achiev
 
   #workflowWorkspace .wf-canvas-viewport {
     height: auto;
-    min-height: 300px;
+    min-height: 320px;
     overflow: visible;
     cursor: default;
   }
@@ -15585,15 +15066,15 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #achievementsView .achiev
     flex-direction: column;
     align-items: stretch;
     gap: 32px;
-    padding: 20px 14px 28px;
+    padding: 36px 24px 44px;
     width: 100%;
     min-height: 280px;
   }
 
-  #workflowWorkspace .wf-node-layer {
+  #workflowWorkspace #workflowStepList.wf-node-layer {
     flex-direction: column;
     align-items: stretch;
-    gap: 40px;
+    gap: 52px;
     width: 100%;
   }
 
@@ -15613,7 +15094,9 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #achievementsView .achiev
   }
 
   #workflowWorkspace .wf-port-out {
+    top: auto;
     bottom: -6px;
+    right: auto;
   }
 
   #workflowWorkspace .wf-trailing-add-node:not(.hidden) {

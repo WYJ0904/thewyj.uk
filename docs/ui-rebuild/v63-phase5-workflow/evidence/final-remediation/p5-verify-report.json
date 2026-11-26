@@ -1,0 +1,124 @@
+{
+  "pid_chrome": 44148,
+  "timings": {
+    "cold_boot_ms": 626,
+    "hot_switch_ms": 121
+  },
+  "policy_modes": {
+    "enabled": "ok",
+    "disabled": "ok",
+    "error": "ok"
+  },
+  "layout_checks": {
+    "desktop_1440": {
+      "zoom": 0.78,
+      "flexDirection": "row",
+      "nodes": 4,
+      "edges": 5
+    }
+  },
+  "drag_checks": {
+    "intra_zone_persisted": {
+      "x": 25.6,
+      "y": -53.8
+    },
+    "cross_zone_swap": [
+      "step_daeb42b353f84bdea8a4f581",
+      "step_4981e015f74f4ab99f14b389",
+      "step_90b0806f803741668720e63d",
+      "step_d9ca3129bbb147938e677af0"
+    ],
+    "invalid_rollback": "无法调整节点顺序：步骤“读取文本编码”与上一步输出类型不兼容"
+  },
+  "exec_checks": {
+    "fast_text_immediate": {
+      "output": "alpha\nbeta",
+      "copyDisabled": false,
+      "dlDisabled": false,
+      "anyRunning": false
+    },
+    "scheme_a_live": {
+      "runningId": "step_a0c27501995b46b481a68c17",
+      "rectOpacity": "1",
+      "rectAnims": [
+        "running"
+      ],
+      "rectWidth": "258",
+      "rectRx": "13",
+      "pulses": [
+        {
+          "op": "0.0375541",
+          "active": 1
+        },
+        {
+          "op": "0",
+          "active": 0
+        },
+        {
+          "op": "0",
+          "active": 0
+        },
+        {
+          "op": "0",
+          "active": 0
+        },
+        {
+          "op": "0",
+          "active": 0
+        }
+      ]
+    },
+    "scheme_a_completed": {
+      "runningTraces": 0,
+      "statuses": [
+        "success",
+        "success",
+        "success",
+        "success"
+      ],
+      "edges": [
+        {
+          "id": "__entry__",
+          "state": "success"
+        },
+        {
+          "id": "__exit__",
+          "state": "success"
+        },
+        {
+          "id": "step_a0c27501995b46b481a68c17__step_614c1f791c4144b4aedc87d3",
+          "state": "success"
+        },
+        {
+          "id": "step_614c1f791c4144b4aedc87d3__step_1ce610b907b541319c818ddc",
+          "state": "success"
+        },
+        {
+          "id": "step_1ce610b907b541319c818ddc__step_b883349d4bfb48518f74b0d6",
+          "state": "success"
+        }
+      ]
+    },
+    "scheme_a_failed": {
+      "runningTraces": 0,
+      "statuses": [
+        "failed",
+        "waiting",
+        "waiting",
+        "waiting"
+      ]
+    }
+  },
+  "screenshots": [
+    "docs/ui-rebuild/v63-phase5-workflow/evidence/final-remediation/p5-desktop-inspector.png",
+    "docs/ui-rebuild/v63-phase5-workflow/evidence/final-remediation/p5-desktop-horizontal.png",
+    "docs/ui-rebuild/v63-phase5-workflow/evidence/final-remediation/p5-exec-running.png",
+    "docs/ui-rebuild/v63-phase5-workflow/evidence/final-remediation/p5-desktop-dark.png",
+    "docs/ui-rebuild/v63-phase5-workflow/evidence/final-remediation/p5-mobile-390.png",
+    "docs/ui-rebuild/v63-phase5-workflow/evidence/final-remediation/p5-mobile-320.png"
+  ],
+  "recordings": [
+    "docs/ui-rebuild/v63-phase5-workflow/evidence/final-remediation/p5-drag-reorder.mp4",
+    "docs/ui-rebuild/v63-phase5-workflow/evidence/final-remediation/p5-exec-animation.mp4"
+  ]
+}

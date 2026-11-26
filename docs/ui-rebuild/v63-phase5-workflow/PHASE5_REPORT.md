@@ -97,3 +97,39 @@
 ## 六、后续可选演进建议（本次未实施）
 - 未来若在引擎层扩展分支/并发执行语义，可引入条件判断 (`branch`) 与并行节点，并在 Schema v2 迁移时兼容当前顺序 `steps[]` 结构。
 - 未来可考虑基于现有节点工具栏扩展画布小地图（Minimap）及按步骤历史执行快照回看，前提是不伪造虚假运行数据。
+
+
+---
+
+## 最终整改交付补充：自由节点编排与方案 A 光流执行动画（2026-11-26）
+
+### 1. 根因修复与 CSS 层叠净化
+
+- 彻底清理 `spatial-experience.css` 中遗留的 `E-02` 与 `P0-E` 旧版规则（原高优先级选择器 `html[data-p07-ui="enabled"] #workflowWorkspace #workflowStepList { display: grid }` 与 `::before`/`::after` 导致桌面端强行竖排且出现双重连线）。
+- 在 Phase 5 独立样式层以零 `!important` 实现：
+  - `#workflowWorkspace #workflowStepList.wf-node-layer` 桌面端强制水平 `flex-direction: row; flex-wrap: nowrap; gap: 56px`，并显式隐藏任何遗留 `::before` / `::after`。
+  - `#toolsPanel:has(#workflowWorkspace:not(.hidden)) > .tools-header { display: none; }` 覆盖 `p07_accessibility` 的 `enabled` / `disabled` / `error` 全三态，不泄漏工具箱头部。
+  - 修复节点内“启用”复选框文字竖排折行问题（`white-space: nowrap`），提升卡片标题/IO/2行参数可读性与默认适应画布缩放比，移除打开 Inspector 时的画布跳变。
+
+### 2. 区域内 2D 自由拖拽 + 跨区滞回重排 + 位置持久化
+
+- 通过 CSS `translate: var(--wf-off-x) var(--wf-off-y)` 与 WAAPI `transform` 分离架构实现：
+  - 区域内任意 2D 拖动松手后安全钳制并保留偏移量于 `wyjWorkflowCanvasUi:v1:<accountId>`，刷新与重载后自动恢复且与 Schema v1 数据完全隔离。
+  - 跨越邻居区域中点 `±22px` 滞回死区时基于未偏移 `slots` 基线触发可中断 WAAPI 兄弟节点让位与 SVG 贝塞尔连线实时同步。
+  - 兼容松手即提交新顺序、非兼容换位（经 `validateStepSequence` 校验）精确报错并同步滑回节点与连线、支持 `Escape`/`pointercancel` 撤销及运行中结构锁定。
+
+### 3. 方案 A：光流接力 + 圆角边框环绕动画
+
+- 在 `design-system.css` `:root` 及暗黑主题中新增 `--ds-wf-flow` (`#779bc5` / `#8ab0db`)、`--ds-wf-flow-head`、`--ds-wf-success` 语义令牌。
+- 重构 `syncCanvasEdges()` 键控复用 SVG `<g data-edge-id>` 与 `gradientUnits="userSpaceOnUse"` 方向渐变，新增视觉首尾引入/输出虚线提示（不写入 `steps[]`）。
+- 基于单调 `runEpoch` 与真实 `executeWorkflow` 状态流同步：`running` 节点触发 `1450ms` `<rect rx="13" ry="13" pathLength="100">` 圆角边描边环绕与浅蓝呼吸底色，节点完成后触发单次边光流脉冲接力；失败或取消立即中止后续全部动画；支持 `visibilitychange` 后台暂停及减弱动态无障碍模式。
+
+### 4. 本轮复核实测指标与交付证据
+
+- **静态与构建全门禁**：`test_static.py` 31/31 通过、`test_workflows_js.mjs` 11 组通过、`test_i05_workspace_shell.mjs` 3/3 通过、`test_i06_module_experience.mjs` 2/2 通过、`functional_audit_gate.py` 通过、`check_storage_contract.mjs` 通过、`check_js_module_graph.mjs` 通过、`cf:check` 编译通过、`sw-install-browser.mjs` 7/7 通过。
+- **真实浏览器耗时对比（Chrome CDP 本地 `.wrangler/pages-output`）**：
+  - 冷启动直达 `/tools/workflows`：`626 ms`
+  - 已打开工具箱后热切换至 `/tools/workflows`：`121 ms`
+- **桌面/移动截图与实时 1.0x MP4 证据**（见 `docs/ui-rebuild/v63-phase5-workflow/evidence/final-remediation/`）：
+  - `p5-desktop-horizontal.png` / `p5-desktop-inspector.png` / `p5-exec-running.png` / `p5-desktop-dark.png` / `p5-mobile-390.png` / `p5-mobile-320.png`
+  - `p5-drag-reorder.mp4` (`8.24s`, 1.0x) / `p5-exec-animation.mp4` (`5.64s`, 1.0x)

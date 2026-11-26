@@ -719,6 +719,10 @@
   let pickerActiveIndex = 0;
   let openRowMenuId = "";
   let canvasViewport = { panX: 0, panY: 0, zoom: 1 };
+  let canvasNodeOffsets = {};
+  let currentRunEpoch = 0;
+  let execVisualState = null;
+  const nodeShiftAnims = new Map();
   let lastStatuses = [];
   let lastRunError = null;
   let edgeSyncRaf = 0;
@@ -808,34 +812,106 @@
     return `wyjWorkflowCanvasUi:v1:${accountId()}`;
   }
 
-  function loadCanvasViewportFor(workflowId) {
-    if (!workflowId) return { panX: 0, panY: 0, zoom: 1 };
+  function clampNodeOffset(x, y, mobile = isMobileCanvas()) {
+    const maxX = mobile ? 18 : 28;
+    const maxY = mobile ? 20 : 72;
+    const nx = Number.isFinite(Number(x)) ? Math.max(-maxX, Math.min(maxX, Number(x))) : 0;
+    const ny = Number.isFinite(Number(y)) ? Math.max(-maxY, Math.min(maxY, Number(y))) : 0;
+    return { x: Math.round(nx * 10) / 10, y: Math.round(ny * 10) / 10 };
+  }
+
+  function sanitizeNodeOffsets(rawOffsets, workflow) {
+    const validIds = workflow?.steps ? new Set(workflow.steps.map((s) => s.id)) : null;
+    const mobile = isMobileCanvas();
+    const out = {};
+    if (!rawOffsets || typeof rawOffsets !== "object") return out;
+    for (const [stepId, val] of Object.entries(rawOffsets)) {
+      if (validIds && !validIds.has(stepId)) continue;
+      if (!val || typeof val !== "object") continue;
+      const clamped = clampNodeOffset(val.x, val.y, mobile);
+      if (Math.abs(clamped.x) >= 0.5 || Math.abs(clamped.y) >= 0.5) out[stepId] = clamped;
+    }
+    return out;
+  }
+
+  function getStepOffset(stepId) {
+    const val = canvasNodeOffsets?.[stepId];
+    return val ? { x: Number(val.x) || 0, y: Number(val.y) || 0 } : { x: 0, y: 0 };
+  }
+
+  function loadCanvasUiFor(workflowId, workflow = null) {
+    if (!workflowId) return { viewport: { panX: 0, panY: 0, zoom: 1 }, nodeOffsets: {}, hasSaved: false };
     try {
       const map = JSON.parse(safeLocalGet(canvasUiStorageKey()) || "{}");
       const saved = map?.[workflowId];
-      if (saved && Number.isFinite(saved.zoom) && Number.isFinite(saved.panX) && Number.isFinite(saved.panY)) {
-        return {
-          panX: Number(saved.panX),
-          panY: Number(saved.panY),
-          zoom: Math.min(1.6, Math.max(0.5, Number(saved.zoom))),
-        };
+      if (saved && typeof saved === "object") {
+        const viewport = Number.isFinite(saved.zoom) && Number.isFinite(saved.panX) && Number.isFinite(saved.panY)
+          ? {
+            panX: Number(saved.panX),
+            panY: Number(saved.panY),
+            zoom: Math.min(1.6, Math.max(0.5, Number(saved.zoom))),
+          }
+          : { panX: 0, panY: 0, zoom: 1 };
+        const nodeOffsets = sanitizeNodeOffsets(saved.nodeOffsets, workflow);
+        return { viewport, nodeOffsets, hasSaved: Number.isFinite(saved.zoom) };
       }
     } catch (_) {}
-    return { panX: 0, panY: 0, zoom: 1 };
+    return { viewport: { panX: 0, panY: 0, zoom: 1 }, nodeOffsets: {}, hasSaved: false };
+  }
+
+  function loadCanvasViewportFor(workflowId) {
+    return loadCanvasUiFor(workflowId).viewport;
   }
 
   function persistCanvasViewport() {
     const workflow = selectedWorkflow();
     if (!workflow) return;
+    canvasNodeOffsets = sanitizeNodeOffsets(canvasNodeOffsets, workflow);
     try {
       const map = JSON.parse(safeLocalGet(canvasUiStorageKey()) || "{}");
       map[workflow.id] = {
         panX: Math.round(canvasViewport.panX),
         panY: Math.round(canvasViewport.panY),
         zoom: Number(canvasViewport.zoom.toFixed(3)),
+        nodeOffsets: canvasNodeOffsets,
       };
       safeLocalSet(canvasUiStorageKey(), JSON.stringify(map));
     } catch (_) {}
+  }
+
+  function removeCanvasUiFor(workflowId) {
+    if (!workflowId) return;
+    try {
+      const map = JSON.parse(safeLocalGet(canvasUiStorageKey()) || "{}");
+      if (map && Object.prototype.hasOwnProperty.call(map, workflowId)) {
+        delete map[workflowId];
+        safeLocalSet(canvasUiStorageKey(), JSON.stringify(map));
+      }
+    } catch (_) {}
+  }
+
+  function syncNodeTraceGeometry(node) {
+    const rect = node?.querySelector?.(".wf-node-trace-rect");
+    if (!rect || !node) return;
+    const w = Math.max(12, node.offsetWidth - 2);
+    const h = Math.max(12, node.offsetHeight - 2);
+    rect.setAttribute("x", "1");
+    rect.setAttribute("y", "1");
+    rect.setAttribute("width", String(w));
+    rect.setAttribute("height", String(h));
+    rect.setAttribute("rx", "13");
+    rect.setAttribute("ry", "13");
+  }
+
+  function applyNodeOffsetsToDom(list, workflow) {
+    if (!list) return;
+    canvasNodeOffsets = sanitizeNodeOffsets(canvasNodeOffsets, workflow);
+    list.querySelectorAll(":scope > li.wf-node").forEach((node) => {
+      const off = getStepOffset(node.dataset.stepId);
+      node.style.setProperty("--wf-off-x", `${off.x.toFixed(1)}px`);
+      node.style.setProperty("--wf-off-y", `${off.y.toFixed(1)}px`);
+      syncNodeTraceGeometry(node);
+    });
   }
 
   function applyCanvasTransform({ animate = false } = {}) {
@@ -878,14 +954,18 @@
     const vw = viewport.clientWidth;
     const vh = viewport.clientHeight;
     if (!vw || !vh) return;
-    const contentW = Math.max(stage.scrollWidth, 260);
-    const contentH = Math.max(stage.scrollHeight, 160);
-    const padX = 40;
-    const padY = 40;
-    const fitZoom = Math.min((vw - padX) / contentW, (vh - padY) / contentH);
-    const zoom = Math.min(1, Math.max(0.55, fitZoom));
-    const panX = Math.max(16, Math.round((vw - contentW * zoom) / 2));
-    const panY = Math.max(12, Math.round((vh - contentH * zoom) / 2));
+    const list = byId("workflowStepList");
+    const trailing = byId("canvasTrailingAddBtn");
+    const nodesW = list ? list.offsetWidth : 0;
+    const trailingW = trailing && !trailing.classList.contains("hidden") ? trailing.offsetWidth + 32 : 0;
+    const flowW = Math.max(nodesW + trailingW + 104, 280);
+    const flowH = Math.max((list ? list.offsetHeight : 0) + 168, 220);
+    const fitZoom = Math.min((vw - 24) / flowW, (vh - 24) / flowH);
+    const zoom = flowW <= vw - 16 && flowH <= vh - 12 ? 1 : Math.min(1, Math.max(0.78, fitZoom));
+    const panX = flowW * zoom <= vw
+      ? Math.max(8, Math.round((vw - flowW * zoom) / 2))
+      : 8;
+    const panY = Math.max(8, Math.round((vh - flowH * zoom) / 2));
     canvasViewport = { panX, panY, zoom };
     applyCanvasTransform({ animate });
     persistCanvasViewport();
@@ -1171,25 +1251,52 @@
       workflows.unshift(workflow);
       selectedWorkflowId = workflow.id;
       selectedStepId = "";
-      lastStatuses = [];
-      lastRunError = null;
+      resetRunnerUiState();
       canvasViewport = { panX: 0, panY: 0, zoom: 1 };
+      canvasNodeOffsets = {};
       persistLocalWorkflows();
       setSaveMessage("已从模板创建，点击保存可同步云端");
       setViewMode("editor", { fitView: true, closeRunner: true });
     }));
   }
 
-  function openWorkflowInEditor(workflowId, options = {}) {
-    if (!workflows.some((item) => item.id === workflowId)) return;
-    selectedWorkflowId = workflowId;
-    selectedStepId = "";
+  function resetRunnerUiState() {
     lastStatuses = [];
     lastRunError = null;
-    canvasViewport = loadCanvasViewportFor(workflowId);
+    stopAllVisualAnimations();
+    showCanvasAlert("");
+    const runState = byId("workflowRunState");
+    if (runState) {
+      runState.textContent = "等待";
+      runState.dataset.status = "waiting";
+    }
+    const progressEl = byId("workflowRunProgressText");
+    if (progressEl) progressEl.textContent = "";
+    const statusesEl = byId("workflowStepStatuses");
+    if (statusesEl) statusesEl.innerHTML = "";
+    renderItemResults([]);
+    renderTypedOutputCard(null);
+    const resultText = byId("workflowResultText");
+    if (resultText) resultText.value = "";
+    const copyBtn = byId("copyWorkflowResultBtn");
+    if (copyBtn) copyBtn.disabled = true;
+    const dlBtn = byId("downloadWorkflowResultBtn");
+    if (dlBtn) dlBtn.disabled = true;
+    clearPreview();
+  }
+
+  function openWorkflowInEditor(workflowId, options = {}) {
+    const workflow = workflows.find((item) => item.id === workflowId);
+    if (!workflow) return;
+    selectedWorkflowId = workflowId;
+    selectedStepId = "";
+    resetRunnerUiState();
+    const ui = loadCanvasUiFor(workflowId, workflow);
+    canvasViewport = ui.viewport;
+    canvasNodeOffsets = ui.nodeOffsets;
     persistLocalWorkflows();
     setSaveMessage("");
-    setViewMode("editor", { openRunner: Boolean(options.openRunner), closeRunner: !options.openRunner, fitView: true });
+    setViewMode("editor", { openRunner: Boolean(options.openRunner), closeRunner: !options.openRunner, fitView: !ui.hasSaved });
   }
 
   function createAndOpenBlankWorkflow() {
@@ -1202,9 +1309,9 @@
     workflows.unshift(workflow);
     selectedWorkflowId = workflow.id;
     selectedStepId = "";
-    lastStatuses = [];
-    lastRunError = null;
+    resetRunnerUiState();
     canvasViewport = { panX: 0, panY: 0, zoom: 1 };
+    canvasNodeOffsets = {};
     persistLocalWorkflows();
     setSaveMessage("已新建空白工作流");
     setViewMode("editor", { fitView: true, closeRunner: true });
@@ -1365,11 +1472,13 @@
     });
   }
 
+    const SVG_NS = "http://www.w3.org/2000/svg";
+
   function computeBezierEdge(x1, y1, x2, y2, vertical) {
     const c = 0.28;
     if (vertical) {
       const dy = y2 - y1;
-      const offset = dy >= 0 ? 0.5 * dy : c * 25 * Math.sqrt(-dy);
+      const offset = dy >= 0 ? Math.max(22, 0.5 * dy) : c * 25 * Math.sqrt(-dy);
       const cy1 = y1 + offset;
       const cy2 = y2 - offset;
       const mx = x1 * 0.5 + x2 * 0.5;
@@ -1377,7 +1486,7 @@
       return { path: `M ${x1.toFixed(1)} ${y1.toFixed(1)} C ${x1.toFixed(1)} ${cy1.toFixed(1)}, ${x2.toFixed(1)} ${cy2.toFixed(1)}, ${x2.toFixed(1)} ${y2.toFixed(1)}`, mx, my };
     }
     const dx = x2 - x1;
-    const offset = dx >= 0 ? 0.5 * dx : c * 25 * Math.sqrt(-dx);
+    const offset = dx >= 0 ? Math.max(26, 0.5 * dx) : c * 25 * Math.sqrt(-dx);
     const cx1 = x1 + offset;
     const cx2 = x2 - offset;
     const mx = x1 * 0.125 + cx1 * 0.375 + cx2 * 0.375 + x2 * 0.125;
@@ -1385,7 +1494,75 @@
     return { path: `M ${x1.toFixed(1)} ${y1.toFixed(1)} C ${cx1.toFixed(1)} ${y1.toFixed(1)}, ${cx2.toFixed(1)} ${y2.toFixed(1)}, ${x2.toFixed(1)} ${y2.toFixed(1)}`, mx, my };
   }
 
-  function syncCanvasEdges() {
+  function ensureEdgeSvgDefs(svg) {
+    let defs = svg.querySelector(":scope > defs");
+    if (!defs) {
+      defs = document.createElementNS(SVG_NS, "defs");
+      defs.innerHTML = `<marker id="wf-arrow-idle" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="currentColor"/></marker>`;
+      svg.prepend(defs);
+    }
+    return defs;
+  }
+
+  function ensureEdgeGradient(defs, edgeId, x1, y1, x2, y2) {
+    const safeId = `wf-grad-${String(edgeId).replace(/[^a-zA-Z0-9_-]/g, "_")}`;
+    let grad = defs.querySelector(`#${safeId}`);
+    if (!grad) {
+      grad = document.createElementNS(SVG_NS, "linearGradient");
+      grad.setAttribute("id", safeId);
+      grad.setAttribute("gradientUnits", "userSpaceOnUse");
+      grad.innerHTML = `<stop offset="0%" stop-color="var(--wf-exec-flow)" stop-opacity="0.2"/><stop offset="65%" stop-color="var(--wf-exec-flow)" stop-opacity="0.88"/><stop offset="100%" stop-color="var(--wf-exec-flow-head)" stop-opacity="1"/>`;
+      defs.appendChild(grad);
+    }
+    const dx = Math.abs(x2 - x1);
+    const dy = Math.abs(y2 - y1);
+    grad.setAttribute("x1", x1.toFixed(1));
+    grad.setAttribute("y1", y1.toFixed(1));
+    grad.setAttribute("x2", (dx < 1 && dy < 1 ? x2 + 1 : x2).toFixed(1));
+    grad.setAttribute("y2", (dy < 1 && dx < 1 ? y2 + 1 : y2).toFixed(1));
+    return `url(#${safeId})`;
+  }
+
+  function upsertEdgeGroup(svg, defs, spec) {
+    let group = svg.querySelector(`[data-edge-id="${spec.edgeId}"]`);
+    if (!group) {
+      group = document.createElementNS(SVG_NS, "g");
+      group.classList.add("wf-edge-group");
+      group.dataset.edgeId = spec.edgeId;
+      const hit = document.createElementNS(SVG_NS, "path");
+      hit.setAttribute("class", "wf-edge-hit");
+      hit.setAttribute("fill", "none");
+      hit.setAttribute("stroke", "transparent");
+      hit.setAttribute("stroke-width", "14");
+      const base = document.createElementNS(SVG_NS, "path");
+      base.setAttribute("class", "wf-edge-base");
+      base.setAttribute("fill", "none");
+      if (!spec.isExit) base.setAttribute("marker-end", "url(#wf-arrow-idle)");
+      const pulse = document.createElementNS(SVG_NS, "path");
+      pulse.setAttribute("class", "wf-edge-pulse");
+      pulse.setAttribute("fill", "none");
+      pulse.setAttribute("pathLength", "100");
+      pulse.setAttribute("stroke-dasharray", "30 70");
+      group.append(hit, base, pulse);
+      svg.appendChild(group);
+    }
+    group.classList.toggle("wf-edge-entry", Boolean(spec.isEntry));
+    group.classList.toggle("wf-edge-exit", Boolean(spec.isExit));
+    group.dataset.edgeState = spec.edgeState;
+    group.dataset.edgeValid = String(spec.edgeValid);
+    const gradUrl = ensureEdgeGradient(defs, spec.edgeId, spec.x1, spec.y1, spec.x2, spec.y2);
+    const hit = group.querySelector(".wf-edge-hit");
+    const base = group.querySelector(".wf-edge-base");
+    const pulse = group.querySelector(".wf-edge-pulse");
+    if (hit) hit.setAttribute("d", spec.path);
+    if (base) base.setAttribute("d", spec.path);
+    if (pulse) {
+      pulse.setAttribute("d", spec.path);
+      pulse.setAttribute("stroke", gradUrl);
+    }
+  }
+
+  function syncCanvasEdges({ orderedStepIds = null, candidateSteps = null } = {}) {
     const stage = byId("workflowCanvasStage");
     const svg = byId("workflowCanvasEdges");
     const inserts = byId("workflowEdgeInserts");
@@ -1393,7 +1570,13 @@
     const workflow = selectedWorkflow();
     if (!stage || !svg || !inserts || !list || !workflow || viewMode !== "editor") return;
 
-    const nodes = [...list.querySelectorAll(":scope > li.wf-node")];
+    const rawNodes = [...list.querySelectorAll(":scope > li.wf-node")];
+    const nodeById = new Map(rawNodes.map((n) => [n.dataset.stepId, n]));
+    const nodes = Array.isArray(orderedStepIds)
+      ? orderedStepIds.map((id) => nodeById.get(id)).filter(Boolean)
+      : rawNodes;
+    nodes.forEach((n) => syncNodeTraceGeometry(n));
+
     const stageRect = stage.getBoundingClientRect();
     const zoom = isMobileCanvas() ? 1 : (canvasViewport.zoom || 1);
     const w = Math.max(stage.scrollWidth, Math.round(stageRect.width / zoom), 100);
@@ -1402,22 +1585,49 @@
     svg.setAttribute("width", String(w));
     svg.setAttribute("height", String(h));
 
-    if (nodes.length < 2) {
-      svg.innerHTML = "";
+    if (!nodes.length) {
+      svg.querySelectorAll("[data-edge-id]").forEach((el) => el.remove());
       inserts.innerHTML = "";
       return;
     }
 
+    const stepsSeq = Array.isArray(candidateSteps) ? candidateSteps : workflow.steps;
+    const stepById = new Map(stepsSeq.map((s) => [s.id, s]));
     const vertical = isMobileCanvas();
     const statusById = new Map(lastStatuses.map((s) => [s.id, s]));
-    let pathsHtml = `<defs>
-      <marker id="wf-arrow-idle" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="currentColor"/></marker>
-    </defs>`;
+    const defs = ensureEdgeSvgDefs(svg);
+    const desiredIds = new Set();
     const insertButtons = [];
+
+    const firstNode = nodes[0];
+    const firstStep = stepById.get(firstNode.dataset.stepId);
+    const firstStatus = statusById.get(firstStep?.id)?.status || "waiting";
+    const firstIn = firstNode.querySelector('[data-port="in"]') || firstNode;
+    const firstRect = firstIn.getBoundingClientRect();
+    const inX = (firstRect.left + firstRect.width / 2 - stageRect.left) / zoom;
+    const inY = (firstRect.top + firstRect.height / 2 - stageRect.top) / zoom;
+    const entryStartX = vertical ? inX : Math.max(8, inX - 44);
+    const entryStartY = vertical ? Math.max(8, inY - 34) : inY;
+    const entryEdge = computeBezierEdge(entryStartX, entryStartY, inX, inY, vertical);
+    desiredIds.add("__entry__");
+    upsertEdgeGroup(svg, defs, {
+      edgeId: "__entry__",
+      isEntry: true,
+      isExit: false,
+      x1: entryStartX,
+      y1: entryStartY,
+      x2: inX,
+      y2: inY,
+      path: entryEdge.path,
+      edgeState: firstStatus === "running" ? "running" : firstStatus === "success" ? "success" : firstStatus === "failed" ? "failed" : "idle",
+      edgeValid: true,
+    });
 
     for (let i = 0; i < nodes.length - 1; i += 1) {
       const fromNode = nodes[i];
       const toNode = nodes[i + 1];
+      const fromId = fromNode.dataset.stepId;
+      const toId = toNode.dataset.stepId;
       const outPort = fromNode.querySelector('[data-port="out"]') || fromNode;
       const inPort = toNode.querySelector('[data-port="in"]') || toNode;
       const outRect = outPort.getBoundingClientRect();
@@ -1428,14 +1638,14 @@
       const y2 = (inRect.top + inRect.height / 2 - stageRect.top) / zoom;
 
       const { path, mx, my } = computeBezierEdge(x1, y1, x2, y2, vertical);
-      const fromStep = workflow.steps[i];
-      const toStep = workflow.steps[i + 1];
-      const fromStatus = statusById.get(fromStep?.id)?.status || "waiting";
-      const toStatus = statusById.get(toStep?.id)?.status || "waiting";
+      const fromStep = stepById.get(fromId);
+      const toStep = stepById.get(toId);
+      const fromStatus = statusById.get(fromId)?.status || "waiting";
+      const toStatus = statusById.get(toId)?.status || "waiting";
       let edgeState = "idle";
-      if (toStatus === "running") edgeState = "running";
+      if (toStatus === "running" && (fromStatus === "success" || fromStatus === "skipped")) edgeState = "running";
       else if (fromStatus === "failed" || toStatus === "failed") edgeState = "failed";
-      else if (fromStatus === "success" && (toStatus === "success" || toStatus === "running")) edgeState = "success";
+      else if (fromStatus === "success" && toStatus === "success") edgeState = "success";
       else if (fromStatus === "skipped" || toStatus === "skipped") edgeState = "skipped";
       else if (fromStatus === "cancelled" || toStatus === "cancelled") edgeState = "cancelled";
 
@@ -1443,17 +1653,57 @@
       try { validateStepSequence([fromStep, toStep].filter((s) => s && s.enabled)); } catch (_) { edgeValid = false; }
       if (!edgeValid) edgeState = "invalid";
 
-      pathsHtml += `<g class="wf-edge-group" data-edge-state="${edgeState}" data-edge-valid="${edgeValid}">
-        <path class="wf-edge-hit" d="${path}" fill="none" stroke="transparent" stroke-width="14"/>
-        <path class="wf-edge-path" d="${path}" fill="none" marker-end="url(#wf-arrow-idle)"/>
-      </g>`;
+      const edgeId = `${fromId}__${toId}`;
+      desiredIds.add(edgeId);
+      upsertEdgeGroup(svg, defs, {
+        edgeId,
+        isEntry: false,
+        isExit: false,
+        x1,
+        y1,
+        x2,
+        y2,
+        path,
+        edgeState,
+        edgeValid,
+      });
 
       insertButtons.push({ index: i + 1, mx, my });
     }
 
-    svg.innerHTML = pathsHtml;
+    const lastNode = nodes[nodes.length - 1];
+    const lastStep = stepById.get(lastNode.dataset.stepId);
+    const lastStatus = statusById.get(lastStep?.id)?.status || "waiting";
+    const lastOut = lastNode.querySelector('[data-port="out"]') || lastNode;
+    const lastRect = lastOut.getBoundingClientRect();
+    const outX = (lastRect.left + lastRect.width / 2 - stageRect.left) / zoom;
+    const outY = (lastRect.top + lastRect.height / 2 - stageRect.top) / zoom;
+    const exitEndX = vertical ? outX : outX + 44;
+    const exitEndY = vertical ? outY + 34 : outY;
+    const exitEdge = computeBezierEdge(outX, outY, exitEndX, exitEndY, vertical);
+    desiredIds.add("__exit__");
+    upsertEdgeGroup(svg, defs, {
+      edgeId: "__exit__",
+      isEntry: false,
+      isExit: true,
+      x1: outX,
+      y1: outY,
+      x2: exitEndX,
+      y2: exitEndY,
+      path: exitEdge.path,
+      edgeState: lastStatus === "success" ? "success" : lastStatus === "failed" ? "failed" : "idle",
+      edgeValid: true,
+    });
 
-    // Position edge insert buttons using DOM style (no inline HTML style attr).
+    svg.querySelectorAll("[data-edge-id]").forEach((el) => {
+      if (!desiredIds.has(el.dataset.edgeId)) el.remove();
+    });
+
+    if (pointerDragState?.moved) {
+      inserts.classList.add("hidden");
+      return;
+    }
+    inserts.classList.remove("hidden");
     inserts.innerHTML = "";
     insertButtons.forEach(({ index, mx, my }) => {
       const btn = document.createElement("button");
@@ -1753,11 +2003,13 @@
       showCanvasAlert(`删除后后续节点不兼容：${error.message}`, "error");
       return;
     }
+    delete canvasNodeOffsets[stepId];
     if (selectedStepId === stepId) selectedStepId = "";
     lastStatuses = lastStatuses.filter((item) => item.id !== stepId);
     const snap = captureNodeFlip();
     showCanvasAlert("");
     markWorkflowUpdated();
+    persistCanvasViewport();
     renderEditor({ flipSnapshot: snap, fitView: false });
   }
 
@@ -1780,39 +2032,85 @@
           renderInspector();
         } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
           event.preventDefault();
+          if (activeRun) return showCanvasAlert("工作流正在执行，暂不调整节点顺序", "error");
           moveStep(stepId, -1);
           byId("workflowStepList")?.querySelector(`[data-step-id="${stepId}"]`)?.focus({ preventScroll: true });
         } else if (event.key === "ArrowRight" || event.key === "ArrowDown") {
           event.preventDefault();
+          if (activeRun) return showCanvasAlert("工作流正在执行，暂不调整节点顺序", "error");
           moveStep(stepId, 1);
           byId("workflowStepList")?.querySelector(`[data-step-id="${stepId}"]`)?.focus({ preventScroll: true });
         }
       });
 
       // HTML5 drag-drop kept for full compatibility + automated drag tests.
-      item.addEventListener("dragstart", () => { draggedStepId = stepId; item.classList.add("dragging"); });
+      item.addEventListener("dragstart", (event) => {
+        if (pointerDragState) { event.preventDefault(); return; }
+        draggedStepId = stepId;
+        item.classList.add("dragging");
+      });
       item.addEventListener("dragend", () => { draggedStepId = ""; item.classList.remove("dragging"); });
       item.addEventListener("dragover", (event) => event.preventDefault());
-      item.addEventListener("drop", (event) => { event.preventDefault(); reorderStep(draggedStepId, stepId); });
-
-      // Smooth Pointer Drag Reorder on the dedicated drag handle.
-      const handle = item.querySelector("[data-wf-drag-handle]");
-      handle?.addEventListener("pointerdown", (event) => {
-        if (event.button !== 0 || event.isPrimary === false) return;
+      item.addEventListener("drop", (event) => {
         event.preventDefault();
-        event.stopPropagation();
+        if (activeRun) return;
+        reorderStep(draggedStepId, stepId);
+      });
+
+      // Continuous 2D Pointer Drag within zone + cross-zone hysteresis reorder.
+      item.addEventListener("pointerdown", (event) => {
+        if (event.button !== 0 || event.isPrimary === false) return;
+        const fromHandle = Boolean(event.target.closest("[data-wf-drag-handle]"));
+        if (!fromHandle && (isMobileCanvas() || event.target.closest("button, input, select, label, a"))) return;
+        if (activeRun) {
+          if (fromHandle) {
+            event.preventDefault();
+            showCanvasAlert("工作流正在运行，完成后再调整节点位置", "error");
+          }
+          return;
+        }
+        const workflow = selectedWorkflow();
+        if (!workflow) return;
         const nodes = [...list.querySelectorAll(":scope > li.wf-node")];
+        const startIdx = workflow.steps.findIndex((s) => s.id === stepId);
+        if (startIdx < 0) return;
+
+        // Suppress native HTML5 drag ghost when mouse gesture starts.
+        item.draggable = false;
+        if (fromHandle) event.preventDefault();
+        event.stopPropagation();
+
+        // Capture stable, un-animated slot layout basis in world coordinates.
+        const slots = nodes.map((node) => ({
+          stepId: node.dataset.stepId,
+          x: node.offsetLeft,
+          y: node.offsetTop,
+          cx: node.offsetLeft + node.offsetWidth / 2,
+          cy: node.offsetTop + node.offsetHeight / 2,
+          w: node.offsetWidth,
+          h: node.offsetHeight,
+        }));
+        const originalOrder = workflow.steps.map((s) => s.id);
+
         pointerDragState = {
           stepId,
           item,
+          fromHandle,
           pointerId: event.pointerId,
           startX: event.clientX,
           startY: event.clientY,
           latestX: event.clientX,
           latestY: event.clientY,
+          originOff: getStepOffset(stepId),
+          startIdx,
+          candidateIdx: startIdx,
+          originalOrder,
+          candidateOrder: [...originalOrder],
+          slots,
           moved: false,
-          hoverTargetId: "",
           nodes,
+          shiftTargets: new Map(),
+          lastValid: true,
         };
       });
 
@@ -1906,6 +2204,7 @@
       const statusLabel = STATUS_LABELS[status] || status;
       const isSelected = step.id === selectedStepId;
       return `<li class="workflow-step wf-node${step.enabled ? "" : " disabled"}" data-step-id="${step.id}" data-flip-key="${step.id}" data-step-status="${status}" data-selected="${isSelected}" data-enabled="${step.enabled}" draggable="true" tabindex="0" aria-label="第 ${index + 1} 步：${escapeHtml(cap.name)}，状态：${escapeHtml(statusLabel)}">
+        <svg class="wf-node-trace-svg" aria-hidden="true" focusable="false"><rect class="wf-node-trace-rect" x="1" y="1" width="268" height="148" rx="13" ry="13" pathLength="100"></rect></svg>
         <span class="wf-port wf-port-in" data-port="in" aria-hidden="true"></span>
         <div class="wf-node-header">
           <button class="wf-node-drag-handle" type="button" data-wf-drag-handle aria-label="拖动调整第 ${index + 1} 步顺序" title="拖动调整顺序">${uiIconSvg("grip", "wf-grip-icon")}</button>
@@ -1941,6 +2240,7 @@
     const addBtn = byId("addWorkflowStepBtn");
     if (addBtn) addBtn.disabled = !addable.length || workflow.steps.length >= MAX_STEPS;
 
+    applyNodeOffsetsToDom(list, workflow);
     bindStepEvents();
     renderInputControls(workflow);
 
@@ -2071,6 +2371,175 @@
     pickerReturnFocus = null;
   }
 
+  function stopAllVisualAnimations() {
+    if (execVisualState) {
+      execVisualState.timers?.forEach((t) => root.clearTimeout(t));
+      execVisualState.anims?.forEach((a) => { try { a.cancel(); } catch (_) {} });
+      execVisualState = null;
+    }
+    byId("workflowCanvasEdges")?.querySelectorAll(".wf-edge-pulse").forEach((p) => {
+      try { p.getAnimations?.().forEach((a) => a.cancel()); } catch (_) {}
+      p.style.opacity = "0";
+    });
+    byId("workflowStepList")?.querySelectorAll(".wf-node-trace-rect").forEach((r) => {
+      try { r.getAnimations?.().forEach((a) => a.cancel()); } catch (_) {}
+      r.style.strokeDasharray = "";
+      r.style.strokeDashoffset = "";
+    });
+  }
+
+  function playEdgeLightPulse(edgeId, durationMs = 260) {
+    if (isReducedMotion()) return;
+    const svg = byId("workflowCanvasEdges");
+    const pulse = svg?.querySelector(`[data-edge-id="${edgeId}"] .wf-edge-pulse`);
+    if (!pulse || typeof pulse.animate !== "function") return;
+    try {
+      pulse.getAnimations?.().forEach((a) => a.cancel());
+      const anim = pulse.animate(
+        [
+          { strokeDashoffset: 30, opacity: 0.25 },
+          { opacity: 1, offset: 0.18 },
+          { strokeDashoffset: -100, opacity: 0.92, offset: 0.86 },
+          { strokeDashoffset: -100, opacity: 0 },
+        ],
+        {
+          duration: durationMs,
+          easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+          fill: "none",
+        },
+      );
+      if (document?.hidden) anim.pause();
+      if (execVisualState) execVisualState.anims.push(anim);
+    } catch (_) {}
+  }
+
+  function startNodeBorderTrace(stepId) {
+    const node = byId("workflowStepList")?.querySelector(`[data-step-id="${stepId}"]`);
+    const rect = node?.querySelector(".wf-node-trace-rect");
+    if (!node || !rect) return;
+    syncNodeTraceGeometry(node);
+    if (isReducedMotion() || typeof rect.animate !== "function") return;
+    const existing = execVisualState?.nodeBorderAnims?.get(stepId);
+    if (existing && existing.playState === "running") return;
+    try {
+      rect.getAnimations?.().forEach((a) => a.cancel());
+      rect.style.strokeDasharray = "30 70";
+      const anim = rect.animate(
+        [
+          { strokeDashoffset: 0 },
+          { strokeDashoffset: -100 },
+        ],
+        {
+          duration: 1450,
+          iterations: Infinity,
+          easing: "linear",
+        },
+      );
+      if (document?.hidden) anim.pause();
+      if (execVisualState) {
+        execVisualState.nodeBorderAnims.set(stepId, anim);
+        execVisualState.anims.push(anim);
+      }
+    } catch (_) {}
+  }
+
+  function stopNodeBorderTrace(stepId) {
+    const anim = execVisualState?.nodeBorderAnims?.get(stepId);
+    if (anim) {
+      try { anim.cancel(); } catch (_) {}
+      execVisualState.nodeBorderAnims.delete(stepId);
+    }
+    const rect = byId("workflowStepList")?.querySelector(`[data-step-id="${stepId}"] .wf-node-trace-rect`);
+    if (rect) {
+      try { rect.getAnimations?.().forEach((a) => a.cancel()); } catch (_) {}
+      rect.style.strokeDasharray = "";
+      rect.style.strokeDashoffset = "";
+    }
+  }
+
+  function startVisualExecutionRun(workflow) {
+    stopAllVisualAnimations();
+    currentRunEpoch += 1;
+    const epoch = currentRunEpoch;
+    execVisualState = {
+      epoch,
+      stepIds: (workflow?.steps || []).map((s) => s.id),
+      prevStatusById: new Map(),
+      pulsedEdges: new Set(),
+      nodeBorderAnims: new Map(),
+      anims: [],
+      timers: [],
+      relayTail: 0,
+    };
+    const firstActive = (workflow?.steps || []).find((s) => s.enabled);
+    if (firstActive) {
+      execVisualState.pulsedEdges.add("__entry__");
+      playEdgeLightPulse("__entry__", 220);
+    }
+    return epoch;
+  }
+
+  function syncVisualExecutionRun(epoch, statuses = [], { completed = false, failed = false, cancelled = false } = {}) {
+    if (!execVisualState || execVisualState.epoch !== epoch) return;
+    const state = execVisualState;
+    const orderedIds = statuses.map((s) => s.id);
+    const activeOrder = statuses.filter((s) => s.status !== "skipped").map((s) => s.id);
+
+    const schedulePulse = (edgeId, delayMs = 0) => {
+      if (!edgeId || state.pulsedEdges.has(edgeId)) return;
+      state.pulsedEdges.add(edgeId);
+      if (delayMs <= 0) {
+        playEdgeLightPulse(edgeId, 240);
+      } else {
+        const timer = root.setTimeout(() => {
+          if (execVisualState?.epoch === epoch) playEdgeLightPulse(edgeId, 240);
+        }, delayMs);
+        state.timers.push(timer);
+      }
+    };
+
+    const incomingEdgeFor = (stepId) => {
+      const idx = orderedIds.indexOf(stepId);
+      if (idx <= 0) return "__entry__";
+      const prevId = orderedIds[idx - 1];
+      return `${prevId}__${stepId}`;
+    };
+
+    if (failed || cancelled) {
+      for (const s of statuses) stopNodeBorderTrace(s.id);
+      state.timers.forEach((t) => root.clearTimeout(t));
+      state.timers = [];
+      return;
+    }
+
+    let catchupStagger = 0;
+    for (const s of statuses) {
+      const prev = state.prevStatusById.get(s.id) || "waiting";
+      if (s.status === "running") {
+        const activeIdx = activeOrder.indexOf(s.id);
+        const edgeId = activeIdx === 0 ? "__entry__" : incomingEdgeFor(s.id);
+        schedulePulse(edgeId, 0);
+        startNodeBorderTrace(s.id);
+      } else if (s.status === "success" && prev !== "success") {
+        stopNodeBorderTrace(s.id);
+        if (prev !== "running") {
+          const activeIdx = activeOrder.indexOf(s.id);
+          const edgeId = activeIdx === 0 ? "__entry__" : incomingEdgeFor(s.id);
+          schedulePulse(edgeId, catchupStagger);
+          catchupStagger += 85;
+        }
+      } else if (s.status === "failed" || s.status === "cancelled" || s.status === "skipped") {
+        stopNodeBorderTrace(s.id);
+      }
+      state.prevStatusById.set(s.id, s.status);
+    }
+
+    if (completed) {
+      for (const s of statuses) stopNodeBorderTrace(s.id);
+      schedulePulse("__exit__", catchupStagger);
+    }
+  }
+
   function renderStepStatuses(statuses = []) {
     lastStatuses = Array.isArray(statuses) ? cloneJson(statuses) : [];
     const target = byId("workflowStepStatuses");
@@ -2094,6 +2563,7 @@
         const node = list.querySelector(`[data-step-id="${status.id}"]`);
         if (!node) return;
         node.dataset.stepStatus = status.status;
+        syncNodeTraceGeometry(node);
         const pill = node.querySelector(".wf-node-status-pill");
         if (pill) {
           pill.dataset.status = status.status;
@@ -2253,12 +2723,15 @@
     if (cancelBtn) { cancelBtn.disabled = false; cancelBtn.classList.remove("hidden"); }
     byId("workflowRunState").textContent = "运行中";
     byId("workflowRunState").dataset.status = "running";
+    showCanvasAlert("");
     renderItemResults([]);
+    const runEpoch = startVisualExecutionRun(workflow);
     const promise = executeWorkflow(workflow, input, {
       signal: controller.signal,
       batch: batchRequested,
       onStatus: (statuses) => {
         renderStepStatuses(statuses);
+        syncVisualExecutionRun(runEpoch, statuses);
         const items = [...statuses].reverse().find((item) => item.items?.length)?.items || [];
         renderItemResults(items);
       },
@@ -2267,13 +2740,16 @@
     try {
       const result = await promise;
       displayOutput(result.output);
+      syncVisualExecutionRun(runEpoch, result.statuses || lastStatuses, { completed: true });
       byId("workflowRunState").textContent = "已完成";
       byId("workflowRunState").dataset.status = "success";
     } catch (error) {
-      byId("workflowRunState").textContent = error.name === "AbortError" ? "已取消" : "失败";
-      byId("workflowRunState").dataset.status = error.name === "AbortError" ? "cancelled" : "failed";
+      const isAbort = error.name === "AbortError";
+      syncVisualExecutionRun(runEpoch, lastStatuses, { failed: !isAbort, cancelled: isAbort });
+      byId("workflowRunState").textContent = isAbort ? "已取消" : "失败";
+      byId("workflowRunState").dataset.status = isAbort ? "cancelled" : "failed";
       byId("workflowResultText").value = error.message;
-      if (error.name !== "AbortError") displayErrorOutput(error);
+      if (!isAbort) displayErrorOutput(error);
     } finally {
       activeRun = null;
       if (cancelBtn) { cancelBtn.disabled = true; cancelBtn.classList.add("hidden"); }
@@ -2339,9 +2815,14 @@
     if (!workflow) return;
     const cloudId = cloudConfigIds.get(workflow.id);
     workflows = workflows.filter((item) => item.id !== workflow.id);
+    removeCanvasUiFor(workflow.id);
     if (selectedWorkflowId === workflow.id) {
       selectedWorkflowId = workflows[0]?.id || "";
       selectedStepId = "";
+      const nextWf = selectedWorkflow();
+      const ui = loadCanvasUiFor(selectedWorkflowId, nextWf);
+      canvasViewport = ui.viewport;
+      canvasNodeOffsets = ui.nodeOffsets;
     }
     openRowMenuId = "";
     persistLocalWorkflows();
@@ -2410,7 +2891,9 @@
     selectedStepId = "";
     lastStatuses = [];
     lastRunError = null;
+    stopAllVisualAnimations();
     canvasViewport = { panX: 0, panY: 0, zoom: 1 };
+    canvasNodeOffsets = {};
     persistLocalWorkflows();
     setViewMode("editor", { fitView: true, closeRunner: true });
     setSaveMessage("导入成功，权限将在运行和云端保存时重新验证");
@@ -2440,14 +2923,22 @@
     byId("workflowWorkspace")?.setAttribute("aria-hidden", "false");
     if (!alreadyVisible) viewMode = "list";
     loadLocalWorkflows();
+    const activeWf = selectedWorkflow();
+    const ui = loadCanvasUiFor(selectedWorkflowId, activeWf);
+    canvasViewport = ui.viewport;
+    canvasNodeOffsets = ui.nodeOffsets;
+    const beforeSnapshot = JSON.stringify(workflows);
     renderAll({ fitView: false });
     await loadCloudWorkflows();
-    // Preserve active editor/inspector/typing state when background cloud sync resolves.
-    renderAll({ fitView: false });
+    if (JSON.stringify(workflows) !== beforeSnapshot) {
+      // Preserve active editor/inspector/typing state unless cloud sync changed workflow data.
+      renderAll({ fitView: false });
+    }
   }
 
   function hide(options = {}) {
     if (options.cancel && activeRun) activeRun.controller.abort();
+    stopAllVisualAnimations();
     closeNodePicker({ restoreFocus: false });
     closeEditorMoreMenu();
     openRowMenuId = "";
@@ -2458,6 +2949,90 @@
 
   function matches(path) {
     return /^\/tools\/workflows\/?$/.test(String(path || ""));
+  }
+
+  function animateSiblingShift(node, stepId, dx, dy, dragState) {
+    const target = Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5 ? "none" : `translate3d(${dx.toFixed(1)}px, ${dy.toFixed(1)}px, 0)`;
+    const prevTarget = dragState.shiftTargets.get(stepId) || "none";
+    if (prevTarget === target) return;
+    dragState.shiftTargets.set(stepId, target);
+    const activeAnim = nodeShiftAnims.get(stepId);
+    if (activeAnim) {
+      try { activeAnim.cancel(); } catch (_) {}
+      nodeShiftAnims.delete(stepId);
+    }
+    if (isReducedMotion() || typeof node.animate !== "function") {
+      node.style.transform = target === "none" ? "" : target;
+      return;
+    }
+    const computed = root.getComputedStyle?.(node)?.transform;
+    const fromTransform = computed && computed !== "none" ? computed : "translate3d(0px, 0px, 0px)";
+    const toTransform = target === "none" ? "translate3d(0px, 0px, 0px)" : target;
+    node.classList.add("is-drag-settling");
+    node.style.transform = toTransform;
+    try {
+      const anim = node.animate(
+        [{ transform: fromTransform }, { transform: toTransform }],
+        { duration: 240, easing: "cubic-bezier(0.22, 1, 0.36, 1)", fill: "none" },
+      );
+      nodeShiftAnims.set(stepId, anim);
+      anim.onfinish = () => {
+        if (nodeShiftAnims.get(stepId) === anim) {
+          nodeShiftAnims.delete(stepId);
+          node.classList.remove("is-drag-settling");
+        }
+      };
+    } catch (_) {
+      node.classList.remove("is-drag-settling");
+    }
+  }
+
+  function cancelActivePointerDrag(animateReset = true) {
+    const drag = pointerDragState;
+    if (!drag) return;
+    pointerDragState = null;
+    drag.item.draggable = true;
+    drag.item.classList.remove("is-pointer-dragging", "is-swap-invalid");
+    try {
+      if (drag.item.hasPointerCapture?.(drag.pointerId)) drag.item.releasePointerCapture(drag.pointerId);
+    } catch (_) {}
+    const viewport = byId("workflowCanvasViewport");
+    if (viewport) delete viewport.dataset.swapValid;
+
+    // Reset dragged node back to origin offset and all siblings to slot 0.
+    const originOff = drag.originOff;
+    const rawCurrX = Number.parseFloat(drag.item.style.getPropertyValue("--wf-off-x"));
+    const rawCurrY = Number.parseFloat(drag.item.style.getPropertyValue("--wf-off-y"));
+    const currX = Number.isFinite(rawCurrX) ? rawCurrX : originOff.x;
+    const currY = Number.isFinite(rawCurrY) ? rawCurrY : originOff.y;
+    drag.item.style.setProperty("--wf-off-x", `${originOff.x.toFixed(1)}px`);
+    drag.item.style.setProperty("--wf-off-y", `${originOff.y.toFixed(1)}px`);
+    if (animateReset && !isReducedMotion() && typeof drag.item.animate === "function" && (Math.abs(currX - originOff.x) > 1 || Math.abs(currY - originOff.y) > 1)) {
+      try {
+        drag.item.animate(
+          [
+            { transform: `translate3d(${(currX - originOff.x).toFixed(1)}px, ${(currY - originOff.y).toFixed(1)}px, 0)` },
+            { transform: "translate3d(0px, 0px, 0)" },
+          ],
+          { duration: 240, easing: "cubic-bezier(0.22, 1, 0.36, 1)" },
+        );
+      } catch (_) {}
+    }
+
+    drag.nodes.forEach((n) => {
+      n.classList.remove("is-drop-target", "is-swap-invalid");
+      if (n !== drag.item) {
+        if (animateReset) {
+          animateSiblingShift(n, n.dataset.stepId, 0, 0, drag);
+        } else {
+          const anim = nodeShiftAnims.get(n.dataset.stepId);
+          if (anim) { try { anim.cancel(); } catch (_) {} nodeShiftAnims.delete(n.dataset.stepId); }
+          n.style.transform = "";
+          n.classList.remove("is-drag-settling");
+        }
+      }
+    });
+    scheduleEdgeSync(animateReset ? 260 : 0);
   }
 
   function bindCanvasInteractions() {
@@ -2497,28 +3072,89 @@
         return;
       }
       if (pointerDragState && event.pointerId === pointerDragState.pointerId) {
-        const dx = event.clientX - pointerDragState.startX;
-        const dy = event.clientY - pointerDragState.startY;
-        if (!pointerDragState.moved && Math.hypot(dx, dy) < 6) return;
-        if (!pointerDragState.moved) {
-          pointerDragState.moved = true;
-          pointerDragState.item.classList.add("is-pointer-dragging");
-        }
-        const zoom = isMobileCanvas() ? 1 : (canvasViewport.zoom || 1);
-        pointerDragState.item.style.transform = `translate3d(${(dx / zoom).toFixed(1)}px, ${(dy / zoom).toFixed(1)}px, 0) scale(1.02)`;
-        pointerDragState.item.style.zIndex = "15";
+        const drag = pointerDragState;
+        drag.latestX = event.clientX;
+        drag.latestY = event.clientY;
+        const dx = event.clientX - drag.startX;
+        const dy = event.clientY - drag.startY;
+        if (!drag.moved && Math.hypot(dx, dy) < 5) return;
 
-        let hoverTargetId = "";
-        for (const node of pointerDragState.nodes) {
-          if (node === pointerDragState.item) continue;
-          const r = node.getBoundingClientRect();
-          if (event.clientX >= r.left && event.clientX <= r.right && event.clientY >= r.top && event.clientY <= r.bottom) {
-            hoverTargetId = node.dataset.stepId;
-          }
-          node.classList.toggle("is-drop-target", node.dataset.stepId === hoverTargetId);
+        if (!drag.moved) {
+          drag.moved = true;
+          drag.item.classList.add("is-pointer-dragging");
+          try { drag.item.setPointerCapture?.(drag.pointerId); } catch (_) {}
         }
-        pointerDragState.hoverTargetId = hoverTargetId;
-        syncCanvasEdges();
+
+        const mobile = isMobileCanvas();
+        const zoom = mobile ? 1 : (canvasViewport.zoom || 1);
+        const dxWorld = dx / zoom;
+        const dyWorld = dy / zoom;
+        const liveOffX = drag.originOff.x + dxWorld;
+        const liveOffY = drag.originOff.y + dyWorld;
+
+        drag.item.style.setProperty("--wf-off-x", `${liveOffX.toFixed(1)}px`);
+        drag.item.style.setProperty("--wf-off-y", `${liveOffY.toFixed(1)}px`);
+
+        // Evaluate directional swap threshold + hysteresis deadband using un-animated slots.
+        const startSlot = drag.slots[drag.startIdx];
+        const centerX = startSlot.cx + liveOffX;
+        const centerY = startSlot.cy + liveOffY;
+        const axisCoord = mobile ? centerY : centerX;
+        const slotCenter = (slot) => (mobile ? slot.cy : slot.cx);
+        const HYST = 22;
+
+        let nextCandidateIdx = drag.candidateIdx;
+        let guard = drag.slots.length;
+        while (guard-- > 0) {
+          if (nextCandidateIdx < drag.slots.length - 1) {
+            const midRight = (slotCenter(drag.slots[nextCandidateIdx]) + slotCenter(drag.slots[nextCandidateIdx + 1])) / 2;
+            if (axisCoord > midRight + HYST) {
+              nextCandidateIdx += 1;
+              continue;
+            }
+          }
+          if (nextCandidateIdx > 0) {
+            const midLeft = (slotCenter(drag.slots[nextCandidateIdx - 1]) + slotCenter(drag.slots[nextCandidateIdx])) / 2;
+            if (axisCoord < midLeft - HYST) {
+              nextCandidateIdx -= 1;
+              continue;
+            }
+          }
+          break;
+        }
+
+        const workflow = selectedWorkflow();
+        if (nextCandidateIdx !== drag.candidateIdx && workflow) {
+          drag.candidateIdx = nextCandidateIdx;
+          const nextOrder = drag.originalOrder.filter((id) => id !== drag.stepId);
+          nextOrder.splice(drag.candidateIdx, 0, drag.stepId);
+          drag.candidateOrder = nextOrder;
+
+          // Validate live candidate sequence.
+          const stepById = new Map(workflow.steps.map((s) => [s.id, s]));
+          const candidateSteps = nextOrder.map((id) => stepById.get(id)).filter(Boolean);
+          let candidateValid = true;
+          try { validateStepSequence(candidateSteps); } catch (_) { candidateValid = false; }
+          drag.lastValid = candidateValid;
+          viewport.dataset.swapValid = String(candidateValid);
+          drag.item.classList.toggle("is-swap-invalid", !candidateValid);
+
+          // Interruptible sibling yield in stable world space.
+          for (const node of drag.nodes) {
+            const nid = node.dataset.stepId;
+            if (nid === drag.stepId) continue;
+            const origIdx = drag.originalOrder.indexOf(nid);
+            const newIdx = nextOrder.indexOf(nid);
+            const sdx = drag.slots[newIdx].cx - drag.slots[origIdx].cx;
+            const sdy = drag.slots[newIdx].cy - drag.slots[origIdx].cy;
+            animateSiblingShift(node, nid, sdx, sdy, drag);
+          }
+          scheduleEdgeSync(260);
+        }
+
+        const stepById = new Map((workflow?.steps || []).map((s) => [s.id, s]));
+        const candidateSteps = drag.candidateOrder.map((id) => stepById.get(id)).filter(Boolean);
+        syncCanvasEdges({ orderedStepIds: drag.candidateOrder, candidateSteps });
       }
     });
 
@@ -2530,7 +3166,6 @@
         if (wasMoved) {
           persistCanvasViewport();
         } else if (!event.target.closest(".wf-node")) {
-          // Clicking empty canvas collapses inspector softly.
           if (selectedStepId) {
             selectedStepId = "";
             syncInspectorVisibility();
@@ -2539,21 +3174,109 @@
       }
       if (pointerDragState && event.pointerId === pointerDragState.pointerId) {
         const drag = pointerDragState;
-        pointerDragState = null;
-        drag.item.classList.remove("is-pointer-dragging");
-        drag.item.style.transform = "";
-        drag.item.style.zIndex = "";
-        drag.nodes.forEach((n) => n.classList.remove("is-drop-target"));
-        if (drag.moved && drag.hoverTargetId && event.type !== "pointercancel") {
-          reorderStep(drag.stepId, drag.hoverTargetId);
-        } else {
-          syncCanvasEdges();
+        if (!drag.moved) {
+          pointerDragState = null;
+          drag.item.draggable = true;
+          return;
         }
+        if (event.type === "pointercancel" || event.type === "lostpointercapture") {
+          cancelActivePointerDrag(true);
+          return;
+        }
+
+        pointerDragState = null;
+        drag.item.draggable = true;
+        drag.item.classList.remove("is-pointer-dragging", "is-swap-invalid");
+        try {
+          if (drag.item.hasPointerCapture?.(drag.pointerId)) drag.item.releasePointerCapture(drag.pointerId);
+        } catch (_) {}
+        delete viewport.dataset.swapValid;
+
+        const workflow = selectedWorkflow();
+        if (!workflow) return;
+        const mobile = isMobileCanvas();
+        const zoom = mobile ? 1 : (canvasViewport.zoom || 1);
+        const dxWorld = (drag.latestX - drag.startX) / zoom;
+        const dyWorld = (drag.latestY - drag.startY) / zoom;
+        const startSlot = drag.slots[drag.startIdx];
+        const dragCenterX = startSlot.cx + drag.originOff.x + dxWorld;
+        const dragCenterY = startSlot.cy + drag.originOff.y + dyWorld;
+
+        if (drag.candidateIdx === drag.startIdx) {
+          // Stayed within original sequential zone: clamp safely inside zone and persist!
+          drag.nodes.forEach((n) => {
+            if (n !== drag.item) animateSiblingShift(n, n.dataset.stepId, 0, 0, drag);
+          });
+          const settledOff = clampNodeOffset(drag.originOff.x + dxWorld, drag.originOff.y + dyWorld, mobile);
+          const settleDeltaX = (drag.originOff.x + dxWorld) - settledOff.x;
+          const settleDeltaY = (drag.originOff.y + dyWorld) - settledOff.y;
+          canvasNodeOffsets[drag.stepId] = settledOff;
+          drag.item.style.setProperty("--wf-off-x", `${settledOff.x.toFixed(1)}px`);
+          drag.item.style.setProperty("--wf-off-y", `${settledOff.y.toFixed(1)}px`);
+          if (!isReducedMotion() && typeof drag.item.animate === "function" && (Math.abs(settleDeltaX) > 1 || Math.abs(settleDeltaY) > 1)) {
+            try {
+              drag.item.animate(
+                [{ transform: `translate3d(${settleDeltaX.toFixed(1)}px, ${settleDeltaY.toFixed(1)}px, 0)` }, { transform: "translate3d(0px, 0px, 0)" }],
+                { duration: 200, easing: "cubic-bezier(0.22, 1, 0.36, 1)" },
+              );
+            } catch (_) {}
+          }
+          persistCanvasViewport();
+          scheduleEdgeSync(220);
+          return;
+        }
+
+        // Crossed into another zone: validate candidate order!
+        const stepById = new Map(workflow.steps.map((s) => [s.id, s]));
+        const candidateSteps = drag.candidateOrder.map((id) => stepById.get(id)).filter(Boolean);
+        try {
+          validateStepSequence(candidateSteps);
+        } catch (error) {
+          showCanvasAlert(`无法调整节点顺序：${error.message}`, "error");
+          // Roll back cleanly: restore dragged card + siblings + edges together.
+          pointerDragState = drag;
+          cancelActivePointerDrag(true);
+          return;
+        }
+
+        // Commit valid reorder cleanly + keep landed intra-zone offset.
+        const beforeRects = new Map();
+        drag.nodes.forEach((n) => {
+          const anim = nodeShiftAnims.get(n.dataset.stepId);
+          const rect = n.getBoundingClientRect();
+          if (rect.width > 0) beforeRects.set(n.dataset.stepId, { element: n, rect });
+          if (anim) { try { anim.cancel(); } catch (_) {} nodeShiftAnims.delete(n.dataset.stepId); }
+          n.style.transform = "";
+          n.classList.remove("is-drag-settling");
+        });
+
+        const destSlot = drag.slots[drag.candidateIdx];
+        canvasNodeOffsets[drag.stepId] = clampNodeOffset(dragCenterX - destSlot.cx, dragCenterY - destSlot.cy, mobile);
+        workflow.steps = candidateSteps;
+        lastStatuses = [];
+        lastRunError = null;
+        showCanvasAlert("");
+        markWorkflowUpdated();
+        persistCanvasViewport();
+        renderEditor({ flipSnapshot: isReducedMotion() ? null : beforeRects, fitView: false });
       }
     };
 
     root.addEventListener?.("pointerup", endPointer);
     root.addEventListener?.("pointercancel", endPointer);
+    root.addEventListener?.("lostpointercapture", endPointer);
+
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", () => {
+        if (!execVisualState?.anims?.length) return;
+        for (const anim of execVisualState.anims) {
+          try {
+            if (document.hidden && anim.playState === "running") anim.pause();
+            else if (!document.hidden && anim.playState === "paused") anim.play();
+          } catch (_) {}
+        }
+      });
+    }
 
     if (typeof ResizeObserver === "function") {
       canvasResizeObserver = new ResizeObserver(() => {
@@ -2684,6 +3407,11 @@
 
       document.addEventListener("keydown", (event) => {
         if (event.key === "Escape") {
+          if (pointerDragState) {
+            event.preventDefault();
+            cancelActivePointerDrag(true);
+            return;
+          }
           if (openRowMenuId) { openRowMenuId = ""; renderWorkflowList(); }
           closeEditorMoreMenu();
           if (selectedStepId && viewMode === "editor" && !pickerOpen) {
@@ -2805,6 +3533,7 @@
       viewMode: () => viewMode,
       selectedStepId: () => selectedStepId,
       viewport: () => ({ ...canvasViewport }),
+      nodeOffsets: () => cloneJson(canvasNodeOffsets),
       selectStep: (stepId) => { selectedStepId = stepId; renderInspector(); },
       setViewMode: (mode) => setViewMode(mode),
     }),

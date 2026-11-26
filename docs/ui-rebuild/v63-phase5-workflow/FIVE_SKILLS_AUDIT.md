@@ -70,3 +70,24 @@
   - 基于 `sloplint-render.mjs` 同等遮挡检测算法（文字未隐藏校验 + `elementFromPoint` 遮挡检测 + 网格孤儿行检查 + 横向溢出检查）在真实登录浏览器中覆盖：
     - `list_empty_1440`、`list_populated_1440`、`blank_editor_1440`、`full_canvas_1440`、`inspector_open_1440`、`running_1440`、`completed_1440`、`mobile_editor_390`、`mobile_list_390`
   - **全部 9 个渲染态实测结果**：`overflowPx = 0`、`hiddenFail = []`、`occluded = []`、`templateOrphan = false`。
+
+
+---
+
+## 最终整改五项 Skill 复核记录
+
+1. **Frontend Design**：
+   - **检查点**：移除 `spatial-experience.css` 中遗留的 `E-02`（旧 `#workflowStepList { flex-direction: column }`、`li::after`）与 `P0-E`（`html[data-p07-ui="enabled"] #workflowWorkspace #workflowStepList { display: grid }`、`::before`、`::after`）级联冲突；为 `#workflowStepList.wf-node-layer` 显式归零伪元素与横向排版（`260px` 宽度、`56px` 间距）；卡片内“启用”复选框与能力名称、IO 标签、2 行配置摘要完整可读，不再垂直折行或拥挤。
+2. **UI UX Pro Max**：
+   - **执行命令**：`python ui-ux-pro-max/scripts/search.py "workflow execution pulse progress reduced motion accessibility" --domain ux --max-results 5`
+   - **整改落地**：保留 WCAG 2.2 AA 单指针“前移 / 后移”按钮与方向键重排能力，与 2D 指针自由拖拽并存；控制每屏仅运行节点的单圆角描边与单跳光流激励，全面尊重 `prefers-reduced-motion` 与 `data-android-reduced-motion="true"`。
+3. **Design Taste (Tasteskill 2.5.1)**：
+   - **执行命令**：`node design-taste-frontend/scripts/copy-lint.mjs index.html workflows.js`
+   - **输出结果**：`index.html` 0 FAIL / 0 WARN；`workflows.js` 0 FAIL（仅源码正则语法字符匹配触发 1 WARN）。
+   - **动效落地点**：2D 区域内自由拖拽紧贴指针（拖拽态取消 CSS transition），松手保留区域内偏移；跨区跨越 `mid ± 22px` 滞回阈值时兄弟节点平滑让位；方案 A 采用低饱和 `#779bc5` 冷静蓝光流接力与 `<rect rx="13">` 圆角边框追踪，无旋转、缩放或霓虹光晕。
+4. **Impeccable**：
+   - **执行命令**：`impeccable detect --json workflows.js design-system.css`
+   - **发现与整改**：`workflows.js` 零反模式问题；Phase 5 全部过渡统一采用 `cubic-bezier(0.22, 1, 0.36, 1)` 指数减速曲线（零弹性反模式），并修正在工作流切换时清除旧 `#workflowCanvasAlert` 与 `#workflowRunState` 残留状态徽章。
+5. **Hallmark**：
+   - **执行命令**：`node hallmark/scripts/sloplint.mjs index.html spatial-experience.css workflows.js` + Chrome CDP 实测 `p5-verify-report.json`
+   - **发现与整改**：初测捕获 Phase 5 `#workflowWorkspace` 内 `FAIL 48`（未纳入全局 token 的裸色值 `#779bc5` / `#9ec0e6` / `#649981`）；将颜色规范迁入 `design-system.css` `:root` 与 `:root[data-theme="dark"]` 语义变量后，Phase 5 `#workflowWorkspace` 区域 `sloplint` `FAIL` 清零；真实浏览器 1440 / 1366 / 1920 / 768 / 390 / 320 与 `enabled` / `disabled` / `error` 三态均通过零溢出、零报错、零旧版竖线泄漏复核。

@@ -91,3 +91,17 @@
   - `docs/ui-rebuild/v63-phase5-workflow/evidence/workflow-phase5-desktop-1x.mp4`
   - `docs/ui-rebuild/v63-phase5-workflow/evidence/workflow-phase5-mobile-1x.mp4`
 - 量化与 9 态真机 DOM 审计数据：`docs/ui-rebuild/v63-phase5-workflow/evidence/phase5-verification-report.json`
+
+
+---
+
+## 最终整改增补调研（自由编排与方案 A 执行光流）
+
+本轮针对桌面端横向连线冲突、区域内 2D 自由拖拽、跨区域自动让位换位以及方案 A（光流接力 + 圆角边框环绕）完成真实网页与开源代码核对：
+
+| 研究对象 | 实际核对页面 / 源码机制 | 提取的核心设计模式 | Aeris 对应实现 (`workflows.js` / `spatial-experience.css` / `design-system.css`) | 实际验收证据 |
+|---|---|---|---|---|
+| **React Flow / XYFlow** | `reactflow.dev` 自由节点坐标与 `getBezierPath` 端口公式 | 画布世界坐标与 viewport pan/zoom 解耦；水平方向右出左入、垂直方向下出上入动态三次贝塞尔连线 | `#workflowStepList.wf-node-layer` 桌面强制横向 `row / nowrap`，`syncCanvasEdges()` 基于未缩放世界坐标实时重算端口连接，并分离 `translate: var(--wf-off-x) var(--wf-off-y)` 与节点流式槽位 | `evidence/final-remediation/p5-desktop-horizontal.png`、`evidence/final-remediation/p5-mobile-390.png` |
+| **SortableJS** | `sortablejs.github.io/Sortable/#thresholds` 与交换阈值模型 | 双向中点交换阈值 + 滞回死区（hysteresis deadband），避免边界来回闪烁 | `bindCanvasInteractions()` 基于稳定无偏移的 `slots` 槽位中心计算 `mid ± 22px` 滞回换位区，避免借用 live 动画中的兄弟坐标导致抖动 | `evidence/final-remediation/p5-drag-reorder.mp4` |
+| **Motion / dnd-kit** | `motion.dev/docs/react-reorder` 与 `dnd-kit` `closestCenter` | 拖拽体紧贴指针（零过渡延迟）、兄弟节点可中断 WAAPI FLIP 让位、`Escape` / `pointercancel` / 不兼容时的完整同步回退 | CSS `translate` 专职承接自由拖拽与已保存偏移，WAAPI `transform` (`animateSiblingShift`) 专职承接可中断兄弟让位；非法换位触发 `validateStepSequence()` 校验失败后节点与 SVG 连线同步滑回原位 | `evidence/final-remediation/p5-verify-report.json` (`drag_checks`) |
+| **Apple HIG / SVG WAAPI** | `developer.apple.com/design/human-interface-guidelines/` 克制动效与 SVG `pathLength="100"` `strokeDashoffset` | 避免无限循环高频闪烁；低饱和中性冷静蓝色，严格绑定真实生命周期，支持 `prefers-reduced-motion` 与后台标签页 `visibilitychange` 暂停 | 在 `design-system.css` `:root` / `[data-theme="dark"]` 定义 `--ds-wf-flow` (`#779bc5` / `#8ab0db`)、`--ds-wf-flow-head`、`--ds-wf-success`；以单调 `runEpoch` 解耦 UI 动效与真实 `executeWorkflow`，仅 `"running"` 节点激活 `<rect class="wf-node-trace-rect" rx="13" ry="13" pathLength="100">` 圆角描边环绕，切出/完成/失败/取消立即停止 | `evidence/final-remediation/p5-exec-running.png`、`evidence/final-remediation/p5-exec-animation.mp4` |
