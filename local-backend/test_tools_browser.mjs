@@ -612,7 +612,8 @@ async function main() {
       window.WYJWorkflows.test.selectStep(step.id);
     }
     const insp = document.querySelector('#workflowInspectorPanel');
-    const enumBtn = insp?.querySelector('[data-inspector-enum-key="${key}"][data-inspector-enum-val=' + ${JSON.stringify(String(value))} + ']');
+    const enumBtn = [...(insp?.querySelectorAll('[data-inspector-enum-key]') || [])]
+      .find((b) => b.dataset.inspectorEnumKey === ${JSON.stringify(key)} && b.dataset.inspectorEnumVal === ${JSON.stringify(String(value))});
     if (enumBtn) {
       enumBtn.click();
       return true;
