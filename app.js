@@ -259,6 +259,8 @@ const SKIPPED_ANSWER = "（跳过）";
 
 let resultHideTimer = null;
 let nextTimer = null;
+let lastSubmittedAnswer = "";
+let isAnswerComposing = false;
 let judgeController = null;
 let backendAvailable = false;
 let aiAvailable = false;
@@ -4415,6 +4417,35 @@ function showModulePicker(pushHistory = true, message = "") {
   }
 }
 
+function updateProjectPickerMeta() {
+  const configs = [
+    { language: "english", id: "projectStatusEnglish", fallback: "词表 · 释义/听写 · 错题复习" },
+    { language: "japanese", id: "projectStatusJapanese", fallback: "假名与汉字 · 释义/听写 · 错题复习" },
+  ];
+  configs.forEach(({ language, id, fallback }) => {
+    const target = $(id);
+    if (!target) return;
+    if (!state.session || !state.account) {
+      target.textContent = fallback;
+      return;
+    }
+    const parts = [];
+    const runtime = loadProjectRuntime(language);
+    if (runtime?.roundActive && Array.isArray(runtime.words) && runtime.words.length) {
+      parts.push(`进行中 ${Math.min(runtime.words.length, (runtime.index || 0) + 1)}/${runtime.words.length}`);
+    } else {
+      const savedDraft = localStorage.getItem(wordDraftKey(language)) || "";
+      const draftCount = analyzeWordList(parseWordText(savedDraft), language).valid.length;
+      if (draftCount > 0) parts.push(`词表 ${draftCount} 词`);
+    }
+    const historyCount = Object.keys(filterWrongBookByLanguage(state.historyWrongBook, language)).length;
+    if (historyCount > 0) parts.push(`历史错题 ${historyCount}`);
+    const limit = accountWordLimit(language);
+    parts.push(Number.isFinite(limit) ? `单轮上限 ${limit} 词` : "单轮不限词数");
+    target.textContent = parts.join(" · ");
+  });
+}
+
 function showProjectPicker(pushHistory = true) {
   if (!state.session || !state.account) {
     showAuth(pendingAuthMessage || "请先登录后选择测试项目", { replace: true });
@@ -4430,6 +4461,7 @@ function showProjectPicker(pushHistory = true) {
   document.body.classList.add("project-picker-active");
   if (pushHistory) pushRoute("/language");
   renderAccountUi();
+  updateProjectPickerMeta();
   applyWorkspaceRouteScroll(pushHistory);
 }
 
@@ -5193,7 +5225,9 @@ function renderAchievements() {
   $("achievementTotalProgress").value = unlockedCount;
 
   document.querySelectorAll("[data-achievement-filter]").forEach((button) => {
-    button.classList.toggle("active", button.dataset.achievementFilter === achievementFilter);
+    const active = button.dataset.achievementFilter === achievementFilter;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", String(active));
   });
 
   const visibleItems = ACHIEVEMENTS.filter((item) => {
@@ -5720,6 +5754,15 @@ async function ensureBackendConnection() {
   }
 }
 
+function showSetupStatus(message = "", tone = "info") {
+  const banner = $("setupStatusBanner");
+  if (!banner) return;
+  const text = String(message || "").trim();
+  banner.textContent = text;
+  banner.dataset.tone = tone || "info";
+  banner.classList.toggle("hidden", !text);
+}
+
 function setView(id) {
   if (id === "quizView" && !state.roundActive) id = "setupView";
   const enteringQuiz = id === "quizView" && !$("quizView")?.classList.contains("active");
@@ -5729,7 +5772,12 @@ function setView(id) {
   }
   $("workspace")?.setAttribute("data-active-view", id);
   document.querySelectorAll(".view").forEach((view) => view.classList.toggle("active", view.id === id));
-  document.querySelectorAll(".tabs button").forEach((tab) => tab.classList.toggle("active", tab.dataset.view === id));
+  document.querySelectorAll(".tabs button").forEach((tab) => {
+    const active = tab.dataset.view === id;
+    tab.classList.toggle("active", active);
+    tab.setAttribute("aria-selected", String(active));
+    tab.setAttribute("tabindex", active ? "0" : "-1");
+  });
   if (id === "quizView" && state.roundActive) {
     if (enteringQuiz && typeof window.scrollTo === "function") {
       try {
@@ -5822,7 +5870,10 @@ function updateSetupActionState() {
 
 function setNextNowEnabled(enabled) {
   const el = $("nextNowBtn");
-  if (el) el.disabled = !enabled || state.busy;
+  if (!el) return;
+  const ready = Boolean(enabled && !state.busy);
+  el.disabled = !ready;
+  el.classList.toggle("is-ready", ready);
 }
 
 function clearNextTimer() {
@@ -5837,9 +5888,22 @@ function hideResultPanel() {
     clearTimeout(resultHideTimer);
     resultHideTimer = null;
   }
-  $("resultPanel")?.classList.remove("grading", "ai-review");
-  $("resultPanel")?.classList.add("hidden");
-  $("quizView")?.classList.remove("has-feedback");
+  const panel = $("resultPanel");
+  if (panel) {
+    panel.classList.remove("grading", "ai-review");
+    panel.classList.add("hidden");
+    delete panel.dataset.state;
+  }
+  const userAnswerNode = $("resultUserAnswer");
+  if (userAnswerNode) {
+    userAnswerNode.textContent = "";
+    userAnswerNode.classList.add("hidden");
+  }
+  const quizView = $("quizView");
+  if (quizView) {
+    quizView.classList.remove("has-feedback");
+    delete quizView.dataset.quizState;
+  }
 }
 
 function scheduleResultHide(delayMs = QUESTION_TRANSITION_MS) {
@@ -6386,7 +6450,7 @@ async function startQuiz(words, mode = "normal", options = {}) {
     if (backendAvailable) {
       showAuth("开始测试前请登录账户；错题复习仍可离线进行。未登录时不能绕过测试数量限制。");
     } else {
-      alert("当前离线：可以复习已有错题；开始新测试需要连接 Cloudflare 云端服务并登录账户。");
+      showSetupStatus("当前离线：可以切换到“错题”复习已有错题；开始新测试需要连接云端服务并登录账户。", "warning");
     }
     return;
   }
@@ -6395,14 +6459,16 @@ async function startQuiz(words, mode = "normal", options = {}) {
   const quizWords = options.legacyQuestion ? words : options.reviewEntries ? options.reviewEntries.map(entry=>wrongEntryWord(entry.key,entry.info)) : analysis.valid;
   const excludedCount = analysis.invalid.length;
   if (!quizWords.length) {
-    alert(`当前选择的是${quizLanguageLabel(language)}，词表里没有可测试的${quizLanguageLabel(language)}词。`);
+    showSetupStatus(`当前选择的是${quizLanguageLabel(language)}，词表里没有可测试的${quizLanguageLabel(language)}词。`, "error");
     return;
   }
   if (!options.reviewEntries && !options.legacyQuestion && (excludedCount > 0 || analysis.duplicates > 0)) {
     const ignored = [];
     if (excludedCount) ignored.push(`${excludedCount} 个其他语言或无效词`);
     if (analysis.duplicates) ignored.push(`${analysis.duplicates} 个重复词`);
-    alert(`已按${quizLanguageLabel(language)}模式忽略${ignored.join("、")}。`);
+    showSetupStatus(`已按${quizLanguageLabel(language)}模式忽略${ignored.join("、")}。`, "info");
+  } else {
+    showSetupStatus("");
   }
 
   state.quizSession = "";
@@ -6418,7 +6484,7 @@ async function startQuiz(words, mode = "normal", options = {}) {
         await openMembershipModal({ goal: language });
         $("rechargeMessage").textContent = error.message || "当前词表超过普通账户上限，请选择适合的会员方案。";
       } else {
-        alert(error.message);
+        showSetupStatus(error.message || "开始测试失败，请稍后重试", "error");
       }
       return;
     } finally {
@@ -6514,11 +6580,12 @@ function showWord(options = {}) {
     ? state.reviewFeedback==='all_mastered'?'错题复习 · 已掌握，主动巩固':state.reviewFeedback==='none_due'?'错题复习 · 暂无到期，主动巩固':'错题复习'
     : practiceModeLabel(state.practiceMode);
   $("answerInput").value = "";
+  if (!preserveTransition) lastSubmittedAnswer = "";
   if(state.reviewAnswers[state.index])$('answerInput').value=state.reviewAnswers[state.index].answer;
   $("answerInput").placeholder = state.legacyQuestion?state.legacyQuestion.instruction:dictation
     ? state.quizLanguage === "japanese"
       ? japaneseDictationRequiresBoth(word)
-        ? "输入汉字和假名，例如 学校 / がっこう"
+        ? "输入汉字和假名，如 学校 / がっこう"
         : "输入听到的假名"
       : "输入听到的单词"
     : "中文意思";
@@ -6661,11 +6728,32 @@ function renderQuestionFeedback(feedback) {
     clearTimeout(resultHideTimer);
     resultHideTimer = null;
   }
-  $("resultPanel").classList.remove("hidden", "grading", "ai-review");
-  void $("resultPanel").offsetWidth;
-  $("resultPanel").classList.toggle("ai-review", Boolean(result.ai_review));
+  const feedbackState = result.type === "skipped" ? "skipped" : result.correct ? "correct" : "incorrect";
+  const panel = $("resultPanel");
+  const quizView = $("quizView");
+  if (panel) {
+    panel.classList.remove("hidden", "grading", "ai-review");
+    void panel.offsetWidth;
+    panel.classList.toggle("ai-review", Boolean(result.ai_review));
+    panel.dataset.state = feedbackState;
+  }
+  if (quizView) {
+    quizView.classList.add("has-feedback");
+    quizView.dataset.quizState = feedbackState;
+  }
   $("resultTitle").className = result.recovery_notice?'result-title':`result-title ${result.correct ? "ok" : "bad"}`;
   $("resultTitle").textContent = result.recovery_notice?'旧题恢复记录':result.type === "skipped" ? "已跳过" : result.correct ? "正确" : "错误";
+  const userAnswerNode = $("resultUserAnswer");
+  const submitted = lastSubmittedAnswer || state.reviewAnswers[state.index]?.answer || $("answerInput")?.value?.trim() || "";
+  if (userAnswerNode) {
+    if (submitted && result.type !== "skipped") {
+      userAnswerNode.textContent = `你的作答：${submitted}`;
+      userAnswerNode.classList.remove("hidden");
+    } else {
+      userAnswerNode.textContent = "";
+      userAnswerNode.classList.add("hidden");
+    }
+  }
   const label = result.kind === "dictation" ? "正确答案" : "标准释义";
   $("resultGloss").textContent = result.type === "skipped"
     ? `${label}：${result.gloss}\n已加入错题本`
@@ -6688,6 +6776,9 @@ function clearAnswerValidation() {
   if (message) {
     message.textContent = "";
     message.classList.add("hidden");
+  }
+  if ($("resultPanel")?.dataset.state === "error") {
+    hideResultPanel();
   }
 }
 
@@ -6884,6 +6975,7 @@ async function skipWord() {
 
 async function submitAnswer(event) {
   event.preventDefault();
+  if (isAnswerComposing || event.isComposing || event.keyCode === 229) return;
   if (state.busy || state.answerLocked || !state.roundActive) return;
   const word = state.words[state.index];
   const answer = $("answerInput").value.trim();
@@ -6897,6 +6989,7 @@ async function submitAnswer(event) {
   }
   if(state.reviewAnswers[state.index]&&state.reviewAnswers[state.index].answer!==answer){showAnswerValidation('这道题已有保存的答案，请先确认原答案；原记录不会被覆盖。');return;}
   clearAnswerValidation();
+  lastSubmittedAnswer = answer;
   if(state.reviewAnswers[state.index]?.feedback){await resumeSavedAnswer(word,state.reviewAnswers[state.index]);return;}
 
   if(state.legacyQuestion){
@@ -6993,10 +7086,12 @@ async function submitAnswer(event) {
       beginQuestionTransition(questionFeedbackFromResult(result));
     } catch (error) {
       $("resultPanel").classList.remove("grading", "ai-review", "hidden");
+      $("resultPanel").dataset.state = "error";
+      $("quizView")?.classList.add("has-feedback");
+      if ($("quizView")) $("quizView").dataset.quizState = "error";
       $("resultTitle").className = "result-title bad";
       $("resultTitle").textContent = "错题复习暂不可用";
       $("resultGloss").textContent = error.message;
-      scheduleResultHide();
     } finally {
       setBusy(false);
       if (nextTimer) setNextNowEnabled(true);
@@ -7010,6 +7105,9 @@ async function submitAnswer(event) {
   setNextNowEnabled(false);
   $("resultPanel").classList.add("grading");
   $("resultPanel").classList.remove("hidden");
+  $("resultPanel").dataset.state = "grading";
+  $("quizView")?.classList.add("has-feedback");
+  if ($("quizView")) $("quizView").dataset.quizState = "grading";
   $("resultTitle").className = "result-title";
   $("resultTitle").textContent = "判卷中";
   $("resultGloss").textContent = "";
@@ -7045,11 +7143,13 @@ async function submitAnswer(event) {
     if (error.name === "AbortError") {
       hideResultPanel();
     } else {
-      $("resultPanel").classList.remove("grading", "ai-review");
+      $("resultPanel").classList.remove("grading", "ai-review", "hidden");
+      $("resultPanel").dataset.state = "error";
+      $("quizView")?.classList.add("has-feedback");
+      if ($("quizView")) $("quizView").dataset.quizState = "error";
       $("resultTitle").className = "result-title bad";
       $("resultTitle").textContent = "判卷失败";
       $("resultGloss").textContent = error.message;
-      scheduleResultHide();
     }
   } finally {
     judgeController = null;
@@ -7061,8 +7161,19 @@ async function submitAnswer(event) {
 
 function setWrongScope(scope) {
   state.wrongScope = scope === "history" ? "history" : "current";
-  $("currentWrongTab").classList.toggle("active", state.wrongScope === "current");
-  $("historyWrongTab").classList.toggle("active", state.wrongScope === "history");
+  const isCurrent = state.wrongScope === "current";
+  const currentTab = $("currentWrongTab");
+  const historyTab = $("historyWrongTab");
+  if (currentTab) {
+    currentTab.classList.toggle("active", isCurrent);
+    currentTab.setAttribute("aria-selected", String(isCurrent));
+    currentTab.setAttribute("tabindex", isCurrent ? "0" : "-1");
+  }
+  if (historyTab) {
+    historyTab.classList.toggle("active", !isCurrent);
+    historyTab.setAttribute("aria-selected", String(!isCurrent));
+    historyTab.setAttribute("tabindex", !isCurrent ? "0" : "-1");
+  }
   showWrongActionMessage("");
   renderWrongBook({ force: true });
 }
@@ -7386,8 +7497,17 @@ function renderWrongBook(options = {}) {
         openButton.focus();
       }
     });
+    let rejudgeComposing = false;
+    input.addEventListener("compositionstart", () => { rejudgeComposing = true; });
+    input.addEventListener("compositionend", () => { rejudgeComposing = false; });
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && (rejudgeComposing || event.isComposing || event.keyCode === 229)) {
+        event.stopPropagation();
+      }
+    });
     form.addEventListener("submit", (event) => {
       event.preventDefault();
+      if (rejudgeComposing || event.isComposing || event.keyCode === 229) return;
       rejudgeWrongAnswer(entryKey, scope, input.value, { input, submit, cancel, status: rejudgeStatus });
     });
     node.querySelector(".wrong-remove-button").addEventListener("click", () => {
@@ -7626,13 +7746,15 @@ async function importWords(event) {
       saveCurrentWordDraft();
       updateStats();
       if (analysis.invalid.length || analysis.duplicates) {
-        alert(`词表已导入，并忽略 ${analysis.invalid.length} 个无效词、${analysis.duplicates} 个重复词。`);
+        showSetupStatus(`词表已导入，并忽略 ${analysis.invalid.length} 个无效词、${analysis.duplicates} 个重复词。`, "info");
+      } else {
+        showSetupStatus(`已导入 ${analysis.valid.length} 个可测试词。`, "success");
       }
     } else {
       throw new Error(`没有识别到可用于${quizLanguageLabel(state.quizLanguage)}测试的词`);
     }
   } catch (error) {
-    alert(`词表导入失败：${error.message}`);
+    showSetupStatus(`词表导入失败：${error.message}`, "error");
   } finally {
     event.target.value = "";
   }
@@ -8758,6 +8880,13 @@ async function boot() {
     setView("wrongView");
   });
   $("answerForm").addEventListener("submit", submitAnswer);
+  $("answerInput").addEventListener("compositionstart", () => { isAnswerComposing = true; });
+  $("answerInput").addEventListener("compositionend", () => { isAnswerComposing = false; });
+  $("answerInput").addEventListener("keydown", (event) => {
+    if (event.key === "Enter" && (isAnswerComposing || event.isComposing || event.keyCode === 229)) {
+      event.preventDefault();
+    }
+  });
   $("answerInput").addEventListener("input", clearAnswerValidation);
   $("startBtn").addEventListener("click", () => startQuiz(parseWords()));
   $("aiSuggestBtn").addEventListener("click", generateAiVocabulary);
@@ -8820,6 +8949,7 @@ async function boot() {
   $("historyWrongTab").addEventListener("click", () => setWrongScope("history"));
   $("wrongSearchInput").addEventListener("input", () => renderWrongBook({ force: true }));
   $("wordInput").addEventListener("input", () => {
+    showSetupStatus("");
     saveCurrentWordDraft();
     updateStats();
   });
@@ -8858,7 +8988,40 @@ async function boot() {
     state.gradingMode = event.target.value;
     saveState();
   });
-  document.querySelectorAll(".tabs button").forEach((tab) => tab.addEventListener("click", () => setView(tab.dataset.view)));
+  document.querySelectorAll(".tabs button").forEach((tab) => {
+    tab.addEventListener("click", () => setView(tab.dataset.view));
+    tab.addEventListener("keydown", (event) => {
+      if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+      const enabledTabs = Array.from(document.querySelectorAll(".tabs button")).filter((item) => !item.disabled);
+      if (!enabledTabs.length) return;
+      event.preventDefault();
+      const currentIdx = Math.max(0, enabledTabs.indexOf(tab));
+      const nextTab = event.key === "Home"
+        ? enabledTabs[0]
+        : event.key === "End"
+          ? enabledTabs[enabledTabs.length - 1]
+          : enabledTabs[(currentIdx + (event.key === "ArrowRight" ? 1 : -1) + enabledTabs.length) % enabledTabs.length];
+      if (!nextTab) return;
+      setView(nextTab.dataset.view);
+      nextTab.focus();
+    });
+  });
+  [$("currentWrongTab"), $("historyWrongTab")].forEach((tab) => {
+    tab?.addEventListener("keydown", (event) => {
+      if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+      event.preventDefault();
+      const scopeTabs = [$("currentWrongTab"), $("historyWrongTab")].filter(Boolean);
+      const currentIdx = Math.max(0, scopeTabs.indexOf(tab));
+      const nextTab = event.key === "Home"
+        ? scopeTabs[0]
+        : event.key === "End"
+          ? scopeTabs[scopeTabs.length - 1]
+          : scopeTabs[(currentIdx + (event.key === "ArrowRight" ? 1 : -1) + scopeTabs.length) % scopeTabs.length];
+      if (!nextTab) return;
+      setWrongScope(nextTab.id === "historyWrongTab" ? "history" : "current");
+      nextTab.focus();
+    });
+  });
   document.querySelectorAll("[data-achievement-filter]").forEach((button) => {
     button.addEventListener("click", () => {
       achievementFilter = ["all", "progress", "unlocked"].includes(button.dataset.achievementFilter)
