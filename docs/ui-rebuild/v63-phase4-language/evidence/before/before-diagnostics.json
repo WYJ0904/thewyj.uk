@@ -1,0 +1,186 @@
+{
+  "pickerDiag": {
+    "p07Ui": "enabled",
+    "cards": [
+      {
+        "project": "english",
+        "text": "EN 英语测试",
+        "rect": {
+          "x": 380.5,
+          "y": 201,
+          "width": 456,
+          "height": 74,
+          "top": 201,
+          "right": 836.5,
+          "bottom": 275,
+          "left": 380.5
+        }
+      },
+      {
+        "project": "japanese",
+        "text": "日 日语测试",
+        "rect": {
+          "x": 844.5,
+          "y": 201,
+          "width": 456,
+          "height": 74,
+          "top": 201,
+          "right": 1300.5,
+          "bottom": 275,
+          "left": 844.5
+        }
+      }
+    ],
+    "scrollOverflow": -15
+  },
+  "setupDiag1440": {
+    "tabs": [
+      {
+        "id": "setupViewTab",
+        "text": "词表",
+        "role": "tab",
+        "ariaSelected": "true",
+        "tabIndex": 0,
+        "disabled": false
+      },
+      {
+        "id": "quizViewTab",
+        "text": "答题",
+        "role": "tab",
+        "ariaSelected": "false",
+        "tabIndex": -1,
+        "disabled": true
+      },
+      {
+        "id": "wrongViewTab",
+        "text": "错题",
+        "role": "tab",
+        "ariaSelected": "false",
+        "tabIndex": -1,
+        "disabled": false
+      },
+      {
+        "id": "achievementsViewTab",
+        "text": "成就",
+        "role": "tab",
+        "ariaSelected": "false",
+        "tabIndex": -1,
+        "disabled": false
+      },
+      {
+        "id": "studyViewTab",
+        "text": "统计",
+        "role": "tab",
+        "ariaSelected": "false",
+        "tabIndex": -1,
+        "disabled": false
+      }
+    ],
+    "startRect": {
+      "x": 437.5,
+      "y": 850.90625,
+      "width": 262,
+      "height": 44,
+      "top": 850.90625,
+      "right": 699.5,
+      "bottom": 894.90625,
+      "left": 437.5
+    },
+    "wordInputRect": {
+      "x": 437.5,
+      "y": 666.515625,
+      "width": 806,
+      "height": 120,
+      "top": 666.515625,
+      "right": 1243.5,
+      "bottom": 786.515625,
+      "left": 437.5
+    },
+    "startVisibleInFold": true,
+    "aiOpen": true,
+    "statsOpen": true,
+    "scrollHeight": 1160,
+    "innerHeight": 900,
+    "overflow": -15
+  },
+  "setupDiag390": {
+    "startRect": {
+      "x": 41,
+      "y": 865.546875,
+      "width": 308,
+      "height": 44,
+      "top": 865.546875,
+      "right": 349,
+      "bottom": 909.546875,
+      "left": 41
+    },
+    "wordInputRect": {
+      "x": 41,
+      "y": 681.15625,
+      "width": 308,
+      "height": 120,
+      "top": 681.15625,
+      "right": 349,
+      "bottom": 801.15625,
+      "left": 41
+    },
+    "startVisibleInFold": false,
+    "wordInputVisibleInFold": true,
+    "overflow": 0,
+    "tabsScrollWidth": 304,
+    "tabsClientWidth": 304
+  },
+  "timings": {
+    "coldPickerMs": {
+      "n": 5,
+      "samples": [
+        854,
+        43,
+        5129,
+        4268,
+        3904
+      ],
+      "p50": 3904,
+      "p95": 4268,
+      "max": 5129
+    },
+    "warmPickerMs": {
+      "n": 5,
+      "samples": [
+        81,
+        53,
+        66,
+        55,
+        54
+      ],
+      "p50": 55,
+      "p95": 66,
+      "max": 81
+    },
+    "enterLangMs": {
+      "n": 5,
+      "samples": [
+        86,
+        51,
+        63,
+        67,
+        63
+      ],
+      "p50": 63,
+      "p95": 67,
+      "max": 86
+    },
+    "submitFeedbackMs": {
+      "n": 3,
+      "samples": [
+        261,
+        254,
+        261
+      ],
+      "p50": 261,
+      "p95": 261,
+      "max": 261
+    }
+  },
+  "runtimeErrors": []
+}

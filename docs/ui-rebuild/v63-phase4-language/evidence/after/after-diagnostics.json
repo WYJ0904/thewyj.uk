@@ -1,0 +1,216 @@
+{
+  "pickerDiag": {
+    "p07Ui": "enabled",
+    "cards": [
+      {
+        "project": "english",
+        "text": "EN 英语测试 单轮不限词数",
+        "rect": {
+          "x": 380.5,
+          "y": 177.171875,
+          "width": 456,
+          "height": 88,
+          "top": 177.171875,
+          "right": 836.5,
+          "bottom": 265.171875,
+          "left": 380.5
+        }
+      },
+      {
+        "project": "japanese",
+        "text": "日 日语测试 单轮不限词数",
+        "rect": {
+          "x": 844.5,
+          "y": 177.171875,
+          "width": 456,
+          "height": 88,
+          "top": 177.171875,
+          "right": 1300.5,
+          "bottom": 265.171875,
+          "left": 844.5
+        }
+      }
+    ],
+    "overflow": -15
+  },
+  "setupDiag1440": {
+    "tabs": [
+      {
+        "id": "setupViewTab",
+        "text": "词表",
+        "role": "tab",
+        "ariaSelected": "true",
+        "tabIndex": 0,
+        "disabled": false
+      },
+      {
+        "id": "quizViewTab",
+        "text": "答题",
+        "role": "tab",
+        "ariaSelected": "false",
+        "tabIndex": -1,
+        "disabled": true
+      },
+      {
+        "id": "wrongViewTab",
+        "text": "错题",
+        "role": "tab",
+        "ariaSelected": "false",
+        "tabIndex": -1,
+        "disabled": false
+      },
+      {
+        "id": "achievementsViewTab",
+        "text": "成就",
+        "role": "tab",
+        "ariaSelected": "false",
+        "tabIndex": -1,
+        "disabled": false
+      },
+      {
+        "id": "studyViewTab",
+        "text": "统计",
+        "role": "tab",
+        "ariaSelected": "false",
+        "tabIndex": -1,
+        "disabled": false
+      }
+    ],
+    "masteryExposedInSetup": false,
+    "startRect": {
+      "x": 443.5,
+      "y": 605.86083984375,
+      "width": 230.09375,
+      "height": 46,
+      "top": 605.86083984375,
+      "right": 673.59375,
+      "bottom": 651.86083984375,
+      "left": 443.5
+    },
+    "wordInputRect": {
+      "x": 443.5,
+      "y": 313.06396484375,
+      "width": 454.296875,
+      "height": 248,
+      "top": 313.06396484375,
+      "right": 897.796875,
+      "bottom": 561.06396484375,
+      "left": 443.5
+    },
+    "startVisibleInFold": true,
+    "overflow": -15
+  },
+  "setupDiag390": {
+    "startRect": {
+      "x": 41,
+      "y": 554.1875,
+      "width": 308,
+      "height": 46,
+      "top": 554.1875,
+      "right": 349,
+      "bottom": 600.1875,
+      "left": 41
+    },
+    "wordInputRect": {
+      "x": 41,
+      "y": 357.390625,
+      "width": 308,
+      "height": 152,
+      "top": 357.390625,
+      "right": 349,
+      "bottom": 509.390625,
+      "left": 41
+    },
+    "startVisibleInFold": true,
+    "wordInputVisibleInFold": true,
+    "overflow": 0,
+    "aiOpen": false,
+    "statsOpen": false
+  },
+  "summaryContrast": {
+    "accuracyColor": "rgb(36, 36, 36)",
+    "panelBg": "rgb(253, 253, 253)",
+    "countColor": "rgb(36, 36, 36)"
+  },
+  "wrongMobileRect": {
+    "wrongListTop": 693.796875,
+    "smallButtons": [],
+    "overflow": 0
+  },
+  "responsiveAudit": {
+    "320": {
+      "overflow": 0,
+      "quizHeight": 447.578125
+    },
+    "375": {
+      "overflow": 0,
+      "quizHeight": 447.578125
+    },
+    "390": {
+      "overflow": 0,
+      "quizHeight": 447.578125
+    },
+    "768": {
+      "overflow": 0,
+      "quizHeight": 421.578125
+    },
+    "1440": {
+      "overflow": 0,
+      "quizHeight": 427.171875
+    }
+  },
+  "timings": {
+    "coldPickerMs": {
+      "n": 5,
+      "samples": [
+        4765,
+        3873,
+        3186,
+        2306,
+        2056
+      ],
+      "p50": 3186,
+      "p95": 3873,
+      "max": 4765
+    },
+    "warmPickerMs": {
+      "n": 5,
+      "samples": [
+        57,
+        41,
+        35,
+        42,
+        40
+      ],
+      "p50": 41,
+      "p95": 42,
+      "max": 57
+    },
+    "enterLangMs": {
+      "n": 5,
+      "samples": [
+        33,
+        38,
+        33,
+        29,
+        27
+      ],
+      "p50": 33,
+      "p95": 33,
+      "max": 38
+    },
+    "submitFeedbackMs": {
+      "n": 3,
+      "samples": [
+        315,
+        258,
+        258
+      ],
+      "p50": 258,
+      "p95": 258,
+      "max": 315
+    }
+  },
+  "dialogs": [],
+  "runtimeErrors": []
+}

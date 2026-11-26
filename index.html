@@ -812,16 +812,22 @@
       <section class="project-picker hidden" id="projectPicker" aria-labelledby="projectPickerTitle">
         <header class="project-brand">
           <img src="/icon-192.png?release=20261121-aeris-i05-preview" width="192" height="192" alt="Aeris Logo" />
-          <div><p class="section-kicker">语言学习</p><h1 id="projectPickerTitle">选择语言测试</h1></div>
+          <div><p class="section-kicker">语言学习</p><h1 id="projectPickerTitle">选择语言测试</h1><p class="meta-line project-picker-lead">选择语言进入词表、沉浸答题与错题复习</p></div>
         </header>
         <div class="project-grid" role="group" aria-label="选择项目">
           <button class="project-card" type="button" data-project="english">
             <span class="project-mark" aria-hidden="true">EN</span>
-            <strong>英语测试</strong>
+            <span class="project-card-body">
+              <strong>英语测试</strong>
+              <span class="project-card-meta" id="projectStatusEnglish">点击进入英语练习</span>
+            </span>
           </button>
           <button class="project-card" type="button" data-project="japanese">
             <span class="project-mark" aria-hidden="true">日</span>
-            <strong>日语测试</strong>
+            <span class="project-card-body">
+              <strong>日语测试</strong>
+              <span class="project-card-meta" id="projectStatusJapanese">点击进入日语练习</span>
+            </span>
           </button>
         </div>
         <button class="picker-back" id="languageBackBtn" type="button">返回功能选择</button>
@@ -880,104 +886,114 @@
 
         <section class="workspace hidden" id="workspace">
           <nav class="tabs" role="tablist" aria-label="学习视图">
-            <button class="active" id="setupViewTab" type="button" role="tab" aria-controls="setupView" data-view="setupView">词表</button>
-            <button id="quizViewTab" type="button" role="tab" aria-controls="quizView" data-view="quizView" disabled title="尚未开始测试">答题</button>
-            <button id="wrongViewTab" type="button" role="tab" aria-controls="wrongView" data-view="wrongView">错题</button>
-            <button id="achievementsViewTab" type="button" role="tab" aria-controls="achievementsView" data-view="achievementsView">成就</button>
-            <button id="studyViewTab" type="button" role="tab" aria-controls="studyView" data-view="studyView">统计</button>
+            <button class="active" id="setupViewTab" type="button" role="tab" aria-controls="setupView" aria-selected="true" tabindex="0" data-view="setupView">词表</button>
+            <button id="quizViewTab" type="button" role="tab" aria-controls="quizView" aria-selected="false" tabindex="-1" data-view="quizView" disabled title="尚未开始测试">答题</button>
+            <button id="wrongViewTab" type="button" role="tab" aria-controls="wrongView" aria-selected="false" tabindex="-1" data-view="wrongView">错题</button>
+            <button id="achievementsViewTab" type="button" role="tab" aria-controls="achievementsView" aria-selected="false" tabindex="-1" data-view="achievementsView">成就</button>
+            <button id="studyViewTab" type="button" role="tab" aria-controls="studyView" aria-selected="false" tabindex="-1" data-view="studyView">统计</button>
           </nav>
 
           <section class="view active" id="setupView" role="tabpanel" aria-labelledby="setupViewTab">
             <div class="panel">
-              <div class="settings-grid">
-                <label class="field-label">
-                  <span>使用者</span>
-                  <input id="profileInput" autocomplete="nickname" maxlength="30" placeholder="我" />
-                </label>
-                <label class="field-label">
-                  <span>判卷</span>
-                  <select id="gradingModeSelect">
-                    <option value="normal">普通</option>
-                    <option value="strict">严格</option>
-                    <option value="lenient">宽松</option>
-                  </select>
-                </label>
-                <label class="field-label">
-                  <span>练习</span>
-                  <select id="practiceModeSelect">
-                    <option value="meaning">释义</option>
-                    <option value="dictation">听写</option>
-                  </select>
-                </label>
-                <label class="field-label language-field-hidden" aria-hidden="true">
-                  <span>测试语言</span>
-                  <select id="languageSelect" tabindex="-1">
-                    <option value="" disabled>请选择</option>
-                    <option value="english">英语</option>
-                    <option value="japanese">日语</option>
-                  </select>
-                </label>
-              </div>
-
-              <!-- 手机端默认收起：首屏只保留词表输入与开始，智能选词按需展开。 -->
-              <details class="ds-collapse" id="languageAiDisclosure" data-responsive-collapse open>
-                <summary><span>分级智能选词</span><small>按需生成词表</small></summary>
-              <section class="ai-suggest-section" aria-labelledby="aiSuggestTitle">
-                <div class="ai-suggest-heading">
-                  <h2 id="aiSuggestTitle">分级智能选词</h2>
-                  <span id="aiSuggestLanguage">英语</span>
+              <div class="language-setup-layout">
+                <div class="language-setup-editor">
+                  <label data-p07-label for="wordInput">练习词表（每行一个词）</label>
+                  <textarea id="wordInput" maxlength="120000" placeholder="输入词表，每行一个词" aria-describedby="wordLimitHint wordQualityHint"></textarea>
+                  <div class="setup-hint-row">
+                    <p class="meta-line" id="wordLimitHint" aria-live="polite"></p>
+                    <p class="meta-line word-quality-hint" id="wordQualityHint" aria-live="polite"></p>
+                  </div>
+                  <p class="setup-status-banner hidden" id="setupStatusBanner" role="status" aria-live="polite"></p>
+                  <div class="action-row setup-primary-actions">
+                    <button class="primary" id="startBtn" type="button">开始</button>
+                    <button class="button-secondary" id="shuffleBtn" type="button" title="打乱词表"><svg class="button-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="m15 15 6 6"/><path d="m4 4 5 5"/></svg><span>打乱词表</span></button>
+                    <button class="button-secondary" id="clearBtn" type="button" title="清空词表"><svg class="button-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="m19 6-1 14H6L5 6"/><path d="M10 11v5M14 11v5"/></svg><span>清空词表</span></button>
+                  </div>
+                  <div class="action-row secondary-row setup-io-actions">
+                    <button class="button-ghost" id="importWordsBtn" type="button">导入词表</button>
+                    <button class="button-ghost" id="exportWordsBtn" type="button">导出词表</button>
+                  </div>
+                  <input id="wordFileInput" class="hidden" type="file" accept=".txt,.csv,.json,text/plain,application/json" />
                 </div>
-                <div class="ai-suggest-grid">
-                  <label class="field-label ai-search-field">
-                    <span>快速搜索</span>
-                    <input id="aiSearchInput" type="search" maxlength="64" autocomplete="off" placeholder="输入单词或前缀" />
-                  </label>
-                  <label class="field-label">
-                    <span>学习等级</span>
-                    <select id="aiLevelSelect"></select>
-                  </label>
-                  <label class="field-label">
-                    <span>词汇数量</span>
-                    <input id="aiSuggestCount" type="number" min="1" max="15" value="10" inputmode="numeric" />
-                  </label>
-                  <label class="field-label">
-                    <span>写入方式</span>
-                    <select id="aiSuggestMode">
-                      <option value="replace">替换词表</option>
-                      <option value="append">追加词表</option>
-                    </select>
-                  </label>
-                  <button class="primary ai-suggest-button" id="aiSuggestBtn" type="button">生成词表</button>
-                </div>
-                <div class="ai-search-results hidden" id="aiSearchResults" aria-live="polite"></div>
-                <p class="meta-line ai-suggest-message" id="aiSuggestMessage" aria-live="polite"></p>
-              </section>
-              </details>
 
-              <label data-p07-label for="wordInput">练习词表（每行一个词）</label>
-              <textarea id="wordInput" maxlength="120000" placeholder="输入词表，每行一个词" aria-describedby="wordLimitHint wordQualityHint"></textarea>
-              <p class="meta-line" id="wordLimitHint" aria-live="polite"></p>
-              <p class="meta-line word-quality-hint" id="wordQualityHint" aria-live="polite"></p>
-              <div class="action-row">
-                <button class="primary" id="startBtn" type="button">开始</button>
-                <button class="button-secondary" id="shuffleBtn" type="button" title="打乱词表"><svg class="button-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="m15 15 6 6"/><path d="m4 4 5 5"/></svg><span>打乱词表</span></button>
-                <button class="button-secondary" id="clearBtn" type="button" title="清空词表"><svg class="button-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="m19 6-1 14H6L5 6"/><path d="M10 11v5M14 11v5"/></svg><span>清空词表</span></button>
+                <div class="language-setup-sidebar">
+                  <div class="settings-grid">
+                    <label class="field-label">
+                      <span>使用者</span>
+                      <input id="profileInput" autocomplete="nickname" maxlength="30" placeholder="我" />
+                    </label>
+                    <label class="field-label">
+                      <span>判卷</span>
+                      <select id="gradingModeSelect">
+                        <option value="normal">普通</option>
+                        <option value="strict">严格</option>
+                        <option value="lenient">宽松</option>
+                      </select>
+                    </label>
+                    <label class="field-label">
+                      <span>练习</span>
+                      <select id="practiceModeSelect">
+                        <option value="meaning">释义</option>
+                        <option value="dictation">听写</option>
+                      </select>
+                    </label>
+                    <label class="field-label language-field-hidden" aria-hidden="true">
+                      <span>测试语言</span>
+                      <select id="languageSelect" tabindex="-1">
+                        <option value="" disabled>请选择</option>
+                        <option value="english">英语</option>
+                        <option value="japanese">日语</option>
+                      </select>
+                    </label>
+                  </div>
+
+                  <!-- 手机端默认收起：首屏只保留词表输入与开始，智能选词按需展开。 -->
+                  <details class="ds-collapse" id="languageAiDisclosure" data-responsive-collapse open>
+                    <summary><span>分级智能选词</span><small>按需生成词表</small></summary>
+                  <section class="ai-suggest-section" aria-labelledby="aiSuggestTitle">
+                    <div class="ai-suggest-heading">
+                      <h2 id="aiSuggestTitle">分级智能选词</h2>
+                      <span id="aiSuggestLanguage">英语</span>
+                    </div>
+                    <div class="ai-suggest-grid">
+                      <label class="field-label ai-search-field">
+                        <span>快速搜索</span>
+                        <input id="aiSearchInput" type="search" maxlength="64" autocomplete="off" placeholder="输入单词或前缀" />
+                      </label>
+                      <label class="field-label">
+                        <span>学习等级</span>
+                        <select id="aiLevelSelect"></select>
+                      </label>
+                      <label class="field-label">
+                        <span>词汇数量</span>
+                        <input id="aiSuggestCount" type="number" min="1" max="15" value="10" inputmode="numeric" />
+                      </label>
+                      <label class="field-label">
+                        <span>写入方式</span>
+                        <select id="aiSuggestMode">
+                          <option value="replace">替换词表</option>
+                          <option value="append">追加词表</option>
+                        </select>
+                      </label>
+                      <button class="primary ai-suggest-button" id="aiSuggestBtn" type="button">生成词表</button>
+                    </div>
+                    <div class="ai-search-results hidden" id="aiSearchResults" aria-live="polite"></div>
+                    <p class="meta-line ai-suggest-message" id="aiSuggestMessage" aria-live="polite"></p>
+                  </section>
+                  </details>
+
+                  <!-- 手机端默认收起：首屏不与输入区争夺空间。 -->
+                  <details class="ds-collapse" id="languageStatsDisclosure" data-responsive-collapse open>
+                    <summary><span>本轮统计</span><small>词数 / 错题 / 得分</small></summary>
+                    <div class="stats-grid">
+                      <div><strong id="statWords">0</strong><span>词</span></div>
+                      <div><strong id="statWrong">0</strong><span>本轮错题</span></div>
+                      <div><strong id="statScore">0</strong><span>得分</span></div>
+                    </div>
+                  </details>
+                </div>
               </div>
-              <div class="action-row secondary-row">
-                <button class="button-ghost" id="importWordsBtn">导入词表</button>
-                <button class="button-ghost" id="exportWordsBtn">导出词表</button>
-              </div>
-              <input id="wordFileInput" class="hidden" type="file" accept=".txt,.csv,.json,text/plain,application/json" />
             </div>
-            <!-- 手机端默认收起：首屏不与输入区争夺空间。 -->
-            <details class="ds-collapse" id="languageStatsDisclosure" data-responsive-collapse open>
-              <summary><span>本轮统计</span><small>词数 / 错题 / 得分</small></summary>
-              <div class="stats-grid">
-                <div><strong id="statWords">0</strong><span>词</span></div>
-                <div><strong id="statWrong">0</strong><span>本轮错题</span></div>
-                <div><strong id="statScore">0</strong><span>得分</span></div>
-              </div>
-            </details>
           </section>
 
           <section class="view" id="quizView" role="tabpanel" aria-labelledby="quizViewTab">
@@ -1015,6 +1031,7 @@
             </div>
             <div class="result-panel hidden" id="resultPanel" aria-live="polite">
               <div class="result-title" id="resultTitle"></div>
+              <p class="result-user-answer hidden" id="resultUserAnswer"></p>
               <div class="result-gloss" id="resultGloss"></div>
               <div class="chips" id="acceptedChips"></div>
             </div>
@@ -1022,31 +1039,33 @@
 
           <section class="view" id="wrongView" role="tabpanel" aria-labelledby="wrongViewTab">
             <div class="panel">
-              <div class="scope-tabs">
-                <button class="active" id="currentWrongTab" type="button">本轮</button>
-                <button id="historyWrongTab" type="button">历史</button>
-              </div>
-              <p class="meta-line" id="wrongScopeLabel"></p>
-              <p class="meta-line" id="wrongReviewStatus" role="status"></p>
-              <button id="legacyRecoveryBtn" class="secondary hidden" type="button">恢复旧版未完成答题</button>
-              <label class="wrong-search" for="wrongSearchInput"><span class="visually-hidden">搜索错题</span><input id="wrongSearchInput" type="search" maxlength="120" autocomplete="off" placeholder="搜索单词、答案或释义" /></label>
-              <div class="action-row">
-                <button class="primary" id="reviewBtn">复习本轮</button>
-                <button class="button-secondary" id="reviewHistoryBtn">复习历史</button>
-              </div>
-              <div class="action-row secondary-row">
-                <button class="button-ghost" id="exportBtn">导出本轮 PDF</button>
-                <button class="button-ghost" id="exportHistoryBtn">导出历史 PDF</button>
-              </div>
-              <div class="action-row secondary-row">
-                <button class="button-ghost" id="exportWrongDataBtn">导出错题数据</button>
-                <button class="button-ghost" id="importWrongDataBtn">导入错题数据</button>
-              </div>
-              <p class="wrong-action-message hidden" id="wrongActionMessage" aria-live="polite"></p>
-              <input id="wrongDataFileInput" class="hidden" type="file" accept=".json,application/json" />
-              <div class="action-row secondary-row">
-                <button class="button-ghost danger-text" id="clearWrongBtn">清空本轮</button>
-                <button class="button-ghost danger-text" id="clearHistoryBtn">清空历史</button>
+              <div class="wrong-toolbar">
+                <div class="wrong-toolbar-head">
+                  <div class="scope-tabs" role="tablist" aria-label="错题范围">
+                    <button class="active" id="currentWrongTab" type="button" role="tab" aria-selected="true" tabindex="0">本轮</button>
+                    <button id="historyWrongTab" type="button" role="tab" aria-selected="false" tabindex="-1">历史</button>
+                  </div>
+                  <p class="meta-line" id="wrongScopeLabel"></p>
+                </div>
+                <p class="meta-line" id="wrongReviewStatus" role="status"></p>
+                <button id="legacyRecoveryBtn" class="secondary hidden" type="button">恢复旧版未完成答题</button>
+                <label class="wrong-search" for="wrongSearchInput"><span class="visually-hidden">搜索错题</span><input id="wrongSearchInput" type="search" maxlength="120" autocomplete="off" placeholder="搜索单词、答案或释义" /></label>
+                <div class="wrong-actions-grid">
+                  <div class="action-row wrong-primary-actions">
+                    <button class="primary" id="reviewBtn" type="button">复习本轮</button>
+                    <button class="button-secondary" id="reviewHistoryBtn" type="button">复习历史</button>
+                  </div>
+                  <div class="action-row secondary-row wrong-utility-actions">
+                    <button class="button-ghost" id="exportBtn" type="button">导出本轮 PDF</button>
+                    <button class="button-ghost" id="exportHistoryBtn" type="button">导出历史 PDF</button>
+                    <button class="button-ghost" id="exportWrongDataBtn" type="button">导出错题数据</button>
+                    <button class="button-ghost" id="importWrongDataBtn" type="button">导入错题数据</button>
+                    <button class="button-ghost danger-text" id="clearWrongBtn" type="button">清空本轮</button>
+                    <button class="button-ghost danger-text" id="clearHistoryBtn" type="button">清空历史</button>
+                  </div>
+                </div>
+                <p class="wrong-action-message hidden" id="wrongActionMessage" aria-live="polite"></p>
+                <input id="wrongDataFileInput" class="hidden" type="file" accept=".json,application/json" />
               </div>
               <div class="wrong-list" id="wrongList"></div>
             </div>
@@ -1065,9 +1084,9 @@
               </div>
               <progress class="achievement-total-progress" id="achievementTotalProgress" max="25" value="0">0 / 25</progress>
               <div class="achievement-filters" role="group" aria-label="筛选成就">
-                <button class="active" data-achievement-filter="all" type="button">全部</button>
-                <button data-achievement-filter="progress" type="button">进行中</button>
-                <button data-achievement-filter="unlocked" type="button">已获得</button>
+                <button class="active" data-achievement-filter="all" type="button" aria-pressed="true">全部</button>
+                <button data-achievement-filter="progress" type="button" aria-pressed="false">进行中</button>
+                <button data-achievement-filter="unlocked" type="button" aria-pressed="false">已获得</button>
               </div>
               <div class="achievement-grid" id="achievementList"></div>
             </div>
