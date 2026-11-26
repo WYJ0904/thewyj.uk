@@ -13506,7 +13506,7 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #achievementsView .achiev
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 40px;
+  min-height: 44px;
   padding: 0 12px;
   border-radius: 10px;
   font-size: 13px;
@@ -14020,8 +14020,8 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #achievementsView .achiev
 
 #workflowWorkspace .wf-name-field input {
   width: 100%;
-  min-height: 38px;
-  padding: 6px 10px;
+  min-height: 44px;
+  padding: 8px 12px;
   border-radius: 9px;
   border: 1px solid transparent;
   background: var(--ds-surface-subtle);
@@ -14065,8 +14065,13 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #achievementsView .achiev
   gap: 8px;
 }
 
-#workflowWorkspace .wf-topbar-right > button {
-  min-height: 38px;
+#workflowWorkspace .wf-topbar-right > button,
+#workflowWorkspace .wf-topbar-right .wf-icon-btn {
+  min-height: 44px;
+}
+
+#workflowWorkspace .wf-topbar-right .wf-icon-btn {
+  min-width: 44px;
 }
 
 #workflowWorkspace .danger-text {
