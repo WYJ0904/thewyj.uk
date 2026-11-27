@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "environment": "isolated-preview-p6-p9",
+  "project": "thewyj-v63-p6p9-preview",
+  "branch": "v63-phase6",
+  "production_branch": "release-held",
+  "d1_name": "aeris-v63-p6p9-preview",
+  "d1_id": "a1550b63-acd2-42bb-9358-b44bedd88d68",
+  "r2_name": "aeris-v63-p6p9-storage",
+  "migrations_applied_count": 45,
+  "migrations_first": "0001_foundation.sql",
+  "migrations_last": "0045_ds_account_merge_bridge.sql",
+  "table_count": 167,
+  "task28_schema_version": "1",
+  "bindings_verified": {
+    "WORKERS_AI_ENABLED": "false",
+    "EMAIL_SENDING_ENABLED": "false",
+    "D1_RATE_LIMIT_ENABLED": "true",
+    "TASK22_TRANSFER_WRITES_ENABLED": "true",
+    "secrets_configured": [
+      "WYJ_TASK12_PASSWORD_PEPPER",
+      "WYJ_TASK14_TEMPORARY_SECRET",
+      "WYJ_TASK20_DEVICE_SESSION_SECRET"
+    ]
+  },
+  "preview_host": "https://v63-phase6.thewyj-v63-p6p9-preview.pages.dev",
+  "provisioned_at": "2026-11-27T09:58:54.491Z",
+  "latest_deployment_url": "https://f7a7702e.thewyj-v63-p6p9-preview.pages.dev",
+  "deployed_commit": "e9ca58e4441ba6b63f66b3f8193de5c503555aee",
+  "deployed_at": "2026-11-27T10:01:46.783Z"
+}

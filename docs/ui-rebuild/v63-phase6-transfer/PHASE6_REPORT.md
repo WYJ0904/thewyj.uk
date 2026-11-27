@@ -5,7 +5,8 @@
 - **阶段目标**：完成 `/transfer`、`#transferPage` 与 `/transfer#share=<id>` 文件传输模块的 UI、信息架构、动效、响应式适配及交互性能重构，完整保留既有分片引擎、D1/R2 存储权威、配额计算、分享安全模型及与 Android 客户端的下载契约。
 - **基线来源**：Phase 5 (`hydrogen/v63-phase5-workflow-redesign`，`44668aa205ab29a8727b1e2b4d1ab1c9de5a5301`，Draft PR #186)
 - **当前开发分支**：`hydrogen/v63-phase6-transfer-redesign`（基于 Phase 5 创建 Stacked Draft PR #187）
-- **资源版本标识**：`ASSET_RELEASE = "20261127-aeris-p6-transfer-v1"`，`PUBLICATION_HASH = "8b7bf822b6d080f3829466fc3405d8d39092f4f1379371d3edfe4b88112807f0"`（保持 `CORE_SHELL = 81`、`REQUIRED_SHELL = 89`、`INSTALL_SHELL = 89`，零新增根目录静态/JS 文件）。
+- **资源版本标识**：`ASSET_RELEASE = "20261127-aeris-p6-transfer-v1"`，`PUBLICATION_HASH = "4d21e11c6d702eed5242d52c84052ff8c0d6af91024dfa431a273c91b0cc0d71"`（保持 `CORE_SHELL = 81`、`REQUIRED_SHELL = 89`、`INSTALL_SHELL = 89`，零新增根目录静态/JS 文件）。
+- **Service Worker 稳定性修复（`e9ca58e4`）**：修复 `app.js#L9082-L9143` 在目标 `registration.waiting` 已安装且等待激活时重复触发 `navigator.serviceWorker.register(...)` 网络更新竞争的问题，改为直接复用 `swRegistration.waiting` 发送 `SKIP_WAITING`（`qa/p07-release/rollback-browser.mjs` 连续 3 次 7/7 全项 PASS）。
 - **范围严守**：仅重构文件传输模块；未开启 Phase 7，未合并 `main`，未改动 Production，未修改 `v63-phase5` 预览环境，未重启 Android Hotfix 或财务 AI。
 
 ---
@@ -51,37 +52,42 @@
 
 ### 1. 最后一次代码修改后全部通过的本地门禁与浏览器验证
 
-- `npm run task27:publication`: **PASS** (`publication_hash: 8b7bf822b6d080f3829466fc3405d8d39092f4f1379371d3edfe4b88112807f0`, `integrity_entries: 80`, `install_shell_total: 89`, `prior_core_shell_preserved: true`)
+- `npm run task27:publication`: **PASS** (`publication_hash: 4d21e11c6d702eed5242d52c84052ff8c0d6af91024dfa431a273c91b0cc0d71`, `integrity_entries: 80`, `install_shell_total: 89`, `prior_core_shell_preserved: true`)
 - `node scripts/stage_pages_deploy.mjs` & `npm run cf:check`: **PASS** (`Compiled Worker successfully`)
-- `python local-backend/test_static.py`: **PASS** (`31 tests`)
+- `python -m unittest discover -s local-backend -p "test_static*.py" -v`: **PASS** (`31 tests`)
 - `python scripts/functional_audit_gate.py`: **PASS** (`27 routes, 24 app flows, 104 tools, 51 tool modes, 7 checkbox controls, 12 workflow capabilities, 27 workflow flows`)
 - `node scripts/check_storage_contract.mjs`: **PASS** (`31 stable key families`)
 - `node scripts/check_js_module_graph.mjs`: **PASS** (`67 files, 120 imports`)
-- 传输单元与隔离测试 (`test_transfer_isolation_js.mjs`、`test_transfer_session_plan_js.mjs`、`test_transfer_updates_js.mjs`、`test_i05_workspace_shell.mjs`、`test_i06_module_experience.mjs`、`sw-install.test.mjs`、`sw-release.test.mjs`): **全部 PASS**（含 `5/5` I05/I06 与 `24/24` SW 单测）
-- Phase 6 专项全矩阵 Chrome + Miniflare 验证 (`node qa/v63-phase6/verify_phase6_transfer.mjs`): **PASS**（`8/8` 核心场景覆盖游客与 `free`/`vip`/`admin` 3 类账户、前校验、暂停续传、`>16 MiB` 分片上传、私有附件无外链/无 QR、WAI-ARIA 密码弹窗、键盘 Tab 切换、`prefers-reduced-motion`、`p07_accessibility=disabled` 降级与 7 视口，`runtimeErrors = 0`）
-- 现有全链路 CI 浏览器套件（本地编译 Worker + Miniflare + Chrome 串行运行）：
-  - `node qa/task28/browser.mjs`: **PASS**（`5/5` 全通过，含 `#transferSafetyHint` `HTML、SVG` 提示契约与 `axe-core` 无障碍对比度验收；针对浅色主题 `#transferMessage` 低对比度已于 `design-system.css` 将 `--ds-transfer-active`、`--ds-transfer-complete`、`--ds-transfer-paused`、`--ds-transfer-error` 深化至 WCAG AA >= 5.6:1）
-  - `local-backend/test_transfer_responsive.mjs`: **PASS** (`320/360/390/412/1366`)
-  - `qa/aeris/transfer-clipboard-browser.mjs`: **PASS** (`11/11`)
-  - `local-backend/test_transfer_browser_e2e.mjs`: **PASS** (`RoundTripInstaller-.exe` & `RoundTripClip-.mp4` `>16 MiB` 分片 + 下载 SHA-256 校验 + 双文件重建 + 撤销)
-  - `qa/aeris/p5-transfer-browser.mjs`: **PASS** (`209,715,200` B + `32,768` B，`longTasks: 0`，`queueRootWrites: 0`)
-  - `qa/aeris/p5-contract-browser.mjs`、`p5-pwa-browser.mjs`、`p5-loading-browser.mjs`、`local-backend/test_interaction_feedback_browser.mjs` (`8/8`)、`qa/aeris/p2-interaction-browser.mjs` (`390/1366/1920`)、`qa/aeris/p1-navigation-lifecycle.mjs`: **全部 PASS**
-- `node qa/p07-release/sw-install-browser.mjs --source WORKTREE --label p6-r2`: **PASS** (`7/7` 用例通过)
-- `node qa/task28/workerd.mjs`: **PASS** (`3/3` 用例通过)
+- `python scripts/repository_audit.py`: **PASS** (`2611` tracked and candidate files checked)
+- `impeccable doctor --json`: **PASS** (`findings: []`, exit `0`)
+- 传输单元与隔离测试 (`test_transfer_isolation_js.mjs`、`test_transfer_session_plan_js.mjs`、`test_transfer_updates_js.mjs`、`test_task22_d1_js.mjs`、`test_i05_workspace_shell.mjs`、`test_i06_module_experience.mjs`、`sw-install.test.mjs`、`sw-release.test.mjs`): **全部 PASS**（含 `5/5` I05/I06 与 `24/24` SW 单测）
+- `npm run test:task28:runtime` (`qa/task28/workerd.mjs`): **PASS** (`3/3` 用例通过)
+- `node qa/v63-phase6/verify_phase6_transfer.mjs`: **PASS**（`8/8` 检查项、7 视口、`interactiveMs: 203.2`、`senderFrames: 167`、`recipientFrames: 115`、`runtimeErrors: 0`）
+- `npm run test:task28:browser` (`qa/task28/browser.mjs`): **PASS**（`5/5` 用例、`0` 跳过、含 `axe-core` 无障碍对比度验收）
+- `node qa/p07-release/sw-install-browser.mjs --source e9ca58e4 --label p6-r3`: **PASS**（`7/7` 用例通过）
+- `qa/p07-release/rollback-browser.mjs --source e9ca58e4`（连续 3 轮）: **PASS**（`3/3` 轮各 `7/7` 全项通过）
 
-### 2. 隔离 Hosted Preview 部署与验证结果
+### 2. 全新完全隔离 Hosted Preview (P6–P9) 部署与完整在线闭环验收
 
-- **预览项目与分支**：`thewyj-v63-preview`，分支 `v63-phase6`（部署 ID `c1612908-5c20-431d-8389-b36721c8d5ef`）
-- **隔离预览地址**：`https://v63-phase6.thewyj-v63-preview.pages.dev`（`https://c1612908.thewyj-v63-preview.pages.dev`）
-- **绑定与保留核实**：绑定独立 `wyj-cloud-preview` D1 (`a3e6253b-689f-49f3-998b-7c5828ea255a`) 与 R2 (`wyj-cloud-preview`)；Phase 5 预览部署 `f4976f59-4dc3-42f1-83cf-d638a6ac0d3f` (`v63-phase5`) 与 Production 环境保持完好零改动。
-- **在线实测结果（`docs/ui-rebuild/v63-phase6-transfer/evidence/hosted-preview.json`）**：
-  - `/api/status?source=cloud` 返回 HTTP `200`（`environment: "preview"`，`d1: true`，`r2: true`）；`/`、`_headers`、`sw.js` (`20261127-aeris-p6-transfer-v1`) 验证一致；
-  - 真实浏览器访问 Hosted Preview `/transfer` 通过了游客（`50.0 MiB`）、普通用户（`500.0 MiB`）及全功能会员（`2.00 GiB`）的界面渲染、能力接口响应与无 JS 运行时错误校验（`hosted-preview-transfer-1440.png`），测试用临时账户随后已从 Preview 库安全清除，未修改站点单所有者 (`task18-preview-owner-10f06c88`)。
-  - **客观环境缺口记录（如实上报）**：核查 `wyj-cloud-preview` 远端 `wyj_d1_migrations` 显示其库结构停留在 `0037_task27_email_template_newlines.sql`（缺失 `0038_task28_secure_files.sql` 中 `task22_upload_sessions.access_scope`/`idempotency_key` 等列及 `task28_file_events`），且 `aeris_ds_*` 表系通过 `wyj_ds_sso_preview_migrations` 单独托管。遵循“未获明确指令不执行远端 D1 结构迁移”边界，未改动 Preview 库结构；因此 Hosted Preview 探测 `POST /api/transfer/uploads` 返回 `503 task22_temporarily_unavailable`，完整真实上传/下载/撤销后端闭环已由本地全迁移（`0001`–`0045`）编译 Worker Miniflare + Chrome 验证 100% 通过。
+- **全新隔离 Cloudflare 资源（方案 A）**：
+  - **Pages 项目**：`thewyj-v63-p6p9-preview`（`production_branch: "release-held"`，部署分支 `v63-phase6`，部署 URL `https://f7a7702e.thewyj-v63-p6p9-preview.pages.dev`）
+  - **预览访问地址**：`https://v63-phase6.thewyj-v63-p6p9-preview.pages.dev`
+  - **独立 D1 数据库**：`aeris-v63-p6p9-preview`（UUID `a1550b63-acd2-42bb-9358-b44bedd88d68`，完整按序应用 `0001`–`0045` 全部 45 条迁移，`167` 张表与 `task28_schema_version = 1` 核验一致；`task25_feature_flags` 已启用 `p07_accessibility` 100%）
+  - **独立 R2 存储桶**：`aeris-v63-p6p9-storage`（绑定为 `WYJ_STORAGE`，安全配置开启 `D1_RATE_LIMIT_ENABLED=true`、`TASK22_TRANSFER_WRITES_ENABLED=true`、`WORKERS_AI_ENABLED=false`、`EMAIL_SENDING_ENABLED=false`，并独立生成 3 个 32-byte `secret_text` 密钥）
+  - **既有环境零改动核实**：共享预览库 `wyj-cloud-preview` (`a3e6253b-689f-49f3-998b-7c5828ea255a`) 与 R2 `wyj-cloud-preview`、P5 验收环境 `https://v63-phase5.thewyj-v63-preview.pages.dev`（HTTP `200`）、DS SSO 环境及 Production (`wyj-cloud-production`) 均保持完好零改动；部署证物见 [`p6p9-preview-provision.json`](./evidence/p6p9-preview-provision.json)。
+- **永久测试账户（已于真实在线 Preview 登录实测，保留供验收）**：
+  - **普通免费用户**：`v63p1_free` / `PreviewFree#2026!`（配额 `500.0 MiB`）
+  - **全功能永久会员**：`v63p1_vip` / `PreviewVip#2026!`（已合法授予 `all_access_lifetime` 全量权益，配额 `2.00 GiB`）
+  - **超级管理员（唯一站点所有者）**：`v63p1_admin` / `PreviewAdmin#2026!`（`role = 'super_admin'`，配额 `5.00 GiB`，侧栏可见「管理后台」入口）
+  - **游客模式验证**：配额 `50.0 MiB`，`私有附件`与高有效期按规则禁用。
+- **Hosted Preview 真实在线全闭环实测与 1.0x 录屏（[`hosted-preview.json`](./evidence/hosted-preview.json)）**：
+  - 使用 `v63p1_vip` 上传 `17,039,360` B（`16.25 MiB` `aeris-multipart-bundle.bin` 分片上传）+ `release-notes.txt`，设置密码并实测「暂停 → 续传 → 完成 → 生成分享链接与二维码」；
+  - 独立无痕接收端浏览器访问 `#share=...`，验证错密内联报错 → 正确密码解锁 → 真实浏览器下载两个文件，**SHA-256 逐位一致**（`4560429fe58a1051b2f1f2a272af9858b3de345bf927adc2e2d6d933d7003db9` 与 `353b6ca9f6813006796e4f0caa517c5f8d4b72e957e35615d9060c838b8a40a3`）；
+  - 发送端撤销分享并核实 `/api/transfer/capabilities` 配额实时回收到 `0` B（`总计 0 MiB`），接收端重载呈现结构化失效恢复卡片，`runtime_errors = []`；
+  - 真实在线操作 1.0x MP4 录屏：[`transfer-hosted-preview-1x.mp4`](./evidence/hosted/transfer-hosted-preview-1x.mp4)（`490` 帧）。
 
 ### 3. 本地环境说明与 `aeris-resource-guard` 调度/进程清理汇报
 
-- **本地 Windows Wrangler 说明**：Windows Hyper-V 保留端口区间覆盖 `8870–8969` / `9153–9252` 且 `wrangler pages dev` ProxyWorker 在本机 Windows 处理 `>16 MiB` 多分片流易发生通道中断；故本地浏览器回归以真实 `.wrangler/functions-build/index.js` 运行于独立进程内 Miniflare (D1 + R2) 并在空闲本地回环端口（`18809`/`18819`）串行拉起 Headless Chrome，同时交由 Stacked Draft PR 在 GitHub Actions Ubuntu + Node 22 Core CI 完整复核。
-- **执行的重型任务**：`verify_phase6_transfer.mjs`（Port `18819` Miniflare + Chrome）、`run_ci_transfer_tests.mjs`（Port `18809` Miniflare + 单 Chrome 依次跑完 10 套测试）、`sw-install-browser.mjs`、`qa/task28/workerd.mjs`、`deploy_and_verify_preview.mjs`。
-- **并发配置**：**严格 100% 串行**；每次仅运行一组 Miniflare/Workerd + 单个 Headless Chrome，前一测试组进程彻底终止后再启动下一组。
-- **进程与临时文件清理结果**：每次脚本结束 `finally` 块均通过追踪到的自身 Chrome PID (`taskkill /PID <pid> /T /F`)、关闭 Node HTTP 连接及清理 `os.tmpdir()/aeris-v63-p6-*` 与 `.wrangler/p6-preview-stage` 完成回收，并清除了 `.tool-e2e` 与 `artifacts` 目录；核查无任何任务所属测试 Chrome/Miniflare 残留，也未误杀任何非本任务进程。
+- **执行的重型任务**：`verify_phase6_transfer.mjs`（Miniflare + Chrome）、`qa/task28/browser.mjs`（Miniflare + Chrome）、`qa/task28/workerd.mjs`、`qa/p07-release/sw-install-browser.mjs`、`qa/p07-release/rollback-browser.mjs`（3 轮连测）、以及针对 `https://v63-phase6.thewyj-v63-p6p9-preview.pages.dev` 的 `verify_hosted_p6p9.mjs`。
+- **并发配置**：**严格 100% 串行**；每次仅运行一组 Miniflare/Workerd + 单个 Headless Chrome，前一组完全终止并释放资源后再启动下一组，未发生重叠并发。
+- **进程与临时文件清理结果**：每次脚本结束 `finally` 块均按自身追踪 PID（`taskkill /PID <pid> /T /F`）清理所启 Chrome/Pages 子进程及临时目录（`os.tmpdir()`、`.wrangler/p6p9-deploy-context`、`.wrangler/task28`、`artifacts`、`.tool-e2e`），已核实无任何本任务残留的测试进程，也未终止任何非本任务进程。

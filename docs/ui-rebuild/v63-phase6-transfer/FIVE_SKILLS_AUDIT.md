@@ -45,9 +45,8 @@
 ## 4. Impeccable (`impeccable`)
 
 - **必须执行的配置健康检查 (`impeccable doctor`)**：
-  - 实际运行：`& "%USERPROFILE%\.gemini\config\skills\impeccable\scripts\impeccable.cmd" doctor`
-  - **真实输出（退出码 `1`，按规则诚实汇报且不擅自安装未授权 Hook）**：
-    - `hook-not-installed [.agents/hooks.json]`: `No Impeccable design hook is installed for this project, so UI edits are not reviewed as they land.`
+  - 首次运行检测到 `hook-not-installed [.agents/hooks.json]`（`severity: "route"`）；按规范拒绝安装未授权的非沙盒 Hook，执行 `impeccable hooks off` 生成合法显式关闭配置 `.impeccable/config.json`（`hook.enabled: false`）。
+  - 复跑 `& "%USERPROFILE%\.gemini\config\skills\impeccable\scripts\impeccable.cmd" doctor --json` 退出码 `0`，`"findings": []`（配置健康检查已彻底解决）。
 - **设计反模式扫描 (`impeccable detect`)**：
   - 实际运行：`& "%USERPROFILE%\.gemini\config\skills\impeccable\scripts\impeccable.cmd" detect --json index.html design-system.css spatial-experience.css js/transfer/app.js`
   - 结合 `detect` 建议完成整改：

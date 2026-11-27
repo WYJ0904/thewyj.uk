@@ -1,142 +1,49 @@
 {
-  "project": "thewyj-v63-preview",
-  "branch": "v63-phase6",
-  "aliasUrl": "https://v63-phase6.thewyj-v63-preview.pages.dev",
-  "deployedUrl": "https://c1612908.thewyj-v63-preview.pages.dev",
-  "deploymentId": "c1612908-5c20-431d-8389-b36721c8d5ef",
-  "d1Id": "a3e6253b-689f-49f3-998b-7c5828ea255a",
-  "r2Bucket": "wyj-cloud-preview",
-  "v63Phase5PreservedDeploymentId": "f4976f59-4dc3-42f1-83cf-d638a6ac0d3f",
-  "statusJson": {
-    "ok": true,
-    "status": "ok",
-    "service": "wyj-cloud-foundation",
-    "environment": "preview",
-    "build": "2026-08-26-task15-cloud-only",
-    "time": "2026-11-27T08:38:45.859Z",
-    "auth": true,
-    "backend_ready": true,
-    "ai_ready": false,
-    "model": "Cloudflare rules only",
-    "bindings": {
-      "d1": true,
-      "r2": true,
-      "workers_ai": false
-    },
-    "task11": {
-      "schema_ready": true,
-      "schema_version": "1"
-    },
-    "task12": {
-      "schema_ready": true,
-      "schema_version": "1",
-      "session_strategy": "invalidate_legacy_sessions",
-      "password_pepper_configured": true
-    },
-    "task13": {
-      "schema_ready": true,
-      "schema_version": "1",
-      "payment_primary": true
-    },
-    "task14": {
-      "schema_ready": true,
-      "schema_version": "1",
-      "temporary_primary": true,
-      "secret_configured": true
-    },
-    "task15": {
-      "schema_ready": true,
-      "schema_version": "1",
-      "cloud_only": true
-    },
-    "task16": {
-      "schema_ready": true,
-      "schema_version": "5",
-      "cloud_reads": true,
-      "cloud_writes": true
-    },
-    "task18": {
-      "schema_ready": true,
-      "schema_version": "1",
-      "enabled": true,
-      "owner_count": 1
-    },
-    "task20": {
-      "schema_ready": true,
-      "schema_version": "1",
-      "enabled": true,
-      "session_secret_configured": true
-    },
-    "task22": {
-      "schema_ready": true,
-      "schema_version": "2",
-      "reads_enabled": true,
-      "writes_enabled": true
-    },
-    "features": {
-      "cloud_foundation": true,
-      "cloud_reads": true,
-      "cloud_writes": true,
-      "task11_cloud_reads": true,
-      "task11_cloud_writes": true,
-      "task12_cloud_accounts": true,
-      "task12_import": true,
-      "task12_password_pepper": true,
-      "task13_cloud_reads": true,
-      "task13_cloud_writes": true,
-      "task13_import": true,
-      "task13_payment_primary": true,
-      "task14_cloud_reads": true,
-      "task14_cloud_writes": true,
-      "task14_import": true,
-      "task14_temporary_primary": true,
-      "task14_legacy_writes_frozen": true,
-      "task14_temporary_secret": true,
-      "workers_ai": false,
-      "task15_cloud_only": true,
-      "task16_cloud_reads": true,
-      "task16_cloud_writes": true,
-      "task16_import": true,
-      "task18_admin_messages": true,
-      "task20_android_app": true,
-      "task22_transfer_reads": true,
-      "task22_transfer_writes": true,
-      "task25_feature_flags": true,
-      "task30_privacy": true,
-      "legacy_api_fallback": false,
-      "payment_cloud_migration": true
-    },
-    "rate_limit": {
-      "enabled": true,
-      "degraded": false,
-      "limit": 120,
-      "window_seconds": 60
-    },
-    "degraded_reasons": [],
-    "request_id": "8d63b60b-4adb-4cf4-8327-4a0d65849958"
+  "preview_url": "https://v63-phase6.thewyj-v63-p6p9-preview.pages.dev",
+  "verified_at": "2026-11-27T10:11:36.967Z",
+  "environment_isolation": {
+    "project": "thewyj-v63-p6p9-preview",
+    "d1_name": "aeris-v63-p6p9-preview",
+    "r2_name": "aeris-v63-p6p9-storage"
   },
-  "headers": {
-    "rootCacheControl": "no-cache, no-store, must-revalidate, no-transform",
-    "transferCacheControl": "public, max-age=0, must-revalidate, no-transform",
-    "xContentTypeOptions": "nosniff"
-  },
-  "accountsVerified": {
-    "guest": "已存储 0 MiB · 上传预留 0 MiB · 总计 0 MiB / 50.0 MiB",
-    "free": "已存储 0 MiB · 上传预留 0 MiB · 总计 0 MiB / 500.0 MiB",
-    "vip": "已存储 0 MiB · 上传预留 0 MiB · 总计 0 MiB / 2.00 GiB"
-  },
-  "uploadSessionProbe": {
-    "status": 401,
-    "body": {
-      "ok": false,
-      "error": "请先登录或提供访客设备标识",
-      "code": "authentication_required",
-      "retryable": false,
-      "request_id": "00d48cb8-e530-4ae9-bc83-9b86794eefce"
+  "accounts": {
+    "guest": {
+      "quota": "已存储 0 MiB · 上传预留 0 MiB · 总计 0 MiB / 50.0 MiB",
+      "limits": "单次最多 500 个文件 · 单批上限 5.00 GiB · 当前可用配额 50.0 MiB · 分片 16.0 MiB",
+      "privDisabled": true
+    },
+    "free": {
+      "username": "v63p1_free",
+      "quota": "已存储 0 MiB · 上传预留 0 MiB · 总计 0 MiB / 500.0 MiB",
+      "privEnabled": true,
+      "adminVisible": false
+    },
+    "admin": {
+      "username": "v63p1_admin",
+      "quota": "已存储 0 MiB · 上传预留 0 MiB · 总计 0 MiB / 5.00 GiB",
+      "privEnabled": true,
+      "adminVisible": true
+    },
+    "vip": {
+      "username": "v63p1_vip",
+      "quota": "已存储 16.3 MiB · 上传预留 0 MiB · 总计 16.3 MiB / 2.00 GiB",
+      "privEnabled": true,
+      "adminVisible": false
     }
   },
-  "schemaGapObserved": null,
-  "note": "Preview preserves single-owner task18_single_owner_required (task18-preview-owner-10f06c88 untouched); super_admin 5.00 GiB tier verified in local Miniflare.",
-  "runtimeErrors": [],
-  "chromePid": 31332
+  "closed_loop": {
+    "status": "PASS",
+    "multipart_bytes": 17039360,
+    "multipart_sha256": "4560429fe58a1051b2f1f2a272af9858b3de345bf927adc2e2d6d933d7003db9",
+    "downloaded_multipart_sha256": "4560429fe58a1051b2f1f2a272af9858b3de345bf927adc2e2d6d933d7003db9",
+    "note_sha256": "353b6ca9f6813006796e4f0caa517c5f8d4b72e957e35615d9060c838b8a40a3",
+    "downloaded_note_sha256": "353b6ca9f6813006796e4f0caa517c5f8d4b72e957e35615d9060c838b8a40a3",
+    "pause_observed": true,
+    "share_url_fragment": "#share=RS9wPbY5CreR...",
+    "quota_used_bytes_before_revoke": 17042368,
+    "quota_used_bytes_after_revoke": 0,
+    "video_file": "hosted/transfer-hosted-preview-1x.mp4",
+    "video_frames": 490
+  },
+  "runtime_errors": []
 }
