@@ -238,4 +238,69 @@ const pass = () => { checks += 1; };
   pass();
 }
 
+{
+  assert.match(SOURCE, /<svg class="wf-node-trace-svg"[^>]*\bwidth="0"[^>]*\bheight="0"[^>]*\bfill="none"/);
+  assert.match(SOURCE, /<rect class="wf-node-trace-rect"[^>]*\bfill="none"[^>]*\bstroke="none"[^>]*\bopacity="0"/);
+  const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
+  assert.match(html, /<svg class="wf-edges-layer" id="workflowCanvasEdges"[^>]*\bwidth="0"[^>]*\bheight="0"[^>]*\bfill="none"/);
+  pass();
+}
+
+{
+  // Unified dynamic input capability & limit source-of-truth tests.
+  const runtime = createRuntime(["tools_access", "tools_batch_access"]);
+  const imgPublish = runtime.workflow.core.workflowFromTemplate("image-publish");
+  const imgBatch = runtime.workflow.core.workflowFromTemplate("image-batch");
+  const textClean = runtime.workflow.core.workflowFromTemplate("text-clean");
+  const zipOnly = runtime.inside({
+    ...runtime.workflow.core.blankWorkflow("Pure ZIP"),
+    steps: [{ id: "step_zip_001", tool_id: "files-zip", enabled: true, config: {} }],
+  });
+
+  const pImgPub = runtime.workflow.core.getWorkflowInputPolicy(imgPublish);
+  assert.equal(pImgPub.mode, "image-batch");
+  assert.equal(pImgPub.multiple, true);
+  assert.equal(pImgPub.supportsBatch, true);
+  assert.equal(pImgPub.supportsSingle, true);
+  assert.equal(pImgPub.supportsArchive, false);
+  assert.equal(pImgPub.maxFiles, 20);
+
+  const pImgBatch = runtime.workflow.core.getWorkflowInputPolicy(imgBatch);
+  assert.equal(pImgBatch.mode, "image-batch");
+  assert.equal(pImgBatch.multiple, true);
+  assert.equal(pImgBatch.requiresBatch, true);
+  assert.equal(pImgBatch.maxFiles, 20);
+
+  const pText = runtime.workflow.core.getWorkflowInputPolicy(textClean);
+  assert.equal(pText.mode, "text-file");
+  assert.equal(pText.multiple, false);
+  assert.equal(pText.maxFiles, 1);
+
+  const pZip = runtime.workflow.core.getWorkflowInputPolicy(zipOnly);
+  assert.equal(pZip.mode, "file-list");
+  assert.equal(pZip.multiple, true);
+  assert.equal(pZip.maxFiles, 50);
+
+  // Instant validation blocks 21 images on both image-publish (no ZIP) and image-batch.
+  const imgs20 = Array.from({ length: 20 }, (_, i) => new File(["x"], `img-${i}.png`, { type: "image/png" }));
+  const imgs21 = [...imgs20, new File(["x"], "img-20.png", { type: "image/png" })];
+  assert.equal(runtime.workflow.core.validateInputFilesForPolicy(pImgPub, imgs20).valid, true);
+  const bad21 = runtime.workflow.core.validateInputFilesForPolicy(pImgPub, imgs21);
+  assert.equal(bad21.valid, false);
+  assert.equal(bad21.reason, "count");
+  assert.equal(bad21.excessCount, 1);
+  assert.throws(() => runtime.workflow.core.resourceFromFiles(imgPublish, imgs21, false), /20/);
+
+  // 2..20 images on image-publish (no files-zip) run cleanly as image-list!
+  const res2 = runtime.workflow.core.resourceFromFiles(imgPublish, imgs20.slice(0, 2), false);
+  assert.equal(res2.type, "image-list");
+
+  // Single-item file limits & 50-file generic ZIP limit.
+  const files50 = Array.from({ length: 50 }, (_, i) => new File(["x"], `doc-${i}.txt`, { type: "text/plain" }));
+  assert.equal(runtime.workflow.core.validateInputFilesForPolicy(pZip, files50).valid, true);
+  assert.equal(runtime.workflow.core.validateInputFilesForPolicy(pZip, [...files50, new File(["x"], "doc-50.txt", { type: "text/plain" })]).valid, false);
+  assert.equal(runtime.workflow.core.validateInputFilesForPolicy(pText, files50.slice(0, 2)).valid, false);
+  pass();
+}
+
 console.log(`workflows.js self-checks: ${checks} groups passed`);

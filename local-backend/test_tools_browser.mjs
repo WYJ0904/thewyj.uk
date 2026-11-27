@@ -567,10 +567,38 @@ async function main() {
     return captured.payload;
   };
 
+  const ensureWorkflowListView = async () => {
+    const mode = await evaluate("window.WYJWorkflows.test.viewMode()");
+    if (mode !== "list") {
+      await click("#workflowBackToListBtn");
+      await waitFor("window.WYJWorkflows.test.viewMode() === 'list'", 5_000, "workflow list view");
+    }
+  };
+  const openWorkflowMoreMenu = async () => {
+    const isHidden = await evaluate("document.querySelector('#workflowEditorMoreMenu')?.classList.contains('hidden')");
+    if (isHidden) {
+      await click("#workflowMoreMenuBtn");
+      await waitFor("!document.querySelector('#workflowEditorMoreMenu')?.classList.contains('hidden')", 3_000, "workflow more menu");
+    }
+  };
+  const ensureWorkflowRunnerOpen = async () => {
+    const isOpen = await evaluate("document.querySelector('#workflowWorkspace')?.dataset.wfRunner === 'open'");
+    if (!isOpen) {
+      await click("#toggleWorkflowRunnerBtn");
+      await waitFor("document.querySelector('#workflowWorkspace')?.dataset.wfRunner === 'open'", 3_000, "workflow runner open");
+    }
+  };
+  const addWorkflowStep = async (toolId) => {
+    await click("#openNodePickerBtn");
+    await waitFor(`Boolean(document.querySelector('#workflowNodePicker:not(.hidden) [data-picker-tool="${toolId}"]'))`, 5_000, `node picker ${toolId}`);
+    await click(`#workflowNodePicker [data-picker-tool="${toolId}"]`);
+    await waitFor("document.querySelector('#workflowNodePicker')?.classList.contains('hidden')", 3_000, "node picker closed");
+  };
   const selectWorkflowTemplate = async (templateId) => {
+    await ensureWorkflowListView();
     await click(`[data-workflow-template="${templateId}"]`);
     await waitFor(
-      `window.WYJWorkflows.test.selectedWorkflow()?.name === window.WYJWorkflows.templates.find(item => item.id === ${JSON.stringify(templateId)})?.name`,
+      `window.WYJWorkflows.test.viewMode() === 'editor' && window.WYJWorkflows.test.selectedWorkflow()?.name === window.WYJWorkflows.templates.find(item => item.id === ${JSON.stringify(templateId)})?.name`,
       5_000,
       `workflow template ${templateId}`,
     );
@@ -580,7 +608,18 @@ async function main() {
     const workflow = window.WYJWorkflows.test.selectedWorkflow();
     const step = workflow.steps.filter(item => item.tool_id === ${JSON.stringify(toolId)})[${occurrence}];
     if (!step) throw new Error('missing workflow step ${toolId}');
-    const field = document.querySelector('[data-step-id="' + step.id + '"] [data-step-config="${key}"]');
+    if (window.WYJWorkflows.test.selectedStepId() !== step.id) {
+      window.WYJWorkflows.test.selectStep(step.id);
+    }
+    const insp = document.querySelector('#workflowInspectorPanel');
+    const enumBtn = [...(insp?.querySelectorAll('[data-inspector-enum-key]') || [])]
+      .find((b) => b.dataset.inspectorEnumKey === ${JSON.stringify(key)} && b.dataset.inspectorEnumVal === ${JSON.stringify(String(value))});
+    if (enumBtn) {
+      enumBtn.click();
+      return true;
+    }
+    const field = insp?.querySelector('[data-step-config="${key}"]')
+      || document.querySelector('[data-step-id="' + step.id + '"] [data-step-config="${key}"]');
     if (!field) throw new Error('missing workflow config ${toolId}.${key}');
     field.value = ${JSON.stringify(String(value))};
     field.dispatchEvent(new Event('change', { bubbles: true }));
@@ -1317,10 +1356,9 @@ async function main() {
     coverWorkflow("open-workspace");
 
     await click("#createWorkflowBtn");
-    await waitFor("window.WYJWorkflows.test.selectedWorkflow()?.steps.length === 0", 5_000, "blank workflow");
+    await waitFor("window.WYJWorkflows.test.viewMode() === 'editor' && window.WYJWorkflows.test.selectedWorkflow()?.steps.length === 0", 5_000, "blank workflow");
     coverWorkflow("create-workflow");
-    await setFields({ "#workflowToolSelect": "remove-empty-lines" });
-    await click("#addWorkflowStepBtn");
+    await addWorkflowStep("remove-empty-lines");
     await waitFor("window.WYJWorkflows.test.selectedWorkflow()?.steps.length === 1", 5_000, "add workflow step");
     coverWorkflow("add-step");
     await click("#workflowStepList > li:first-child [data-step-duplicate]");
@@ -1348,6 +1386,7 @@ async function main() {
     await waitFor("window.WYJWorkflows.test.selectedWorkflow()?.steps.length === 1", 5_000, "delete workflow step");
     coverWorkflow("delete-step");
     const workflowCountBeforeDelete = (await workflowState()).workflows.length;
+    await openWorkflowMoreMenu();
     await click("#deleteWorkflowBtn");
     await waitFor(`window.WYJWorkflows.test.workflows().length === ${workflowCountBeforeDelete - 1}`, 5_000, "delete workflow");
     coverWorkflow("delete-workflow");
@@ -1374,6 +1413,7 @@ async function main() {
     assert.equal(cloudWorkflow.config.name, "Matrix 文本工作流");
     coverWorkflow("save-cloud");
 
+    await openWorkflowMoreMenu();
     const workflowExport = preserveDownload(await verifyDownload("#exportWorkflowBtn"), "workflow-export");
     const exportedWorkflow = JSON.parse(fs.readFileSync(workflowExport, "utf8"));
     assert.equal(exportedWorkflow.schema_version, 1);
@@ -1384,6 +1424,7 @@ async function main() {
     assert.match((await workflowState()).selected.name, /导入副本/);
     coverWorkflow("import-export");
     const workflowCountBeforeDuplicate = (await workflowState()).workflows.length;
+    await openWorkflowMoreMenu();
     await click("#duplicateWorkflowBtn");
     await waitFor(`window.WYJWorkflows.test.workflows().length === ${workflowCountBeforeDuplicate + 1}`, 5_000, "duplicate workflow");
     const duplicatedWorkflow = (await workflowState()).selected;
@@ -1404,11 +1445,11 @@ async function main() {
       expected_rows: [["name", "age"], ["Alice", "18"], ["Bob", "20"]],
     };
 
+    await ensureWorkflowListView();
     await click("#createWorkflowBtn");
-    await setFields({ "#workflowToolSelect": "text-encoding" });
-    await click("#addWorkflowStepBtn");
-    await setFields({ "#workflowToolSelect": "text-split" });
-    await click("#addWorkflowStepBtn");
+    await waitFor("window.WYJWorkflows.test.viewMode() === 'editor' && window.WYJWorkflows.test.selectedWorkflow()?.steps.length === 0", 5_000, "blank workflow for split");
+    await addWorkflowStep("text-encoding");
+    await addWorkflowStep("text-split");
     await setWorkflowStepConfig("text-split", "lines", 2);
     await setFiles("#workflowFileInput", [samples.text]);
     workflowResult = await runWorkflow();
@@ -1450,6 +1491,7 @@ async function main() {
     await setWorkflowStepConfig("image-resize", "height", 64);
     await setWorkflowStepConfig("image-format", "format", "image/webp");
     await setWorkflowStepConfig("image-format", "quality", 0.9);
+    await ensureWorkflowRunnerOpen();
     await setFields({ "#workflowBatchToggle": true });
     await setFiles("#workflowFileInput", [samples.png, samples.png2]);
     workflowResult = await runWorkflow(120_000);
@@ -1536,6 +1578,7 @@ async function main() {
     coverWorkflow("responsive-390");
     await send("Emulation.clearDeviceMetricsOverride");
     await send("Emulation.setTouchEmulationEnabled", { enabled: false });
+    await ensureWorkflowListView();
     await click("#closeWorkflowBtn");
     await waitFor("!document.querySelector('#toolsDashboard')?.classList.contains('hidden')", 5_000, "tool dashboard after workflows");
 
@@ -1562,6 +1605,7 @@ async function main() {
 
     await openTool("image-compress");
     await evaluate("document.querySelector('#toolWorkbench').scrollIntoView({ block: 'start', behavior: 'auto' })");
+    await waitFor("Number(getComputedStyle(document.querySelector('#toolWorkbench')).opacity) >= 0.99", 3_000, "tool workbench reveal settled");
     const mobileWorkbench = await evaluate(`(() => {
       const workbench = document.querySelector('#toolWorkbench').getBoundingClientRect();
       const runButton = document.querySelector('#runImageToolBtn').getBoundingClientRect();

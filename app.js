@@ -1,4 +1,4 @@
-import { createSecurityCenter } from './js/account/security-center.js?release=20261121-aeris-i05-preview';
+import { createSecurityCenter } from './js/account/security-center.js?release=20261127-aeris-p5-ux-final-r2';
 let task27Ui = null;
 import {
   AI_TIMEOUT_MS,
@@ -11,27 +11,27 @@ import {
   BUSINESS_TIME_ZONE,
   STATUS_RETRY_BASE_DELAYS_MS,
   STATUS_TIMEOUT_MS,
-} from "./js/core/config.js?release=20261121-aeris-i05-preview";
-import { reconcileKeyedRows } from "./js/core/keyed-list.js?release=20261121-aeris-i05-preview";
+} from "./js/core/config.js?release=20261127-aeris-p5-ux-final-r2";
+import { reconcileKeyedRows } from "./js/core/keyed-list.js?release=20261127-aeris-p5-ux-final-r2";
 import {
   capabilityProblems,
   detectCapabilities,
   randomId,
-} from "./js/core/capabilities.js?release=20261121-aeris-i05-preview";
+} from "./js/core/capabilities.js?release=20261127-aeris-p5-ux-final-r2";
 import {
   createApiClient,
   fetchWithTimeout,
   isCanonicalSessionFailure,
   retryDelayWithJitter,
   waitForDelay,
-} from "./js/core/api.js?release=20261121-aeris-i05-preview";
+} from "./js/core/api.js?release=20261127-aeris-p5-ux-final-r2";
 import {
   createChangelogSelection,
   loadCloudChangelog,
   mergeChangelogEntries,
   staticChangelogEntries,
-} from "./js/core/changelog.js?release=20261121-aeris-i05-preview";
-import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation, nativeAppRoute } from "./js/core/router.js?release=20261121-aeris-i05-preview";
+} from "./js/core/changelog.js?release=20261127-aeris-p5-ux-final-r2";
+import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation, nativeAppRoute } from "./js/core/router.js?release=20261127-aeris-p5-ux-final-r2";
 import {
   ACCOUNT_CACHE_KEY,
   NATIVE_ACCOUNT_SESSION,
@@ -44,33 +44,33 @@ import {
   requestNativeSessionRefresh,
   restoreAccountSession,
   subscribeAccountSessionChanges,
-} from "./js/core/session.js?release=20261121-aeris-i05-preview";
-import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?release=20261121-aeris-i05-preview";
-import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?release=20261121-aeris-i05-preview";
-import { initDesignSystem, setExperienceMode, setInterfaceEnhancementsEnabled, dialogFocusTargets, focusDialog, workspaceRouteMeta, syncWorkspaceShell, syncSidebarActiveIndicator, syncSystemNoticeLayout, closeAccountPopover, closeActiveSelectPopover } from "./js/core/design-system.js?release=20261121-aeris-i05-preview";
-import { createPublicUiPolicyController } from "./js/core/public-ui-policy.js?release=20261121-aeris-i05-preview";
-import { completeStartupSplash, canPresentWorkspace, waitForPresentation } from "./js/core/startup.js?release=20261121-aeris-i05-preview";
-import { installMotionSystem, motionDuration, prefersReducedMotion, attachSheetAdapter, syncModalScrollLock, setControlFeedbackState, getSharedToastManager, showToast, dismissToastByKey, invalidateToastContext, animateRouteViewEntrance, createAssetPrefetcher } from "./js/core/motion.js?release=20261121-aeris-i05-preview";
-import { initPublicExperience, renderPublicPlanCatalog } from "./js/core/public-experience.js?release=20261121-aeris-i05-preview";
-import { createAndroidDownloadController } from "./js/core/download.js?release=20261121-aeris-i05-preview";
-import { createFeatureController } from "./js/core/feature-flags.js?release=20261121-aeris-i05-preview";
-import { createFeatureConsole } from "./js/core/feature-console.js?release=20261121-aeris-i05-preview";
-import { createMasteryController } from "./js/language/mastery.js?release=20261121-aeris-i05-preview";
-import { createWrongReviewController } from './js/language/wrong-review-sync.js?release=20261121-aeris-i05-preview';
-import { wrongEntryWord, wrongEntryKey, findWrongEntry } from './js/language/wrong-book.js?release=20261121-aeris-i05-preview';
-import { orderWrongReview, wrongReviewView, mergeWrongReview, wrongReviewDigest, wrongReviewSource, reviewDictationOptions } from './js/language/wrong-review.js?release=20261121-aeris-i05-preview';
-import { clearMasteryJournalAccount } from "./js/language/mastery-journal.js?release=20261121-aeris-i05-preview";
-import { masteryStorageKey, parseIssuedQuestion } from "./js/language/mastery-state.js?release=20261121-aeris-i05-preview";
-import { speakText, stopSpeech } from "./js/language/speech.js?release=20261121-aeris-i05-preview";
+} from "./js/core/session.js?release=20261127-aeris-p5-ux-final-r2";
+import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?release=20261127-aeris-p5-ux-final-r2";
+import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?release=20261127-aeris-p5-ux-final-r2";
+import { initDesignSystem, setExperienceMode, setInterfaceEnhancementsEnabled, dialogFocusTargets, focusDialog, workspaceRouteMeta, syncWorkspaceShell, syncSidebarActiveIndicator, syncSystemNoticeLayout, closeAccountPopover, closeActiveSelectPopover } from "./js/core/design-system.js?release=20261127-aeris-p5-ux-final-r2";
+import { createPublicUiPolicyController } from "./js/core/public-ui-policy.js?release=20261127-aeris-p5-ux-final-r2";
+import { completeStartupSplash, canPresentWorkspace, waitForPresentation } from "./js/core/startup.js?release=20261127-aeris-p5-ux-final-r2";
+import { installMotionSystem, motionDuration, prefersReducedMotion, attachSheetAdapter, syncModalScrollLock, setControlFeedbackState, getSharedToastManager, showToast, dismissToastByKey, invalidateToastContext, animateRouteViewEntrance, createAssetPrefetcher } from "./js/core/motion.js?release=20261127-aeris-p5-ux-final-r2";
+import { initPublicExperience, renderPublicPlanCatalog } from "./js/core/public-experience.js?release=20261127-aeris-p5-ux-final-r2";
+import { createAndroidDownloadController } from "./js/core/download.js?release=20261127-aeris-p5-ux-final-r2";
+import { createFeatureController } from "./js/core/feature-flags.js?release=20261127-aeris-p5-ux-final-r2";
+import { createFeatureConsole } from "./js/core/feature-console.js?release=20261127-aeris-p5-ux-final-r2";
+import { createMasteryController } from "./js/language/mastery.js?release=20261127-aeris-p5-ux-final-r2";
+import { createWrongReviewController } from './js/language/wrong-review-sync.js?release=20261127-aeris-p5-ux-final-r2';
+import { wrongEntryWord, wrongEntryKey, findWrongEntry } from './js/language/wrong-book.js?release=20261127-aeris-p5-ux-final-r2';
+import { orderWrongReview, wrongReviewView, mergeWrongReview, wrongReviewDigest, wrongReviewSource, reviewDictationOptions } from './js/language/wrong-review.js?release=20261127-aeris-p5-ux-final-r2';
+import { clearMasteryJournalAccount } from "./js/language/mastery-journal.js?release=20261127-aeris-p5-ux-final-r2";
+import { masteryStorageKey, parseIssuedQuestion } from "./js/language/mastery-state.js?release=20261127-aeris-p5-ux-final-r2";
+import { speakText, stopSpeech } from "./js/language/speech.js?release=20261127-aeris-p5-ux-final-r2";
 import {
   loadSpeechRate,
   saveSpeechRate,
-} from "./js/language/speech-rate.js?release=20261121-aeris-i05-preview";
-import { formatFinanceMoney } from "./js/finance/format.js?release=20261121-aeris-i05-preview";
-import { createLazyController, installLazyTools, createRetryableImport } from "./js/core/lazy-controller.js?release=20261121-aeris-i05-preview";
-import { createDashboardView } from "./js/core/dashboard.js?release=20261121-aeris-i05-preview";
-import { TOOLS, CATEGORY_DEFINITIONS, searchTools } from "./js/tools/catalog.js?release=20261121-aeris-i05-preview";
-import { homeWidgetStorageKey } from "./js/core/home-widget-layout.js?release=20261121-aeris-i05-preview";
+} from "./js/language/speech-rate.js?release=20261127-aeris-p5-ux-final-r2";
+import { formatFinanceMoney } from "./js/finance/format.js?release=20261127-aeris-p5-ux-final-r2";
+import { createLazyController, installLazyTools, createRetryableImport } from "./js/core/lazy-controller.js?release=20261127-aeris-p5-ux-final-r2";
+import { createDashboardView } from "./js/core/dashboard.js?release=20261127-aeris-p5-ux-final-r2";
+import { TOOLS, CATEGORY_DEFINITIONS, searchTools } from "./js/tools/catalog.js?release=20261127-aeris-p5-ux-final-r2";
+import { homeWidgetStorageKey } from "./js/core/home-widget-layout.js?release=20261127-aeris-p5-ux-final-r2";
 import {
   INTERACTION_STAGES,
   beginInteraction,
@@ -78,15 +78,15 @@ import {
   interactionTraceApi,
   withInteractionFeedback,
   withInteractionFeedbackQuiet,
-} from "./js/core/perf.js?release=20261121-aeris-i05-preview";
-import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?release=20261121-aeris-i05-preview";
+} from "./js/core/perf.js?release=20261127-aeris-p5-ux-final-r2";
+import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?release=20261127-aeris-p5-ux-final-r2";
 import {
   calculateStudyStreak,
   formatDuration,
   localDayKey,
   sanitizeStudyRecords,
   studyDaySeries,
-} from "./js/language/history.js?release=20261121-aeris-i05-preview";
+} from "./js/language/history.js?release=20261127-aeris-p5-ux-final-r2";
 import {
   DEFAULT_PROFILE,
   LANGUAGE_LABELS,
@@ -123,16 +123,16 @@ import {
   trimRubricCache,
   wordIdentity,
   wordMatchesLanguage,
-} from "./js/language/quiz.js?release=20261121-aeris-i05-preview";
-import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?release=20261121-aeris-i05-preview";
-import { createWrongBookPdf } from "./js/language/pdf.js?release=20261121-aeris-i05-preview";
+} from "./js/language/quiz.js?release=20261127-aeris-p5-ux-final-r2";
+import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?release=20261127-aeris-p5-ux-final-r2";
+import { createWrongBookPdf } from "./js/language/pdf.js?release=20261127-aeris-p5-ux-final-r2";
 import {
   filterWrongBookByLanguage as filterWrongBookByLanguageModel,
   mergeWrongBooks,
   removeLanguageFromWrongBook as removeLanguageFromWrongBookModel,
   sanitizeWrongBook,
   updateWrongEntry as updateWrongEntryModel,
-} from "./js/language/wrong-book.js?release=20261121-aeris-i05-preview";
+} from "./js/language/wrong-book.js?release=20261127-aeris-p5-ux-final-r2";
 import {
   accountEntitlements as accountEntitlementsModel,
   accountMembershipSummary as accountMembershipSummaryModel,
@@ -141,7 +141,7 @@ import {
   isAdmin as isAdminModel,
   isSuperAdmin as isSuperAdminModel,
   membershipLabel,
-} from "./js/membership/account.js?release=20261121-aeris-i05-preview";
+} from "./js/membership/account.js?release=20261127-aeris-p5-ux-final-r2";
 import {
   MEMBERSHIP_GOALS,
   MEMBERSHIP_PLAN_ORDER,
@@ -149,20 +149,20 @@ import {
   membershipGoalForPlan,
   normalizedMembershipGoal,
   planDetails as planDetailsModel,
-} from "./js/membership/plans.js?release=20261121-aeris-i05-preview";
+} from "./js/membership/plans.js?release=20261127-aeris-p5-ux-final-r2";
 import {
   DEFAULT_PAYMENT_METHODS,
   normalizedPaymentMethod as normalizedPaymentMethodModel,
   paymentMethodLabel as paymentMethodLabelModel,
   paymentStatusLabel,
   rechargeStatusLabel,
-} from "./js/membership/recharge.js?release=20261121-aeris-i05-preview";
+} from "./js/membership/recharge.js?release=20261127-aeris-p5-ux-final-r2";
 import {
   createAdminEmailCenter,
   loginLocationLabel,
   loginReasonLabel,
   membershipDateValue as membershipDateValueModel,
-} from "./js/admin/formatters.js?release=20261121-aeris-i05-preview";
+} from "./js/admin/formatters.js?release=20261127-aeris-p5-ux-final-r2";
 
 const localStorage = getSafeStorage("localStorage");
 const sessionStorage = getSafeStorage("sessionStorage");
@@ -5515,14 +5515,14 @@ async function apiGet(path,options={}) {
 }
 
 installLazyTools({
-  loadTools: createRetryableImport(new URL("./tools.js?release=20261121-aeris-i05-preview", import.meta.url)),
-  loadWorkflows: createRetryableImport(new URL("./workflows.js?release=20261121-aeris-i05-preview", import.meta.url)),
+  loadTools: createRetryableImport(new URL("./tools.js?release=20261127-aeris-p5-ux-final-r2", import.meta.url)),
+  loadWorkflows: createRetryableImport(new URL("./workflows.js?release=20261127-aeris-p5-ux-final-r2", import.meta.url)),
   onReady: () => renderDashboard(),
 });
 
-const loadFinanceModule = createRetryableImport(new URL("./js/finance/app.js?release=20261121-aeris-i05-preview", import.meta.url));
-const loadCandidateModule = createRetryableImport(new URL("./js/finance/candidates.js?release=20261121-aeris-i05-preview", import.meta.url));
-const loadTransferModule = createRetryableImport(new URL("./js/transfer/app.js?release=20261121-aeris-i05-preview", import.meta.url));
+const loadFinanceModule = createRetryableImport(new URL("./js/finance/app.js?release=20261127-aeris-p5-ux-final-r2", import.meta.url));
+const loadCandidateModule = createRetryableImport(new URL("./js/finance/candidates.js?release=20261127-aeris-p5-ux-final-r2", import.meta.url));
+const loadTransferModule = createRetryableImport(new URL("./js/transfer/app.js?release=20261127-aeris-p5-ux-final-r2", import.meta.url));
 
 financeController = createLazyController({
   methods: ["syncNow", "verifyTransaction", "render", "setSubView"],
@@ -7821,7 +7821,7 @@ function showAuthTransition(message = "正在验证身份与权限…") {
     overlay.setAttribute("aria-label", message);
     overlay.setAttribute("aria-hidden", "false");
     overlay.innerHTML = '<div class="entry-content">' +
-      '<img class="entry-logo" src="/icon-192.png?release=20261121-aeris-i05-preview" width="76" height="76" alt="" />' +
+      '<img class="entry-logo" src="/icon-192.png?release=20261127-aeris-p5-ux-final-r2" width="76" height="76" alt="" />' +
       '<strong>Aeris</strong>' +
       '<span class="entry-progress" aria-hidden="true"></span>' +
       '</div>';
@@ -9060,7 +9060,25 @@ async function boot() {
   if ("serviceWorker" in navigator) {
     let swAttempts = 0;
     let swRetryTimer = 0;
+    let swReloading = false;
     const isTargetWorker = (worker) => Boolean(worker?.scriptURL?.includes(ASSET_RELEASE));
+    const initialController = navigator.serviceWorker.controller;
+    const hadSameReleaseController = isTargetWorker(initialController);
+    if (hadSameReleaseController) {
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
+        if (swReloading) return;
+        const nextController = navigator.serviceWorker.controller;
+        if (!isTargetWorker(nextController) || nextController === initialController) return;
+        try {
+          const key = `wyjSwSkewReload:${ASSET_RELEASE}`;
+          const last = Number(sessionStorage.getItem(key) || 0);
+          if (Date.now() - last < 15_000) return;
+          sessionStorage.setItem(key, String(Date.now()));
+        } catch {}
+        swReloading = true;
+        window.location.reload();
+      });
+    }
     const nudgeWaitingWorker = (worker) => {
       if (!isTargetWorker(worker) || worker.state !== "installed") return;
       try { worker.postMessage({ type: "SKIP_WAITING" }); } catch {}

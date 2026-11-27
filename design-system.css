@@ -310,6 +310,13 @@
   --accent-2: var(--color-warning);
   --ok: var(--color-success);
   --danger: var(--color-error);
+  --ds-wf-flow: #779bc5;
+  --ds-wf-flow-head: #9ec0e6;
+  --ds-wf-flow-soft: color-mix(in srgb, #779bc5 8%, var(--ds-surface));
+  --ds-wf-flow-border: color-mix(in srgb, #779bc5 45%, var(--ds-border));
+  --ds-wf-success: #649981;
+  --ds-wf-success-soft: color-mix(in srgb, #649981 9%, var(--ds-surface));
+  --ds-wf-idle-stroke: color-mix(in srgb, var(--ds-text-muted) 42%, var(--ds-border));
 }
 
 /* Keyboard-only route entry, using the existing semantic color/shape tokens. */
@@ -426,6 +433,13 @@ body.modal-open .skip-link { visibility: hidden; }
   --ds-caret-color: #eaeaea;
   --ds-selection-bg: rgba(234, 234, 234, 0.22);
   --ds-selection-fg: #eaeaea;
+  --ds-wf-flow: #8ab0db;
+  --ds-wf-flow-head: #b5d2f2;
+  --ds-wf-flow-soft: color-mix(in srgb, #8ab0db 12%, var(--ds-surface));
+  --ds-wf-flow-border: color-mix(in srgb, #8ab0db 50%, var(--ds-border));
+  --ds-wf-success: #70ab8f;
+  --ds-wf-success-soft: color-mix(in srgb, #70ab8f 12%, var(--ds-surface));
+  --ds-wf-idle-stroke: color-mix(in srgb, var(--ds-text-muted) 48%, var(--ds-border));
 }
 
 @media (prefers-color-scheme: dark) {
@@ -522,6 +536,13 @@ body.modal-open .skip-link { visibility: hidden; }
     --ds-caret-color: #eaeaea;
     --ds-selection-bg: rgba(234, 234, 234, 0.22);
     --ds-selection-fg: #eaeaea;
+    --ds-wf-flow: #8ab0db;
+    --ds-wf-flow-head: #b5d2f2;
+    --ds-wf-flow-soft: color-mix(in srgb, #8ab0db 12%, var(--ds-surface));
+    --ds-wf-flow-border: color-mix(in srgb, #8ab0db 50%, var(--ds-border));
+    --ds-wf-success: #70ab8f;
+    --ds-wf-success-soft: color-mix(in srgb, #70ab8f 12%, var(--ds-surface));
+    --ds-wf-idle-stroke: color-mix(in srgb, var(--ds-text-muted) 48%, var(--ds-border));
   }
 }
 

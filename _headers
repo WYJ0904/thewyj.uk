@@ -5,8 +5,11 @@
   Permissions-Policy: camera=(), microphone=(), geolocation=()
   Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'
 
+/
+  Cache-Control: no-cache, no-store, must-revalidate, no-transform
+
 /sw.js
   Cache-Control: no-cache, no-store, must-revalidate
 
 /index.html
-  Cache-Control: no-cache, must-revalidate, no-transform
+  Cache-Control: no-cache, no-store, must-revalidate, no-transform

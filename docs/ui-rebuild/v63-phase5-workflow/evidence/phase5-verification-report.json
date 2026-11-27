@@ -1,0 +1,210 @@
+{
+  "timestamp": "2026-11-26T06:47:41.681Z",
+  "benchmarksMs": {
+    "listOpen": 6337,
+    "editorOpen": 35,
+    "nodePickerOpen": 35,
+    "inspectorOpen": 22,
+    "fitView": 12,
+    "runFeedbackClick": 17,
+    "textCleanRun": 117
+  },
+  "responsive": [
+    {
+      "width": 1440,
+      "height": 900,
+      "docScrollWidth": 1425,
+      "bodyScrollWidth": 1425,
+      "overflowPx": 0,
+      "canvasEdgeCount": 3,
+      "minBtnHeight": 15.9320068359375
+    },
+    {
+      "width": 1920,
+      "height": 1080,
+      "docScrollWidth": 1905,
+      "bodyScrollWidth": 1905,
+      "overflowPx": 0,
+      "canvasEdgeCount": 3,
+      "minBtnHeight": 15.9320068359375
+    },
+    {
+      "width": 2560,
+      "height": 1440,
+      "docScrollWidth": 2545,
+      "bodyScrollWidth": 2545,
+      "overflowPx": 0,
+      "canvasEdgeCount": 3,
+      "minBtnHeight": 15.9320068359375
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "docScrollWidth": 768,
+      "bodyScrollWidth": 768,
+      "overflowPx": 0,
+      "canvasEdgeCount": 3,
+      "minBtnHeight": 44
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "docScrollWidth": 390,
+      "bodyScrollWidth": 390,
+      "overflowPx": 0,
+      "canvasEdgeCount": 3,
+      "minBtnHeight": 44
+    },
+    {
+      "width": 375,
+      "height": 667,
+      "docScrollWidth": 375,
+      "bodyScrollWidth": 375,
+      "overflowPx": 0,
+      "canvasEdgeCount": 3,
+      "minBtnHeight": 44
+    },
+    {
+      "width": 320,
+      "height": 568,
+      "docScrollWidth": 320,
+      "bodyScrollWidth": 320,
+      "overflowPx": 0,
+      "canvasEdgeCount": 3,
+      "minBtnHeight": 44
+    }
+  ],
+  "capabilitiesTested": [
+    "csv-json",
+    "dedupe-lines",
+    "exif-remove",
+    "files-zip",
+    "image-format",
+    "image-resize",
+    "json-csv",
+    "remove-empty-lines",
+    "sort-lines",
+    "text-encoding",
+    "text-split",
+    "text-watermark"
+  ],
+  "templatesTested": [
+    "text-clean",
+    "csv-roundtrip",
+    "image-publish",
+    "image-batch"
+  ],
+  "rolesTested": [
+    {
+      "role": "free_user",
+      "workflowGate": "正在验证权限"
+    },
+    {
+      "role": "vip_user",
+      "ok": true,
+      "localStorageKeys": [
+        "wyjToolWorkflows:v1:7c25d65f-f209-4e42-8a66-9c81de760fd4"
+      ]
+    },
+    {
+      "role": "super_admin",
+      "ok": true,
+      "isolatedAdminCount": 0
+    }
+  ],
+  "screenshots": [
+    "after-list-empty-1440.png",
+    "after-editor-blank-1440.png",
+    "after-editor-picker-1440.png",
+    "after-editor-inspector-1440.png",
+    "after-editor-canvas-1440.png",
+    "after-list-workflows-1440.png",
+    "after-editor-completed-1440.png",
+    "after-editor-running-1440.png",
+    "after-editor-dark-1440.png",
+    "after-editor-1920.png",
+    "after-inspector-mobile-390.png",
+    "after-editor-mobile-390.png",
+    "after-list-mobile-390.png",
+    "after-list-320.png"
+  ],
+  "videos": [
+    "workflow-phase5-desktop-1x.mp4",
+    "workflow-phase5-mobile-1x.mp4"
+  ],
+  "liveDomAudits": [
+    {
+      "state": "list_empty_1440",
+      "width": 1440,
+      "overflowPx": 0,
+      "hiddenFail": [],
+      "occluded": [],
+      "templateOrphan": false
+    },
+    {
+      "state": "blank_editor_1440",
+      "width": 1440,
+      "overflowPx": 0,
+      "hiddenFail": [],
+      "occluded": [],
+      "templateOrphan": false
+    },
+    {
+      "state": "inspector_open_1440",
+      "width": 1440,
+      "overflowPx": 0,
+      "hiddenFail": [],
+      "occluded": [],
+      "templateOrphan": false
+    },
+    {
+      "state": "full_canvas_1440",
+      "width": 1440,
+      "overflowPx": 0,
+      "hiddenFail": [],
+      "occluded": [],
+      "templateOrphan": false
+    },
+    {
+      "state": "list_populated_1440",
+      "width": 1440,
+      "overflowPx": 0,
+      "hiddenFail": [],
+      "occluded": [],
+      "templateOrphan": false
+    },
+    {
+      "state": "completed_1440",
+      "width": 1440,
+      "overflowPx": 0,
+      "hiddenFail": [],
+      "occluded": [],
+      "templateOrphan": false
+    },
+    {
+      "state": "running_1440",
+      "width": 1440,
+      "overflowPx": 0,
+      "hiddenFail": [],
+      "occluded": [],
+      "templateOrphan": false
+    },
+    {
+      "state": "mobile_editor_390",
+      "width": 390,
+      "overflowPx": 0,
+      "hiddenFail": [],
+      "occluded": [],
+      "templateOrphan": false
+    },
+    {
+      "state": "mobile_list_390",
+      "width": 390,
+      "overflowPx": 0,
+      "hiddenFail": [],
+      "occluded": [],
+      "templateOrphan": false
+    }
+  ],
+  "reducedMotionVerified": true
+}
