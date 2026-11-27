@@ -5,8 +5,10 @@
 - **阶段目标**：完成 `/transfer`、`#transferPage` 与 `/transfer#share=<id>` 文件传输模块的 UI、信息架构、动效、响应式适配及交互性能重构，完整保留既有分片引擎、D1/R2 存储权威、配额计算、分享安全模型及与 Android 客户端的下载契约。
 - **基线来源**：Phase 5 (`hydrogen/v63-phase5-workflow-redesign`，`44668aa205ab29a8727b1e2b4d1ab1c9de5a5301`，Draft PR #186)
 - **当前开发分支**：`hydrogen/v63-phase6-transfer-redesign`（基于 Phase 5 创建 Stacked Draft PR #187）
-- **资源版本标识**：`ASSET_RELEASE = "20261127-aeris-p6-transfer-v2"`，`PUBLICATION_HASH = "c3eda8ce89f718f04f8d747852834167de908eee1f08bedad1d22fe21c28fb87"`（保持 `CORE_SHELL = 81`、`REQUIRED_SHELL = 89`、`INSTALL_SHELL = 89`，零新增根目录静态/JS 文件）。
-- **Service Worker 稳定性修复（`e9ca58e4`）**：修复 `app.js#L9082-L9143` 在目标 `registration.waiting` 已安装且等待激活时重复触发 `navigator.serviceWorker.register(...)` 网络更新竞争的问题，改为直接复用 `swRegistration.waiting` 发送 `SKIP_WAITING`（`qa/p07-release/rollback-browser.mjs` 连续 3 次 7/7 全项 PASS）。
+- **资源版本标识**：`ASSET_RELEASE = "20261127-aeris-p6-transfer-v2"`，`PUBLICATION_HASH = "87d4d47bed6895986b6280f992dcf9b9f868ef92e10cf26d197ea649c3e5a316"`（保持 `CORE_SHELL = 81`、`REQUIRED_SHELL = 89`、`INSTALL_SHELL = 89`，零新增根目录静态/JS 文件）。
+- **Service Worker 稳定性修复（`e9ca58e4` + `212508f9`）**：
+  - `e9ca58e4`：修复 `app.js` 在目标 `registration.waiting` 已安装且等待激活时重复触发 `navigator.serviceWorker.register(...)` 竞争的问题，改为直接向 `swRegistration.waiting` 发送 `SKIP_WAITING`；
+  - `212508f9`：根治 `rollback-browser.mjs` 偶发竞态——此前 `boot()` 在页面初始资源及 `assetPrefetcher` 仍在通过旧 SW 发起请求时立即调用 `registerReleaseWorker()`，导致 Chromium 在旧 SW `stopping -> stopped` 瞬间收到新请求而重启旧 SW 并永久打断新 SW `skipWaiting()`；现改为等待 `window.load` + `startupMounted` 稳定后再注册（最长兜底 `1200ms`），并在切换期间暂停 `assetPrefetcher` 预取直至目标 SW 接管控制权（`repro_exact_rb.mjs` 连续 6/6 与完整 `qa/p07-release/rollback-browser.mjs` 连续 3 轮 7/7 全项 PASS）。
 - **范围严守**：仅重构文件传输模块；未开启 Phase 7，未合并 `main`，未改动 Production，未修改 `v63-phase5` 预览环境，未重启 Android Hotfix 或财务 AI。
 
 ---
@@ -52,24 +54,25 @@
 
 ### 1. 最后一次代码修改后全部通过的本地门禁与浏览器验证
 
-- `npm run task27:publication`: **PASS** (`publication_hash: c3eda8ce89f718f04f8d747852834167de908eee1f08bedad1d22fe21c28fb87`, `integrity_entries: 80`, `install_shell_total: 89`, `prior_core_shell_preserved: true`)
+- `npm run task27:publication`: **PASS** (`publication_hash: 87d4d47bed6895986b6280f992dcf9b9f868ef92e10cf26d197ea649c3e5a316`, `integrity_entries: 80`, `install_shell_total: 89`, `prior_core_shell_preserved: true`)
 - `node scripts/stage_pages_deploy.mjs` & `npm run cf:check`: **PASS** (`Compiled Worker successfully`)
 - `python -m unittest discover -s local-backend -p "test_static*.py" -v`: **PASS** (`31 tests`)
 - `python scripts/functional_audit_gate.py`: **PASS** (`27 routes, 24 app flows, 104 tools, 51 tool modes, 7 checkbox controls, 12 workflow capabilities, 27 workflow flows`)
 - `node scripts/check_storage_contract.mjs`: **PASS** (`31 stable key families`)
 - `node scripts/check_js_module_graph.mjs`: **PASS** (`67 files, 120 imports`)
-- `python scripts/repository_audit.py`: **PASS** (`2609+` tracked and candidate files checked)
+- `python scripts/repository_audit.py`: **PASS** (`2622` tracked and candidate files checked)
 - `impeccable doctor --json`: **PASS** (`findings: []`, exit `0`)
-- 传输单元、恢复与隔离测试 (`test_upload_part_recovery_js.mjs`、`test_transfer_updates_js.mjs`、`test_transfer_isolation_js.mjs`、`test_transfer_session_plan_js.mjs`、`test_transfer_benchmark_js.mjs`、`test_transfer_integrity_js.mjs`、`test_task22_d1_js.mjs`、`test_i05_workspace_shell.mjs`、`test_i06_module_experience.mjs`、`sw-install.test.mjs`、`sw-release.test.mjs`): **全部 PASS**（含 `3/3` I05、`2/2` I06 与 `24/24` SW 单测，且 `test_transfer_benchmark_js.mjs` 在模拟延迟下达 `3.48x` / `336.8 MiB/s`）
+- 传输单元、恢复与隔离测试 (`test_upload_part_recovery_js.mjs`、`test_transfer_updates_js.mjs`、`test_transfer_isolation_js.mjs`、`test_transfer_session_plan_js.mjs`、`test_transfer_benchmark_js.mjs`、`test_transfer_integrity_js.mjs`、`test_task22_d1_js.mjs`、`test_i05_workspace_shell.mjs`、`test_i06_module_experience.mjs`、`sw-install.test.mjs`、`sw-release.test.mjs`): **全部 PASS**（含 `3/3` I05、`2/2` I06 与最新 `24/24` SW 单测，且 `test_transfer_benchmark_js.mjs` 在模拟延迟下达 `3.48x` / `336.8 MiB/s`）
 - `npm run test:task28:runtime` (`qa/task28/workerd.mjs`): **PASS** (`3/3` 用例通过)
-- `node qa/v63-phase6/verify_phase6_transfer.mjs`: **PASS**（`8/8` 检查项、7 视口、`interactiveMs: 280.2`、`senderFrames: 93`、`recipientFrames: 107`、`runtimeErrors: 0`）
+- `node qa/v63-phase6/verify_phase6_transfer.mjs`: **PASS**（`8/8` 检查项、7 视口、`interactiveMs: 206.1`、`senderFrames: 146`、`recipientFrames: 122`、`runtimeErrors: 0`）
 - `npm run test:task28:browser` (`qa/task28/browser.mjs`): **PASS**（`5/5` 用例、`0` 跳过、含 `axe-core` 无障碍对比度验收）
-- `node qa/p07-release/sw-install-browser.mjs --source 0d6c5959 --label p6-v2`: **PASS**（`7/7` 用例通过）
+- `node qa/p07-release/sw-install-browser.mjs --source WORKTREE --label p6-swfix`: **PASS**（`7/7` 用例通过）
+- `qa/p07-release/rollback-browser.mjs`（本地 Miniflare + Chrome 连续 3 轮验证）：**PASS**（连续 `3/3` 轮、`7/7` 用例全部通过）
 
 ### 2. 全新完全隔离 Hosted Preview (P6–P9) 部署与完整在线闭环验收
 
 - **全新隔离 Cloudflare 资源（方案 A）**：
-  - **Pages 项目**：`thewyj-v63-p6p9-preview`（`production_branch: "release-held"`，部署分支 `v63-phase6`，最新部署 URL `https://d23ea79a.thewyj-v63-p6p9-preview.pages.dev`）
+  - **Pages 项目**：`thewyj-v63-p6p9-preview`（`production_branch: "release-held"`，部署分支 `v63-phase6`，最新部署 URL `https://8e5364c6.thewyj-v63-p6p9-preview.pages.dev`）
   - **预览访问地址**：`https://v63-phase6.thewyj-v63-p6p9-preview.pages.dev`
   - **独立 D1 数据库**：`aeris-v63-p6p9-preview`（UUID `a1550b63-acd2-42bb-9358-b44bedd88d68`，完整按序应用 `0001`–`0045` 全部 45 条迁移，`167` 张表与 `task28_schema_version = 1` 核验一致；`task25_feature_flags` 已启用 `p07_accessibility` 100%）
   - **独立 R2 存储桶**：`aeris-v63-p6p9-storage`（绑定为 `WYJ_STORAGE`，安全配置开启 `D1_RATE_LIMIT_ENABLED=true`、`TASK22_TRANSFER_WRITES_ENABLED=true`、`WORKERS_AI_ENABLED=false`、`EMAIL_SENDING_ENABLED=false`，并独立生成 3 个 32-byte `secret_text` 密钥）
