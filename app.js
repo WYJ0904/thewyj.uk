@@ -9057,10 +9057,15 @@ async function boot() {
     });
     toolsInitialized = true;
   }
+  let scheduleSwBootRegistration = () => {};
+  const isTargetSwController = () => !("serviceWorker" in navigator)
+    || !navigator.serviceWorker.controller
+    || Boolean(navigator.serviceWorker.controller.scriptURL?.includes(ASSET_RELEASE));
   if ("serviceWorker" in navigator) {
     let swAttempts = 0;
     let swRetryTimer = 0;
     let swReloading = false;
+    let swBootScheduled = false;
     const isTargetWorker = (worker) => Boolean(worker?.scriptURL?.includes(ASSET_RELEASE));
     const initialController = navigator.serviceWorker.controller;
     const hadSameReleaseController = isTargetWorker(initialController);
@@ -9140,7 +9145,29 @@ async function boot() {
         })
         .catch(() => scheduleReleaseRetry());
     };
-    registerReleaseWorker();
+    // Wait until document subresources and initial boot fetches settle before
+    // installing and skipWaiting over an active prior Service Worker.
+    let swStarted = false;
+    const startReleaseRegistration = () => {
+      if (swStarted) return;
+      swStarted = true;
+      window.setTimeout(registerReleaseWorker, 150);
+    };
+    const afterLoad = (cb) => {
+      if (document.readyState === "complete") {
+        cb();
+        return;
+      }
+      window.addEventListener("load", cb, { once: true });
+    };
+    scheduleSwBootRegistration = () => {
+      if (swBootScheduled) return;
+      swBootScheduled = true;
+      afterLoad(startReleaseRegistration);
+    };
+    afterLoad(() => {
+      window.setTimeout(startReleaseRegistration, 1200);
+    });
   }
   const initialPath = location.pathname.replace(/\/+$/, "") || "/";
   const shouldProbeCloudBackend = () => !location.pathname.startsWith("/share/");
@@ -9236,6 +9263,7 @@ async function boot() {
     await backendPromise;
     await mountVerifiedCurrentRoute();
     startupMounted = true;
+    scheduleSwBootRegistration();
     if (startupRevealed) document.documentElement.dataset.bootState = 'ready';
   };
 
@@ -9252,11 +9280,22 @@ async function boot() {
     setupResponsiveDisclosures();
     const assetPrefetcher = createAssetPrefetcher({ doc: document, view: window });
     document.querySelectorAll("#v3Sidebar [data-v3-nav]").forEach((navLink) => {
-      const warm = () => assetPrefetcher.prefetchRoute(navLink.dataset.v3Nav);
+      const warm = () => {
+        if (isTargetSwController()) assetPrefetcher.prefetchRoute(navLink.dataset.v3Nav);
+      };
       navLink.addEventListener("pointerenter", warm, { passive: true });
       navLink.addEventListener("focus", warm, { passive: true });
     });
-    assetPrefetcher.scheduleIdleWarmup(["tools", "changelog"]);
+    if (isTargetSwController()) {
+      assetPrefetcher.scheduleIdleWarmup(["tools", "changelog"]);
+    } else if ("serviceWorker" in navigator) {
+      const onSwReadyForWarmup = () => {
+        if (!isTargetSwController()) return;
+        navigator.serviceWorker.removeEventListener("controllerchange", onSwReadyForWarmup);
+        assetPrefetcher.scheduleIdleWarmup(["tools", "changelog"]);
+      };
+      navigator.serviceWorker.addEventListener("controllerchange", onSwReadyForWarmup);
+    }
     window.requestAnimationFrame(() => syncSidebarActiveIndicator(document));
     document.documentElement.dataset.bootState = startupMounted ? 'ready' : 'recovering';
   }, whenContentReady);
