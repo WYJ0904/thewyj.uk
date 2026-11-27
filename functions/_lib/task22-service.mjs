@@ -389,14 +389,23 @@ export async function allocateUploadFile(db, account, env, input) {
 
 export async function uploadPart(db, storage, account, request, sessionId, fileId, partNumberValue, environment = "development", guestId = "") {
   const owner = await ownerContext(db, account, { guest_id: guestId });
-  const session = await requireOwnedSession(db, account, owner, sessionId);
+  const cleanSessionId = cleanId(sessionId);
+  const cleanFileId = cleanId(fileId, "文件标识");
+  const [sessionBatch, fileBatch] = await requireDatabase(db).batch([
+    db.prepare("SELECT * FROM task22_upload_sessions WHERE id = ?1").bind(cleanSessionId),
+    db.prepare("SELECT * FROM task22_upload_files WHERE session_id = ?1 AND id = ?2").bind(cleanSessionId, cleanFileId),
+  ]);
+  const session = sessionBatch?.results?.[0] || null;
+  if (!session || session.owner_kind !== owner.kind || session.owner_ref !== owner.ref) {
+    throw new Task22Error("上传任务不存在", 404, "transfer_session_not_found");
+  }
   if (session.state !== "active") throw new Task22Error("上传任务已结束", 409, "transfer_session_not_active");
   if (session.finalize_token) throw new Task22Error('上传任务正在校验完成，请稍后重试', 409, 'transfer_finalize_in_progress', true);
   if (isExpired(session)) {
     await expireSession(db, storage, session, "expired");
     throw new Task22Error("上传任务已过期", 410, "transfer_session_expired");
   }
-  const file = await first(db, "SELECT * FROM task22_upload_files WHERE session_id = ?1 AND id = ?2", [session.id, cleanId(fileId, "文件标识")]);
+  const file = fileBatch?.results?.[0] || null;
   if (!file) throw new Task22Error("上传文件不存在", 404, "transfer_file_not_found");
   const partNumber = safeInteger(partNumberValue, 1, Number(file.part_count), undefined, "分片编号");
   const expected = partRange(partNumber, Number(file.part_size), Number(file.size_bytes));
@@ -424,16 +433,18 @@ export async function uploadPart(db, storage, account, request, sessionId, fileI
     throw new Task22Error("上传对象尚未初始化，请重新分配文件", 409, "transfer_upload_not_initialized");
   }
   const multipart = bucket.resumeMultipartUpload(objectKey, uploadId);
-  // Reserve an immutable, server-verified digest before any R2 write. Concurrent
-  // identical retries may write the same bytes; different bytes cannot race to
-  // overwrite a part after another writer has committed its metadata.
-  await run(db, `INSERT OR IGNORE INTO task22_upload_parts (
-      session_id,file_id,part_number,size_bytes,sha256_hex,object_key,etag,uploaded_at,hash_verified
-    ) SELECT ?1,?2,?3,?4,?5,?6,'',?7,1 FROM task22_upload_sessions
-      WHERE id=?1 AND state='active' AND finalize_token='' AND expires_at>?7`,
-  [session.id,file.id,partNumber,expected.length,actualHash,objectKey,isoNow()]);
-  let existing = await first(db, `SELECT * FROM task22_upload_parts
-    WHERE session_id=?1 AND file_id=?2 AND part_number=?3`, [session.id,file.id,partNumber]);
+  // Reserve an immutable, server-verified digest before any R2 write in one batch.
+  const [, existingBatch] = await db.batch([
+    db.prepare(`INSERT OR IGNORE INTO task22_upload_parts (
+        session_id,file_id,part_number,size_bytes,sha256_hex,object_key,etag,uploaded_at,hash_verified
+      ) SELECT ?1,?2,?3,?4,?5,?6,'',?7,1 FROM task22_upload_sessions
+        WHERE id=?1 AND state='active' AND finalize_token='' AND expires_at>?7`)
+      .bind(session.id, file.id, partNumber, expected.length, actualHash, objectKey, isoNow()),
+    db.prepare(`SELECT * FROM task22_upload_parts
+      WHERE session_id=?1 AND file_id=?2 AND part_number=?3`)
+      .bind(session.id, file.id, partNumber),
+  ]);
+  const existing = existingBatch?.results?.[0] || null;
   if (!existing) throw new Task22Error('上传任务状态已变化',409,'transfer_session_not_active');
   if (existing.sha256_hex && existing.sha256_hex !== actualHash) {
     throw new Task22Error('同一分片重传内容不一致',409,'transfer_part_hash_conflict');
@@ -535,10 +546,16 @@ export async function completeUploadSession(db, storage, account, env, input) {
   }
   let declaredBytes = 0;
   const fileParts = new Map();
+  const allParts = await all(db, `SELECT * FROM task22_upload_parts
+    WHERE session_id = ?1 ORDER BY file_id, part_number`, [session.id]);
+  for (const part of allParts) {
+    const key = String(part.file_id || "");
+    if (!fileParts.has(key)) fileParts.set(key, []);
+    fileParts.get(key).push(part);
+  }
   for (const file of files) {
     declaredBytes += Number(file.size_bytes);
-    const parts = await all(db, `SELECT * FROM task22_upload_parts
-      WHERE session_id = ?1 AND file_id = ?2 ORDER BY part_number`, [session.id, file.id]);
+    const parts = fileParts.get(file.id) || [];
     if (parts.length !== Number(file.part_count)) {
       throw new Task22Error("仍有分片未上传完成", 409, "transfer_incomplete_upload");
     }
@@ -569,43 +586,53 @@ export async function completeUploadSession(db, storage, account, env, input) {
     if (uploadedBytes !== Number(file.size_bytes)) {
       throw new Task22Error("文件实际上传字节与声明不一致", 409, "transfer_incomplete_upload");
     }
-    fileParts.set(file.id, parts);
   }
   if (declaredBytes !== Number(session.total_bytes)) {
     throw new Task22Error("上传总大小与任务声明不一致", 409, "transfer_incomplete_upload");
   }
-  // Assemble each file into its single R2 object before anything is published.
-  for (const file of files) {
-    if (!file.upload_id) continue;
+  // Assemble each file into its single R2 object before anything is published, bounded parallel for multi-file batches.
+  const bucket = requireStorage(storage);
+  const finalizeOneFile = async (file) => {
+    if (!file.upload_id) return;
     const objectKey = requireObjectKey(file.object_key || fileObjectKeyFor(env?.WYJ_ENVIRONMENT, file.id),'transfer',env?.WYJ_ENVIRONMENT);
-    let head = await requireStorage(storage).head(objectKey);
+    let head = await bucket.head(objectKey);
     // A previous R2 completion may have succeeded before a D1/network failure.
     // Reuse only the same session's object; never blindly re-complete an MPU.
     if (head && (head.customMetadata?.session !== session.id || head.customMetadata?.file !== file.id)) {
       throw new Task22Error('文件对象所有权校验失败',409,'transfer_object_conflict');
     }
-    if (!head) await requireStorage(storage).resumeMultipartUpload(objectKey, file.upload_id).complete(
-      (fileParts.get(file.id) || []).map((part) => ({
-        partNumber: Number(part.part_number),
-        etag: String(part.etag),
-      })),
-    );
-    head = await requireStorage(storage).head(objectKey);
+    if (!head) {
+      const completed = await bucket.resumeMultipartUpload(objectKey, file.upload_id).complete(
+        (fileParts.get(file.id) || []).map((part) => ({
+          partNumber: Number(part.part_number),
+          etag: String(part.etag),
+        })),
+      );
+      head = completed && Number.isFinite(Number(completed.size)) ? completed : await bucket.head(objectKey);
+    }
     if (!head || Number(head.size) !== Number(file.size_bytes)) {
       throw new Task22Error("上传文件合并校验失败", 409, "transfer_file_size_mismatch");
     }
-    const object = await storage.get(objectKey,{range:{offset:0,length:Math.min(HEADER_BYTES,Number(file.size_bytes))}});
-    if (!object) throw new Task22Error('上传内容缺失',503,'transfer_file_missing',true);
-    const inspection = inspectFileBytes(file.file_name,file.mime_type,new Uint8Array(await object.arrayBuffer()),{complete:Number(file.size_bytes)<=HEADER_BYTES});
-    if(!['content_verified','download_only'].includes(file.validation_status)) {
+    if (!['content_verified','download_only'].includes(file.validation_status)) {
+      const object = await storage.get(objectKey,{range:{offset:0,length:Math.min(HEADER_BYTES,Number(file.size_bytes))}});
+      if (!object) throw new Task22Error('上传内容缺失',503,'transfer_file_missing',true);
+      const inspection = inspectFileBytes(file.file_name,file.mime_type,new Uint8Array(await object.arrayBuffer()),{complete:Number(file.size_bytes)<=HEADER_BYTES});
       file.validation_status=inspection.validation_status;file.detected_mime=inspection.detected_mime;file.preview_policy=inspection.preview_policy;
     }
-    const parts = fileParts.get(file.id);
+    const parts = fileParts.get(file.id) || [];
     file.integrity_status = parts.every(p=>Number(p.hash_verified)===1)
       ? (parts.length===1 ? 'full_sha256_verified' : 'parts_verified') : 'legacy_unverified';
     // Only a single, server-verified part is also a verified whole-file hash.
     file.sha256_hex = file.integrity_status === 'full_sha256_verified' ? parts[0].sha256_hex : '';
-  }
+  };
+  let finalizeIndex = 0;
+  const finalizeWorkers = Array.from({ length: Math.min(6, Math.max(1, files.length)) }, async () => {
+    while (finalizeIndex < files.length) {
+      const idx = finalizeIndex++;
+      await finalizeOneFile(files[idx]);
+    }
+  });
+  await Promise.all(finalizeWorkers);
   const shareId = randomToken(24);
   const now = isoNow();
   const expiresAt = isoNow(new Date(Date.now() + Number(session.minutes) * 60 * 1000));

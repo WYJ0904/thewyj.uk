@@ -1,0 +1,204 @@
+{
+  "results": [
+    {
+      "partConcurrency": 3,
+      "wallMs": 42224.8,
+      "speedMiBs": 3.979,
+      "partsWallMs": 38825.1,
+      "partsOnlyMiBs": 4.327,
+      "sessionMs": 535.6,
+      "allocMs": 1600.3,
+      "completeMs": 1262.6,
+      "partTimings": [
+        {
+          "part": 1,
+          "bytes": 16777216,
+          "hashMs": 10.6,
+          "totalMs": 9907.7,
+          "startOffsetMs": 11,
+          "endOffsetMs": 9918.7
+        },
+        {
+          "part": 3,
+          "bytes": 16777216,
+          "hashMs": 12.2,
+          "totalMs": 11550.7,
+          "startOffsetMs": 38.5,
+          "endOffsetMs": 11589.2
+        },
+        {
+          "part": 2,
+          "bytes": 16777216,
+          "hashMs": 12.4,
+          "totalMs": 11728.5,
+          "startOffsetMs": 24.1,
+          "endOffsetMs": 11752.6
+        },
+        {
+          "part": 4,
+          "bytes": 16777216,
+          "hashMs": 11.1,
+          "totalMs": 9090.6,
+          "startOffsetMs": 9930.2,
+          "endOffsetMs": 19020.9
+        },
+        {
+          "part": 5,
+          "bytes": 16777216,
+          "hashMs": 9.9,
+          "totalMs": 12451.5,
+          "startOffsetMs": 11599.5,
+          "endOffsetMs": 24051
+        },
+        {
+          "part": 6,
+          "bytes": 16777216,
+          "hashMs": 9.8,
+          "totalMs": 13221.1,
+          "startOffsetMs": 11762.8,
+          "endOffsetMs": 24983.9
+        },
+        {
+          "part": 7,
+          "bytes": 16777216,
+          "hashMs": 10.8,
+          "totalMs": 9256.7,
+          "startOffsetMs": 19032,
+          "endOffsetMs": 28288.7
+        },
+        {
+          "part": 8,
+          "bytes": 16777216,
+          "hashMs": 12.4,
+          "totalMs": 11032.6,
+          "startOffsetMs": 24063.8,
+          "endOffsetMs": 35096.4
+        },
+        {
+          "part": 10,
+          "bytes": 16777216,
+          "hashMs": 11.9,
+          "totalMs": 9207.6,
+          "startOffsetMs": 28300.9,
+          "endOffsetMs": 37508.5
+        },
+        {
+          "part": 9,
+          "bytes": 16777216,
+          "hashMs": 11.3,
+          "totalMs": 12658.4,
+          "startOffsetMs": 24995.4,
+          "endOffsetMs": 37653.8
+        },
+        {
+          "part": 11,
+          "bytes": 8388608,
+          "hashMs": 5.4,
+          "totalMs": 3722.6,
+          "startOffsetMs": 35102.3,
+          "endOffsetMs": 38824.9
+        }
+      ]
+    },
+    {
+      "partConcurrency": 6,
+      "wallMs": 39515.6,
+      "speedMiBs": 4.251,
+      "partsWallMs": 36434.3,
+      "partsOnlyMiBs": 4.611,
+      "sessionMs": 784.2,
+      "allocMs": 947.7,
+      "completeMs": 1348.3,
+      "partTimings": [
+        {
+          "part": 1,
+          "bytes": 16777216,
+          "hashMs": 13.9,
+          "totalMs": 19185.2,
+          "startOffsetMs": 14,
+          "endOffsetMs": 19199.2
+        },
+        {
+          "part": 2,
+          "bytes": 16777216,
+          "hashMs": 12.8,
+          "totalMs": 20417.6,
+          "startOffsetMs": 27.2,
+          "endOffsetMs": 20444.8
+        },
+        {
+          "part": 3,
+          "bytes": 16777216,
+          "hashMs": 12,
+          "totalMs": 20528.3,
+          "startOffsetMs": 39.6,
+          "endOffsetMs": 20567.8
+        },
+        {
+          "part": 5,
+          "bytes": 16777216,
+          "hashMs": 11.3,
+          "totalMs": 21480,
+          "startOffsetMs": 63.9,
+          "endOffsetMs": 21544
+        },
+        {
+          "part": 4,
+          "bytes": 16777216,
+          "hashMs": 11.3,
+          "totalMs": 22805.7,
+          "startOffsetMs": 51.2,
+          "endOffsetMs": 22856.8
+        },
+        {
+          "part": 6,
+          "bytes": 16777216,
+          "hashMs": 12.1,
+          "totalMs": 23596.9,
+          "startOffsetMs": 77.5,
+          "endOffsetMs": 23674.3
+        },
+        {
+          "part": 11,
+          "bytes": 8388608,
+          "hashMs": 5.7,
+          "totalMs": 10596.5,
+          "startOffsetMs": 22862.8,
+          "endOffsetMs": 33459.2
+        },
+        {
+          "part": 7,
+          "bytes": 16777216,
+          "hashMs": 11.2,
+          "totalMs": 15324.4,
+          "startOffsetMs": 19210.6,
+          "endOffsetMs": 34535
+        },
+        {
+          "part": 8,
+          "bytes": 16777216,
+          "hashMs": 11.7,
+          "totalMs": 15871.6,
+          "startOffsetMs": 20456.6,
+          "endOffsetMs": 36328.2
+        },
+        {
+          "part": 10,
+          "bytes": 16777216,
+          "hashMs": 11,
+          "totalMs": 14790.3,
+          "startOffsetMs": 21555.2,
+          "endOffsetMs": 36345.4
+        },
+        {
+          "part": 9,
+          "bytes": 16777216,
+          "hashMs": 11.7,
+          "totalMs": 15854.5,
+          "startOffsetMs": 20579.7,
+          "endOffsetMs": 36434.2
+        }
+      ]
+    }
+  ]
+}

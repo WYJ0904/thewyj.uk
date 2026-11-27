@@ -1,0 +1,15 @@
+{
+  "name": "500MiB_after",
+  "fileCount": 1,
+  "totalMiB": 500,
+  "partCount": 32,
+  "wallMs": 134756.2,
+  "throughputMiBs": 3.71,
+  "throughputKiBs": 3799,
+  "sessionMs": 2008.4,
+  "allocMs": 2947,
+  "hashSumMs": 352.1,
+  "partAvgMs": 15777.2,
+  "completeMs": 1248.5,
+  "quotaAfterUsed": 0
+}
