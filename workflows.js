@@ -15,6 +15,7 @@
   const MAX_FILES = 50;
   const MAX_IMAGES = 20;
   const MAX_TOTAL_BYTES = 50 * 1024 * 1024;
+  const MAX_WORLD_NODE_OFFSET = 4800;
   const OFFLINE_ACCESS_MAX_AGE_MS = 24 * 60 * 60 * 1000;
   const WORKFLOW_TOOL_ID = "workflow";
   const ID_PATTERN = /^(?:wf|step)_[a-z0-9][a-z0-9_-]{5,63}$/;
@@ -124,10 +125,28 @@
   let selectedWorkflowId = "";
   let cloudConfigIds = new Map();
   let accessOptions = { offline: false, access: null };
-  let activeRun = null;
-  let lastOutput = null;
+  const workflowSessionStates = new Map();
+  const activeRunsBySession = new Map();
+  let lastSeenAccountId = "";
   let previewUrl = "";
+  let extraPreviewUrls = [];
+  let pendingFilePickerMode = "replace";
   let draggedStepId = "";
+
+  function currentSessionKey(workflowId = selectedWorkflowId) {
+    if (!workflowId) return "";
+    return `${accountId()}::${workflowId}`;
+  }
+
+  function currentActiveRun() {
+    const key = currentSessionKey();
+    return key ? activeRunsBySession.get(key) || null : null;
+  }
+
+  function currentLastOutput() {
+    const key = currentSessionKey();
+    return key ? workflowSessionStates.get(key)?.lastOutput || null : null;
+  }
 
   function capability(name, inputTypes, outputTypes, batch, outputResolver = null) {
     return Object.freeze({
@@ -629,25 +648,291 @@
     return files.reduce((total, file) => total + Number(file.size || 0), 0);
   }
 
+  function chainOutputForInputType(activeSteps, inputType) {
+    if (!activeSteps.length) return new Set();
+    let current = new Set([inputType]);
+    for (const step of activeSteps) {
+      const cap = CAPABILITY_REGISTRY[step.tool_id];
+      if (!cap) return new Set();
+      const accepted = new Set([...current].filter((type) => cap.input_types.includes(type)));
+      if (!accepted.size) return new Set();
+      current = outputTypesFor(cap, accepted);
+      if (!current.size) return new Set();
+    }
+    return current;
+  }
+
+  function isImageFile(file) {
+    if (!file) return false;
+    const mime = String(file.type || "").toLowerCase();
+    if (mime.startsWith("image/")) return true;
+    return /\.(png|jpe?g|webp)$/i.test(String(file.name || ""));
+  }
+
+  function isTextDataFile(file) {
+    if (!file) return false;
+    const mime = String(file.type || "").toLowerCase();
+    if (mime.startsWith("text/") || mime === "application/json") return true;
+    return /\.(txt|csv|json|tsv|log|md)$/i.test(String(file.name || ""));
+  }
+
+  function getWorkflowInputPolicy(workflow) {
+    const activeSteps = (workflow?.steps || []).filter((step) => step.enabled);
+    if (!activeSteps.length) {
+      return {
+        ready: false,
+        mode: "empty",
+        types: [],
+        outputTypes: [],
+        acceptsText: false,
+        acceptsFiles: false,
+        multiple: false,
+        supportsSingle: false,
+        supportsBatch: false,
+        requiresBatch: false,
+        supportsArchive: false,
+        maxFiles: 0,
+        maxBytes: MAX_TOTAL_BYTES,
+        accept: "",
+        unitLabel: "个文件",
+        label: "请先添加并启用处理节点",
+        hint: "请先在画布中添加并启用至少一个处理节点。",
+        dropSub: "请先配置节点",
+      };
+    }
+
+    let outputTypes = [];
+    try {
+      outputTypes = [...validateStepSequence(activeSteps)];
+    } catch (error) {
+      return {
+        ready: false,
+        mode: "invalid-sequence",
+        sequenceError: error.message,
+        types: inputTypesFor(workflow),
+        outputTypes: [],
+        acceptsText: false,
+        acceptsFiles: false,
+        multiple: false,
+        supportsSingle: false,
+        supportsBatch: false,
+        requiresBatch: false,
+        supportsArchive: false,
+        maxFiles: 0,
+        maxBytes: MAX_TOTAL_BYTES,
+        accept: "",
+        unitLabel: "个文件",
+        label: "节点连接不兼容",
+        hint: `当前启用节点序列不兼容：${error.message}`,
+        dropSub: "请调整节点顺序",
+      };
+    }
+
+    const firstCap = CAPABILITY_REGISTRY[activeSteps[0].tool_id];
+    const types = [...firstCap.input_types];
+    const outForText = types.includes("text") ? chainOutputForInputType(activeSteps, "text") : new Set();
+    const outForTextFile = types.includes("text-file") ? chainOutputForInputType(activeSteps, "text-file") : new Set();
+    const outForImageSingle = types.includes("image") ? chainOutputForInputType(activeSteps, "image") : new Set();
+    const outForImageList = types.includes("image-list") ? chainOutputForInputType(activeSteps, "image-list") : new Set();
+    const outForFileList = types.includes("file-list") ? chainOutputForInputType(activeSteps, "file-list") : new Set();
+
+    if (outForFileList.size > 0) {
+      return {
+        ready: true,
+        mode: "file-list",
+        types,
+        outputTypes,
+        acceptsText: false,
+        acceptsFiles: true,
+        multiple: true,
+        supportsSingle: true,
+        supportsBatch: true,
+        requiresBatch: true,
+        supportsArchive: outForFileList.has("archive"),
+        maxFiles: MAX_FILES,
+        maxBytes: MAX_TOTAL_BYTES,
+        accept: "",
+        unitLabel: "个文件",
+        label: `选择或追加多文件（最多 ${MAX_FILES} 个）`,
+        hint: `首步输入：${formatTypesLabel(types)}；支持单次或分次多选，最多 ${MAX_FILES} 个文件且总计不超过 ${Math.round(MAX_TOTAL_BYTES / (1024 * 1024))} MB。`,
+        dropSub: `或拖拽到此处（最多 ${MAX_FILES} 个，支持追加）`,
+      };
+    }
+
+    if (outForImageSingle.size > 0 || outForImageList.size > 0) {
+      const supportsSingle = outForImageSingle.size > 0;
+      const supportsBatch = outForImageList.size > 0;
+      const supportsArchive = outForImageList.has("archive") || outForImageSingle.has("archive");
+      const maxFiles = supportsBatch ? MAX_IMAGES : 1;
+      return {
+        ready: true,
+        mode: supportsBatch ? "image-batch" : "image-single",
+        types,
+        outputTypes,
+        acceptsText: false,
+        acceptsFiles: true,
+        multiple: supportsBatch,
+        supportsSingle,
+        supportsBatch,
+        requiresBatch: !supportsSingle && supportsBatch,
+        supportsArchive,
+        maxFiles,
+        maxBytes: MAX_TOTAL_BYTES,
+        accept: "image/png,image/jpeg,image/webp",
+        unitLabel: "张图片",
+        label: supportsBatch ? `选择图片（支持批量，最多 ${maxFiles} 张）` : "选择单张图片（最多 1 张）",
+        hint: supportsBatch
+          ? `首步输入：${formatTypesLabel(types)}；支持多选、拖拽及分次追加，最多 ${maxFiles} 张图片，总计不超过 ${Math.round(MAX_TOTAL_BYTES / (1024 * 1024))} MB。`
+          : `首步输入：${formatTypesLabel(types)}；当前工作流仅支持单张图片（1 张），不超过 ${Math.round(MAX_TOTAL_BYTES / (1024 * 1024))} MB。`,
+        dropSub: supportsBatch ? `或拖拽到此处（最多 ${maxFiles} 张，支持多选与追加）` : "或拖拽 1 张图片到此处",
+      };
+    }
+
+    if (outForTextFile.size > 0) {
+      return {
+        ready: true,
+        mode: "text-file",
+        types,
+        outputTypes,
+        acceptsText: false,
+        acceptsFiles: true,
+        multiple: false,
+        supportsSingle: true,
+        supportsBatch: false,
+        requiresBatch: false,
+        supportsArchive: outForTextFile.has("archive"),
+        maxFiles: 1,
+        maxBytes: MAX_TOTAL_BYTES,
+        accept: ".txt,.csv,.json,text/plain,text/csv,application/json",
+        unitLabel: "个文本文件",
+        label: "选择 1 个文本或数据文件",
+        hint: `首步输入：${formatTypesLabel(types)}；当前工作流仅支持 1 个文件（.txt/.csv/.json），不超过 ${Math.round(MAX_TOTAL_BYTES / (1024 * 1024))} MB。`,
+        dropSub: "或拖拽 1 个文本/CSV/JSON 文件到此处",
+      };
+    }
+
+    if (outForText.size > 0) {
+      return {
+        ready: true,
+        mode: "text",
+        types,
+        outputTypes,
+        acceptsText: true,
+        acceptsFiles: false,
+        multiple: false,
+        supportsSingle: true,
+        supportsBatch: false,
+        requiresBatch: false,
+        supportsArchive: outForText.has("archive"),
+        maxFiles: 0,
+        maxBytes: MAX_TOTAL_BYTES,
+        accept: "",
+        unitLabel: "段文本",
+        label: "输入文本",
+        hint: `首步输入：${formatTypesLabel(types)}；请在下方文本框输入或粘贴内容。`,
+        dropSub: "",
+      };
+    }
+
+    return {
+      ready: false,
+      mode: "unsupported-start",
+      types,
+      outputTypes,
+      acceptsText: false,
+      acceptsFiles: false,
+      multiple: false,
+      supportsSingle: false,
+      supportsBatch: false,
+      requiresBatch: false,
+      supportsArchive: false,
+      maxFiles: 0,
+      maxBytes: MAX_TOTAL_BYTES,
+      accept: "",
+      unitLabel: "个文件",
+      label: "首节点需要前置输入转换",
+      hint: `首个启用节点需要 ${formatTypesLabel(types)}，请在其前方添加对应的输入步骤。`,
+      dropSub: "",
+    };
+  }
+
+  function fileMatchErrorForPolicy(policy, file) {
+    if (!file) return "文件无效";
+    if (policy.mode === "image-batch" || policy.mode === "image-single") {
+      if (!isImageFile(file)) return "格式不符（需 PNG/JPG/WebP 图片）";
+      return "";
+    }
+    if (policy.mode === "text-file") {
+      if (!isTextDataFile(file)) return "格式不符（需文本/CSV/JSON 文件）";
+      return "";
+    }
+    if (policy.mode === "file-list") return "";
+    return "当前工作流不需要文件输入";
+  }
+
+  function validateInputFilesForPolicy(policy, files = []) {
+    if (!policy.ready) {
+      return { valid: false, reason: "policy", message: policy.hint || "当前工作流尚未就绪" };
+    }
+    if (!policy.acceptsFiles) {
+      return { valid: false, reason: "no-file-input", message: policy.hint };
+    }
+    const list = Array.isArray(files) ? [...files] : [];
+    if (!list.length) {
+      return { valid: false, reason: "empty", message: policy.mode === "image-batch" || policy.mode === "image-single" ? "请选择输入图片" : "请选择输入文件" };
+    }
+    const typeIssues = list
+      .map((file, index) => ({ index, file, issue: fileMatchErrorForPolicy(policy, file) }))
+      .filter((entry) => Boolean(entry.issue));
+    if (typeIssues.length) {
+      return {
+        valid: false,
+        reason: "type",
+        typeIssues,
+        message: `有 ${typeIssues.length} 个文件格式与当前工作流不兼容：${typeIssues.slice(0, 3).map((item) => item.file.name).join("、")}${typeIssues.length > 3 ? " 等" : ""}`,
+      };
+    }
+    if (list.length > policy.maxFiles) {
+      const excessCount = list.length - policy.maxFiles;
+      return {
+        valid: false,
+        reason: "count",
+        excessCount,
+        message: policy.maxFiles === 1
+          ? `当前工作流仅支持 1 ${policy.unitLabel}，已多出 ${excessCount} 个；超限文件未加入待执行队列，请移除多余项。`
+          : `已选择 ${list.length} ${policy.unitLabel}，超出上限 ${policy.maxFiles} ${policy.unitLabel}（多出 ${excessCount} 项）；超限文件未加入待执行队列，请移除多余项。`,
+      };
+    }
+    const totalBytes = fileSizeTotal(list);
+    if (totalBytes > policy.maxBytes) {
+      const excessBytes = totalBytes - policy.maxBytes;
+      return {
+        valid: false,
+        reason: "size",
+        excessBytes,
+        totalBytes,
+        message: `总大小 ${formatBytes(totalBytes)} 超出上限 ${formatBytes(policy.maxBytes)}（超出 ${formatBytes(excessBytes)}）；超限文件未加入待执行队列，请移除部分文件。`,
+      };
+    }
+    return { valid: true, totalBytes, count: list.length };
+  }
+
   function resourceFromFiles(workflow, files, batchRequested) {
-    const types = inputTypesFor(workflow);
-    if (!files.length) throw new Error("请选择输入文件");
-    if (files.length > MAX_FILES || fileSizeTotal(files) > MAX_TOTAL_BYTES) throw new Error("文件最多 50 个且总大小不能超过 50 MB");
-    if (types.includes("text-file")) {
-      if (files.length !== 1) throw new Error("文本工作流每次请选择一个文件");
+    const policy = getWorkflowInputPolicy(workflow);
+    const check = validateInputFilesForPolicy(policy, files);
+    if (!check.valid) throw new Error(check.message);
+    if (policy.mode === "text-file") {
       return createResource("text-file", files[0], { name: files[0].name, mime: files[0].type, owned: false });
     }
-    const imageOnly = files.every((file) => String(file.type || "").startsWith("image/"));
-    if (types.includes("image") && imageOnly) {
-      const batch = batchRequested || files.length > 1;
+    if (policy.mode === "image-batch" || policy.mode === "image-single") {
+      const batch = policy.requiresBatch || Boolean(batchRequested) || files.length > 1;
       if (batch) {
-        if (files.length > MAX_IMAGES) throw new Error("批量图片最多 20 张");
+        if (!policy.supportsBatch) throw new Error("当前工作流仅支持单张图片");
         return createResource("image-list", files.map((file) => ({ name: file.name, status: "success", resource: createResource("image", file, { name: file.name, mime: file.type, owned: false }) })), { owned: false });
       }
-      if (files.length !== 1) throw new Error("单图工作流每次请选择一张图片");
       return createResource("image", files[0], { name: files[0].name, mime: files[0].type, owned: false });
     }
-    if (types.includes("file-list")) {
+    if (policy.mode === "file-list") {
       return createResource("file-list", files.map((file) => ({ name: file.name, status: "success", resource: createResource("file", file, { name: file.name, mime: file.type, owned: false }) })), { owned: false });
     }
     throw new Error("所选文件类型与首个步骤不兼容");
@@ -812,23 +1097,20 @@
     return `wyjWorkflowCanvasUi:v1:${accountId()}`;
   }
 
-  function clampNodeOffset(x, y, mobile = isMobileCanvas()) {
-    const maxX = mobile ? 18 : 28;
-    const maxY = mobile ? 20 : 72;
-    const nx = Number.isFinite(Number(x)) ? Math.max(-maxX, Math.min(maxX, Number(x))) : 0;
-    const ny = Number.isFinite(Number(y)) ? Math.max(-maxY, Math.min(maxY, Number(y))) : 0;
+  function clampNodeOffset(x, y) {
+    const nx = Number.isFinite(Number(x)) ? Math.max(-MAX_WORLD_NODE_OFFSET, Math.min(MAX_WORLD_NODE_OFFSET, Number(x))) : 0;
+    const ny = Number.isFinite(Number(y)) ? Math.max(-MAX_WORLD_NODE_OFFSET, Math.min(MAX_WORLD_NODE_OFFSET, Number(y))) : 0;
     return { x: Math.round(nx * 10) / 10, y: Math.round(ny * 10) / 10 };
   }
 
   function sanitizeNodeOffsets(rawOffsets, workflow) {
     const validIds = workflow?.steps ? new Set(workflow.steps.map((s) => s.id)) : null;
-    const mobile = isMobileCanvas();
     const out = {};
     if (!rawOffsets || typeof rawOffsets !== "object") return out;
     for (const [stepId, val] of Object.entries(rawOffsets)) {
       if (validIds && !validIds.has(stepId)) continue;
       if (!val || typeof val !== "object") continue;
-      const clamped = clampNodeOffset(val.x, val.y, mobile);
+      const clamped = clampNodeOffset(val.x, val.y);
       if (Math.abs(clamped.x) >= 0.5 || Math.abs(clamped.y) >= 0.5) out[stepId] = clamped;
     }
     return out;
@@ -849,7 +1131,7 @@
           ? {
             panX: Number(saved.panX),
             panY: Number(saved.panY),
-            zoom: Math.min(1.6, Math.max(0.5, Number(saved.zoom))),
+            zoom: Math.min(1.8, Math.max(0.32, Number(saved.zoom))),
           }
           : { panX: 0, panY: 0, zoom: 1 };
         const nodeOffsets = sanitizeNodeOffsets(saved.nodeOffsets, workflow);
@@ -917,8 +1199,9 @@
   function applyNodeOffsetsToDom(list, workflow) {
     if (!list) return;
     canvasNodeOffsets = sanitizeNodeOffsets(canvasNodeOffsets, workflow);
+    const mobile = isMobileCanvas();
     list.querySelectorAll(":scope > li.wf-node").forEach((node) => {
-      const off = getStepOffset(node.dataset.stepId);
+      const off = mobile ? { x: 0, y: 0 } : getStepOffset(node.dataset.stepId);
       node.style.setProperty("--wf-off-x", `${off.x.toFixed(1)}px`);
       node.style.setProperty("--wf-off-y", `${off.y.toFixed(1)}px`);
       syncNodeTraceGeometry(node);
@@ -967,16 +1250,50 @@
     if (!vw || !vh) return;
     const list = byId("workflowStepList");
     const trailing = byId("canvasTrailingAddBtn");
-    const nodesW = list ? list.offsetWidth : 0;
-    const trailingW = trailing && !trailing.classList.contains("hidden") ? trailing.offsetWidth + 32 : 0;
-    const flowW = Math.max(nodesW + trailingW + 104, 280);
-    const flowH = Math.max((list ? list.offsetHeight : 0) + 168, 220);
-    const fitZoom = Math.min((vw - 24) / flowW, (vh - 24) / flowH);
-    const zoom = flowW <= vw - 16 && flowH <= vh - 12 ? 1 : Math.min(1, Math.max(0.78, fitZoom));
-    const panX = flowW * zoom <= vw
-      ? Math.max(8, Math.round((vw - flowW * zoom) / 2))
-      : 8;
-    const panY = Math.max(8, Math.round((vh - flowH * zoom) / 2));
+    const nodes = [...(list ? list.querySelectorAll(":scope > li.wf-node") : [])];
+    const listLeft = list ? list.offsetLeft : 0;
+    const listTop = list ? list.offsetTop : 0;
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    for (const node of nodes) {
+      const off = getStepOffset(node.dataset.stepId);
+      const left = listLeft + node.offsetLeft + off.x;
+      const top = listTop + node.offsetTop + off.y;
+      const right = left + node.offsetWidth;
+      const bottom = top + node.offsetHeight;
+      if (left < minX) minX = left;
+      if (top < minY) minY = top;
+      if (right > maxX) maxX = right;
+      if (bottom > maxY) maxY = bottom;
+    }
+    if (trailing && !trailing.classList.contains("hidden")) {
+      const tLeft = listLeft + trailing.offsetLeft;
+      const tTop = listTop + trailing.offsetTop;
+      minX = Math.min(minX, tLeft);
+      minY = Math.min(minY, tTop);
+      maxX = Math.max(maxX, tLeft + trailing.offsetWidth);
+      maxY = Math.max(maxY, tTop + trailing.offsetHeight);
+    }
+    if (!Number.isFinite(minX)) {
+      minX = 0;
+      minY = 0;
+      maxX = 280;
+      maxY = 180;
+    }
+    minX -= 56;
+    minY -= 44;
+    maxX += 64;
+    maxY += 44;
+    const flowW = Math.max(maxX - minX, 280);
+    const flowH = Math.max(maxY - minY, 220);
+    const fitZoom = Math.min((vw - 32) / flowW, (vh - 32) / flowH);
+    const zoom = flowW <= vw - 24 && flowH <= vh - 24 ? 1 : Math.min(1, Math.max(0.32, fitZoom));
+    const contentCX = (minX + maxX) / 2;
+    const contentCY = (minY + maxY) / 2;
+    const panX = Math.round(vw / 2 - contentCX * zoom);
+    const panY = Math.round(vh / 2 - contentCY * zoom);
     canvasViewport = { panX, panY, zoom };
     applyCanvasTransform({ animate });
     persistCanvasViewport();
@@ -985,7 +1302,7 @@
 
   function setCanvasZoom(nextZoom, focalClientX = null, focalClientY = null) {
     const viewport = byId("workflowCanvasViewport");
-    const clamped = Math.min(1.6, Math.max(0.5, Number(nextZoom) || 1));
+    const clamped = Math.min(1.8, Math.max(0.32, Number(nextZoom) || 1));
     if (viewport && focalClientX !== null && focalClientY !== null && !isMobileCanvas()) {
       const rect = viewport.getBoundingClientRect();
       const vx = focalClientX - rect.left;
@@ -1262,7 +1579,8 @@
       workflows.unshift(workflow);
       selectedWorkflowId = workflow.id;
       selectedStepId = "";
-      resetRunnerUiState();
+      clearSessionState(workflow.id);
+      resetRunnerUiState(getSessionState(workflow.id, workflow));
       canvasViewport = { panX: 0, panY: 0, zoom: 1 };
       canvasNodeOffsets = {};
       persistLocalWorkflows();
@@ -1271,29 +1589,92 @@
     }));
   }
 
-  function resetRunnerUiState() {
-    lastStatuses = [];
-    lastRunError = null;
+  function createEmptySessionState(workflow = null) {
+    const policy = workflow ? getWorkflowInputPolicy(workflow) : null;
+    return {
+      workflowId: workflow?.id || "",
+      queuedFiles: [],
+      rejectedFiles: [],
+      inputValidation: null,
+      textInput: "",
+      batchRequested: Boolean(policy?.requiresBatch),
+      batchTouched: false,
+      runState: { status: "waiting", label: "等待", progressText: "" },
+      statuses: [],
+      itemResults: [],
+      runError: null,
+      lastStatuses: [],
+      lastOutput: null,
+      downloadBundle: null,
+      outputSummary: null,
+      copyStatus: "",
+      downloadDone: false,
+    };
+  }
+
+  function getSessionState(workflowId = selectedWorkflowId, workflow = null) {
+    const key = currentSessionKey(workflowId);
+    if (!key) return createEmptySessionState(workflow);
+    if (!workflowSessionStates.has(key)) {
+      const targetWf = workflow || workflows.find((item) => item.id === workflowId) || null;
+      workflowSessionStates.set(key, createEmptySessionState(targetWf));
+    }
+    return workflowSessionStates.get(key);
+  }
+
+  function clearSessionState(workflowId) {
+    const key = currentSessionKey(workflowId);
+    if (!key) return;
+    const existing = workflowSessionStates.get(key);
+    if (existing?.lastOutput) void cleanupResource(existing.lastOutput);
+    workflowSessionStates.delete(key);
+  }
+
+  function abortRunsOutsideAccount(activeAccountKey) {
+    for (const [key, run] of activeRunsBySession.entries()) {
+      if (!key.startsWith(`${activeAccountKey}::`)) {
+        run.controller.abort();
+        activeRunsBySession.delete(key);
+      }
+    }
+  }
+
+  function resetRunnerUiState(targetSession = null) {
+    const session = targetSession || getSessionState();
+    lastStatuses = Array.isArray(session.lastStatuses) ? cloneJson(session.lastStatuses) : [];
+    lastRunError = session.runError ? { ...session.runError } : null;
     stopAllVisualAnimations();
     showCanvasAlert("");
     const runState = byId("workflowRunState");
     if (runState) {
-      runState.textContent = "等待";
-      runState.dataset.status = "waiting";
+      runState.textContent = session.runState?.label || "等待";
+      runState.dataset.status = session.runState?.status || "waiting";
     }
     const progressEl = byId("workflowRunProgressText");
-    if (progressEl) progressEl.textContent = "";
+    if (progressEl) progressEl.textContent = session.runState?.progressText || "";
     const statusesEl = byId("workflowStepStatuses");
     if (statusesEl) statusesEl.innerHTML = "";
-    renderItemResults([]);
-    renderTypedOutputCard(null);
-    const resultText = byId("workflowResultText");
-    if (resultText) resultText.value = "";
-    const copyBtn = byId("copyWorkflowResultBtn");
-    if (copyBtn) copyBtn.disabled = true;
-    const dlBtn = byId("downloadWorkflowResultBtn");
-    if (dlBtn) dlBtn.disabled = true;
-    clearPreview();
+    renderItemResults(session.itemResults || []);
+    if (session.outputSummary) {
+      restoreSessionResultUi(session);
+    } else {
+      renderTypedOutputCard(null);
+      const resultText = byId("workflowResultText");
+      if (resultText) resultText.value = "";
+      byId("workflowResultTextWrap")?.classList.remove("hidden");
+      if (byId("workflowResultTextLabel")) byId("workflowResultTextLabel").textContent = "最终结果";
+      const copyBtn = byId("copyWorkflowResultBtn");
+      if (copyBtn) {
+        copyBtn.disabled = true;
+        copyBtn.textContent = session.copyStatus || copyBtn.dataset.originalLabel || "复制结果";
+      }
+      const dlBtn = byId("downloadWorkflowResultBtn");
+      if (dlBtn) {
+        dlBtn.disabled = true;
+        dlBtn.textContent = dlBtn.dataset.originalLabel || "下载结果";
+      }
+      clearPreview();
+    }
   }
 
   function openWorkflowInEditor(workflowId, options = {}) {
@@ -1301,7 +1682,8 @@
     if (!workflow) return;
     selectedWorkflowId = workflowId;
     selectedStepId = "";
-    resetRunnerUiState();
+    const session = getSessionState(workflowId, workflow);
+    resetRunnerUiState(session);
     const ui = loadCanvasUiFor(workflowId, workflow);
     canvasViewport = ui.viewport;
     canvasNodeOffsets = ui.nodeOffsets;
@@ -1320,7 +1702,9 @@
     workflows.unshift(workflow);
     selectedWorkflowId = workflow.id;
     selectedStepId = "";
-    resetRunnerUiState();
+    clearSessionState(workflow.id);
+    const session = getSessionState(workflow.id, workflow);
+    resetRunnerUiState(session);
     canvasViewport = { panX: 0, panY: 0, zoom: 1 };
     canvasNodeOffsets = {};
     persistLocalWorkflows();
@@ -1404,6 +1788,11 @@
     selectedStepId = newStep.id;
     lastStatuses = [];
     lastRunError = null;
+    if (workflow.id) {
+      const s = getSessionState(workflow.id, workflow);
+      s.lastStatuses = [];
+      s.runError = null;
+    }
     markWorkflowUpdated();
     renderEditor({ flipSnapshot: snap, fitView: workflow.steps.length <= 2 });
   }
@@ -1454,6 +1843,11 @@
     workflow.steps = candidate;
     lastStatuses = [];
     lastRunError = null;
+    if (workflow.id) {
+      const s = getSessionState(workflow.id, workflow);
+      s.lastStatuses = [];
+      s.runError = null;
+    }
     showCanvasAlert("");
     markWorkflowUpdated();
     renderEditor({ flipSnapshot: snap, fitView: false });
@@ -1620,8 +2014,8 @@
     const firstRect = firstIn.getBoundingClientRect();
     const inX = (firstRect.left + firstRect.width / 2 - stageRect.left) / zoom;
     const inY = (firstRect.top + firstRect.height / 2 - stageRect.top) / zoom;
-    const entryStartX = vertical ? inX : Math.max(8, inX - 44);
-    const entryStartY = vertical ? Math.max(8, inY - 34) : inY;
+    const entryStartX = vertical ? inX : inX - 44;
+    const entryStartY = vertical ? inY - 34 : inY;
     const entryEdge = computeBezierEdge(entryStartX, entryStartY, inX, inY, vertical);
     desiredIds.add("__entry__");
     upsertEdgeGroup(svg, defs, {
@@ -2046,12 +2440,12 @@
           renderInspector();
         } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
           event.preventDefault();
-          if (activeRun) return showCanvasAlert("工作流正在执行，暂不调整节点顺序", "error");
+          if (currentActiveRun()) return showCanvasAlert("工作流正在执行，暂不调整节点顺序", "error");
           moveStep(stepId, -1);
           byId("workflowStepList")?.querySelector(`[data-step-id="${stepId}"]`)?.focus({ preventScroll: true });
         } else if (event.key === "ArrowRight" || event.key === "ArrowDown") {
           event.preventDefault();
-          if (activeRun) return showCanvasAlert("工作流正在执行，暂不调整节点顺序", "error");
+          if (currentActiveRun()) return showCanvasAlert("工作流正在执行，暂不调整节点顺序", "error");
           moveStep(stepId, 1);
           byId("workflowStepList")?.querySelector(`[data-step-id="${stepId}"]`)?.focus({ preventScroll: true });
         }
@@ -2067,7 +2461,7 @@
       item.addEventListener("dragover", (event) => event.preventDefault());
       item.addEventListener("drop", (event) => {
         event.preventDefault();
-        if (activeRun) return;
+        if (currentActiveRun()) return;
         reorderStep(draggedStepId, stepId);
       });
 
@@ -2076,7 +2470,7 @@
         if (event.button !== 0 || event.isPrimary === false) return;
         const fromHandle = Boolean(event.target.closest("[data-wf-drag-handle]"));
         if (!fromHandle && (isMobileCanvas() || event.target.closest("button, input, select, label, a"))) return;
-        if (activeRun) {
+        if (currentActiveRun()) {
           if (fromHandle) {
             event.preventDefault();
             showCanvasAlert("工作流正在运行，完成后再调整节点位置", "error");
@@ -2139,54 +2533,341 @@
     });
   }
 
+  function renderInputValidation(session) {
+    const el = byId("workflowInputValidation");
+    if (!el) return;
+    const validation = session?.inputValidation;
+    if (!validation?.message) {
+      el.innerHTML = "";
+      el.classList.add("hidden");
+      delete el.dataset.tone;
+      return;
+    }
+    el.dataset.tone = validation.tone || "error";
+    el.classList.remove("hidden");
+    el.innerHTML = `<span>${escapeHtml(validation.message)}</span>`;
+  }
+
+  function reconcileSessionFilesWithPolicy(workflow, session) {
+    const policy = getWorkflowInputPolicy(workflow);
+    if (!session) return policy;
+    if (!policy.ready || !policy.acceptsFiles) {
+      if (session.queuedFiles.length || session.rejectedFiles.length) {
+        session.queuedFiles = [];
+        session.rejectedFiles = [];
+        session.inputValidation = null;
+      }
+      return policy;
+    }
+
+    const survivingQueue = [];
+    const movedRejected = [];
+    for (const file of session.queuedFiles) {
+      const issue = fileMatchErrorForPolicy(policy, file);
+      if (issue) {
+        movedRejected.push({ file, kind: "type", reason: issue });
+      } else if (survivingQueue.length >= policy.maxFiles) {
+        movedRejected.push({ file, kind: "over-limit", reason: `超出上限 ${policy.maxFiles}` });
+      } else if (fileSizeTotal(survivingQueue) + Number(file.size || 0) > policy.maxBytes) {
+        movedRejected.push({ file, kind: "size", reason: "超出总大小上限" });
+      } else {
+        survivingQueue.push(file);
+      }
+    }
+
+    if (movedRejected.length) {
+      session.queuedFiles = survivingQueue;
+      session.rejectedFiles = [...movedRejected, ...session.rejectedFiles];
+    }
+
+    if (session.rejectedFiles.length) {
+      // Check if only valid-type rejected files exist and whether queued + validRejected now fit!
+      const typeBad = [];
+      const candidateGood = [];
+      for (const entry of session.rejectedFiles) {
+        const issue = fileMatchErrorForPolicy(policy, entry.file);
+        if (issue) typeBad.push({ file: entry.file, kind: "type", reason: issue });
+        else candidateGood.push(entry.file);
+      }
+      const combined = [...session.queuedFiles, ...candidateGood];
+      const fitCheck = candidateGood.length ? validateInputFilesForPolicy(policy, combined) : { valid: false };
+      if (fitCheck.valid) {
+        session.queuedFiles = combined;
+        session.rejectedFiles = typeBad;
+        session.inputValidation = typeBad.length
+          ? { tone: "error", message: `其余 ${candidateGood.length} 项已加入待执行队列；仍有 ${typeBad.length} 个文件格式不兼容。` }
+          : { tone: "info", message: `已满足数量与大小要求，共 ${combined.length} ${policy.unitLabel}已加入待执行队列。` };
+      } else if (candidateGood.length) {
+        const combinedCheck = validateInputFilesForPolicy(policy, combined);
+        session.rejectedFiles = [
+          ...typeBad,
+          ...candidateGood.map((file) => ({
+            file,
+            kind: combinedCheck.reason === "size" ? "size" : "over-limit",
+            reason: combinedCheck.reason === "size" ? "总大小超限" : `超出上限（${combined.length}/${policy.maxFiles}）`,
+          })),
+        ];
+        session.inputValidation = {
+          tone: "error",
+          message: combinedCheck.message || `已选择文件超出当前工作流限制，请移除多余项。`,
+        };
+      } else if (typeBad.length) {
+        session.rejectedFiles = typeBad;
+        session.inputValidation = {
+          tone: "error",
+          message: `有 ${typeBad.length} 个文件格式与当前工作流不兼容，已阻止进入待执行队列，请移除。`,
+        };
+      }
+    } else if (session.inputValidation?.tone === "error") {
+      const qCheck = validateInputFilesForPolicy(policy, session.queuedFiles);
+      if (qCheck.valid || !session.queuedFiles.length) session.inputValidation = null;
+    }
+
+    return policy;
+  }
+
+  function handleIncomingWorkflowFiles(workflow, incomingFiles, { mode = "replace" } = {}) {
+    if (!workflow) return;
+    const policy = getWorkflowInputPolicy(workflow);
+    const session = getSessionState(workflow.id, workflow);
+    const incoming = [...(incomingFiles || [])].filter(Boolean);
+    if (!incoming.length) return;
+
+    if (!policy.ready || !policy.acceptsFiles) {
+      session.rejectedFiles = incoming.map((file) => ({ file, kind: "type", reason: policy.hint }));
+      session.inputValidation = { tone: "error", message: policy.hint };
+      renderSelectedFilesManifest();
+      return;
+    }
+
+    const baseQueued = mode === "append" ? [...session.queuedFiles] : [];
+    const baseRejected = mode === "append" ? [...session.rejectedFiles.filter((e) => e.kind !== "type")] : [];
+    const compatible = [];
+    const badType = [];
+
+    for (const file of incoming) {
+      const issue = fileMatchErrorForPolicy(policy, file);
+      if (issue) badType.push({ file, kind: "type", reason: issue });
+      else compatible.push(file);
+    }
+
+    const stagedGood = [...baseRejected.map((e) => e.file), ...compatible];
+    const combined = [...baseQueued, ...stagedGood];
+
+    if (!stagedGood.length && badType.length) {
+      session.queuedFiles = baseQueued;
+      session.rejectedFiles = badType;
+      session.inputValidation = {
+        tone: "error",
+        message: `所选 ${badType.length} 个文件格式与当前工作流不兼容：${badType.slice(0, 3).map((b) => b.file.name).join("、")}${badType.length > 3 ? " 等" : ""}`,
+      };
+      renderSelectedFilesManifest();
+      return;
+    }
+
+    const check = validateInputFilesForPolicy(policy, combined);
+    if (check.valid && !badType.length) {
+      session.queuedFiles = combined;
+      session.rejectedFiles = [];
+      session.inputValidation = null;
+      renderSelectedFilesManifest();
+      return;
+    }
+
+    if (check.valid && badType.length) {
+      session.queuedFiles = combined;
+      session.rejectedFiles = badType;
+      session.inputValidation = {
+        tone: "error",
+        message: `${badType.length} 个文件格式不符未加入队列，其余 ${combined.length} ${policy.unitLabel}已就绪。`,
+      };
+      renderSelectedFilesManifest();
+      return;
+    }
+
+    // Over count or over size: NEVER push over-limit items into executable queuedFiles, and NEVER silently truncate!
+    session.queuedFiles = baseQueued;
+    const tagReason = check.reason === "size"
+      ? `总大小超限（${formatBytes(fileSizeTotal(combined))}/${formatBytes(policy.maxBytes)}）`
+      : `超限未入队（${combined.length}/${policy.maxFiles}）`;
+    session.rejectedFiles = [
+      ...badType,
+      ...stagedGood.map((file) => ({
+        file,
+        kind: check.reason === "size" ? "size" : "over-limit",
+        reason: tagReason,
+      })),
+    ];
+    session.inputValidation = {
+      tone: "error",
+      message: check.message,
+      excessCount: check.excessCount || 0,
+      excessBytes: check.excessBytes || 0,
+    };
+    renderSelectedFilesManifest();
+  }
+
   function renderInputControls(workflow) {
-    const types = inputTypesFor(workflow);
-    const text = types.includes("text");
-    const textFile = types.includes("text-file");
-    const image = types.includes("image") || types.includes("image-list");
-    const batchCapable = image && workflow.steps.some((step) => step.enabled && step.tool_id === "files-zip");
-    byId("workflowTextInputWrap")?.classList.toggle("hidden", !text);
-    byId("workflowFileInputWrap")?.classList.toggle("hidden", !(textFile || image || types.includes("file-list")));
-    byId("workflowBatchToggleWrap")?.classList.toggle("hidden", !batchCapable);
+    const policy = getWorkflowInputPolicy(workflow);
+    const session = workflow ? getSessionState(workflow.id, workflow) : createEmptySessionState();
+    reconcileSessionFilesWithPolicy(workflow, session);
+
+    byId("workflowTextInputWrap")?.classList.toggle("hidden", !policy.acceptsText);
+    const textInput = byId("workflowTextInput");
+    if (textInput && policy.acceptsText && textInput.value !== (session.textInput || "")) {
+      textInput.value = session.textInput || "";
+    }
+
+    byId("workflowFileInputWrap")?.classList.toggle("hidden", !policy.acceptsFiles);
+    byId("workflowBatchToggleWrap")?.classList.toggle("hidden", !policy.supportsBatch);
     const batchToggle = byId("workflowBatchToggle");
-    if (batchToggle && !batchCapable) batchToggle.checked = false;
+    if (batchToggle) {
+      if (!policy.supportsBatch) {
+        session.batchRequested = false;
+        batchToggle.checked = false;
+      } else {
+        if (!session.batchTouched) session.batchRequested = Boolean(policy.requiresBatch);
+        batchToggle.checked = Boolean(session.batchRequested);
+      }
+    }
+    const batchLabel = byId("workflowBatchToggleLabel");
+    if (batchLabel) {
+      batchLabel.textContent = policy.supportsArchive ? "批量运行并打包结果" : "按批量图片队列运行";
+    }
+
     const fileInput = byId("workflowFileInput");
     if (fileInput) {
-      fileInput.multiple = batchCapable || types.includes("file-list");
-      fileInput.accept = image ? "image/png,image/jpeg,image/webp" : textFile ? ".txt,.csv,.json,text/plain,text/csv,application/json" : "";
+      fileInput.multiple = Boolean(policy.multiple);
+      fileInput.accept = policy.accept || "";
     }
-    if (byId("workflowFileInputLabel")) byId("workflowFileInputLabel").textContent = image ? (batchCapable ? "选择一组图片（最多 20 张）" : "选择一张图片") : "选择文本或数据文件";
-    if (byId("workflowInputHint")) byId("workflowInputHint").textContent = types.length ? `首步输入：${formatTypesLabel(types)}；单次最多 50 个文件且总计不超过 50 MB。` : "请先在画布中添加并启用至少一个处理节点。";
+    if (byId("workflowFileInputLabel")) byId("workflowFileInputLabel").textContent = policy.label;
+    if (byId("workflowFileDropSub")) byId("workflowFileDropSub").textContent = policy.dropSub || "或拖拽到此处";
+    if (byId("workflowInputHint")) byId("workflowInputHint").textContent = policy.hint;
+
     const runBtn = byId("runWorkflowBtn");
-    if (runBtn) runBtn.disabled = !types.length || Boolean(activeRun);
+    if (runBtn) runBtn.disabled = !policy.ready || Boolean(currentActiveRun());
     renderSelectedFilesManifest();
   }
 
   function renderSelectedFilesManifest() {
     const container = byId("workflowSelectedFiles");
-    const fileInput = byId("workflowFileInput");
-    if (!container || !fileInput) return;
-    const files = [...(fileInput.files || [])];
-    if (!files.length) {
+    const workflow = selectedWorkflow();
+    if (!container) return;
+    if (!workflow) {
+      renderInputValidation(null);
       container.innerHTML = "";
       container.classList.add("hidden");
       return;
     }
-    const total = fileSizeTotal(files);
+    const policy = getWorkflowInputPolicy(workflow);
+    const session = getSessionState(workflow.id, workflow);
+    renderInputValidation(session);
+
+    const queued = session.queuedFiles || [];
+    const rejected = session.rejectedFiles || [];
+    if (!queued.length && !rejected.length) {
+      container.innerHTML = "";
+      container.classList.add("hidden");
+      return;
+    }
+
+    const queuedBytes = fileSizeTotal(queued);
+    const stagedBytes = fileSizeTotal([...queued, ...rejected.filter((e) => e.kind !== "type").map((e) => e.file)]);
     container.classList.remove("hidden");
     container.innerHTML = `
       <div class="wf-files-head">
-        <span>已选 ${files.length} 个文件 · 共 ${formatBytes(total)}</span>
-        <button class="button-ghost wf-files-clear" type="button" id="clearWorkflowFilesBtn">清空重选</button>
+        <div class="wf-files-summary">
+          <span class="wf-files-count-pill">待执行队列 ${queued.length} / ${policy.maxFiles} ${escapeHtml(policy.unitLabel)}</span>
+          <span>总大小 ${formatBytes(queuedBytes)} / ${formatBytes(policy.maxBytes)}</span>
+        </div>
+        <div class="wf-files-actions">
+          ${policy.multiple ? '<button class="button-ghost wf-files-append" type="button" id="appendWorkflowFilesBtn">继续添加</button>' : ""}
+          <button class="button-ghost wf-files-clear" type="button" id="clearWorkflowFilesBtn">清空全部</button>
+        </div>
       </div>
-      <ul class="wf-files-list">
-        ${files.slice(0, 8).map((file) => `<li><span class="wf-file-name">${escapeHtml(file.name)}</span><small>${formatBytes(file.size)}</small></li>`).join("")}
-        ${files.length > 8 ? `<li class="wf-files-more">其余 ${files.length - 8} 个文件已就绪</li>` : ""}
-      </ul>
+      ${queued.length ? `
+        <ul class="wf-files-list" id="workflowReadyFileList" aria-label="待执行文件队列">
+          ${queued.map((file, index) => `
+            <li data-wf-file-idx="${index}">
+              <div class="wf-file-main">
+                <span class="wf-file-index">${index + 1}.</span>
+                <span class="wf-file-name" title="${escapeHtml(file.name)}">${escapeHtml(file.name)}</span>
+              </div>
+              <div class="wf-file-meta">
+                <span>${formatBytes(file.size)}</span>
+                <span class="wf-file-status" data-tone="ok">就绪</span>
+                <button class="wf-file-remove" type="button" data-wf-remove-file="${index}" aria-label="移除 ${escapeHtml(file.name)}" title="移除此文件">移除</button>
+              </div>
+            </li>
+          `).join("")}
+        </ul>
+      ` : ""}
+      ${rejected.length ? `
+        <div class="wf-rejected-section" id="workflowRejectedFilesSection">
+          <div class="wf-files-head">
+            <span>未入队文件（${rejected.length} 项 · 含暂存合计 ${queued.length + rejected.filter((e) => e.kind !== "type").length}/${policy.maxFiles} · ${formatBytes(stagedBytes)}）</span>
+            <button class="button-ghost wf-files-clear" type="button" id="clearRejectedFilesBtn">清除未入队</button>
+          </div>
+          <ul class="wf-files-list wf-files-list--rejected" id="workflowRejectedFileList" aria-label="未入队或超限文件">
+            ${rejected.map((entry, index) => `
+              <li class="is-rejected" data-wf-rejected-idx="${index}">
+                <div class="wf-file-main">
+                  <span class="wf-file-index">•</span>
+                  <span class="wf-file-name" title="${escapeHtml(entry.file.name)}">${escapeHtml(entry.file.name)}</span>
+                </div>
+                <div class="wf-file-meta">
+                  <span>${formatBytes(entry.file.size)}</span>
+                  <span class="wf-file-status" data-tone="error">${escapeHtml(entry.reason)}</span>
+                  <button class="wf-file-remove" type="button" data-wf-remove-rejected="${index}" aria-label="移除未入队文件 ${escapeHtml(entry.file.name)}" title="移除此项">移除</button>
+                </div>
+              </li>
+            `).join("")}
+          </ul>
+        </div>
+      ` : ""}
     `;
-    byId("clearWorkflowFilesBtn")?.addEventListener("click", () => {
+
+    byId("appendWorkflowFilesBtn")?.addEventListener("click", () => {
+      const fileInput = byId("workflowFileInput");
+      if (!fileInput) return;
+      pendingFilePickerMode = "append";
       fileInput.value = "";
+      fileInput.click();
+    });
+
+    byId("clearWorkflowFilesBtn")?.addEventListener("click", () => {
+      session.queuedFiles = [];
+      session.rejectedFiles = [];
+      session.inputValidation = null;
+      const fileInput = byId("workflowFileInput");
+      if (fileInput) fileInput.value = "";
       renderSelectedFilesManifest();
+    });
+
+    byId("clearRejectedFilesBtn")?.addEventListener("click", () => {
+      session.rejectedFiles = [];
+      session.inputValidation = null;
+      renderSelectedFilesManifest();
+    });
+
+    container.querySelectorAll("[data-wf-remove-file]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const idx = Number(btn.dataset.wfRemoveFile);
+        if (!Number.isInteger(idx) || idx < 0 || idx >= session.queuedFiles.length) return;
+        session.queuedFiles.splice(idx, 1);
+        reconcileSessionFilesWithPolicy(workflow, session);
+        renderSelectedFilesManifest();
+      });
+    });
+
+    container.querySelectorAll("[data-wf-remove-rejected]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const idx = Number(btn.dataset.wfRemoveRejected);
+        if (!Number.isInteger(idx) || idx < 0 || idx >= session.rejectedFiles.length) return;
+        session.rejectedFiles.splice(idx, 1);
+        reconcileSessionFilesWithPolicy(workflow, session);
+        renderSelectedFilesManifest();
+      });
     });
   }
 
@@ -2612,14 +3293,25 @@
   function clearPreview() {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     previewUrl = "";
+    for (const url of extraPreviewUrls) {
+      try { URL.revokeObjectURL(url); } catch (_) {}
+    }
+    extraPreviewUrls = [];
     const preview = byId("workflowResultPreview");
     if (preview) preview.innerHTML = "";
   }
 
-  async function releaseLastOutput() {
-    clearPreview();
-    if (lastOutput) await cleanupResource(lastOutput);
-    lastOutput = null;
+  async function releaseLastOutput(targetSession = null) {
+    const session = targetSession || getSessionState();
+    if (!targetSession || currentSessionKey() === currentSessionKey(session.workflowId)) {
+      clearPreview();
+    }
+    if (session.lastOutput) await cleanupResource(session.lastOutput);
+    session.lastOutput = null;
+    session.downloadBundle = null;
+    session.outputSummary = null;
+    session.copyStatus = "";
+    session.downloadDone = false;
   }
 
   function renderTypedOutputCard(kind, detailHtml) {
@@ -2639,15 +3331,95 @@
         renderInspector();
       });
     });
+    typed.querySelectorAll("[data-wf-download-item]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const idx = Number(btn.dataset.wfDownloadItem);
+        const out = currentLastOutput();
+        if (!out || out.type !== "image-list" || !Array.isArray(out.value)) return;
+        const entry = out.value[idx];
+        const blob = entry?.resource?.value || entry?.value;
+        const name = entry?.resource?.name || entry?.name || `image-${idx + 1}.png`;
+        if (blob) downloadBlob(name, blob);
+      });
+    });
   }
 
-  function displayErrorOutput(error) {
-    const failedStep = lastStatuses.find((s) => s.status === "failed");
+  function renderPreviewForOutput(resource) {
+    clearPreview();
+    const container = byId("workflowResultPreview");
+    if (!container || !resource) return;
+    if (resource.type === "image" && resource.value) {
+      previewUrl = URL.createObjectURL(resource.value);
+      const image = document.createElement("img");
+      image.src = previewUrl;
+      image.alt = "工作流图片结果预览";
+      container.appendChild(image);
+      return;
+    }
+    if (resource.type === "image-list" && Array.isArray(resource.value)) {
+      const succeeded = resource.value.filter((item) => item.status === "success" && (item.resource?.value || item.value));
+      if (!succeeded.length) return;
+      const gallery = document.createElement("div");
+      gallery.className = "wf-image-gallery";
+      succeeded.slice(0, 12).forEach((item, index) => {
+        const blob = item.resource?.value || item.value;
+        const name = item.resource?.name || item.name || `result-${index + 1}`;
+        const url = URL.createObjectURL(blob);
+        extraPreviewUrls.push(url);
+        const card = document.createElement("div");
+        card.className = "wf-image-thumb-card";
+        const img = document.createElement("img");
+        img.src = url;
+        img.alt = `处理结果：${name}`;
+        const caption = document.createElement("span");
+        caption.textContent = name;
+        caption.title = name;
+        card.append(img, caption);
+        gallery.appendChild(card);
+      });
+      container.appendChild(gallery);
+    }
+  }
+
+  function restoreSessionResultUi(session) {
+    if (!session) return;
+    const textTarget = byId("workflowResultText");
+    const textWrap = byId("workflowResultTextWrap");
+    const textLabel = byId("workflowResultTextLabel");
+    const copyButton = byId("copyWorkflowResultBtn");
+    const downloadButton = byId("downloadWorkflowResultBtn");
+    const statusesEl = byId("workflowStepStatuses");
+
+    if (statusesEl) {
+      const statuses = session.lastStatuses || [];
+      statusesEl.innerHTML = statuses.map((status, index) => `<div data-workflow-step-status="${status.id}" data-status="${status.status}"><span>${index + 1}. ${escapeHtml(CAPABILITY_REGISTRY[status.tool_id]?.name || status.tool_id)}</span><strong>${STATUS_LABELS[status.status] || status.status}${status.duration_ms ? ` · ${status.duration_ms} ms` : ""}</strong>${status.error ? `<small>${escapeHtml(status.error)}</small>` : ""}</div>`).join("");
+    }
+
+    const summary = session.outputSummary;
+    if (!summary) return;
+    if (textTarget) textTarget.value = summary.resultText || "";
+    if (textWrap) textWrap.classList.toggle("hidden", Boolean(summary.resultTextHidden));
+    if (textLabel) textLabel.textContent = summary.resultTextLabel || "最终结果";
+    if (copyButton) {
+      copyButton.disabled = !summary.canCopy;
+      copyButton.textContent = session.copyStatus || copyButton.dataset.originalLabel || "复制结果";
+    }
+    if (downloadButton) {
+      downloadButton.disabled = !summary.canDownload;
+      downloadButton.textContent = downloadButton.dataset.originalLabel || "下载结果";
+    }
+    renderTypedOutputCard(summary.kind, summary.detailHtml);
+    renderPreviewForOutput(session.lastOutput);
+  }
+
+  function displayErrorOutput(error, targetSession = null) {
+    const session = targetSession || getSessionState();
+    const statuses = session.lastStatuses || lastStatuses || [];
+    const failedStep = statuses.find((s) => s.status === "failed");
     const stepName = failedStep ? (CAPABILITY_REGISTRY[failedStep.tool_id]?.name || failedStep.tool_id) : "";
-    lastRunError = { stepId: failedStep?.id || "", message: error.message };
-    byId("workflowResultTextWrap")?.classList.remove("hidden");
-    if (byId("workflowResultTextLabel")) byId("workflowResultTextLabel").textContent = "错误详情";
-    renderTypedOutputCard("error", `
+    const errObj = { stepId: failedStep?.id || "", message: error.message };
+    session.runError = errObj;
+    const detailHtml = `
       <div class="wf-output-banner" data-tone="error">
         <div>
           <strong>${failedStep ? `步骤“${escapeHtml(stepName)}”执行失败` : "工作流未能执行"}</strong>
@@ -2655,119 +3427,256 @@
         </div>
         ${failedStep ? `<button class="button-secondary" type="button" data-focus-failed-step="${failedStep.id}">定位到失败节点</button>` : ""}
       </div>
-    `);
+    `;
+    session.outputSummary = {
+      kind: "error",
+      detailHtml,
+      resultText: error.message,
+      resultTextLabel: "错误详情",
+      resultTextHidden: false,
+      canCopy: false,
+      canDownload: false,
+    };
+    if (currentSessionKey() === currentSessionKey(session.workflowId)) {
+      lastRunError = errObj;
+      byId("workflowResultTextWrap")?.classList.remove("hidden");
+      if (byId("workflowResultTextLabel")) byId("workflowResultTextLabel").textContent = "错误详情";
+      renderTypedOutputCard("error", detailHtml);
+    }
   }
 
-  function displayOutput(resource) {
-    const textTarget = byId("workflowResultText");
-    const textWrap = byId("workflowResultTextWrap");
-    const textLabel = byId("workflowResultTextLabel");
-    const copyButton = byId("copyWorkflowResultBtn");
-    const downloadButton = byId("downloadWorkflowResultBtn");
-    textTarget.value = "";
-    copyButton.disabled = true;
-    downloadButton.disabled = true;
-    lastRunError = null;
-    clearPreview();
+  async function buildImageListDownloadArchive(resource) {
+    const items = Array.isArray(resource?.value) ? resource.value : [];
+    const entries = [];
+    for (const item of items) {
+      if (item.status === "failed") continue;
+      const child = item.resource || item;
+      const blob = child?.value || child;
+      if (!blob || typeof blob.arrayBuffer !== "function") continue;
+      entries.push({
+        name: child.name || item.name || `image-${entries.length + 1}.png`,
+        data: new Uint8Array(await blob.arrayBuffer()),
+      });
+    }
+    if (!entries.length) return null;
+    return createResource("archive", primitive("zipBlob")(entries), {
+      name: "workflow-images.zip",
+      mime: "application/zip",
+      owned: true,
+    });
+  }
 
+  function displayOutput(resource, targetSession = null, downloadArchive = null) {
+    const session = targetSession || getSessionState();
+    const isCurrent = currentSessionKey() === currentSessionKey(session.workflowId);
+    session.runError = null;
+    session.copyStatus = "";
+    session.downloadDone = false;
+
+    let summary = null;
     if (resource.type === "text") {
       const value = String(resource.value);
-      textTarget.value = value;
-      textWrap?.classList.remove("hidden");
-      if (textLabel) textLabel.textContent = "文本输出结果";
-      copyButton.disabled = false;
       const blob = new Blob([value], { type: resource.mime || "text/plain;charset=utf-8" });
-      lastOutput = createResource("file", blob, { name: resource.name || "workflow-result.txt", mime: blob.type, owned: true });
-      downloadButton.disabled = false;
+      session.lastOutput = createResource("file", blob, { name: resource.name || "workflow-result.txt", mime: blob.type, owned: true });
       const lines = value ? value.split(/\r?\n/).length : 0;
-      renderTypedOutputCard("text", `<div class="wf-output-banner" data-tone="success"><div><strong>文本处理完成</strong><p>${escapeHtml(resource.name || "workflow-result.txt")} · ${value.length} 字符 · ${lines} 行</p></div></div>`);
+      summary = {
+        kind: "text",
+        detailHtml: `<div class="wf-output-banner" data-tone="success"><div><strong>文本处理完成</strong><p>${escapeHtml(resource.name || "workflow-result.txt")} · ${value.length} 字符 · ${lines} 行</p></div></div>`,
+        resultText: value,
+        resultTextLabel: "文本输出结果",
+        resultTextHidden: false,
+        canCopy: true,
+        canDownload: true,
+      };
     } else if (resource.type === "json") {
       const formatted = JSON.stringify(resource.value, null, 2);
-      textTarget.value = formatted;
-      textWrap?.classList.remove("hidden");
-      if (textLabel) textLabel.textContent = "结构化 JSON 输出";
-      copyButton.disabled = false;
       const blob = new Blob([formatted], { type: "application/json" });
-      lastOutput = createResource("file", blob, { name: resource.name || "workflow-result.json", mime: blob.type, owned: true });
-      downloadButton.disabled = false;
+      session.lastOutput = createResource("file", blob, { name: resource.name || "workflow-result.json", mime: blob.type, owned: true });
       const countText = Array.isArray(resource.value) ? `${resource.value.length} 条记录` : "JSON 对象";
-      renderTypedOutputCard("json", `<div class="wf-output-banner" data-tone="success"><div><strong>JSON 转换完成</strong><p>${escapeHtml(resource.name || "workflow.json")} · ${countText} · ${formatBytes(blob.size)}</p></div></div>`);
+      summary = {
+        kind: "json",
+        detailHtml: `<div class="wf-output-banner" data-tone="success"><div><strong>JSON 转换完成</strong><p>${escapeHtml(resource.name || "workflow.json")} · ${countText} · ${formatBytes(blob.size)}</p></div></div>`,
+        resultText: formatted,
+        resultTextLabel: "结构化 JSON 输出",
+        resultTextHidden: false,
+        canCopy: true,
+        canDownload: true,
+      };
     } else if (resource.type === "image") {
-      lastOutput = resource;
-      downloadButton.disabled = false;
-      textTarget.value = `${resource.name || "处理结果"}\n${resource.mime || resource.value?.type || ""}\n${resource.value?.size ?? 0} 字节`;
-      textWrap?.classList.add("hidden");
-      previewUrl = URL.createObjectURL(resource.value);
-      const image = document.createElement("img");
-      image.src = previewUrl;
-      image.alt = "工作流图片结果预览";
-      byId("workflowResultPreview").appendChild(image);
-      renderTypedOutputCard("image", `<div class="wf-output-banner" data-tone="success"><div><strong>图片处理完成</strong><p>${escapeHtml(resource.name || "output-image")} · ${escapeHtml(resource.mime || resource.value?.type || "")} · ${formatBytes(resource.value?.size || 0)}</p></div></div>`);
+      session.lastOutput = resource;
+      summary = {
+        kind: "image",
+        detailHtml: `<div class="wf-output-banner" data-tone="success"><div><strong>图片处理完成</strong><p>${escapeHtml(resource.name || "output-image")} · ${escapeHtml(resource.mime || resource.value?.type || "")} · ${formatBytes(resource.value?.size || 0)}</p></div></div>`,
+        resultText: `${resource.name || "处理结果"}\n${resource.mime || resource.value?.type || ""}\n${resource.value?.size ?? 0} 字节`,
+        resultTextLabel: "最终结果",
+        resultTextHidden: true,
+        canCopy: false,
+        canDownload: true,
+      };
+    } else if (resource.type === "image-list") {
+      session.lastOutput = resource;
+      session.downloadBundle = downloadArchive || null;
+      const allItems = Array.isArray(resource.value) ? resource.value : [];
+      const succeeded = allItems.filter((item) => item.status === "success");
+      const failedCount = allItems.length - succeeded.length;
+      const downloadButtons = allItems.map((item, idx) => {
+        if (item.status !== "success") return "";
+        const outName = item.resource?.name || item.name || `image-${idx + 1}`;
+        return `<button class="button-ghost wf-node-act" type="button" data-wf-download-item="${idx}">下载 ${escapeHtml(outName)}</button>`;
+      }).join("");
+      summary = {
+        kind: "image-list",
+        detailHtml: `
+          <div class="wf-output-banner" data-tone="success">
+            <div>
+              <strong>批量图片处理完成</strong>
+              <p>共 ${succeeded.length} 张成功${failedCount ? `，${failedCount} 张失败` : ""}；可直接点击下方按钮下载单张，或点击“下载结果”获取本地打包 ZIP。</p>
+              ${downloadButtons ? `<div class="wf-item-downloads">${downloadButtons}</div>` : ""}
+            </div>
+          </div>
+        `,
+        resultText: succeeded.map((item) => `${item.resource?.name || item.name}: ${formatBytes(item.resource?.value?.size || 0)}`).join("\n"),
+        resultTextLabel: "批量图片清单",
+        resultTextHidden: true,
+        canCopy: false,
+        canDownload: Boolean(downloadArchive || succeeded.length),
+      };
     } else if (resource.type === "archive" || resource.type === "file") {
-      lastOutput = resource;
-      downloadButton.disabled = false;
-      textTarget.value = `${resource.name || "处理结果"}\n${resource.mime || resource.value?.type || ""}\n${resource.value?.size ?? 0} 字节`;
-      textWrap?.classList.add("hidden");
+      session.lastOutput = resource;
       const itemCount = Array.isArray(resource.items) ? resource.items.filter((i) => i.status === "success").length : 0;
-      renderTypedOutputCard("archive", `<div class="wf-output-banner" data-tone="success"><div><strong>${resource.type === "archive" ? "ZIP 压缩包已生成" : "文件产物已生成"}</strong><p>${escapeHtml(resource.name || "workflow-results.zip")} · ${formatBytes(resource.value?.size || 0)}${itemCount ? ` · 包含 ${itemCount} 项成功产物` : ""}</p></div></div>`);
+      summary = {
+        kind: "archive",
+        detailHtml: `<div class="wf-output-banner" data-tone="success"><div><strong>${resource.type === "archive" ? "ZIP 压缩包已生成" : "文件产物已生成"}</strong><p>${escapeHtml(resource.name || "workflow-results.zip")} · ${formatBytes(resource.value?.size || 0)}${itemCount ? ` · 包含 ${itemCount} 项成功产物` : ""}</p></div></div>`,
+        resultText: `${resource.name || "处理结果"}\n${resource.mime || resource.value?.type || ""}\n${resource.value?.size ?? 0} 字节`,
+        resultTextLabel: "最终结果",
+        resultTextHidden: true,
+        canCopy: false,
+        canDownload: true,
+      };
     } else {
-      lastOutput = resource;
-      textTarget.value = "工作流已完成";
-      textWrap?.classList.remove("hidden");
-      renderTypedOutputCard("text", `<div class="wf-output-banner" data-tone="success"><div><strong>工作流已完成</strong></div></div>`);
+      session.lastOutput = resource;
+      summary = {
+        kind: "text",
+        detailHtml: `<div class="wf-output-banner" data-tone="success"><div><strong>工作流已完成</strong></div></div>`,
+        resultText: "工作流已完成",
+        resultTextLabel: "最终结果",
+        resultTextHidden: false,
+        canCopy: false,
+        canDownload: false,
+      };
+    }
+
+    session.outputSummary = summary;
+    if (isCurrent) {
+      lastRunError = null;
+      restoreSessionResultUi(session);
     }
   }
 
   async function runSelectedWorkflow() {
-    if (activeRun) return;
-    setRunnerExpanded(true, { scroll: true });
     const workflow = validateWorkflow(selectedWorkflow());
-    await releaseLastOutput();
-    renderTypedOutputCard(null);
-    const files = [...(byId("workflowFileInput")?.files || [])];
-    const batchRequested = Boolean(byId("workflowBatchToggle")?.checked);
-    const types = inputTypesFor(workflow);
-    const input = types.includes("text")
-      ? createResource("text", byId("workflowTextInput")?.value || "", { name: "workflow-input.txt", mime: "text/plain", owned: false })
+    const runSessionKey = currentSessionKey(workflow.id);
+    if (!runSessionKey || activeRunsBySession.has(runSessionKey)) return;
+    const targetSession = getSessionState(workflow.id, workflow);
+    setRunnerExpanded(true, { scroll: true });
+    await releaseLastOutput(targetSession);
+    if (currentSessionKey() === runSessionKey) renderTypedOutputCard(null);
+
+    const policy = getWorkflowInputPolicy(workflow);
+    const files = [...(targetSession.queuedFiles || [])];
+    const batchRequested = Boolean(targetSession.batchRequested);
+
+    if (policy.acceptsFiles && !files.length && targetSession.rejectedFiles?.length) {
+      throw new Error(targetSession.inputValidation?.message || "存在未入队的超限或无效文件，请先移除多余文件");
+    }
+
+    const input = policy.acceptsText
+      ? createResource("text", byId("workflowTextInput")?.value || targetSession.textInput || "", { name: "workflow-input.txt", mime: "text/plain", owned: false })
       : resourceFromFiles(workflow, files, batchRequested);
-    if (batchRequested && !sequenceOutputTypes(workflow).includes("archive")) throw new Error("批量流程最后必须生成 ZIP");
+
     const controller = new AbortController();
-    const cancelBtn = byId("cancelWorkflowBtn");
-    byId("runWorkflowBtn").disabled = true;
-    if (cancelBtn) { cancelBtn.disabled = false; cancelBtn.classList.remove("hidden"); }
-    byId("workflowRunState").textContent = "运行中";
-    byId("workflowRunState").dataset.status = "running";
-    showCanvasAlert("");
-    renderItemResults([]);
+    const isVisibleSession = () => currentSessionKey() === runSessionKey && viewMode === "editor";
+    targetSession.runState = { status: "running", label: "运行中", progressText: "" };
+    targetSession.itemResults = [];
+    targetSession.lastStatuses = [];
+
+    if (currentSessionKey() === runSessionKey) {
+      const cancelBtn = byId("cancelWorkflowBtn");
+      const runBtn = byId("runWorkflowBtn");
+      if (runBtn) runBtn.disabled = true;
+      if (cancelBtn) { cancelBtn.disabled = false; cancelBtn.classList.remove("hidden"); }
+      if (byId("workflowRunState")) {
+        byId("workflowRunState").textContent = "运行中";
+        byId("workflowRunState").dataset.status = "running";
+      }
+      showCanvasAlert("");
+      renderItemResults([]);
+    }
+
     const runEpoch = startVisualExecutionRun(workflow);
     const promise = executeWorkflow(workflow, input, {
       signal: controller.signal,
       batch: batchRequested,
       onStatus: (statuses) => {
-        renderStepStatuses(statuses);
-        syncVisualExecutionRun(runEpoch, statuses);
+        targetSession.lastStatuses = cloneJson(statuses);
+        const activeTotal = statuses.filter((s) => s.status !== "skipped").length || statuses.length;
+        const doneCount = statuses.filter((s) => s.status === "success").length;
+        const runningStep = statuses.find((s) => s.status === "running");
+        targetSession.runState = {
+          status: "running",
+          label: "运行中",
+          progressText: runningStep
+            ? `正在执行：${CAPABILITY_REGISTRY[runningStep.tool_id]?.name || runningStep.tool_id}（已完成 ${doneCount}/${activeTotal}）`
+            : `已完成 ${doneCount}/${activeTotal} 步`,
+        };
         const items = [...statuses].reverse().find((item) => item.items?.length)?.items || [];
-        renderItemResults(items);
+        targetSession.itemResults = cloneJson(items);
+        if (currentSessionKey() === runSessionKey) {
+          renderStepStatuses(statuses);
+          if (isVisibleSession()) syncVisualExecutionRun(runEpoch, statuses);
+          renderItemResults(items);
+        }
       },
     });
-    activeRun = { controller, promise };
+    activeRunsBySession.set(runSessionKey, { controller, promise, workflowId: workflow.id });
     try {
       const result = await promise;
-      displayOutput(result.output);
-      syncVisualExecutionRun(runEpoch, result.statuses || lastStatuses, { completed: true });
-      byId("workflowRunState").textContent = "已完成";
-      byId("workflowRunState").dataset.status = "success";
+      const downloadArchive = result.output?.type === "image-list"
+        ? await buildImageListDownloadArchive(result.output)
+        : null;
+      targetSession.lastStatuses = cloneJson(result.statuses || targetSession.lastStatuses || []);
+      targetSession.runState = { status: "success", label: "已完成", progressText: targetSession.runState.progressText };
+      displayOutput(result.output, targetSession, downloadArchive);
+      if (currentSessionKey() === runSessionKey) {
+        if (isVisibleSession()) syncVisualExecutionRun(runEpoch, result.statuses || lastStatuses, { completed: true });
+        if (byId("workflowRunState")) {
+          byId("workflowRunState").textContent = "已完成";
+          byId("workflowRunState").dataset.status = "success";
+        }
+      }
     } catch (error) {
       const isAbort = error.name === "AbortError";
-      syncVisualExecutionRun(runEpoch, lastStatuses, { failed: !isAbort, cancelled: isAbort });
-      byId("workflowRunState").textContent = isAbort ? "已取消" : "失败";
-      byId("workflowRunState").dataset.status = isAbort ? "cancelled" : "failed";
-      byId("workflowResultText").value = error.message;
-      if (!isAbort) displayErrorOutput(error);
+      targetSession.runState = {
+        status: isAbort ? "cancelled" : "failed",
+        label: isAbort ? "已取消" : "失败",
+        progressText: targetSession.runState.progressText,
+      };
+      if (currentSessionKey() === runSessionKey) {
+        if (isVisibleSession()) syncVisualExecutionRun(runEpoch, targetSession.lastStatuses || lastStatuses, { failed: !isAbort, cancelled: isAbort });
+        if (byId("workflowRunState")) {
+          byId("workflowRunState").textContent = isAbort ? "已取消" : "失败";
+          byId("workflowRunState").dataset.status = isAbort ? "cancelled" : "failed";
+        }
+        if (byId("workflowResultText")) byId("workflowResultText").value = error.message;
+      }
+      if (!isAbort) displayErrorOutput(error, targetSession);
     } finally {
-      activeRun = null;
-      if (cancelBtn) { cancelBtn.disabled = true; cancelBtn.classList.add("hidden"); }
-      renderInputControls(workflow);
+      activeRunsBySession.delete(runSessionKey);
+      if (currentSessionKey() === runSessionKey) {
+        const cancelBtn = byId("cancelWorkflowBtn");
+        if (cancelBtn) { cancelBtn.disabled = true; cancelBtn.classList.add("hidden"); }
+        renderInputControls(selectedWorkflow());
+      }
     }
   }
 
@@ -2827,6 +3736,12 @@
   async function deleteWorkflowById(id) {
     const workflow = workflows.find((item) => item.id === id);
     if (!workflow) return;
+    const key = currentSessionKey(workflow.id);
+    if (key && activeRunsBySession.has(key)) {
+      activeRunsBySession.get(key).controller.abort();
+      activeRunsBySession.delete(key);
+    }
+    clearSessionState(workflow.id);
     const cloudId = cloudConfigIds.get(workflow.id);
     workflows = workflows.filter((item) => item.id !== workflow.id);
     removeCanvasUiFor(workflow.id);
@@ -2834,6 +3749,7 @@
       selectedWorkflowId = workflows[0]?.id || "";
       selectedStepId = "";
       const nextWf = selectedWorkflow();
+      resetRunnerUiState(nextWf ? getSessionState(nextWf.id, nextWf) : null);
       const ui = loadCanvasUiFor(selectedWorkflowId, nextWf);
       canvasViewport = ui.viewport;
       canvasNodeOffsets = ui.nodeOffsets;
@@ -2866,12 +3782,29 @@
     copy.name = `${copy.name} 副本`.slice(0, 80);
     copy.created_at = nowIso();
     copy.updated_at = copy.created_at;
-    copy.steps = copy.steps.map((step) => ({ ...step, id: randomId("step") }));
-    workflows.unshift(validateWorkflow(copy));
-    selectedWorkflowId = copy.id;
+    const stepIdMap = new Map();
+    copy.steps = copy.steps.map((step) => {
+      const nextId = randomId("step");
+      stepIdMap.set(step.id, nextId);
+      return { ...step, id: nextId };
+    });
+    const validatedCopy = validateWorkflow(copy);
+    workflows.unshift(validatedCopy);
+    const srcUi = loadCanvasUiFor(workflow.id, workflow);
+    const remappedOffsets = {};
+    for (const [oldStepId, offset] of Object.entries(srcUi.nodeOffsets || {})) {
+      const nextStepId = stepIdMap.get(oldStepId);
+      if (nextStepId) remappedOffsets[nextStepId] = { ...offset };
+    }
+    selectedWorkflowId = validatedCopy.id;
     selectedStepId = "";
+    clearSessionState(validatedCopy.id);
+    resetRunnerUiState(getSessionState(validatedCopy.id, validatedCopy));
+    canvasViewport = { ...srcUi.viewport };
+    canvasNodeOffsets = remappedOffsets;
     openRowMenuId = "";
     persistLocalWorkflows();
+    persistCanvasViewport();
     renderAll();
     setSaveMessage("已复制为新工作流");
   }
@@ -2903,9 +3836,8 @@
     workflows.unshift(workflow);
     selectedWorkflowId = workflow.id;
     selectedStepId = "";
-    lastStatuses = [];
-    lastRunError = null;
-    stopAllVisualAnimations();
+    clearSessionState(workflow.id);
+    resetRunnerUiState(getSessionState(workflow.id, workflow));
     canvasViewport = { panX: 0, panY: 0, zoom: 1 };
     canvasNodeOffsets = {};
     persistLocalWorkflows();
@@ -2929,15 +3861,20 @@
   }
 
   async function show(_path = "/tools/workflows", options = {}) {
+    const currentAcct = accountId();
+    const accountSwitched = Boolean(lastSeenAccountId && lastSeenAccountId !== currentAcct);
+    if (accountSwitched) abortRunsOutsideAccount(currentAcct);
+    lastSeenAccountId = currentAcct;
     const alreadyVisible = !byId("workflowWorkspace")?.classList.contains("hidden");
     setAccess(options);
     byId("toolsDashboard")?.classList.add("hidden");
     byId("toolWorkbench")?.classList.add("hidden");
     byId("workflowWorkspace")?.classList.remove("hidden");
     byId("workflowWorkspace")?.setAttribute("aria-hidden", "false");
-    if (!alreadyVisible) viewMode = "list";
+    if (!alreadyVisible || accountSwitched) viewMode = "list";
     loadLocalWorkflows();
     const activeWf = selectedWorkflow();
+    resetRunnerUiState(activeWf ? getSessionState(activeWf.id, activeWf) : null);
     const ui = loadCanvasUiFor(selectedWorkflowId, activeWf);
     canvasViewport = ui.viewport;
     canvasNodeOffsets = ui.nodeOffsets;
@@ -2951,14 +3888,17 @@
   }
 
   function hide(options = {}) {
-    if (options.cancel && activeRun) activeRun.controller.abort();
+    if (options.cancel) {
+      for (const run of activeRunsBySession.values()) run.controller.abort();
+      activeRunsBySession.clear();
+    }
     stopAllVisualAnimations();
     closeNodePicker({ restoreFocus: false });
     closeEditorMoreMenu();
     openRowMenuId = "";
     byId("workflowWorkspace")?.classList.add("hidden");
     byId("workflowWorkspace")?.setAttribute("aria-hidden", "true");
-    void releaseLastOutput();
+    clearPreview();
   }
 
   function matches(path) {
@@ -3217,24 +4157,20 @@
         const dragCenterY = startSlot.cy + drag.originOff.y + dyWorld;
 
         if (drag.candidateIdx === drag.startIdx) {
-          // Stayed within original sequential zone: clamp safely inside zone and persist!
+          // Stayed within original sequential zone: preserve unrestricted desktop coordinates!
           drag.nodes.forEach((n) => {
             if (n !== drag.item) animateSiblingShift(n, n.dataset.stepId, 0, 0, drag);
           });
-          const settledOff = clampNodeOffset(drag.originOff.x + dxWorld, drag.originOff.y + dyWorld, mobile);
-          const settleDeltaX = (drag.originOff.x + dxWorld) - settledOff.x;
-          const settleDeltaY = (drag.originOff.y + dyWorld) - settledOff.y;
+          if (mobile) {
+            drag.item.style.setProperty("--wf-off-x", "0.0px");
+            drag.item.style.setProperty("--wf-off-y", "0.0px");
+            scheduleEdgeSync(220);
+            return;
+          }
+          const settledOff = clampNodeOffset(drag.originOff.x + dxWorld, drag.originOff.y + dyWorld);
           canvasNodeOffsets[drag.stepId] = settledOff;
           drag.item.style.setProperty("--wf-off-x", `${settledOff.x.toFixed(1)}px`);
           drag.item.style.setProperty("--wf-off-y", `${settledOff.y.toFixed(1)}px`);
-          if (!isReducedMotion() && typeof drag.item.animate === "function" && (Math.abs(settleDeltaX) > 1 || Math.abs(settleDeltaY) > 1)) {
-            try {
-              drag.item.animate(
-                [{ transform: `translate3d(${settleDeltaX.toFixed(1)}px, ${settleDeltaY.toFixed(1)}px, 0)` }, { transform: "translate3d(0px, 0px, 0)" }],
-                { duration: 200, easing: "cubic-bezier(0.22, 1, 0.36, 1)" },
-              );
-            } catch (_) {}
-          }
           persistCanvasViewport();
           scheduleEdgeSync(220);
           return;
@@ -3253,7 +4189,7 @@
           return;
         }
 
-        // Commit valid reorder cleanly + keep landed intra-zone offset.
+        // Commit valid reorder cleanly + retain released spatial coordinates (never force-snap to slot center).
         const beforeRects = new Map();
         drag.nodes.forEach((n) => {
           const anim = nodeShiftAnims.get(n.dataset.stepId);
@@ -3264,8 +4200,10 @@
           n.classList.remove("is-drag-settling");
         });
 
-        const destSlot = drag.slots[drag.candidateIdx];
-        canvasNodeOffsets[drag.stepId] = clampNodeOffset(dragCenterX - destSlot.cx, dragCenterY - destSlot.cy, mobile);
+        if (!mobile) {
+          const destSlot = drag.slots[drag.candidateIdx];
+          canvasNodeOffsets[drag.stepId] = clampNodeOffset(dragCenterX - destSlot.cx, dragCenterY - destSlot.cy);
+        }
         workflow.steps = candidateSteps;
         lastStatuses = [];
         lastRunError = null;
@@ -3309,7 +4247,6 @@
     bridge = context;
 
     byId("closeWorkflowBtn")?.addEventListener("click", () => {
-      if (activeRun) activeRun.controller.abort();
       hide({ cancel: true });
       byId("toolsDashboard")?.classList.remove("hidden");
       document.querySelector("#toolsPanel .tools-header")?.classList.remove("hidden");
@@ -3320,7 +4257,6 @@
     });
 
     byId("workflowBackToListBtn")?.addEventListener("click", () => {
-      if (activeRun) activeRun.controller.abort();
       setViewMode("list");
     });
     byId("workflowEmptyBackBtn")?.addEventListener("click", () => setViewMode("list"));
@@ -3465,46 +4401,95 @@
 
     const fileInput = byId("workflowFileInput");
     const dropLabel = byId("workflowFileInputWrap");
-    fileInput?.addEventListener("change", () => renderSelectedFilesManifest());
+    byId("workflowTextInput")?.addEventListener("input", (event) => {
+      const workflow = selectedWorkflow();
+      if (!workflow) return;
+      getSessionState(workflow.id, workflow).textInput = event.currentTarget.value || "";
+    });
+    byId("workflowBatchToggle")?.addEventListener("change", (event) => {
+      const workflow = selectedWorkflow();
+      if (!workflow) return;
+      const session = getSessionState(workflow.id, workflow);
+      session.batchRequested = Boolean(event.currentTarget.checked);
+      session.batchTouched = true;
+    });
+    fileInput?.addEventListener("change", () => {
+      const mode = pendingFilePickerMode;
+      pendingFilePickerMode = "replace";
+      const workflow = selectedWorkflow();
+      const picked = [...(fileInput.files || [])];
+      if (!workflow || !picked.length) {
+        renderSelectedFilesManifest();
+        return;
+      }
+      handleIncomingWorkflowFiles(workflow, picked, { mode });
+      try { fileInput.value = ""; } catch (_) {}
+    });
+    dropLabel?.addEventListener("click", () => {
+      pendingFilePickerMode = "replace";
+    });
     dropLabel?.addEventListener("dragover", (event) => {
       event.preventDefault();
       dropLabel.dataset.dropState = "active";
+      dropLabel.classList.add("is-dragover");
     });
     dropLabel?.addEventListener("dragleave", () => {
       delete dropLabel.dataset.dropState;
+      dropLabel.classList.remove("is-dragover");
     });
     dropLabel?.addEventListener("drop", (event) => {
       event.preventDefault();
       delete dropLabel.dataset.dropState;
-      const dropped = event.dataTransfer?.files;
-      if (dropped?.length && fileInput) {
-        try {
-          const dt = new DataTransfer();
-          for (const f of dropped) dt.items.add(f);
-          fileInput.files = dt.files;
-          fileInput.dispatchEvent(new Event("change", { bubbles: true }));
-        } catch (_) {}
-      }
+      dropLabel.classList.remove("is-dragover");
+      const dropped = [...(event.dataTransfer?.files || [])];
+      const workflow = selectedWorkflow();
+      if (!dropped.length || !workflow) return;
+      const policy = getWorkflowInputPolicy(workflow);
+      const session = getSessionState(workflow.id, workflow);
+      const mode = policy.multiple && session.queuedFiles.length > 0 ? "append" : "replace";
+      handleIncomingWorkflowFiles(workflow, dropped, { mode });
     });
 
-    byId("runWorkflowBtn")?.addEventListener("click", () => runSelectedWorkflow().catch((error) => {
-      byId("workflowRunState").textContent = "失败";
-      byId("workflowRunState").dataset.status = "failed";
-      byId("workflowResultText").value = error.message;
-      displayErrorOutput(error);
-    }));
-    byId("cancelWorkflowBtn")?.addEventListener("click", () => activeRun?.controller.abort());
-    byId("downloadWorkflowResultBtn")?.addEventListener("click", () => lastOutput && downloadBlob(lastOutput.name || "workflow-result", lastOutput.value));
+    byId("runWorkflowBtn")?.addEventListener("click", () => {
+      const targetWf = selectedWorkflow();
+      const targetSession = targetWf ? getSessionState(targetWf.id, targetWf) : null;
+      runSelectedWorkflow().catch((error) => {
+        if (targetSession) {
+          targetSession.runState = { status: "failed", label: "失败", progressText: targetSession.runState?.progressText || "" };
+        }
+        if (!targetWf || selectedWorkflowId === targetWf.id) {
+          if (byId("workflowRunState")) {
+            byId("workflowRunState").textContent = "失败";
+            byId("workflowRunState").dataset.status = "failed";
+          }
+          if (byId("workflowResultText")) byId("workflowResultText").value = error.message;
+        }
+        displayErrorOutput(error, targetSession);
+      });
+    });
+    byId("cancelWorkflowBtn")?.addEventListener("click", () => currentActiveRun()?.controller.abort());
+    byId("downloadWorkflowResultBtn")?.addEventListener("click", () => {
+      const session = getSessionState();
+      const target = session.downloadBundle || session.lastOutput;
+      if (!target || !target.value) return;
+      if (target.value instanceof Blob) {
+        session.downloadDone = true;
+        downloadBlob(target.name || "workflow-result", target.value);
+      }
+    });
     byId("copyWorkflowResultBtn")?.addEventListener("click", async (event) => {
       const button = event.currentTarget;
-      const copied = await bridge.copyText(byId("workflowResultText").value);
+      const session = getSessionState();
+      const copied = await bridge.copyText(byId("workflowResultText")?.value || "");
       if (!button) return;
       if (!button.dataset.originalLabel) button.dataset.originalLabel = button.textContent;
       const prevTimer = Number(button.dataset.copyTimer || 0);
       if (prevTimer) root.clearTimeout(prevTimer);
-      button.textContent = copied ? "已复制" : "复制失败";
+      session.copyStatus = copied ? "已复制" : "复制失败";
+      button.textContent = session.copyStatus;
       button.dataset.copyTimer = String(root.setTimeout(() => {
         delete button.dataset.copyTimer;
+        session.copyStatus = "";
         if (button.isConnected && button.dataset.originalLabel) button.textContent = button.dataset.originalLabel;
       }, 1200));
     });
@@ -3538,17 +4523,25 @@
       cleanupResource,
       inputTypesFor,
       sequenceOutputTypes,
+      getWorkflowInputPolicy,
+      validateInputFilesForPolicy,
+      resourceFromFiles,
     }),
     test: Object.freeze({
       selectedWorkflow: () => selectedWorkflow() ? cloneJson(selectedWorkflow()) : null,
       workflows: () => cloneJson(workflows),
-      lastOutput: () => lastOutput,
-      isRunning: () => Boolean(activeRun),
+      lastOutput: () => currentLastOutput(),
+      isRunning: () => Boolean(currentActiveRun()),
+      runningSessions: () => [...activeRunsBySession.keys()],
+      queuedFiles: () => (selectedWorkflowId ? getSessionState().queuedFiles.map((f) => ({ name: f.name, size: f.size, type: f.type })) : []),
+      rejectedFiles: () => (selectedWorkflowId ? getSessionState().rejectedFiles.map((r) => ({ name: r.file.name, size: r.file.size, kind: r.kind, reason: r.reason })) : []),
+      inputPolicy: () => (selectedWorkflow() ? getWorkflowInputPolicy(selectedWorkflow()) : null),
       viewMode: () => viewMode,
       selectedStepId: () => selectedStepId,
       viewport: () => ({ ...canvasViewport }),
       nodeOffsets: () => cloneJson(canvasNodeOffsets),
       selectStep: (stepId) => { selectedStepId = stepId; renderInspector(); },
+      openWorkflow: (workflowId, options) => openWorkflowInEditor(workflowId, options),
       setViewMode: (mode) => setViewMode(mode),
     }),
   });

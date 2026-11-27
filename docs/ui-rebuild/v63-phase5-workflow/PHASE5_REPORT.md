@@ -161,3 +161,40 @@ Reproduced in persistent Chromium profile upgrading from old P5 (`84ca5209`) to 
 - `node qa/aeris/p5-cache-upgrade-browser.mjs`: PASS (`20261127-aeris-p5-cache-fix`, `listDisplay: "flex"`, `listFlexDir: "row"`, `svgPos: "absolute"`, `rectFill: "none"`, `persistedOffsets: 1`, `wyjUserRetainedMarker` retained across upgrade, and synthetic stale CSS fallback `svgWidth: 0, svgHeight: 0, rectFill: "none", rectOpacity: "0"`)
 - `node qa/p07-release/sw-install-browser.mjs --source WORKTREE --label p5-cache-fix`: PASS (all 7 cases: `normal`, `slow`, `failure-retry`, `body-timeout`, `warm`, `task26-failure`, `stale-task26`)
 - Serial Miniflare (`workerd` + D1/R2) + headless Chrome P5 suites: `p5-loading-browser.mjs` PASS, `p5-hash-browser.mjs` PASS, `p5-pwa-browser.mjs` PASS, `p5-contract-browser.mjs` PASS.
+
+---
+
+## P5 Final Interaction Remediation (`20261127-aeris-p5-ux-final`)
+
+### 1. Unrestricted 2D Free Canvas Placement vs Reorder Hysteresis
+- Removed narrow desktop (`±28px` / `±72px`) and mobile (`±18px` / `±20px`) clamps in `clampNodeOffset()`, replacing them with finite safety bounds (`±4800px` `MAX_WORLD_NODE_OFFSET`).
+- Decoupled spatial world placement from swap hysteresis: crossing `22px` hysteresis commits a valid candidate reorder while preserving the dragged node's exact dropped spatial offset (`dragCenterX - destSlot.cx`, `dragCenterY - destSlot.cy`) rather than snapping back to slot center.
+- Updated `applyNodeOffsetsToDom()` and `sanitizeNodeOffsets()` so `<= 768px` mobile layout never overwrites stored desktop coordinates (`canvasNodeOffsets` preserved untouched in `wyjWorkflowCanvasUi:v1:<accountId>`).
+- Updated `fitCanvasToView()` to frame the union bounding box of all offset nodes (`minZoom = 0.32`, `maxZoom = 1.8`), and removed `Math.max(8, ...)` entry stub bounds in `syncCanvasEdges()` so outward placement to the left/top renders attached edges smoothly.
+
+### 2. Unified Dynamic Input Policy & ZIP-Free Batch Image Execution
+- Introduced single-source-of-truth `getWorkflowInputPolicy(workflow)` and `validateInputFilesForPolicy(policy, files)` in `workflows.js`, evaluating end-to-end compatibility across active steps via `chainOutputForInputType()`.
+  - `file-list` pipelines (e.g. `files-zip`): `multiple: true`, max `50` files (`MAX_FILES`), `50 MB`.
+  - Batch-capable image pipelines (`image-resize`, `image-format`, `text-watermark`, `exif-remove`, with OR without `files-zip`): `multiple: true`, max `20` images (`MAX_IMAGES`), `50 MB`, native Ctrl/Shift multi-select & drag-drop append.
+  - `text-file` pipelines (`text-encoding`): max `1` text/CSV/JSON file, `50 MB`.
+- Removed artificial `"批量流程最后必须生成 ZIP"` block in `runSelectedWorkflow()`, and added full `image-list` output rendering (`wf-image-gallery` previews, per-image download buttons, and local `zipBlob` bundle download via `#downloadWorkflowResultBtn`).
+- Separated `files-zip` standalone pipelines from image-only `accept` filters, ensuring `files-zip` accepts any file types up to 50 files / 50 MB.
+
+### 3. Manageable Full File Queue, Instant Validation & Per-Account/Workflow Isolation
+- Replaced truncated 8-item preview with full scrollable `#workflowSelectedFiles` + `#workflowInputValidation` (`role="alert"`), live `已选 X / Y` & `total / 50 MB` readouts, per-item `移除` controls (`data-wf-remove-file`, `data-wf-remove-rejected`), `+ 继续添加`, and `清空全部`.
+- Over-limit or incompatible selections never enter executable `queuedFiles` and are never silently truncated: rejected/staged excess items surface immediately with exact excess count/MB and promote automatically once user removes enough excess items.
+- Added in-memory ephemeral isolation keyed by `${accountId()}::${workflowId}` (`workflowSessionStates`, `activeRunsBySession`) covering queued/staged files, validation banners, text inputs, batch toggles, step statuses, item results, typed outputs, errors, copy state, and download state—ensuring background execution events never contaminate newly selected workflows and blank states initialize for create/duplicate/import/account switch.
+
+### 4. Local Verification After Final Edits
+- `node scripts/update_asset_release.mjs 20261127-aeris-p5-ux-final` & `npm run task27:publication`: `integrity_entries: 80`, `install_shell_total: 89`, `prior_core_shell_preserved: true`
+- `node local-backend/test_workflows_js.mjs`: 13 groups passed (including dynamic input policy & 20/21/50 bounds unit tests)
+- `python local-backend/test_static.py`: 31 tests OK
+- `node --test qa/p07-release/sw-install.test.mjs qa/p07-r4c/sw-release.test.mjs`: 24/24 passed
+- `node scripts/check_storage_contract.mjs`: PASS (31 families)
+- `node scripts/check_js_module_graph.mjs`: PASS (67 files, 120 imports)
+- `python scripts/functional_audit_gate.py`: PASS (27 routes, 24 app flows, 104 tools, 51 tool modes, 7 checkbox controls, 12 workflow capabilities, 27 workflow flows)
+- `npm run cf:check` & `python scripts/repository_audit.py`: PASS (2574 files)
+- `node qa/aeris/p5-cache-upgrade-browser.mjs`: PASS (`+220/-190px` & `+260/+140px` desktop drag persistence, mobile `390x844` non-clobbering, cached reload persistence, ZIP-free `image-publish` batch 21 rejection / removal auto-promote / append / workflow switch isolation)
+- `node qa/p07-release/sw-install-browser.mjs`: PASS (7/7 cases)
+- Serial Miniflare + Chrome P5 suites: `p5-loading-browser.mjs`, `p5-hash-browser.mjs`, `p5-pwa-browser.mjs`, `p5-contract-browser.mjs` all PASS
+- Serial Miniflare + Chrome `local-backend/test_tools_browser.mjs`: 103/103 tools, canonical Transfer, 27 workflow flows, and 1366/1920/390 responsive contrast checks passed in-browser; the final `qa/verify_tool_artifacts.py` invocation failed in local Windows Python due to missing `cv2` (`ModuleNotFoundError: No module named 'cv2'`) and will be verified on Ubuntu Core CI.

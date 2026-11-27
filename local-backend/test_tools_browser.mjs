@@ -1605,6 +1605,7 @@ async function main() {
 
     await openTool("image-compress");
     await evaluate("document.querySelector('#toolWorkbench').scrollIntoView({ block: 'start', behavior: 'auto' })");
+    await waitFor("Number(getComputedStyle(document.querySelector('#toolWorkbench')).opacity) >= 0.99", 3_000, "tool workbench reveal settled");
     const mobileWorkbench = await evaluate(`(() => {
       const workbench = document.querySelector('#toolWorkbench').getBoundingClientRect();
       const runButton = document.querySelector('#runImageToolBtn').getBoundingClientRect();

@@ -1,11 +1,11 @@
-import { randomId } from "../core/capabilities.js?release=20261127-aeris-p5-cache-fix";
-import { ACCOUNT_SESSION_KEY, accountSessionHeaders, isThewyjAndroidApp } from "../core/session.js?release=20261127-aeris-p5-cache-fix";
-import { getSafeStorage } from "../core/storage.js?release=20261127-aeris-p5-cache-fix";
-import { withInteractionFeedback } from "../core/perf.js?release=20261127-aeris-p5-cache-fix";
-import { createTransferUpdateScheduler } from "./updates.js?release=20261127-aeris-p5-cache-fix";
-import { putPartWithRecovery } from "./upload-part.js?release=20261127-aeris-p5-cache-fix";
-import { reconcileKeyedRows } from "../core/keyed-list.js?release=20261127-aeris-p5-cache-fix";
-import { attachFileDropFeedback } from "../core/motion.js?release=20261127-aeris-p5-cache-fix";
+import { randomId } from "../core/capabilities.js?release=20261127-aeris-p5-ux-final";
+import { ACCOUNT_SESSION_KEY, accountSessionHeaders, isThewyjAndroidApp } from "../core/session.js?release=20261127-aeris-p5-ux-final";
+import { getSafeStorage } from "../core/storage.js?release=20261127-aeris-p5-ux-final";
+import { withInteractionFeedback } from "../core/perf.js?release=20261127-aeris-p5-ux-final";
+import { createTransferUpdateScheduler } from "./updates.js?release=20261127-aeris-p5-ux-final";
+import { putPartWithRecovery } from "./upload-part.js?release=20261127-aeris-p5-ux-final";
+import { reconcileKeyedRows } from "../core/keyed-list.js?release=20261127-aeris-p5-ux-final";
+import { attachFileDropFeedback } from "../core/motion.js?release=20261127-aeris-p5-ux-final";
 
 const QUEUE_STORAGE_KEY = "wyjTransferQueue:v1";
 const GUEST_ID_KEY = "wyjTransferGuest:v1";

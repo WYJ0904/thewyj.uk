@@ -1,4 +1,4 @@
-import { fetchWithTimeout } from "./api.js?release=20261127-aeris-p5-cache-fix";
+import { fetchWithTimeout } from "./api.js?release=20261127-aeris-p5-ux-final";
 
 const CHANGELOG_TIMEOUT_MS = 3500;
 

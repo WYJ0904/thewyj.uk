@@ -3,6 +3,7 @@ import { execFileSync, spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import http from "node:http";
+import os from "node:os";
 import path from "node:path";
 import { ASSET_RELEASE } from "../asset-release.mjs";
 import { CdpClient, delay } from "../../local-backend/browser_harness.mjs";
@@ -144,7 +145,7 @@ const server = http.createServer((req, res) => {
 
 await new Promise((r) => server.listen(0, "127.0.0.1", r));
 const baseUrl = `http://127.0.0.1:${server.address().port}`;
-const profile = path.resolve(ROOT, ".wrangler/p5u-" + Date.now());
+const profile = path.join(os.tmpdir(), "aeris-p5u-" + Date.now());
 await fs.mkdir(profile, { recursive: true });
 const chromeBin = process.env.CHROME_BIN || (process.platform === "win32" ? path.join(process.env.ProgramFiles, "Google/Chrome/Application/chrome.exe") : "google-chrome");
 
@@ -216,7 +217,7 @@ async function launchChrome(userDataDir) {
 }
 
 let session;
-const staleProfile = path.resolve(ROOT, ".wrangler/p5s-" + Date.now());
+const staleProfile = path.join(os.tmpdir(), "aeris-p5s-" + Date.now());
 await fs.mkdir(staleProfile, { recursive: true });
 
 try {
@@ -313,19 +314,156 @@ try {
   assert.equal(upgradeState.rectFill, "none");
   assert.equal(upgradeState.rectOpacity, "0");
 
-  // Verify 2D intra-zone drag + persistence
-  const dragPoints = await session.evaluate(`(() => {
+  // Verify unrestricted 2D free drag (>200px X & Y), reorder without center snap, mobile non-clobbering, and reload persistence.
+  const dragStep2 = await session.evaluate(`(() => {
     const h = document.querySelector('#workflowStepList li:nth-child(2) [data-wf-drag-handle]');
     const r = h.getBoundingClientRect();
-    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    return { id: document.querySelector('#workflowStepList li:nth-child(2)').dataset.stepId, x: r.left + r.width / 2, y: r.top + r.height / 2 };
   })()`);
-  await session.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: dragPoints.x, y: dragPoints.y });
-  await session.send("Input.dispatchMouseEvent", { type: "mousePressed", x: dragPoints.x, y: dragPoints.y, button: "left", clickCount: 1 });
-  await session.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: dragPoints.x + 12, y: dragPoints.y - 36, button: "left" });
-  await session.send("Input.dispatchMouseEvent", { type: "mouseReleased", x: dragPoints.x + 12, y: dragPoints.y - 36, button: "left", clickCount: 1 });
+  await session.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: dragStep2.x, y: dragStep2.y });
+  await session.send("Input.dispatchMouseEvent", { type: "mousePressed", x: dragStep2.x, y: dragStep2.y, button: "left", clickCount: 1 });
+  await session.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: dragStep2.x + 220, y: dragStep2.y - 190, button: "left" });
+  await session.send("Input.dispatchMouseEvent", { type: "mouseReleased", x: dragStep2.x + 220, y: dragStep2.y - 190, button: "left", clickCount: 1 });
   await delay(300);
-  const offsets = await session.evaluate("window.WYJWorkflows.test.nodeOffsets()");
-  assert.ok(Object.keys(offsets).length >= 1, "2D intra-zone drag offset must persist");
+
+  // Also drag last node outward (+260px right, +140px down).
+  const dragLast = await session.evaluate(`(() => {
+    const items = document.querySelectorAll('#workflowStepList > li');
+    const last = items[items.length - 1];
+    const h = last.querySelector('[data-wf-drag-handle]');
+    const r = h.getBoundingClientRect();
+    return { id: last.dataset.stepId, x: r.left + r.width / 2, y: r.top + r.height / 2 };
+  })()`);
+  await session.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: dragLast.x, y: dragLast.y });
+  await session.send("Input.dispatchMouseEvent", { type: "mousePressed", x: dragLast.x, y: dragLast.y, button: "left", clickCount: 1 });
+  await session.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: dragLast.x + 260, y: dragLast.y + 140, button: "left" });
+  await session.send("Input.dispatchMouseEvent", { type: "mouseReleased", x: dragLast.x + 260, y: dragLast.y + 140, button: "left", clickCount: 1 });
+  await delay(300);
+
+  const offsetsBeforeMobile = await session.evaluate("window.WYJWorkflows.test.nodeOffsets()");
+  assert.ok(offsetsBeforeMobile[dragStep2.id] && Math.abs(offsetsBeforeMobile[dragStep2.id].y) > 120, `expected >120px Y offset, got ${JSON.stringify(offsetsBeforeMobile)}`);
+  assert.ok(offsetsBeforeMobile[dragLast.id] && offsetsBeforeMobile[dragLast.id].x > 200 && offsetsBeforeMobile[dragLast.id].y > 100, `expected large outward X/Y offset, got ${JSON.stringify(offsetsBeforeMobile)}`);
+
+  // Fit canvas to view should include far nodes, and mobile resize must NOT wipe stored desktop offsets.
+  await session.evaluate("document.querySelector('#canvasFitViewBtn')?.click(); true;");
+  await delay(350);
+  await session.send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+  await delay(200);
+  const offsetsOnMobile = await session.evaluate("window.WYJWorkflows.test.nodeOffsets()");
+  assert.deepEqual(offsetsOnMobile, offsetsBeforeMobile, "mobile view must not overwrite desktop offsets");
+  await session.send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
+  await delay(250);
+
+  // Reload and verify coordinates survive cache reload.
+  await session.send("Page.reload", { ignoreCache: false });
+  await session.waitFor("window.WYJWorkflows && !document.getElementById('workflowWorkspace')?.classList.contains('hidden')");
+  await session.evaluate("(() => { const w = window.WYJWorkflows.test.workflows()[0]; if (w) window.WYJWorkflows.test.openWorkflow(w.id); return true; })()");
+  await session.waitFor("document.querySelectorAll('#workflowStepList > li').length === 4");
+  const offsetsAfterReload = await session.evaluate("window.WYJWorkflows.test.nodeOffsets()");
+  assert.deepEqual(offsetsAfterReload, offsetsBeforeMobile, "desktop offsets must persist across reload");
+
+  // Verify unified file queue, instant 21-image validation, no-ZIP image multi-select, per-item removal, and workflow isolation!
+  const fileQaResult = await session.evaluate(`(async () => {
+    const imgIcon = await fetch('/icon-192.png').then(r => r.blob());
+    document.querySelector('#workflowBackToListBtn')?.click();
+    await new Promise(r => setTimeout(r, 80));
+    document.querySelector('[data-workflow-template="image-publish"]')?.click();
+    await new Promise(r => setTimeout(r, 120));
+    const imgWf = window.WYJWorkflows.test.selectedWorkflow();
+    document.querySelector('#toggleWorkflowRunnerBtn')?.click();
+    await new Promise(r => setTimeout(r, 80));
+
+    const inputEl = document.getElementById('workflowFileInput');
+    const policyImg = window.WYJWorkflows.test.inputPolicy();
+    const hintText = document.getElementById('workflowInputHint')?.textContent || '';
+
+    // Attempt 21 PNGs drop -> immediately blocked from queuedFiles with instant validation alert.
+    const dropWrap = document.getElementById('workflowFileInputWrap');
+    const dt21 = new DataTransfer();
+    for (let i = 0; i < 21; i += 1) {
+      dt21.items.add(new File([imgIcon], 'batch-' + String(i + 1).padStart(2, '0') + '.png', { type: 'image/png' }));
+    }
+    dropWrap.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: dt21 }));
+    await new Promise(r => setTimeout(r, 80));
+    const after21 = {
+      queued: window.WYJWorkflows.test.queuedFiles().length,
+      rejected: window.WYJWorkflows.test.rejectedFiles().length,
+      alertText: document.getElementById('workflowInputValidation')?.textContent || '',
+    };
+
+    // Remove 1st rejected item -> remaining 20 promote to ready queue automatically!
+    document.querySelector('[data-wf-remove-rejected="0"]')?.click();
+    await new Promise(r => setTimeout(r, 80));
+    const afterRemoveExcess = {
+      queued: window.WYJWorkflows.test.queuedFiles().length,
+      rejected: window.WYJWorkflows.test.rejectedFiles().length,
+      renderedRows: document.querySelectorAll('#workflowReadyFileList > li').length,
+    };
+
+    // Remove first, middle, last items individually.
+    document.querySelector('[data-wf-remove-file="0"]')?.click();
+    document.querySelector('[data-wf-remove-file="9"]')?.click();
+    const lastIdx = document.querySelectorAll('[data-wf-remove-file]').length - 1;
+    document.querySelector('[data-wf-remove-file="' + lastIdx + '"]')?.click();
+    await new Promise(r => setTimeout(r, 60));
+    const afterIndividualRemove = window.WYJWorkflows.test.queuedFiles().length;
+
+    // Clear and test initial + append drop (2 + 1 = 3).
+    document.getElementById('clearWorkflowFilesBtn')?.click();
+    const dt2 = new DataTransfer();
+    dt2.items.add(new File([imgIcon], 'a.png', { type: 'image/png' }));
+    dt2.items.add(new File([imgIcon], 'b.png', { type: 'image/png' }));
+    dropWrap.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: dt2 }));
+    const dt1 = new DataTransfer();
+    dt1.items.add(new File([imgIcon], 'c.png', { type: 'image/png' }));
+    dropWrap.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: dt1 }));
+    await new Promise(r => setTimeout(r, 60));
+    const imgQueuedNames = window.WYJWorkflows.test.queuedFiles().map(f => f.name);
+
+    // Switch to text-clean -> ensure image queue does NOT leak!
+    const textWf = window.WYJWorkflows.test.workflows().find(w => w.steps.some(s => s.tool_id === 'text-encoding'));
+    window.WYJWorkflows.test.openWorkflow(textWf.id, { openRunner: true });
+    await new Promise(r => setTimeout(r, 80));
+    const textPolicy = window.WYJWorkflows.test.inputPolicy();
+    const textQueuedCount = window.WYJWorkflows.test.queuedFiles().length;
+
+    // Switch back to image-publish -> ensure its 3 images are retained within session!
+    window.WYJWorkflows.test.openWorkflow(imgWf.id, { openRunner: true });
+    await new Promise(r => setTimeout(r, 80));
+    const restoredImgNames = window.WYJWorkflows.test.queuedFiles().map(f => f.name);
+
+    return {
+      multiple: inputEl.multiple,
+      policyImgMax: policyImg.maxFiles,
+      hintText,
+      after21,
+      afterRemoveExcess,
+      afterIndividualRemove,
+      imgQueuedNames,
+      textPolicyMax: textPolicy.maxFiles,
+      textMultiple: textPolicy.multiple,
+      textQueuedCount,
+      restoredImgNames,
+    };
+  })()`);
+
+  assert.equal(fileQaResult.multiple, true);
+  assert.equal(fileQaResult.policyImgMax, 20);
+  assert.ok(fileQaResult.hintText.includes("20") && !fileQaResult.hintText.includes("50 个"), fileQaResult.hintText);
+  assert.equal(fileQaResult.after21.queued, 0);
+  assert.equal(fileQaResult.after21.rejected, 21);
+  assert.ok(fileQaResult.after21.alertText.includes("20") && fileQaResult.after21.alertText.includes("1"));
+  assert.equal(fileQaResult.afterRemoveExcess.queued, 20);
+  assert.equal(fileQaResult.afterRemoveExcess.rejected, 0);
+  assert.equal(fileQaResult.afterRemoveExcess.renderedRows, 20);
+  assert.equal(fileQaResult.afterIndividualRemove, 17);
+  assert.deepEqual(fileQaResult.imgQueuedNames, ["a.png", "b.png", "c.png"]);
+  assert.equal(fileQaResult.textPolicyMax, 1);
+  assert.equal(fileQaResult.textMultiple, false);
+  assert.equal(fileQaResult.textQueuedCount, 0);
+  assert.deepEqual(fileQaResult.restoredImgNames, ["a.png", "b.png", "c.png"]);
+
+  const offsets = offsetsAfterReload;
 
   await session.close();
   session = null;

@@ -14632,48 +14632,235 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #achievementsView .achiev
   resize: vertical;
 }
 
+#workflowWorkspace .wf-input-validation:not(.hidden) {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--ds-radius-md);
+  border: 1px solid var(--ds-error-border);
+  background: var(--ds-error-soft);
+  color: var(--ds-text);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+#workflowWorkspace .wf-input-validation[data-tone="info"] {
+  border-color: var(--ds-success-border);
+  background: var(--ds-success-soft);
+}
+
+#workflowWorkspace .wf-input-validation[data-tone="warning"] {
+  border-color: var(--ds-border-strong);
+  background: var(--ds-surface-subtle);
+}
+
 #workflowWorkspace .wf-selected-files:not(.hidden) {
   border-radius: 10px;
   border: 1px solid var(--ds-border);
   background: var(--ds-surface-subtle);
-  padding: 10px 12px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 #workflowWorkspace .wf-files-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 8px 12px;
   font-size: 12.5px;
   font-weight: 500;
   color: var(--ds-text-secondary);
 }
 
+#workflowWorkspace .wf-files-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+#workflowWorkspace .wf-files-count-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--ds-border);
+  background: var(--ds-surface);
+  color: var(--ds-text);
+  font-weight: 600;
+}
+
+#workflowWorkspace .wf-files-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 #workflowWorkspace .wf-files-list {
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: 0 4px 0 0;
+  max-height: 232px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ds-border-strong) transparent;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 #workflowWorkspace .wf-files-list li {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border-subtle);
   font-size: 12px;
   color: var(--ds-text-secondary);
 }
 
+#workflowWorkspace .wf-files-list li.is-rejected {
+  border-color: var(--ds-error-border);
+  background: var(--ds-error-soft);
+}
+
+#workflowWorkspace .wf-file-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+#workflowWorkspace .wf-file-index {
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+  color: var(--ds-text-muted);
+  min-width: 20px;
+}
+
 #workflowWorkspace .wf-file-name {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: var(--ds-text);
+  font-weight: 500;
+}
+
+#workflowWorkspace .wf-file-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+#workflowWorkspace .wf-file-status {
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid var(--ds-border);
+  background: var(--ds-surface-subtle);
+  color: var(--ds-text-secondary);
+}
+
+#workflowWorkspace .wf-file-status[data-tone="ok"] {
+  border-color: var(--ds-success-border);
+  background: var(--ds-success-soft);
+  color: var(--ds-text);
+}
+
+#workflowWorkspace .wf-file-status[data-tone="error"] {
+  border-color: var(--ds-error-border);
+  background: var(--ds-surface);
+  color: var(--ds-text);
+}
+
+#workflowWorkspace .wf-file-remove {
+  appearance: none;
+  border: 1px solid var(--ds-border);
+  background: var(--ds-surface-subtle);
+  color: var(--ds-text-secondary);
+  border-radius: 6px;
+  min-width: 28px;
+  min-height: 28px;
+  padding: 0 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+
+#workflowWorkspace .wf-file-remove:hover {
+  border-color: var(--ds-error-border);
+  background: var(--ds-error-soft);
+  color: var(--ds-text);
+}
+
+#workflowWorkspace .wf-file-remove:focus-visible,
+#workflowWorkspace .wf-files-actions button:focus-visible {
+  outline: 2px solid var(--ds-action-primary);
+  outline-offset: 2px;
+}
+
+#workflowWorkspace .wf-rejected-section {
+  border-top: 1px solid var(--ds-border);
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#workflowWorkspace .wf-image-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  gap: 8px;
+  width: 100%;
+}
+
+#workflowWorkspace .wf-image-thumb-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  border-radius: 8px;
+  border: 1px solid var(--ds-border-subtle);
+  background: var(--ds-surface);
+}
+
+#workflowWorkspace .wf-image-thumb-card img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+#workflowWorkspace .wf-image-thumb-card span {
+  font-size: 11px;
+  color: var(--ds-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#workflowWorkspace .wf-item-downloads {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
 }
 
 #workflowWorkspace .wf-local-privacy-note {

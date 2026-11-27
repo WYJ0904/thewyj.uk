@@ -9,7 +9,7 @@ import {
   searchTools,
   toolIconSvg,
   toolLayoutType,
-} from "./js/tools/catalog.js?release=20261127-aeris-p5-cache-fix";
+} from "./js/tools/catalog.js?release=20261127-aeris-p5-ux-final";
 import {
   HALF_PERCENT_MAX,
   computeCoinTargetAngle,
@@ -25,9 +25,9 @@ import {
   renderWheelPointerSvg,
   renderWheelSvg,
   serializeWeightedEntries,
-} from "./js/tools/random.js?release=20261127-aeris-p5-cache-fix";
-import { buildVcardPayload, buildWifiPayload } from "./js/tools/temporary.js?release=20261127-aeris-p5-cache-fix";
-import { getOpenCcSource, loadOpenCcMaps, runTextOperation } from "./js/tools/text.js?release=20261127-aeris-p5-cache-fix";
+} from "./js/tools/random.js?release=20261127-aeris-p5-ux-final";
+import { buildVcardPayload, buildWifiPayload } from "./js/tools/temporary.js?release=20261127-aeris-p5-ux-final";
+import { getOpenCcSource, loadOpenCcMaps, runTextOperation } from "./js/tools/text.js?release=20261127-aeris-p5-ux-final";
 import {
   csvString,
   decodeLocalText,
@@ -36,17 +36,17 @@ import {
   parseCsv,
   validateCsvTable,
   zipBlob,
-} from "./js/tools/file.js?release=20261127-aeris-p5-cache-fix";
+} from "./js/tools/file.js?release=20261127-aeris-p5-ux-final";
 import {
   exifSummary,
   parseColorValue,
   rgbToHex,
   rgbToHsl,
   stripJpegMetadata,
-} from "./js/tools/image.js?release=20261127-aeris-p5-cache-fix";
-import { runToolRenderer } from "./js/tools/runner.js?release=20261127-aeris-p5-cache-fix";
-import { reconcileKeyedRows } from "./js/core/keyed-list.js?release=20261127-aeris-p5-cache-fix";
-import { createParkedRows } from "./js/core/parked-rows.js?release=20261127-aeris-p5-cache-fix";
+} from "./js/tools/image.js?release=20261127-aeris-p5-ux-final";
+import { runToolRenderer } from "./js/tools/runner.js?release=20261127-aeris-p5-ux-final";
+import { reconcileKeyedRows } from "./js/core/keyed-list.js?release=20261127-aeris-p5-ux-final";
+import { createParkedRows } from "./js/core/parked-rows.js?release=20261127-aeris-p5-ux-final";
 (() => {
   "use strict";
   const boundToolRoots = new WeakSet();

@@ -108,3 +108,21 @@ Re-executed all five UI/UX design & quality skills after fixing the client CSS/J
 - `impeccable` (`impeccable.cmd detect --json workflows.js index.html spatial-experience.css`): 0 findings in `workflows.js`.
 - `hallmark` (`sloplint.mjs workflows.js index.html spatial-experience.css --scope app --genre modern-minimal --json`): verified clean across modified workflow JS, markup, and stylesheets.
 - `frontend-design`: Confirmed SVG fallback attributes (`fill="none"`, `stroke="none"`, `opacity="0"`, `width="0" height="0"`) never alter the intended Scheme A desktop horizontal light-flow look when CSS is healthy and completely prevent any black `<rect>` artifact under degraded styling.
+
+---
+
+## P5 Final Interaction Remediation Audit (`20261127-aeris-p5-ux-final`)
+
+Re-ran all 5 installed UI/UX skills across `index.html`, `workflows.js`, and `spatial-experience.css` after implementing unrestricted 2D free canvas node placement, unified dynamic input policy + instant queue validation (`getWorkflowInputPolicy` / `validateInputFilesForPolicy`), ZIP-free batch image processing (`image-list`), manageable per-item file queues (`#workflowSelectedFiles` + `#workflowInputValidation`), and strict `(accountId, workflowId)` ephemeral session isolation.
+
+### 1. Reference Research Applied
+- **React Flow / XYFlow**: Separated spatial world coordinates (`canvasNodeOffsets`, guarded only by `±4800px` safety bounds) from viewport transforms (`translate3d(panX, panY, 0) scale(zoom)`), divided drag pointer deltas by `zoom`, removed narrow `±28px/±72px` desktop clamps and mobile clobbering, removed `Math.max(8, ...)` entry stub bounds, and updated `fitCanvasToView()` to frame the union bounding box of all positioned nodes (`zoom` range `0.32..1.8`).
+- **SortableJS**: Retained `22px` directional swap hysteresis solely to decide candidate execution sequence changes while keeping the released 2D coordinates intact instead of snapping back to slot center.
+- **Uppy / FilePond**: Built a unified queue + instant validation architecture rejecting over-limit or incompatible incoming batches from entering `queuedFiles` (zero silent truncation), surfacing exact excess count/MB alerts immediately (`role="alert"`), and providing per-item removal that auto-promotes valid staged items once within bounds.
+
+### 2. Five-Skill Tool Outputs (`20261127-aeris-p5-ux-final`)
+- `ui-ux-pro-max` (`--domain ux` queries `file upload queue validation error` & `drag drop canvas node accessibility`): Applied `role="alert"` / `aria-live="assertive"` validation summary (`#workflowInputValidation`), per-item accessible `aria-label` remove buttons, `tabular-nums` live quota counters (`已选 N / 20 张图片 · 总大小 / 50 MB`), and retained single-pointer & keyboard alternatives alongside free 2D canvas dragging.
+- `design-taste-frontend` (`copy-lint.mjs index.html workflows.js`): `index.html` `0 FAIL, 0 WARN`; `workflows.js` `0 FAIL` (fixed rejected-row index marker from `!` to `•`, remaining `WARN` is JS `!` logical negation operators in source).
+- `impeccable` (`impeccable.cmd detect --json workflows.js index.html spatial-experience.css`): Applied thin themed scrollbars (`scrollbar-width: thin`), clean token-backed error/success pills (`data-tone="ok" | "error"`), and flat stacked section dividers without nested-card borders; `0` new defects in Phase 5 `#workflowWorkspace`.
+- `hallmark` (`sloplint.mjs workflows.js index.html spatial-experience.css --scope app --genre modern-minimal --json`): Added `:focus-visible` outlines on `.wf-file-remove` / `.wf-files-actions` controls, zero literal hex colors in new CSS, zero `transition: all`, zero `FAIL` or `WARN` in new workflow code.
+- `frontend-design`: Preserved P3 dropzone visual parity (`.aeris-file-drop`), cohesive Scheme A light-flow / rounded-border run feedback, responsive `wf-image-gallery` preview cards, and concise error recovery wording.
