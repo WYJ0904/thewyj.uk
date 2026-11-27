@@ -36,7 +36,7 @@
     - `index.html`: `0 FAIL, 0 WARN`
     - `js/transfer/app.js`: `0 FAIL, 3 WARN`（均为原有注释或布尔否定 `!` 语法字符与内部 canvas QR 代码中 `quiet` 变量名触发的非文案规则，页面可见文案 `0 FAIL`）。
 - **动效、色阶与节流优化**：
-  - 在 `design-system.css` `:root` 与 `:root[data-theme="dark"]` 定义克制低饱和传输语义令牌（`--ds-transfer-active`、`--ds-transfer-complete`、`--ds-transfer-paused`、`--ds-transfer-error`、`--ds-transfer-waiting`、`--ds-transfer-track`、`--ds-transfer-drop-hover`）。
+  - 在 `design-system.css` `:root` 与 `:root[data-theme="dark"]` 定义克制低饱和传输语义令牌（`--ds-transfer-active`、`--ds-transfer-complete`、`--ds-transfer-paused`、`--ds-transfer-error`、`--ds-transfer-waiting`、`--ds-transfer-track`、`--ds-transfer-drop-hover`）；针对 `qa/task28/browser.mjs` `axe-core` 无障碍对比度扫描发现的浅色状态文本对比度不足问题，已将亮色 `--ds-transfer-active` (`#355d91`)、`--ds-transfer-complete` (`#28644c`)、`--ds-transfer-paused` (`#525760`)、`--ds-transfer-error` (`#a13834`) 深化至 `>= 5.6:1` 并通过 `axe-core` 零违例复检。
   - 总进度条采用 GPU 合成属性 `transform: scaleX()` 驱动，SVG 环形进度采用 `stroke-dashoffset` 平滑插值；新增 `visibilitychange` 监听器在页面后台不可见时暂停视觉重绘而不打断底层上传任务。
   - 在 `@media (prefers-reduced-motion: reduce)` 与 `html[data-android-reduced-motion="true"]` 下将 `#transferPage` 内过渡与动画降至 `0.01ms`，并实测 `prefers-reduced-motion` 下 `transitionDuration <= 0.001s`（Chrome 返回 `1e-06s`）。
 

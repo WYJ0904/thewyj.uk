@@ -46,17 +46,17 @@
     "free": {
       "quota": "500.0 MiB",
       "privateEnabled": true,
-      "interactiveMs": 328.6
+      "interactiveMs": 308.3
     },
     "vip": {
       "quota": "2.00 GiB",
       "privateEnabled": true,
-      "interactiveMs": 354.6
+      "interactiveMs": 313.5
     },
     "admin": {
       "quota": "5.00 GiB",
       "privateEnabled": true,
-      "interactiveMs": 223.8
+      "interactiveMs": 314.4
     }
   },
   "viewports": [
@@ -111,9 +111,9 @@
     }
   ],
   "perf": {
-    "transfer_route_interactive_ms": 223.8
+    "transfer_route_interactive_ms": 314.4
   },
   "runtime_errors": [],
-  "sender_screencast_frames": 172,
-  "recipient_screencast_frames": 101
+  "sender_screencast_frames": 119,
+  "recipient_screencast_frames": 105
 }

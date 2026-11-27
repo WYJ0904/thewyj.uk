@@ -4,8 +4,8 @@
 
 - **阶段目标**：完成 `/transfer`、`#transferPage` 与 `/transfer#share=<id>` 文件传输模块的 UI、信息架构、动效、响应式适配及交互性能重构，完整保留既有分片引擎、D1/R2 存储权威、配额计算、分享安全模型及与 Android 客户端的下载契约。
 - **基线来源**：Phase 5 (`hydrogen/v63-phase5-workflow-redesign`，`44668aa205ab29a8727b1e2b4d1ab1c9de5a5301`，Draft PR #186)
-- **当前开发分支**：`hydrogen/v63-phase6-transfer-redesign`（基于 Phase 5 创建 Stacked Draft PR）
-- **资源版本标识**：`ASSET_RELEASE = "20261127-aeris-p6-transfer-v1"`，`PUBLICATION_HASH = "261f49d7721fcfb1525ac1d85bc0af6396843c855f1fdd57a8ac04003e50627e"`（保持 `CORE_SHELL = 81`、`REQUIRED_SHELL = 89`、`INSTALL_SHELL = 89`，零新增根目录静态/JS 文件）。
+- **当前开发分支**：`hydrogen/v63-phase6-transfer-redesign`（基于 Phase 5 创建 Stacked Draft PR #187）
+- **资源版本标识**：`ASSET_RELEASE = "20261127-aeris-p6-transfer-v1"`，`PUBLICATION_HASH = "8b7bf822b6d080f3829466fc3405d8d39092f4f1379371d3edfe4b88112807f0"`（保持 `CORE_SHELL = 81`、`REQUIRED_SHELL = 89`、`INSTALL_SHELL = 89`，零新增根目录静态/JS 文件）。
 - **范围严守**：仅重构文件传输模块；未开启 Phase 7，未合并 `main`，未改动 Production，未修改 `v63-phase5` 预览环境，未重启 Android Hotfix 或财务 AI。
 
 ---
@@ -42,7 +42,7 @@
 | 接收端 `#share=` 体验 | 上方保留完整发送端标题、拖放区与表单，易混淆 | 仅显示接收提示横幅与文件清单/错误恢复卡，零发送控件干扰 | `before-recipient-1440.png` vs `after-recipient-1440.png`, `after-recipient-error-1440.png` |
 | 分享参数设置排版 | 表单无收起，“有效 / 期”字面折行，锁定态不可见 | 默认紧凑摘要，展开三列清晰对齐，会话后明确锁定禁改 | `before-queue-ready-1440.png` vs `after-config-expanded-1440.png` |
 | 口令解锁与失效恢复 | `window.prompt` 原生弹窗阻塞体验 | 非阻塞 WAI-ARIA `#transferPasswordModal` + 行内错码校验；过期/撤销结构化恢复卡 | `after-password-modal-1440.png`, `after-recipient-error-1440.png` |
-| 首次交互与流畅度 | 局部整表与竞态闪烁 | `/transfer` 切入可交互 `223.8ms`–`354.6ms`，`longTasks = 0`，`queueRootWrites = 0` | `phase6-verification.json`, `p5-transfer-browser.mjs` |
+| 首次交互与流畅度 | 局部整表与竞态闪烁 | `/transfer` 切入可交互 `308.3ms`–`314.4ms`，`longTasks = 0`，`queueRootWrites = 0` | `phase6-verification.json`, `p5-transfer-browser.mjs` |
 | 全视口响应式适配 | 小屏表单标签挤压、配额单行裁剪 | `320 / 375 / 390 / 768 / 1440 / 1920 / 2560` 全视口 `scrollW <= clientWidth`，移动按钮高度 `>= 44px` | `after-mobile-390.png`, `after-mobile-320.png`, `phase6-verification.json` |
 
 ---
@@ -51,7 +51,7 @@
 
 ### 1. 最后一次代码修改后全部通过的本地门禁与浏览器验证
 
-- `npm run task27:publication`: **PASS** (`publication_hash: 261f49d7721fcfb1525ac1d85bc0af6396843c855f1fdd57a8ac04003e50627e`, `integrity_entries: 80`, `install_shell_total: 89`, `prior_core_shell_preserved: true`)
+- `npm run task27:publication`: **PASS** (`publication_hash: 8b7bf822b6d080f3829466fc3405d8d39092f4f1379371d3edfe4b88112807f0`, `integrity_entries: 80`, `install_shell_total: 89`, `prior_core_shell_preserved: true`)
 - `node scripts/stage_pages_deploy.mjs` & `npm run cf:check`: **PASS** (`Compiled Worker successfully`)
 - `python local-backend/test_static.py`: **PASS** (`31 tests`)
 - `python scripts/functional_audit_gate.py`: **PASS** (`27 routes, 24 app flows, 104 tools, 51 tool modes, 7 checkbox controls, 12 workflow capabilities, 27 workflow flows`)
@@ -60,18 +60,19 @@
 - 传输单元与隔离测试 (`test_transfer_isolation_js.mjs`、`test_transfer_session_plan_js.mjs`、`test_transfer_updates_js.mjs`、`test_i05_workspace_shell.mjs`、`test_i06_module_experience.mjs`、`sw-install.test.mjs`、`sw-release.test.mjs`): **全部 PASS**（含 `5/5` I05/I06 与 `24/24` SW 单测）
 - Phase 6 专项全矩阵 Chrome + Miniflare 验证 (`node qa/v63-phase6/verify_phase6_transfer.mjs`): **PASS**（`8/8` 核心场景覆盖游客与 `free`/`vip`/`admin` 3 类账户、前校验、暂停续传、`>16 MiB` 分片上传、私有附件无外链/无 QR、WAI-ARIA 密码弹窗、键盘 Tab 切换、`prefers-reduced-motion`、`p07_accessibility=disabled` 降级与 7 视口，`runtimeErrors = 0`）
 - 现有全链路 CI 浏览器套件（本地编译 Worker + Miniflare + Chrome 串行运行）：
+  - `node qa/task28/browser.mjs`: **PASS**（`5/5` 全通过，含 `#transferSafetyHint` `HTML、SVG` 提示契约与 `axe-core` 无障碍对比度验收；针对浅色主题 `#transferMessage` 低对比度已于 `design-system.css` 将 `--ds-transfer-active`、`--ds-transfer-complete`、`--ds-transfer-paused`、`--ds-transfer-error` 深化至 WCAG AA >= 5.6:1）
   - `local-backend/test_transfer_responsive.mjs`: **PASS** (`320/360/390/412/1366`)
   - `qa/aeris/transfer-clipboard-browser.mjs`: **PASS** (`11/11`)
   - `local-backend/test_transfer_browser_e2e.mjs`: **PASS** (`RoundTripInstaller-.exe` & `RoundTripClip-.mp4` `>16 MiB` 分片 + 下载 SHA-256 校验 + 双文件重建 + 撤销)
   - `qa/aeris/p5-transfer-browser.mjs`: **PASS** (`209,715,200` B + `32,768` B，`longTasks: 0`，`queueRootWrites: 0`)
   - `qa/aeris/p5-contract-browser.mjs`、`p5-pwa-browser.mjs`、`p5-loading-browser.mjs`、`local-backend/test_interaction_feedback_browser.mjs` (`8/8`)、`qa/aeris/p2-interaction-browser.mjs` (`390/1366/1920`)、`qa/aeris/p1-navigation-lifecycle.mjs`: **全部 PASS**
-- `node qa/p07-release/sw-install-browser.mjs --source WORKTREE --label p6-final`: **PASS** (`7/7` 用例通过)
+- `node qa/p07-release/sw-install-browser.mjs --source WORKTREE --label p6-r2`: **PASS** (`7/7` 用例通过)
 - `node qa/task28/workerd.mjs`: **PASS** (`3/3` 用例通过)
 
 ### 2. 隔离 Hosted Preview 部署与验证结果
 
-- **预览项目与分支**：`thewyj-v63-preview`，分支 `v63-phase6`（部署 ID `f4a97e4e-b845-4c7d-ba66-c52ab8d9e35c`）
-- **隔离预览地址**：`https://v63-phase6.thewyj-v63-preview.pages.dev`（`https://f4a97e4e.thewyj-v63-preview.pages.dev`）
+- **预览项目与分支**：`thewyj-v63-preview`，分支 `v63-phase6`（部署 ID `c1612908-5c20-431d-8389-b36721c8d5ef`）
+- **隔离预览地址**：`https://v63-phase6.thewyj-v63-preview.pages.dev`（`https://c1612908.thewyj-v63-preview.pages.dev`）
 - **绑定与保留核实**：绑定独立 `wyj-cloud-preview` D1 (`a3e6253b-689f-49f3-998b-7c5828ea255a`) 与 R2 (`wyj-cloud-preview`)；Phase 5 预览部署 `f4976f59-4dc3-42f1-83cf-d638a6ac0d3f` (`v63-phase5`) 与 Production 环境保持完好零改动。
 - **在线实测结果（`docs/ui-rebuild/v63-phase6-transfer/evidence/hosted-preview.json`）**：
   - `/api/status?source=cloud` 返回 HTTP `200`（`environment: "preview"`，`d1: true`，`r2: true`）；`/`、`_headers`、`sw.js` (`20261127-aeris-p6-transfer-v1`) 验证一致；

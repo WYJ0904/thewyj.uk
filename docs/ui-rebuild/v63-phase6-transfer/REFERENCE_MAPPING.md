@@ -59,5 +59,5 @@
 
 - **改前基线截图（`docs/ui-rebuild/v63-phase6-transfer/evidence/before/`）**：`before-empty-1440.png`、`before-dark-1440.png`、`before-queue-ready-1440.png`、`before-share-created-1440.png`、`before-recipient-1440.png`、`before-mobile-390.png`。
 - **改后全量实测截图（`docs/ui-rebuild/v63-phase6-transfer/evidence/after/`）**：`after-empty-1440.png`、`after-dark-1440.png`、`after-validation-error-1440.png`、`after-config-expanded-1440.png`、`after-queue-active-1440.png`、`after-share-created-1440.png`、`after-private-share-1440.png`、`after-shares-tab-1440.png`、`after-unfinished-tab-1440.png`、`after-password-modal-1440.png`、`after-recipient-1440.png`、`after-recipient-error-1440.png`、`after-mobile-390.png`、`after-mobile-320.png`。
-- **正常速度 1.0x 录屏**：`transfer-phase6-sender-1x.mp4`（172 帧）、`transfer-phase6-recipient-1x.mp4`（101 帧）。
+- **正常速度 1.0x 录屏**：`transfer-phase6-sender-1x.mp4`（119 帧）、`transfer-phase6-recipient-1x.mp4`（105 帧）。
 - **托管预览环境证据**：`hosted-preview-transfer-1440.png`、`hosted-preview.json`。

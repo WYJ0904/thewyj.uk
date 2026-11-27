@@ -2,8 +2,8 @@
   "project": "thewyj-v63-preview",
   "branch": "v63-phase6",
   "aliasUrl": "https://v63-phase6.thewyj-v63-preview.pages.dev",
-  "deployedUrl": "https://f4a97e4e.thewyj-v63-preview.pages.dev",
-  "deploymentId": "f4a97e4e-b845-4c7d-ba66-c52ab8d9e35c",
+  "deployedUrl": "https://c1612908.thewyj-v63-preview.pages.dev",
+  "deploymentId": "c1612908-5c20-431d-8389-b36721c8d5ef",
   "d1Id": "a3e6253b-689f-49f3-998b-7c5828ea255a",
   "r2Bucket": "wyj-cloud-preview",
   "v63Phase5PreservedDeploymentId": "f4976f59-4dc3-42f1-83cf-d638a6ac0d3f",
@@ -13,7 +13,7 @@
     "service": "wyj-cloud-foundation",
     "environment": "preview",
     "build": "2026-08-26-task15-cloud-only",
-    "time": "2026-11-27T08:08:32.339Z",
+    "time": "2026-11-27T08:38:45.859Z",
     "auth": true,
     "backend_ready": true,
     "ai_ready": false,
@@ -113,7 +113,7 @@
       "window_seconds": 60
     },
     "degraded_reasons": [],
-    "request_id": "ea75381e-ac99-4da5-a686-a169bdfdb7eb"
+    "request_id": "8d63b60b-4adb-4cf4-8327-4a0d65849958"
   },
   "headers": {
     "rootCacheControl": "no-cache, no-store, must-revalidate, no-transform",
@@ -132,11 +132,11 @@
       "error": "请先登录或提供访客设备标识",
       "code": "authentication_required",
       "retryable": false,
-      "request_id": "4262095a-7931-48c5-ac1f-6fb3ac3a7425"
+      "request_id": "00d48cb8-e530-4ae9-bc83-9b86794eefce"
     }
   },
   "schemaGapObserved": null,
   "note": "Preview preserves single-owner task18_single_owner_required (task18-preview-owner-10f06c88 untouched); super_admin 5.00 GiB tier verified in local Miniflare.",
   "runtimeErrors": [],
-  "chromePid": 30520
+  "chromePid": 31332
 }

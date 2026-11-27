@@ -317,17 +317,17 @@
   --ds-wf-success: #649981;
   --ds-wf-success-soft: color-mix(in srgb, #649981 9%, var(--ds-surface));
   --ds-wf-idle-stroke: color-mix(in srgb, var(--ds-text-muted) 42%, var(--ds-border));
-  --ds-transfer-active: #4f7bb5;
-  --ds-transfer-active-soft: color-mix(in srgb, #4f7bb5 10%, var(--ds-surface));
-  --ds-transfer-complete: #3f8266;
-  --ds-transfer-complete-soft: color-mix(in srgb, #3f8266 10%, var(--ds-surface));
-  --ds-transfer-paused: #6e737b;
-  --ds-transfer-paused-soft: color-mix(in srgb, #6e737b 10%, var(--ds-surface));
-  --ds-transfer-error: #b84a45;
-  --ds-transfer-error-soft: color-mix(in srgb, #b84a45 10%, var(--ds-surface));
+  --ds-transfer-active: #355d91;
+  --ds-transfer-active-soft: color-mix(in srgb, #355d91 9%, var(--ds-surface));
+  --ds-transfer-complete: #28644c;
+  --ds-transfer-complete-soft: color-mix(in srgb, #28644c 9%, var(--ds-surface));
+  --ds-transfer-paused: #525760;
+  --ds-transfer-paused-soft: color-mix(in srgb, #525760 9%, var(--ds-surface));
+  --ds-transfer-error: #a13834;
+  --ds-transfer-error-soft: color-mix(in srgb, #a13834 9%, var(--ds-surface));
   --ds-transfer-waiting: var(--ds-text-muted);
   --ds-transfer-track: color-mix(in srgb, var(--ds-border) 78%, var(--ds-surface-subtle));
-  --ds-transfer-drop-hover: color-mix(in srgb, #4f7bb5 6%, var(--ds-surface-subtle));
+  --ds-transfer-drop-hover: color-mix(in srgb, #355d91 6%, var(--ds-surface-subtle));
 }
 
 /* Keyboard-only route entry, using the existing semantic color/shape tokens. */

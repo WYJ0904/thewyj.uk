@@ -99,11 +99,11 @@ const REQUIRED_SHELL = [...CORE_SHELL, ...TASK26_SHELL, ...FINANCE_SHELL, ...TAS
 const INSTALL_SHELL = REQUIRED_SHELL;
 // Canonical UTF-8 hashes bind the current S0 shell plus Task27 additions.
 const TASK26_INTEGRITY = Object.freeze({
-  "/": "1cb189b97a5d5ad55346481366e80c9295c9acd70dc27db83eb52d5c6ee89f5a",
-  "/index.html": "1cb189b97a5d5ad55346481366e80c9295c9acd70dc27db83eb52d5c6ee89f5a",
+  "/": "187a32e42fa587b3c2dd57b88b88f574b138a9de28b5f19606cebe64247b5122",
+  "/index.html": "187a32e42fa587b3c2dd57b88b88f574b138a9de28b5f19606cebe64247b5122",
   "/styles.css?release=20261127-aeris-p6-transfer-v1": "fced3f47c7568a08d5fe8bdae7345dd96aacfd545621651f63dee3b961907305",
   "/product-ui.css?release=20261127-aeris-p6-transfer-v1": "bb0e2293c3efd9cae84dd2386a2ddd39fd156051110d9f9c1725f0f5df6dc34c",
-  "/design-system.css?release=20261127-aeris-p6-transfer-v1": "8983e361c25d05a79dd97b1a79bda0d668dbc65bd04bf61542215d6bf18a5f3d",
+  "/design-system.css?release=20261127-aeris-p6-transfer-v1": "f499bc7b7b670f4a46bacf27fec663b91c9495b8ef7fb5a40cc127baa75ca2a6",
   "/public-experience.css?release=20261127-aeris-p6-transfer-v1": "9875692c2c19f78a43a1fb0991430c3aeb1db90508c31d3a7e10ecbbd3b9002e",
   "/workspace-experience.css?release=20261127-aeris-p6-transfer-v1": "713896d0d192154aadeee6278fd7fd216dfb1e46a96a4c84c580044f09e422ae",
   "/spatial-experience.css?release=20261127-aeris-p6-transfer-v1": "94b261807a7ee9a77fc88f2abc79c32c92606467100b6f28505e27f77ee8cea7",
@@ -180,7 +180,7 @@ const TASK26_INTEGRITY = Object.freeze({
   "/js/account/password-policy.js?release=20261127-aeris-p6-transfer-v1": "48fd3d494120682e5b8baac8c73fb6ff68714cbc89d567318e9ea39549c80c56",
   "/js/account/password-fields.js?release=20261127-aeris-p6-transfer-v1": "6ba9cc6e8023e6893b1bd517149845a87b393eac53f3b03bb129cbe6a30e05fb"
 });
-const PUBLICATION_HASH = "261f49d7721fcfb1525ac1d85bc0af6396843c855f1fdd57a8ac04003e50627e";
+const PUBLICATION_HASH = "8b7bf822b6d080f3829466fc3405d8d39092f4f1379371d3edfe4b88112807f0";
 const PUBLICATION_CACHE = `${CACHE}-task26-${PUBLICATION_HASH.slice(0, 16)}`;
 const PUBLICATION_MARKER = "/__aeris/task26-publication";
 
