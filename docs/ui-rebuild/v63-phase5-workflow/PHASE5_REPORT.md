@@ -164,7 +164,7 @@ Reproduced in persistent Chromium profile upgrading from old P5 (`84ca5209`) to 
 
 ---
 
-## P5 Final Interaction Remediation (`20261127-aeris-p5-ux-final`)
+## P5 Final Interaction Remediation (`20261127-aeris-p5-ux-final-r2`)
 
 ### 1. Unrestricted 2D Free Canvas Placement vs Reorder Hysteresis
 - Removed narrow desktop (`±28px` / `±72px`) and mobile (`±18px` / `±20px`) clamps in `clampNodeOffset()`, replacing them with finite safety bounds (`±4800px` `MAX_WORLD_NODE_OFFSET`).
@@ -186,7 +186,7 @@ Reproduced in persistent Chromium profile upgrading from old P5 (`84ca5209`) to 
 - Added in-memory ephemeral isolation keyed by `${accountId()}::${workflowId}` (`workflowSessionStates`, `activeRunsBySession`) covering queued/staged files, validation banners, text inputs, batch toggles, step statuses, item results, typed outputs, errors, copy state, and download state—ensuring background execution events never contaminate newly selected workflows and blank states initialize for create/duplicate/import/account switch.
 
 ### 4. Local Verification After Final Edits
-- `node scripts/update_asset_release.mjs 20261127-aeris-p5-ux-final` & `npm run task27:publication`: `integrity_entries: 80`, `install_shell_total: 89`, `prior_core_shell_preserved: true`
+- `node scripts/update_asset_release.mjs 20261127-aeris-p5-ux-final-r2` & `npm run task27:publication`: `integrity_entries: 80`, `install_shell_total: 89`, `prior_core_shell_preserved: true`
 - `node local-backend/test_workflows_js.mjs`: 13 groups passed (including dynamic input policy & 20/21/50 bounds unit tests)
 - `python local-backend/test_static.py`: 31 tests OK
 - `node --test qa/p07-release/sw-install.test.mjs qa/p07-r4c/sw-release.test.mjs`: 24/24 passed

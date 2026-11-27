@@ -1013,6 +1013,7 @@
   let edgeSyncRaf = 0;
   let edgeSyncUntil = 0;
   let pointerDragState = null;
+  let suppressStepClickUntil = 0;
   let canvasPanState = null;
   let canvasResizeObserver = null;
   let pickerReturnFocus = null;
@@ -2427,6 +2428,7 @@
       const stepId = item.dataset.stepId;
 
       item.addEventListener("click", (event) => {
+        if (Date.now() < suppressStepClickUntil) return;
         if (event.target.closest("button, input, select, label")) return;
         selectedStepId = stepId;
         renderInspector();
@@ -3881,8 +3883,8 @@
     const beforeSnapshot = JSON.stringify(workflows);
     renderAll({ fitView: false });
     await loadCloudWorkflows();
-    if (JSON.stringify(workflows) !== beforeSnapshot) {
-      // Preserve active editor/inspector/typing state unless cloud sync changed workflow data.
+    if (!pointerDragState && JSON.stringify(workflows) !== beforeSnapshot) {
+      // Preserve active editor/inspector/typing/drag state unless cloud sync changed workflow data.
       renderAll({ fitView: false });
     }
   }
@@ -4133,11 +4135,12 @@
           drag.item.draggable = true;
           return;
         }
-        if (event.type === "pointercancel" || event.type === "lostpointercapture") {
+        if (event.type === "pointercancel") {
           cancelActivePointerDrag(true);
           return;
         }
 
+        suppressStepClickUntil = Date.now() + 220;
         pointerDragState = null;
         drag.item.draggable = true;
         drag.item.classList.remove("is-pointer-dragging", "is-swap-invalid");
@@ -4216,7 +4219,6 @@
 
     root.addEventListener?.("pointerup", endPointer);
     root.addEventListener?.("pointercancel", endPointer);
-    root.addEventListener?.("lostpointercapture", endPointer);
 
     if (typeof document !== "undefined") {
       document.addEventListener("visibilitychange", () => {

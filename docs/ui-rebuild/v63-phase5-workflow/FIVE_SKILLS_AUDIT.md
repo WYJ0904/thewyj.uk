@@ -111,7 +111,7 @@ Re-executed all five UI/UX design & quality skills after fixing the client CSS/J
 
 ---
 
-## P5 Final Interaction Remediation Audit (`20261127-aeris-p5-ux-final`)
+## P5 Final Interaction Remediation Audit (`20261127-aeris-p5-ux-final-r2`)
 
 Re-ran all 5 installed UI/UX skills across `index.html`, `workflows.js`, and `spatial-experience.css` after implementing unrestricted 2D free canvas node placement, unified dynamic input policy + instant queue validation (`getWorkflowInputPolicy` / `validateInputFilesForPolicy`), ZIP-free batch image processing (`image-list`), manageable per-item file queues (`#workflowSelectedFiles` + `#workflowInputValidation`), and strict `(accountId, workflowId)` ephemeral session isolation.
 
@@ -120,7 +120,7 @@ Re-ran all 5 installed UI/UX skills across `index.html`, `workflows.js`, and `sp
 - **SortableJS**: Retained `22px` directional swap hysteresis solely to decide candidate execution sequence changes while keeping the released 2D coordinates intact instead of snapping back to slot center.
 - **Uppy / FilePond**: Built a unified queue + instant validation architecture rejecting over-limit or incompatible incoming batches from entering `queuedFiles` (zero silent truncation), surfacing exact excess count/MB alerts immediately (`role="alert"`), and providing per-item removal that auto-promotes valid staged items once within bounds.
 
-### 2. Five-Skill Tool Outputs (`20261127-aeris-p5-ux-final`)
+### 2. Five-Skill Tool Outputs (`20261127-aeris-p5-ux-final-r2`)
 - `ui-ux-pro-max` (`--domain ux` queries `file upload queue validation error` & `drag drop canvas node accessibility`): Applied `role="alert"` / `aria-live="assertive"` validation summary (`#workflowInputValidation`), per-item accessible `aria-label` remove buttons, `tabular-nums` live quota counters (`已选 N / 20 张图片 · 总大小 / 50 MB`), and retained single-pointer & keyboard alternatives alongside free 2D canvas dragging.
 - `design-taste-frontend` (`copy-lint.mjs index.html workflows.js`): `index.html` `0 FAIL, 0 WARN`; `workflows.js` `0 FAIL` (fixed rejected-row index marker from `!` to `•`, remaining `WARN` is JS `!` logical negation operators in source).
 - `impeccable` (`impeccable.cmd detect --json workflows.js index.html spatial-experience.css`): Applied thin themed scrollbars (`scrollbar-width: thin`), clean token-backed error/success pills (`data-tone="ok" | "error"`), and flat stacked section dividers without nested-card borders; `0` new defects in Phase 5 `#workflowWorkspace`.

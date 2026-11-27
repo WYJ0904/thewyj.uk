@@ -1,4 +1,4 @@
-import { setControlFeedbackState } from "./motion.js?release=20261127-aeris-p5-ux-final";
+import { setControlFeedbackState } from "./motion.js?release=20261127-aeris-p5-ux-final-r2";
 
 export const RELEASE_CHANNEL_LABELS = Object.freeze({ stable: 'Stable', beta: 'Beta', experimental: 'Experimental' });
 
