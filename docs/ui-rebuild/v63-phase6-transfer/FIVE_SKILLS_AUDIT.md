@@ -65,4 +65,12 @@
   1. **Gate 54 (`FAIL` — Eyebrow Before Headings)**：初版 `#transferShareCard` 中将 `.status-badge` 放在 `<h2>` 之前；**修复**：移动至 `<div class="tf-share-title-row">` 内部 `<h2>` 之后呈现。
   2. **Gate 41 (`FAIL` — Text Without Ink On Painted Fill)**：初版两处带 `background: var(--ds-surface)` 的标签按钮与徽章未显式声明 `color`；**修复**：全部显式补充 `color: var(--ds-text)`。
   3. **Gate 37 / Literal Colors (`FAIL`)**：全面清洗字面量颜色，仅使用 `design-system.css` 语义变量（`0` 新增 `!important`、`0` 内联 `style` 属性、`4px` 整数倍间距）。
-  4. **当前残余项如实说明**：最终复检 Phase 6 相关代码区间（`index.html:696-930`、`js/transfer/app.js`、`spatial-experience.css:15384+`）共计 `5` 条：`0 REFLEX`，`1` 条 `FAIL (Gate 34)` 为 `.tf-share-file-copy strong` 配合 `text-overflow: ellipsis` 所需单行截断 `overflow: hidden`（第 `16372` 行），以及 `4` 条 `WARN (Gate F7)` 因 `:is(html, html[data-p07-ui=...])` 三态适配选择器前缀导致的相似容器统计规则。整体布局在 `320px..2560px` 全视口均保持 `0px` 横向溢出。
+  4. **当前残余项如实说明**：最终复检 Phase 6 相关代码区间（`index.html:696-930`、`js/transfer/app.js`、`spatial-experience.css:15384+`）共计 `7` 条（已修复 `.tf-tab` `padding: 8px 16px` 清除新增 `Gate 24b REFLEX`）：`0 REFLEX`，`3` 条 `FAIL`（`spatial-experience.css:16403` `#transferQueue` `overflow-x: hidden`（原文件 16403 行）、`index.html:747` `<p class="meta-line">` 中 `"HTML、SVG..."` 缩写、`index.html:940` 非本轮财务标题），以及 `4` 条 `WARN (Gate F7)`。整体布局在 `320px..2560px` 全视口均保持 `0px` 横向溢出，且所有主内容区 `deltaLR === 0`。
+
+---
+
+## 6. 最终布局统一与性能二次审计补充（2026-11-27）
+
+- **UI UX Pro Max (`ui-ux-pro-max`)**：执行 `search.py "centered console dashboard workspace file upload progress"`，将 `.tf-subnav` 统一为与 `.admin-tabs` 一致的全宽底线标签栏，`#transferPage` 与 `#adminPanel` 统一为 `min(calc(100% - 48px), var(--ds-container-console))` 居中画布；所有 3 组选项卡与主区在展开/折叠侧栏、`1440px`/`1920px`/`390px` 视口中均实现零跳动（`L_in === R_in`, `Δ=0`）。
+- **Design Taste Frontend (`design-taste-frontend`)**：复跑 `copy-lint.mjs index.html js/transfer/app.js --kind software`，`index.html` 维持 `0 FAIL, 0 WARN`，`js/transfer/app.js` 维持 `0 FAIL, 2 WARN`（仅注释/内部变量）。
+- **Impeccable (`impeccable`)**：复跑 `impeccable.cmd doctor --json` 退出码 `0`、`findings: []`。

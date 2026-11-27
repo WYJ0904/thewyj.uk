@@ -1,11 +1,11 @@
-import { randomId } from "../core/capabilities.js?release=20261127-aeris-p6-transfer-v1";
-import { ACCOUNT_SESSION_KEY, accountSessionHeaders, isThewyjAndroidApp } from "../core/session.js?release=20261127-aeris-p6-transfer-v1";
-import { getSafeStorage } from "../core/storage.js?release=20261127-aeris-p6-transfer-v1";
-import { withInteractionFeedback } from "../core/perf.js?release=20261127-aeris-p6-transfer-v1";
-import { createTransferUpdateScheduler } from "./updates.js?release=20261127-aeris-p6-transfer-v1";
-import { putPartWithRecovery } from "./upload-part.js?release=20261127-aeris-p6-transfer-v1";
-import { reconcileKeyedRows } from "../core/keyed-list.js?release=20261127-aeris-p6-transfer-v1";
-import { attachFileDropFeedback } from "../core/motion.js?release=20261127-aeris-p6-transfer-v1";
+import { randomId } from "../core/capabilities.js?release=20261127-aeris-p6-transfer-v2";
+import { ACCOUNT_SESSION_KEY, accountSessionHeaders, isThewyjAndroidApp } from "../core/session.js?release=20261127-aeris-p6-transfer-v2";
+import { getSafeStorage } from "../core/storage.js?release=20261127-aeris-p6-transfer-v2";
+import { withInteractionFeedback } from "../core/perf.js?release=20261127-aeris-p6-transfer-v2";
+import { createTransferUpdateScheduler } from "./updates.js?release=20261127-aeris-p6-transfer-v2";
+import { putPartWithRecovery } from "./upload-part.js?release=20261127-aeris-p6-transfer-v2";
+import { reconcileKeyedRows } from "../core/keyed-list.js?release=20261127-aeris-p6-transfer-v2";
+import { attachFileDropFeedback } from "../core/motion.js?release=20261127-aeris-p6-transfer-v2";
 
 const QUEUE_STORAGE_KEY = "wyjTransferQueue:v1";
 const GUEST_ID_KEY = "wyjTransferGuest:v1";
@@ -17,7 +17,9 @@ const DEFAULT_EXPIRY_MINUTES = 1440;
  * 800 MB upload far below the available bandwidth. Three parallel parts keeps
  * the pipe busy without unbounded sockets; failures still stop the batch.
  */
-export const UPLOAD_CONCURRENCY = 3;
+export const UPLOAD_CONCURRENCY = 4;
+const MAX_CONCURRENT_FILES = 4;
+const MAX_ACTIVE_PUTS = 6;
 
 /** Part numbers that still need a PUT, in stable order. */
 export function missingPartNumbers(partCount, uploadedParts) {
@@ -450,11 +452,99 @@ export function createTransferController({
   let progressNodes = new Map();
   let activePasswordResolver = null;
   let passwordLastTrigger = null;
+  let activePutSlots = 0;
+  const putWaiters = [];
   const updates = createTransferUpdateScheduler({
     generation: () => ownerGeneration,
     updateProgress: patchQueueProgress,
     persist: writeQueue,
   });
+
+  async function acquirePutSlot(signal) {
+    if (signal?.aborted) throw Object.assign(new Error("上传已暂停或取消。"), { name: "AbortError", code: "request_aborted" });
+    if (activePutSlots < MAX_ACTIVE_PUTS) {
+      activePutSlots += 1;
+      return;
+    }
+    await new Promise((resolve, reject) => {
+      const entry = {
+        resolve: () => {
+          signal?.removeEventListener("abort", onAbort);
+          resolve();
+        },
+      };
+      const onAbort = () => {
+        const idx = putWaiters.indexOf(entry);
+        if (idx >= 0) putWaiters.splice(idx, 1);
+        reject(Object.assign(new Error("上传已暂停或取消。"), { name: "AbortError", code: "request_aborted" }));
+      };
+      signal?.addEventListener("abort", onAbort, { once: true });
+      putWaiters.push(entry);
+    });
+  }
+
+  function releasePutSlot() {
+    while (putWaiters.length) {
+      const next = putWaiters.shift();
+      if (next) {
+        next.resolve();
+        return;
+      }
+    }
+    activePutSlots = Math.max(0, activePutSlots - 1);
+  }
+
+  function itemInFlightBytes(item) {
+    if (!item?._partWire || item.paused || item.status === "cancelled" || item.status === "done") return 0;
+    let sum = 0;
+    for (const v of item._partWire.values()) sum += Number(v) || 0;
+    return sum;
+  }
+
+  function itemLiveUploadedBytes(item) {
+    if (!item) return 0;
+    if (item.status === "done") return Number(item.size || 0);
+    return Math.min(Number(item.size || 0), Number(item.uploaded || 0) + itemInFlightBytes(item));
+  }
+
+  function itemDisplayPercent(item) {
+    if (!item) return 0;
+    const size = Number(item.size || 0);
+    if (item.status === "done") return 100;
+    if (!size) return 0;
+    const bytes = (item.status === "uploading" || item.status === "confirming")
+      ? itemLiveUploadedBytes(item)
+      : Number(item.uploaded || 0);
+    return Math.min(99, Math.round((bytes / size) * 100));
+  }
+
+  function recordItemWireProgress(item) {
+    if (!item || item.paused || item.status !== "uploading") return;
+    const now = Date.now();
+    const liveBytes = itemLiveUploadedBytes(item);
+    const samples = (item._wireSamples = Array.isArray(item._wireSamples) ? item._wireSamples : []);
+    const last = samples[samples.length - 1];
+    if (!last || now - last.t >= 120 || liveBytes > last.bytes) {
+      if (!last || now - last.t >= 120) samples.push({ t: now, bytes: liveBytes });
+      else last.bytes = liveBytes;
+    }
+    const cutoff = now - 3500;
+    while (samples.length > 2 && samples[1].t <= cutoff) samples.shift();
+    const oldest = samples[0];
+    if (oldest && now - oldest.t >= 200) {
+      const delta = liveBytes - oldest.bytes;
+      const elapsedSec = (now - oldest.t) / 1000;
+      if (delta > 0 && elapsedSec > 0) {
+        const instantSpeed = delta / elapsedSec;
+        item.speed = Number(item.speed) > 0 ? item.speed * 0.45 + instantSpeed * 0.55 : instantSpeed;
+        const remaining = Math.max(0, Number(item.size || 0) - liveBytes);
+        item.eta = remaining > 0 ? remaining / Math.max(1, item.speed) : 0;
+      }
+    }
+    if (visible && !document.hidden && document.documentElement?.dataset?.androidWebActive !== "false") {
+      updates.progress();
+    }
+  }
 
   const element = (id) => document.getElementById(id);
   const authenticated = () => Boolean(account()?.id);
@@ -664,8 +754,9 @@ export function createTransferController({
     if (!panel) return;
     const activeItems = queue.filter((item) => item.status !== "cancelled");
     const totalBytes = activeItems.reduce((sum, item) => sum + Number(item.size || 0), 0);
-    const uploadedBytes = activeItems.reduce((sum, item) => sum + Number(item.uploaded || 0), 0);
-    const percent = totalBytes > 0 ? Math.min(100, Math.round((uploadedBytes / totalBytes) * 100)) : 0;
+    const uploadedBytes = activeItems.reduce((sum, item) => sum + itemLiveUploadedBytes(item), 0);
+    const allDone = activeItems.length > 0 && activeItems.every((i) => i.status === "done");
+    const percent = allDone ? 100 : (totalBytes > 0 ? Math.min(99, Math.round((uploadedBytes / totalBytes) * 100)) : 0);
 
     let tone = "waiting";
     let stageTitle = "等待选择文件";
@@ -679,7 +770,6 @@ export function createTransferController({
     const anyPreparing = activeItems.some((i) => i.status === "preparing" && !i.paused);
     const anyConfirming = activeItems.some((i) => i.status === "confirming");
     const anyPaused = activeItems.some((i) => i.paused && i.status !== "done");
-    const allDone = activeItems.length > 0 && activeItems.every((i) => i.status === "done");
 
     if (publishingShare) {
       tone = "active";
@@ -810,17 +900,29 @@ export function createTransferController({
       lockBadge.textContent = locked ? "会话已创建 · 本批参数已锁定" : "创建会话前可调整";
     }
     const isGuest = !authenticated();
+    const oneTimeChecked = Boolean(element("transferOneTime")?.checked);
+    const maxDlField = element("transferMaxDownloads");
+    if (maxDlField) {
+      if (oneTimeChecked) {
+        if (!maxDlField.dataset.prevMaxDownloads && maxDlField.value && maxDlField.value !== "1") {
+          maxDlField.dataset.prevMaxDownloads = maxDlField.value;
+        }
+        maxDlField.value = "1";
+      } else if (maxDlField.dataset.prevMaxDownloads) {
+        maxDlField.value = maxDlField.dataset.prevMaxDownloads;
+        delete maxDlField.dataset.prevMaxDownloads;
+      }
+    }
     for (const id of ["transferExpiry", "transferPassword", "transferMaxDownloads", "transferOneTime"]) {
       const field = element(id);
-      if (field) field.disabled = locked;
+      if (field) field.disabled = locked || (id === "transferMaxDownloads" && oneTimeChecked);
     }
     if (!summary) return;
     const expiryEl = element("transferExpiry");
     const expiryLabel = expiryEl?.selectedOptions?.[0]?.textContent?.trim() || "1 天";
-    const maxDl = Number(element("transferMaxDownloads")?.value || 5);
-    const parts = [expiryLabel, `最多 ${maxDl} 次`];
+    const maxDl = oneTimeChecked ? 1 : Number(maxDlField?.value || 5);
+    const parts = [expiryLabel, oneTimeChecked ? "阅后即焚（限 1 次）" : `最多 ${maxDl} 次`];
     if (element("transferPassword")?.value?.trim()) parts.push("需密码");
-    if (element("transferOneTime")?.checked) parts.push("阅后即焚");
     if (element("transferPrivate")?.checked && !isGuest) parts.push("私有附件");
     summary.textContent = parts.join(" · ");
   }
@@ -846,7 +948,8 @@ export function createTransferController({
         item.error, item.needsFile, transferItemAction(item)]),
       empty: '<div class="transfer-empty">还没有选择文件。拖入文件、选择文件夹或按 Ctrl+V 粘贴文件。</div>',
       render: (item) => {
-        const percent = item.size ? Math.min(100, Math.round((item.uploaded / item.size) * 100)) : 0;
+        const liveBytes = itemLiveUploadedBytes(item);
+        const percent = itemDisplayPercent(item);
         const action = transferItemAction(item);
         const stateKey = item.paused && !["done", "cancelled"].includes(item.status) ? "paused" : (item.status || "pending");
         const phase = action === "preparing" ? " · 正在创建安全上传任务" : item.error ? ` · ${escapeHtml(item.error)}` : "";
@@ -865,7 +968,7 @@ export function createTransferController({
               <span class="transfer-item-state" data-status="${escapeHtml(stateKey)}">${escapeHtml(transferItemStatusLabel(item))}</span>
               <span class="transfer-item-percent tabular-nums">${percent}%</span>
             </div>
-            <small>${escapeHtml(item.relativePath)} · ${formatBytes(item.uploaded)} / ${formatBytes(item.size)}${item.speed ? ` · ${formatBytes(item.speed)}/s` : ""}${item.eta ? ` · 剩余 ${Math.ceil(item.eta)}s` : ""}${item.needsFile ? " · 已恢复，请重新选择同一文件继续" : ""}${phase}</small>
+            <small>${escapeHtml(item.relativePath)} · ${formatBytes(liveBytes)} / ${formatBytes(item.size)}${item.speed ? ` · ${formatBytes(item.speed)}/s` : ""}${item.eta ? ` · 剩余 ${Math.ceil(item.eta)}s` : ""}${item.needsFile ? " · 已恢复，请重新选择同一文件继续" : ""}${phase}</small>
             <progress max="100" value="${percent}" aria-label="${escapeHtml(item.name)} 上传进度"></progress>
           </div>
           <div class="transfer-item-actions">
@@ -893,8 +996,9 @@ export function createTransferController({
       if (item.status !== "uploading") continue;
       const nodes = progressNodes.get(item.id);
       if (!nodes?.row.isConnected) continue;
-      const percent = item.size ? Math.min(100, Math.round(item.uploaded / item.size * 100)) : 0;
-      const text = `${item.relativePath} · ${formatBytes(item.uploaded)} / ${formatBytes(item.size)}`
+      const liveBytes = itemLiveUploadedBytes(item);
+      const percent = itemDisplayPercent(item);
+      const text = `${item.relativePath} · ${formatBytes(liveBytes)} / ${formatBytes(item.size)}`
         + (item.speed ? ` · ${formatBytes(item.speed)}/s` : "")
         + (item.eta ? ` · 剩余 ${Math.ceil(item.eta)}s` : "");
       if (nodes.detail && nodes.detail.textContent !== text) nodes.detail.textContent = text;
@@ -902,6 +1006,7 @@ export function createTransferController({
       if (nodes.percent && nodes.percent.textContent !== `${percent}%`) nodes.percent.textContent = `${percent}%`;
     }
     renderQuota();
+    updateOverallProgress();
   }
 
   function setMessage(message, tone = "") {
@@ -999,6 +1104,8 @@ export function createTransferController({
       setMessage("");
     }
     if (!reattached && !accepted.length) return;
+    // Clear the previous completed share card once a new batch/file starts so the user never mistakes it for the new upload.
+    if (currentShare && recipientShareId() === null) clearShare();
     persistQueue();
     renderQueue();
     void run();
@@ -1047,7 +1154,7 @@ export function createTransferController({
       openingIds = sessionBatchIds(queue);
       const body = {
         minutes: Number(element("transferExpiry")?.value || DEFAULT_EXPIRY_MINUTES),
-        max_downloads: Number(element("transferMaxDownloads")?.value || 5),
+        max_downloads: Boolean(element("transferOneTime")?.checked) ? 1 : Number(element("transferMaxDownloads")?.value || 5),
         one_time: Boolean(element("transferOneTime")?.checked),
         password: String(element("transferPassword")?.value || ""),
         file_count: openedPlan.fileCount,
@@ -1161,14 +1268,31 @@ export function createTransferController({
     // Several parts are in flight at once: keep every controller so pause and
     // cancel stop all active requests, and run() can see the item is busy.
     item.controllers = item.controllers || new Set();
+    item._partWire = item._partWire || new Map();
     item.controllers.add(controller);
     item.controller = controller;
     item.activeUploads = (Number(item.activeUploads) || 0) + 1;
-    await putPartWithRecovery({
-      url: `/api/transfer/uploads/${item.sessionId}/files/${item.fileId}/parts/${partNumber}`,
-      headers: () => headers({ "Content-Type": "application/octet-stream", "X-Part-Sha256": partHash }),
-      body, signal: controller.signal,
+    await acquirePutSlot(controller.signal).then(async () => {
+      try {
+        await putPartWithRecovery({
+          url: `/api/transfer/uploads/${item.sessionId}/files/${item.fileId}/parts/${partNumber}`,
+          headers: () => headers({ "Content-Type": "application/octet-stream", "X-Part-Sha256": partHash }),
+          body,
+          signal: controller.signal,
+          onAttemptReset: () => {
+            item._partWire?.delete(partNumber);
+          },
+          onProgress: (loaded) => {
+            if (item.paused || item.status === "cancelled") return;
+            item._partWire?.set(partNumber, Math.min(part.length, Number(loaded) || 0));
+            recordItemWireProgress(item);
+          },
+        });
+      } finally {
+        releasePutSlot();
+      }
     }).finally(() => {
+      item._partWire?.delete(partNumber);
       item.controllers?.delete(controller);
       item.activeUploads = Math.max(0, (Number(item.activeUploads) || 1) - 1);
       if (item.activeUploads === 0) item.controller = null;
@@ -1236,8 +1360,7 @@ export function createTransferController({
     }
     if (!prepared) return;
     item.status = "uploading";
-    persistQueue();
-    renderQueue();
+    item._partWire = new Map();
     if (item.partCount === 0) item.partCount = Math.max(1, Math.ceil(item.size / item.partSize));
     item.uploadedParts = Array.isArray(item.uploadedParts) ? item.uploadedParts : [];
     // Progress is acknowledged bytes, not "highest part seen": parallel parts
@@ -1246,6 +1369,9 @@ export function createTransferController({
       const offset = (Number(partNumber) - 1) * item.partSize;
       return sum + Math.min(item.partSize, item.size - offset);
     }, 0);
+    item._wireSamples = [{ t: Date.now(), bytes: item.uploaded }];
+    persistQueue();
+    renderQueue();
     const queueParts = missingPartNumbers(item.partCount, item.uploadedParts);
     const startedAt = Date.now();
     const startBytes = item.uploaded;
@@ -1270,14 +1396,18 @@ export function createTransferController({
         onUploaded: (part, uploadedBytes) => {
           const partNumber = part.partNumber;
           const length = part.length;
+          item._partWire?.delete(partNumber);
           if (!item.uploadedParts.includes(partNumber)) item.uploadedParts.push(partNumber);
           item.uploaded = Math.min(item.size, item.uploaded + (uploadedBytes || length));
           delete item.failedPart;
           updates.persistLater();
           const elapsed = (Date.now() - startedAt) / 1000;
-          if (elapsed > 0.5 && item.uploaded > startBytes) {
-            item.speed = (item.uploaded - startBytes) / Math.max(0.2, elapsed);
-            item.eta = item.size > item.uploaded ? (item.size - item.uploaded) / Math.max(1, item.speed) : 0;
+          if (!item.speed && elapsed > 0.05 && item.uploaded > startBytes) {
+            item.speed = (item.uploaded - startBytes) / Math.max(0.05, elapsed);
+          }
+          if (item.speed > 0) {
+            const live = itemLiveUploadedBytes(item);
+            item.eta = item.size > live ? (item.size - live) / Math.max(1, item.speed) : 0;
           }
           if (visible && !document.hidden && document.documentElement?.dataset?.androidWebActive !== "false") updates.progress();
         },
@@ -1298,6 +1428,9 @@ export function createTransferController({
       });
     }
     if (item.status === "cancelled") {
+      item._partWire?.clear();
+      item.speed = 0;
+      item.eta = 0;
       item.controller = null;
       item.activeUploads = 0;
       return;
@@ -1306,6 +1439,9 @@ export function createTransferController({
     // the rest resume. It is not a finished upload, so the item must not be
     // marked done (that used to make「开始/继续」a no-op after pausing).
     if (metrics?.stoppedBy === "paused" || item.paused) {
+      item._partWire?.clear();
+      item.speed = 0;
+      item.eta = 0;
       item.status = "pending";
       item.controller = null;
       item.activeUploads = 0;
@@ -1314,6 +1450,9 @@ export function createTransferController({
       return;
     }
     if (failure) {
+      item._partWire?.clear();
+      item.speed = 0;
+      item.eta = 0;
       if (item.uploaded === 0 && isRecoverableUploadSessionError(failure)) {
         const staleSessionId = String(item.sessionId || activeSession?.id || "");
         resetQueueForStaleSession(queue, staleSessionId);
@@ -1334,20 +1473,13 @@ export function createTransferController({
       renderQueue();
       return;
     }
+    item._partWire?.clear();
+    item.eta = 0;
     item.status = "done";
     item.controller = null;
     item.activeUploads = 0;
     persistQueue();
     renderQueue();
-    // A file added while this one was uploading makes the active session too
-    // small for the queue. Switch after the in-flight parts settled (never by
-    // yanking an allocation out from under a running PUT), then re-upload.
-    const batchPlan = sessionPlan(queue, activeSession);
-    if (!batchPlan.reuse) {
-      await ensureSession();
-      void run();
-      return;
-    }
     if (queue.every((entry) => entry.status === "done")) setMessage("全部文件已上传，可以创建分享链接。");
   }
 
@@ -1358,22 +1490,48 @@ export function createTransferController({
     }
     running = true;
     try {
-      // A session switch (a file was appended after an upload) resets the files
-      // that already uploaded, so the loop has to run another pass instead of
-      // returning as soon as the first pass is over. Passes are bounded and stop
-      // as soon as nothing was uploaded any more.
+      // Ensure one shared batch session before launching bounded parallel file workers
+      // so concurrent workers never yank or abort an active session mid-PUT.
       for (let pass = 0; pass < 4; pass += 1) {
+        const isRunnable = (item) => Boolean(
+          item.file
+          && !item.paused
+          && item.status !== "done"
+          && item.status !== "cancelled"
+          && item.status !== "error"
+          && !item.controller
+          && !(Number(item.activeUploads) > 0),
+        );
+        const initialBatch = queue.filter(isRunnable);
+        if (!initialBatch.length) break;
+        try {
+          await ensureSession();
+        } catch (error) {
+          setMessage(error?.message || "上传会话创建失败，请重试。", "error");
+          break;
+        }
+        const attempted = new Set();
         let progressed = false;
-        for (const item of [...queue]) {
-          if (item.paused) continue;
-          if (item.status === "done" || item.status === "cancelled") continue;
-          // Only an item that still holds its File can be resumed; restored items
-          // stay in「待重新选择文件」until addFiles() attaches it again.
-          if (item.file && !item.controller && !(Number(item.activeUploads) > 0)) {
-            await uploadItem(item);
+        const pickNextItem = () => {
+          if (!sessionPlan(queue, activeSession).reuse) return null;
+          for (const item of queue) {
+            if (attempted.has(item.id)) continue;
+            if (isRunnable(item)) {
+              attempted.add(item.id);
+              return item;
+            }
+          }
+          return null;
+        };
+        const fileWorkerCount = Math.min(MAX_CONCURRENT_FILES, Math.max(1, initialBatch.length));
+        await Promise.all(Array.from({ length: fileWorkerCount }, async () => {
+          while (true) {
+            const next = pickNextItem();
+            if (!next) return;
+            await uploadItem(next);
             progressed = true;
           }
-        }
+        }));
         const needsWork = queue.some((item) =>
           item.file
           && !item.paused
@@ -1381,7 +1539,8 @@ export function createTransferController({
           && item.status !== "cancelled"
           && item.status !== "error");
         const plan = sessionPlan(queue, activeSession);
-        if (!progressed || (!needsWork && plan.reuse)) break;
+        if (!progressed && plan.reuse) break;
+        if (!needsWork && plan.reuse) break;
       }
     } finally {
       running = false;
@@ -1590,14 +1749,16 @@ export function createTransferController({
 
     const metaChips = element("transferShareMetaChips");
     if (metaChips) {
+      const dlCount = Number(share.download_count || 0);
       const chips = [
         `${Number(share.file_count || share.files?.length || 0)} 个文件`,
         formatBytes(share.total_bytes || 0),
-        `下载 ${Number(share.download_count || 0)} / ${Number(share.max_downloads || 0)} 次`,
+        share.one_time
+          ? `阅后即焚（限 1 次 · 已下载 ${Math.min(1, dlCount)}/1 次）`
+          : `下载 ${dlCount} / ${Number(share.max_downloads || 0)} 次`,
         `${new Date(share.expires_at).toLocaleString("zh-CN")} 到期`,
       ];
       if (share.password_required) chips.push("密码保护");
-      if (share.one_time) chips.push("阅后即焚");
       metaChips.innerHTML = chips.map((c) => `<span class="tf-meta-chip">${escapeHtml(c)}</span>`).join("");
     }
 
@@ -1709,11 +1870,15 @@ export function createTransferController({
           share.one_time ? '<span class="tf-meta-chip">阅后即焚</span>' : "",
         ].filter(Boolean).join("");
         const fileSummary = (share.files || []).map((file) => file.file_name).join("、") || "文件名暂不可用";
+        const dlCount = Number(share.download_count || 0);
+        const dlSummary = share.one_time
+          ? `限 1 次（已下载 ${Math.min(1, dlCount)}/1）`
+          : `下载 ${dlCount}/${share.max_downloads}`;
         return `<article class="transfer-share-row">
         <div class="tf-share-row-info">
           <div class="tf-share-row-head">${tags}<strong>${isPrivate ? '私有附件 · ' : ''}${escapeHtml(share.file_count)} 个文件 · ${formatBytes(share.total_bytes)}</strong></div>
           <small>${escapeHtml(fileSummary)}</small>
-          <small>${new Date(share.expires_at).toLocaleString("zh-CN")} 到期 · 下载 ${share.download_count}/${share.max_downloads}</small>
+          <small>${new Date(share.expires_at).toLocaleString("zh-CN")} 到期 · ${escapeHtml(dlSummary)}</small>
         </div>
         <div class="transfer-share-actions">
           ${!isPrivate ? `<button class="button-ghost" type="button" data-transfer-copy-share="${escapeHtml(share.id)}">复制链接</button>` : ""}
@@ -2010,6 +2175,9 @@ export function createTransferController({
     // simply re-uploads whatever did not finish.
     item.controllers?.forEach((controller) => controller.abort());
     item.controllers?.clear();
+    item._partWire?.clear();
+    item.speed = 0;
+    item.eta = 0;
     item.controller = null;
     renderQueue();
   }

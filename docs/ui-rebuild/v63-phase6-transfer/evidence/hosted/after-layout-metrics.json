@@ -1,0 +1,1626 @@
+{
+  "base": "https://v63-phase6.thewyj-v63-p6p9-preview.pages.dev",
+  "collectedAt": "2026-11-27T12:31:39.482Z",
+  "measurements": {
+    "admin_1440_expanded": {
+      "vw": 1440,
+      "scrollW": 1425,
+      "clientW": 1425,
+      "sidebarCollapsed": "false",
+      "v3MainCanvas": {
+        "visible": true,
+        "left": 256,
+        "right": 1425,
+        "width": 1169,
+        "height": 1021,
+        "marginLeftInCanvas": 0,
+        "marginRightInCanvas": 0,
+        "deltaLR": 0
+      },
+      "adminPanel": {
+        "visible": true,
+        "left": 280,
+        "right": 1401,
+        "width": 1121,
+        "height": 921,
+        "marginLeftInCanvas": 24,
+        "marginRightInCanvas": 24,
+        "deltaLR": 0
+      },
+      "transferPage": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      },
+      "transferHeader": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      },
+      "transferSubnav": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      },
+      "transferSendPanel": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      },
+      "transferDropZone": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      },
+      "transferConfigDisclosure": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      },
+      "transferProgressPanel": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      },
+      "transferQueue": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      },
+      "transferShareCard": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      },
+      "transferSharesPanel": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      },
+      "transferUnfinishedPanel": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      },
+      "transferRecipientBar": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      }
+    },
+    "admin_1920_expanded": {
+      "vw": 1920,
+      "scrollW": 1905,
+      "clientW": 1905,
+      "sidebarCollapsed": "false",
+      "v3MainCanvas": {
+        "visible": true,
+        "left": 256,
+        "right": 1905,
+        "width": 1649,
+        "height": 1023,
+        "marginLeftInCanvas": 0,
+        "marginRightInCanvas": 0,
+        "deltaLR": 0
+      },
+      "adminPanel": {
+        "visible": true,
+        "left": 420.5,
+        "right": 1740.5,
+        "width": 1320,
+        "height": 877,
+        "marginLeftInCanvas": 164.5,
+        "marginRightInCanvas": 164.5,
+        "deltaLR": 0
+      },
+      "transferPage": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1905,
+        "deltaLR": -2161
+      },
+      "transferHeader": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1905,
+        "deltaLR": -2161
+      },
+      "transferSubnav": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1905,
+        "deltaLR": -2161
+      },
+      "transferSendPanel": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1905,
+        "deltaLR": -2161
+      },
+      "transferDropZone": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1905,
+        "deltaLR": -2161
+      },
+      "transferConfigDisclosure": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1905,
+        "deltaLR": -2161
+      },
+      "transferProgressPanel": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1905,
+        "deltaLR": -2161
+      },
+      "transferQueue": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1905,
+        "deltaLR": -2161
+      },
+      "transferShareCard": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1905,
+        "deltaLR": -2161
+      },
+      "transferSharesPanel": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1905,
+        "deltaLR": -2161
+      },
+      "transferUnfinishedPanel": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1905,
+        "deltaLR": -2161
+      },
+      "transferRecipientBar": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1905,
+        "deltaLR": -2161
+      }
+    },
+    "transfer_send_1440_expanded": {
+      "vw": 1440,
+      "scrollW": 1425,
+      "clientW": 1425,
+      "sidebarCollapsed": "false",
+      "v3MainCanvas": {
+        "visible": true,
+        "left": 256,
+        "right": 1425,
+        "width": 1169,
+        "height": 1005.2,
+        "marginLeftInCanvas": 0,
+        "marginRightInCanvas": 0,
+        "deltaLR": 0
+      },
+      "adminPanel": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      },
+      "transferPage": {
+        "visible": true,
+        "left": 280,
+        "right": 1401,
+        "width": 1121,
+        "height": 905.2,
+        "marginLeftInCanvas": 24,
+        "marginRightInCanvas": 24,
+        "deltaLR": 0
+      },
+      "transferHeader": {
+        "visible": true,
+        "left": 280,
+        "right": 1401,
+        "width": 1121,
+        "height": 64.4,
+        "marginLeftInCanvas": 24,
+        "marginRightInCanvas": 24,
+        "deltaLR": 0
+      },
+      "transferSubnav": {
+        "visible": true,
+        "left": 280,
+        "right": 1401,
+        "width": 1121,
+        "height": 45,
+        "marginLeftInCanvas": 24,
+        "marginRightInCanvas": 24,
+        "deltaLR": 0
+      },
+      "transferSendPanel": {
+        "visible": true,
+        "left": 280,
+        "right": 1401,
+        "width": 1121,
+        "height": 727.8,
+        "marginLeftInCanvas": 24,
+        "marginRightInCanvas": 24,
+        "deltaLR": 0
+      },
+      "transferDropZone": {
+        "visible": true,
+        "left": 280,
+        "right": 1401,
+        "width": 1121,
+        "height": 446,
+        "marginLeftInCanvas": 24,
+        "marginRightInCanvas": 24,
+        "deltaLR": 0
+      },
+      "transferConfigDisclosure": {
+        "visible": true,
+        "left": 280,
+        "right": 1401,
+        "width": 1121,
+        "height": 54.2,
+        "marginLeftInCanvas": 24,
+        "marginRightInCanvas": 24,
+        "deltaLR": 0
+      },
+      "transferProgressPanel": {
+        "visible": true,
+        "left": 280,
+        "right": 1401,
+        "width": 1121,
+        "height": 113.2,
+        "marginLeftInCanvas": 24,
+        "marginRightInCanvas": 24,
+        "deltaLR": 0
+      },
+      "transferQueue": {
+        "visible": true,
+        "left": 280,
+        "right": 1401,
+        "width": 1121,
+        "height": 66.4,
+        "marginLeftInCanvas": 24,
+        "marginRightInCanvas": 24,
+        "deltaLR": 0
+      },
+      "transferShareCard": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      },
+      "transferSharesPanel": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      },
+      "transferUnfinishedPanel": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      },
+      "transferRecipientBar": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      }
+    },
+    "transfer_shares_1440_expanded": {
+      "vw": 1440,
+      "scrollW": 1425,
+      "clientW": 1425,
+      "sidebarCollapsed": "false",
+      "v3MainCanvas": {
+        "visible": true,
+        "left": 256,
+        "right": 1425,
+        "width": 1169,
+        "height": 843,
+        "marginLeftInCanvas": 0,
+        "marginRightInCanvas": 0,
+        "deltaLR": 0
+      },
+      "adminPanel": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      },
+      "transferPage": {
+        "visible": true,
+        "left": 280,
+        "right": 1401,
+        "width": 1121,
+        "height": 580.3,
+        "marginLeftInCanvas": 24,
+        "marginRightInCanvas": 24,
+        "deltaLR": 0
+      },
+      "transferHeader": {
+        "visible": true,
+        "left": 280,
+        "right": 1401,
+        "width": 1121,
+        "height": 64.4,
+        "marginLeftInCanvas": 24,
+        "marginRightInCanvas": 24,
+        "deltaLR": 0
+      },
+      "transferSubnav": {
+        "visible": true,
+        "left": 280,
+        "right": 1401,
+        "width": 1121,
+        "height": 45,
+        "marginLeftInCanvas": 24,
+        "marginRightInCanvas": 24,
+        "deltaLR": 0
+      },
+      "transferSendPanel": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      },
+      "transferDropZone": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      },
+      "transferConfigDisclosure": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      },
+      "transferProgressPanel": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      },
+      "transferQueue": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      },
+      "transferShareCard": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      },
+      "transferSharesPanel": {
+        "visible": true,
+        "left": 280,
+        "right": 1401,
+        "width": 1121,
+        "height": 386.9,
+        "marginLeftInCanvas": 24,
+        "marginRightInCanvas": 24,
+        "deltaLR": 0
+      },
+      "transferUnfinishedPanel": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      },
+      "transferRecipientBar": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      }
+    },
+    "transfer_unfinished_1440_expanded": {
+      "vw": 1440,
+      "scrollW": 1425,
+      "clientW": 1425,
+      "sidebarCollapsed": "false",
+      "v3MainCanvas": {
+        "visible": true,
+        "left": 256,
+        "right": 1425,
+        "width": 1169,
+        "height": 843,
+        "marginLeftInCanvas": 0,
+        "marginRightInCanvas": 0,
+        "deltaLR": 0
+      },
+      "adminPanel": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      },
+      "transferPage": {
+        "visible": true,
+        "left": 280,
+        "right": 1401,
+        "width": 1121,
+        "height": 352.7,
+        "marginLeftInCanvas": 24,
+        "marginRightInCanvas": 24,
+        "deltaLR": 0
+      },
+      "transferHeader": {
+        "visible": true,
+        "left": 280,
+        "right": 1401,
+        "width": 1121,
+        "height": 64.4,
+        "marginLeftInCanvas": 24,
+        "marginRightInCanvas": 24,
+        "deltaLR": 0
+      },
+      "transferSubnav": {
+        "visible": true,
+        "left": 280,
+        "right": 1401,
+        "width": 1121,
+        "height": 45,
+        "marginLeftInCanvas": 24,
+        "marginRightInCanvas": 24,
+        "deltaLR": 0
+      },
+      "transferSendPanel": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      },
+      "transferDropZone": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      },
+      "transferConfigDisclosure": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      },
+      "transferProgressPanel": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      },
+      "transferQueue": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      },
+      "transferShareCard": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      },
+      "transferSharesPanel": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      },
+      "transferUnfinishedPanel": {
+        "visible": true,
+        "left": 280,
+        "right": 1401,
+        "width": 1121,
+        "height": 159.3,
+        "marginLeftInCanvas": 24,
+        "marginRightInCanvas": 24,
+        "deltaLR": 0
+      },
+      "transferRecipientBar": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      }
+    },
+    "transfer_queue_done_1440_expanded": {
+      "vw": 1440,
+      "scrollW": 1425,
+      "clientW": 1425,
+      "sidebarCollapsed": "false",
+      "v3MainCanvas": {
+        "visible": true,
+        "left": 256,
+        "right": 1425,
+        "width": 1169,
+        "height": 984.7,
+        "marginLeftInCanvas": 0,
+        "marginRightInCanvas": 0,
+        "deltaLR": 0
+      },
+      "adminPanel": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      },
+      "transferPage": {
+        "visible": true,
+        "left": 280,
+        "right": 1401,
+        "width": 1121,
+        "height": 884.7,
+        "marginLeftInCanvas": 24,
+        "marginRightInCanvas": 24,
+        "deltaLR": 0
+      },
+      "transferHeader": {
+        "visible": true,
+        "left": 280,
+        "right": 1401,
+        "width": 1121,
+        "height": 64.4,
+        "marginLeftInCanvas": 24,
+        "marginRightInCanvas": 24,
+        "deltaLR": 0
+      },
+      "transferSubnav": {
+        "visible": true,
+        "left": 280,
+        "right": 1401,
+        "width": 1121,
+        "height": 45,
+        "marginLeftInCanvas": 24,
+        "marginRightInCanvas": 24,
+        "deltaLR": 0
+      },
+      "transferSendPanel": {
+        "visible": true,
+        "left": 280,
+        "right": 1401,
+        "width": 1121,
+        "height": 705,
+        "marginLeftInCanvas": 24,
+        "marginRightInCanvas": 24,
+        "deltaLR": 0
+      },
+      "transferDropZone": {
+        "visible": true,
+        "left": 280,
+        "right": 1401,
+        "width": 1121,
+        "height": 153.6,
+        "marginLeftInCanvas": 24,
+        "marginRightInCanvas": 24,
+        "deltaLR": 0
+      },
+      "transferConfigDisclosure": {
+        "visible": true,
+        "left": 280,
+        "right": 1401,
+        "width": 1121,
+        "height": 297,
+        "marginLeftInCanvas": 24,
+        "marginRightInCanvas": 24,
+        "deltaLR": 0
+      },
+      "transferProgressPanel": {
+        "visible": true,
+        "left": 280,
+        "right": 1401,
+        "width": 1121,
+        "height": 113.2,
+        "marginLeftInCanvas": 24,
+        "marginRightInCanvas": 24,
+        "deltaLR": 0
+      },
+      "transferQueue": {
+        "visible": true,
+        "left": 280,
+        "right": 1401,
+        "width": 1121,
+        "height": 93.2,
+        "marginLeftInCanvas": 24,
+        "marginRightInCanvas": 24,
+        "deltaLR": 0
+      },
+      "transferShareCard": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      },
+      "transferSharesPanel": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      },
+      "transferUnfinishedPanel": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      },
+      "transferRecipientBar": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      }
+    },
+    "transfer_share_created_1440_expanded": {
+      "vw": 1440,
+      "scrollW": 1425,
+      "clientW": 1425,
+      "sidebarCollapsed": "false",
+      "v3MainCanvas": {
+        "visible": true,
+        "left": 256,
+        "right": 1425,
+        "width": 1169,
+        "height": 1789.5,
+        "marginLeftInCanvas": 0,
+        "marginRightInCanvas": 0,
+        "deltaLR": 0
+      },
+      "adminPanel": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      },
+      "transferPage": {
+        "visible": true,
+        "left": 280,
+        "right": 1401,
+        "width": 1121,
+        "height": 1689.5,
+        "marginLeftInCanvas": 24,
+        "marginRightInCanvas": 24,
+        "deltaLR": 0
+      },
+      "transferHeader": {
+        "visible": true,
+        "left": 280,
+        "right": 1401,
+        "width": 1121,
+        "height": 64.4,
+        "marginLeftInCanvas": 24,
+        "marginRightInCanvas": 24,
+        "deltaLR": 0
+      },
+      "transferSubnav": {
+        "visible": true,
+        "left": 280,
+        "right": 1401,
+        "width": 1121,
+        "height": 45,
+        "marginLeftInCanvas": 24,
+        "marginRightInCanvas": 24,
+        "deltaLR": 0
+      },
+      "transferSendPanel": {
+        "visible": true,
+        "left": 280,
+        "right": 1401,
+        "width": 1121,
+        "height": 970.6,
+        "marginLeftInCanvas": 24,
+        "marginRightInCanvas": 24,
+        "deltaLR": 0
+      },
+      "transferDropZone": {
+        "visible": true,
+        "left": 280,
+        "right": 1401,
+        "width": 1121,
+        "height": 446,
+        "marginLeftInCanvas": 24,
+        "marginRightInCanvas": 24,
+        "deltaLR": 0
+      },
+      "transferConfigDisclosure": {
+        "visible": true,
+        "left": 280,
+        "right": 1401,
+        "width": 1121,
+        "height": 297,
+        "marginLeftInCanvas": 24,
+        "marginRightInCanvas": 24,
+        "deltaLR": 0
+      },
+      "transferProgressPanel": {
+        "visible": true,
+        "left": 280,
+        "right": 1401,
+        "width": 1121,
+        "height": 113.2,
+        "marginLeftInCanvas": 24,
+        "marginRightInCanvas": 24,
+        "deltaLR": 0
+      },
+      "transferQueue": {
+        "visible": true,
+        "left": 280,
+        "right": 1401,
+        "width": 1121,
+        "height": 66.4,
+        "marginLeftInCanvas": 24,
+        "marginRightInCanvas": 24,
+        "deltaLR": 0
+      },
+      "transferShareCard": {
+        "visible": true,
+        "left": 280,
+        "right": 1401,
+        "width": 1121,
+        "height": 523.2,
+        "marginLeftInCanvas": 24,
+        "marginRightInCanvas": 24,
+        "deltaLR": 0
+      },
+      "transferSharesPanel": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      },
+      "transferUnfinishedPanel": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      },
+      "transferRecipientBar": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      }
+    },
+    "transfer_share_created_1440_collapsed": {
+      "vw": 1440,
+      "scrollW": 1425,
+      "clientW": 1425,
+      "sidebarCollapsed": "true",
+      "v3MainCanvas": {
+        "visible": true,
+        "left": 64,
+        "right": 1425,
+        "width": 1361,
+        "height": 1789.5,
+        "marginLeftInCanvas": 0,
+        "marginRightInCanvas": 0,
+        "deltaLR": 0
+      },
+      "adminPanel": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -64,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1489
+      },
+      "transferPage": {
+        "visible": true,
+        "left": 88,
+        "right": 1401,
+        "width": 1313,
+        "height": 1689.5,
+        "marginLeftInCanvas": 24,
+        "marginRightInCanvas": 24,
+        "deltaLR": 0
+      },
+      "transferHeader": {
+        "visible": true,
+        "left": 88,
+        "right": 1401,
+        "width": 1313,
+        "height": 64.4,
+        "marginLeftInCanvas": 24,
+        "marginRightInCanvas": 24,
+        "deltaLR": 0
+      },
+      "transferSubnav": {
+        "visible": true,
+        "left": 88,
+        "right": 1401,
+        "width": 1313,
+        "height": 45,
+        "marginLeftInCanvas": 24,
+        "marginRightInCanvas": 24,
+        "deltaLR": 0
+      },
+      "transferSendPanel": {
+        "visible": true,
+        "left": 88,
+        "right": 1401,
+        "width": 1313,
+        "height": 970.6,
+        "marginLeftInCanvas": 24,
+        "marginRightInCanvas": 24,
+        "deltaLR": 0
+      },
+      "transferDropZone": {
+        "visible": true,
+        "left": 88,
+        "right": 1401,
+        "width": 1313,
+        "height": 446,
+        "marginLeftInCanvas": 24,
+        "marginRightInCanvas": 24,
+        "deltaLR": 0
+      },
+      "transferConfigDisclosure": {
+        "visible": true,
+        "left": 88,
+        "right": 1401,
+        "width": 1313,
+        "height": 297,
+        "marginLeftInCanvas": 24,
+        "marginRightInCanvas": 24,
+        "deltaLR": 0
+      },
+      "transferProgressPanel": {
+        "visible": true,
+        "left": 88,
+        "right": 1401,
+        "width": 1313,
+        "height": 113.2,
+        "marginLeftInCanvas": 24,
+        "marginRightInCanvas": 24,
+        "deltaLR": 0
+      },
+      "transferQueue": {
+        "visible": true,
+        "left": 88,
+        "right": 1401,
+        "width": 1313,
+        "height": 66.4,
+        "marginLeftInCanvas": 24,
+        "marginRightInCanvas": 24,
+        "deltaLR": 0
+      },
+      "transferShareCard": {
+        "visible": true,
+        "left": 88,
+        "right": 1401,
+        "width": 1313,
+        "height": 523.2,
+        "marginLeftInCanvas": 24,
+        "marginRightInCanvas": 24,
+        "deltaLR": 0
+      },
+      "transferSharesPanel": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -64,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1489
+      },
+      "transferUnfinishedPanel": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -64,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1489
+      },
+      "transferRecipientBar": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -64,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1489
+      }
+    },
+    "transfer_share_created_1920_expanded": {
+      "vw": 1920,
+      "scrollW": 1905,
+      "clientW": 1905,
+      "sidebarCollapsed": "false",
+      "v3MainCanvas": {
+        "visible": true,
+        "left": 256,
+        "right": 1905,
+        "width": 1649,
+        "height": 1789.5,
+        "marginLeftInCanvas": 0,
+        "marginRightInCanvas": 0,
+        "deltaLR": 0
+      },
+      "adminPanel": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1905,
+        "deltaLR": -2161
+      },
+      "transferPage": {
+        "visible": true,
+        "left": 420.5,
+        "right": 1740.5,
+        "width": 1320,
+        "height": 1689.5,
+        "marginLeftInCanvas": 164.5,
+        "marginRightInCanvas": 164.5,
+        "deltaLR": 0
+      },
+      "transferHeader": {
+        "visible": true,
+        "left": 420.5,
+        "right": 1740.5,
+        "width": 1320,
+        "height": 64.4,
+        "marginLeftInCanvas": 164.5,
+        "marginRightInCanvas": 164.5,
+        "deltaLR": 0
+      },
+      "transferSubnav": {
+        "visible": true,
+        "left": 420.5,
+        "right": 1740.5,
+        "width": 1320,
+        "height": 45,
+        "marginLeftInCanvas": 164.5,
+        "marginRightInCanvas": 164.5,
+        "deltaLR": 0
+      },
+      "transferSendPanel": {
+        "visible": true,
+        "left": 420.5,
+        "right": 1740.5,
+        "width": 1320,
+        "height": 970.6,
+        "marginLeftInCanvas": 164.5,
+        "marginRightInCanvas": 164.5,
+        "deltaLR": 0
+      },
+      "transferDropZone": {
+        "visible": true,
+        "left": 420.5,
+        "right": 1740.5,
+        "width": 1320,
+        "height": 446,
+        "marginLeftInCanvas": 164.5,
+        "marginRightInCanvas": 164.5,
+        "deltaLR": 0
+      },
+      "transferConfigDisclosure": {
+        "visible": true,
+        "left": 420.5,
+        "right": 1740.5,
+        "width": 1320,
+        "height": 297,
+        "marginLeftInCanvas": 164.5,
+        "marginRightInCanvas": 164.5,
+        "deltaLR": 0
+      },
+      "transferProgressPanel": {
+        "visible": true,
+        "left": 420.5,
+        "right": 1740.5,
+        "width": 1320,
+        "height": 113.2,
+        "marginLeftInCanvas": 164.5,
+        "marginRightInCanvas": 164.5,
+        "deltaLR": 0
+      },
+      "transferQueue": {
+        "visible": true,
+        "left": 420.5,
+        "right": 1740.5,
+        "width": 1320,
+        "height": 66.4,
+        "marginLeftInCanvas": 164.5,
+        "marginRightInCanvas": 164.5,
+        "deltaLR": 0
+      },
+      "transferShareCard": {
+        "visible": true,
+        "left": 420.5,
+        "right": 1740.5,
+        "width": 1320,
+        "height": 523.2,
+        "marginLeftInCanvas": 164.5,
+        "marginRightInCanvas": 164.5,
+        "deltaLR": 0
+      },
+      "transferSharesPanel": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1905,
+        "deltaLR": -2161
+      },
+      "transferUnfinishedPanel": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1905,
+        "deltaLR": -2161
+      },
+      "transferRecipientBar": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1905,
+        "deltaLR": -2161
+      }
+    },
+    "transfer_recipient_1440_expanded": {
+      "vw": 1440,
+      "scrollW": 1425,
+      "clientW": 1425,
+      "sidebarCollapsed": "false",
+      "v3MainCanvas": {
+        "visible": true,
+        "left": 256,
+        "right": 1425,
+        "width": 1169,
+        "height": 843,
+        "marginLeftInCanvas": 0,
+        "marginRightInCanvas": 0,
+        "deltaLR": 0
+      },
+      "adminPanel": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      },
+      "transferPage": {
+        "visible": true,
+        "left": 280,
+        "right": 1401,
+        "width": 1121,
+        "height": 729.4,
+        "marginLeftInCanvas": 24,
+        "marginRightInCanvas": 24,
+        "deltaLR": 0
+      },
+      "transferHeader": {
+        "visible": true,
+        "left": 280,
+        "right": 1401,
+        "width": 1121,
+        "height": 61,
+        "marginLeftInCanvas": 24,
+        "marginRightInCanvas": 24,
+        "deltaLR": 0
+      },
+      "transferSubnav": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      },
+      "transferSendPanel": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      },
+      "transferDropZone": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      },
+      "transferConfigDisclosure": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      },
+      "transferProgressPanel": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      },
+      "transferQueue": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      },
+      "transferShareCard": {
+        "visible": true,
+        "left": 280,
+        "right": 1401,
+        "width": 1121,
+        "height": 523.2,
+        "marginLeftInCanvas": 24,
+        "marginRightInCanvas": 24,
+        "deltaLR": 0
+      },
+      "transferSharesPanel": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      },
+      "transferUnfinishedPanel": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": -256,
+        "marginRightInCanvas": 1425,
+        "deltaLR": -1681
+      },
+      "transferRecipientBar": {
+        "visible": true,
+        "left": 280,
+        "right": 1401,
+        "width": 1121,
+        "height": 74.8,
+        "marginLeftInCanvas": 24,
+        "marginRightInCanvas": 24,
+        "deltaLR": 0
+      }
+    },
+    "transfer_send_390_mobile": {
+      "vw": 390,
+      "scrollW": 390,
+      "clientW": 390,
+      "sidebarCollapsed": "false",
+      "v3MainCanvas": {
+        "visible": true,
+        "left": 0,
+        "right": 390,
+        "width": 390,
+        "height": 1206.3,
+        "marginLeftInCanvas": 0,
+        "marginRightInCanvas": 0,
+        "deltaLR": 0
+      },
+      "adminPanel": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": 0,
+        "marginRightInCanvas": 390,
+        "deltaLR": -390
+      },
+      "transferPage": {
+        "visible": true,
+        "left": 16,
+        "right": 374,
+        "width": 358,
+        "height": 1126.3,
+        "marginLeftInCanvas": 16,
+        "marginRightInCanvas": 16,
+        "deltaLR": 0
+      },
+      "transferHeader": {
+        "visible": true,
+        "left": 16,
+        "right": 374,
+        "width": 358,
+        "height": 176,
+        "marginLeftInCanvas": 16,
+        "marginRightInCanvas": 16,
+        "deltaLR": 0
+      },
+      "transferSubnav": {
+        "visible": true,
+        "left": 16,
+        "right": 374,
+        "width": 358,
+        "height": 45,
+        "marginLeftInCanvas": 16,
+        "marginRightInCanvas": 16,
+        "deltaLR": 0
+      },
+      "transferSendPanel": {
+        "visible": true,
+        "left": 16,
+        "right": 374,
+        "width": 358,
+        "height": 849.3,
+        "marginLeftInCanvas": 16,
+        "marginRightInCanvas": 16,
+        "deltaLR": 0
+      },
+      "transferDropZone": {
+        "visible": true,
+        "left": 16,
+        "right": 374,
+        "width": 358,
+        "height": 430,
+        "marginLeftInCanvas": 16,
+        "marginRightInCanvas": 16,
+        "deltaLR": 0
+      },
+      "transferConfigDisclosure": {
+        "visible": true,
+        "left": 16,
+        "right": 374,
+        "width": 358,
+        "height": 72.2,
+        "marginLeftInCanvas": 16,
+        "marginRightInCanvas": 16,
+        "deltaLR": 0
+      },
+      "transferProgressPanel": {
+        "visible": true,
+        "left": 16,
+        "right": 374,
+        "width": 358,
+        "height": 210.4,
+        "marginLeftInCanvas": 16,
+        "marginRightInCanvas": 16,
+        "deltaLR": 0
+      },
+      "transferQueue": {
+        "visible": true,
+        "left": 16,
+        "right": 374,
+        "width": 358,
+        "height": 88.8,
+        "marginLeftInCanvas": 16,
+        "marginRightInCanvas": 16,
+        "deltaLR": 0
+      },
+      "transferShareCard": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": 0,
+        "marginRightInCanvas": 390,
+        "deltaLR": -390
+      },
+      "transferSharesPanel": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": 0,
+        "marginRightInCanvas": 390,
+        "deltaLR": -390
+      },
+      "transferUnfinishedPanel": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": 0,
+        "marginRightInCanvas": 390,
+        "deltaLR": -390
+      },
+      "transferRecipientBar": {
+        "visible": false,
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "marginLeftInCanvas": 0,
+        "marginRightInCanvas": 390,
+        "deltaLR": -390
+      }
+    }
+  },
+  "uxAssertions": {
+    "configOneTimeSync": {
+      "maxDlVal": "1",
+      "maxDlDisabled": true,
+      "summaryText": "1 天 · 阅后即焚（限 1 次）"
+    },
+    "shareOneTimeChips": [
+      "1 个文件",
+      "1.8 KiB",
+      "阅后即焚（限 1 次 · 已下载 0/1 次）",
+      "2026/11/28 20:32:02 到期"
+    ],
+    "staleShareCardClearedOnNewUpload": true
+  }
+}

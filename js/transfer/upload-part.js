@@ -1,11 +1,13 @@
-/** One immutable multipart PUT; progress only maintains an IO watchdog. */
+/** One immutable multipart PUT; surfaces wire progress while preserving IO watchdog & bounded retries. */
 export async function putPartWithRecovery({
   url, body, headers, signal, createRequest = () => new XMLHttpRequest(),
   idleTimeoutMs = 30000, acknowledgementTimeoutMs = 30000, attempts = 3, retryDelayMs = 250,
+  onProgress = null, onAttemptReset = null,
 }) {
   const aborted = () => Object.assign(new Error("上传已暂停或取消。"), { name: "AbortError", code: "request_aborted" });
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     if (signal?.aborted) throw aborted();
+    if (attempt > 0) onAttemptReset?.();
     try {
       return await new Promise((resolve, reject) => {
         const xhr = createRequest();let timer, acknowledgementTimer, settled = false;
@@ -27,7 +29,14 @@ export async function putPartWithRecovery({
         for (const [key,value] of Object.entries(typeof headers === "function" ? headers() : headers || {})) xhr.setRequestHeader(key,value);
         // Repeated notifications of the same byte count/state are not IO
         // progress and must not keep a stalled request alive indefinitely.
-        xhr.upload.onprogress = event => {if (event.loaded > uploaded) {uploaded = event.loaded;touch();}};
+        xhr.upload.onprogress = event => {
+          if (event.loaded > uploaded) {
+            const previous = Math.max(0, uploaded);
+            uploaded = event.loaded;
+            touch();
+            onProgress?.(event.loaded, event.loaded - previous, event.total || 0);
+          }
+        };
         xhr.onprogress = event => {if (event.loaded > received) {received = event.loaded;touch();}};
         xhr.onreadystatechange = () => {
           if (xhr.readyState >= 2 && xhr.readyState !== readyState && !settled) {readyState = xhr.readyState;touch();}

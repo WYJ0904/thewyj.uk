@@ -15392,14 +15392,31 @@ html[data-android-reduced-motion="true"] #workflowWorkspace *::after {
 :is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage:not(.hidden) {
   display: flex;
   flex-direction: column;
+  align-items: stretch;
   gap: 16px;
-  width: 100%;
-  max-width: 1040px;
-  margin: 0 auto;
-  padding: 20px 24px 36px;
+  width: min(calc(100% - 48px), var(--ds-container-console));
+  max-width: none;
+  margin: 16px auto 48px;
+  padding: 0;
   box-sizing: border-box;
   overflow-x: clip;
   grid-template-columns: none;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage > :is(.transfer-header, .tf-subnav, .tf-recipient-bar, .tf-tabpanel, #transferShareCard, #transferRecipientError, #transferMessage) {
+  width: 100%;
+  max-width: none;
+  margin-left: 0;
+  margin-right: 0;
+  box-sizing: border-box;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage :is(#transferDropZone, #transferValidationBanner, #transferConfigDisclosure, #transferProgressPanel, #transferQueue) {
+  width: 100%;
+  max-width: none;
+  margin-left: 0;
+  margin-right: 0;
+  box-sizing: border-box;
 }
 
 :is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage :is(.transfer-config, .transfer-drop-zone, .transfer-queue, .transfer-share-card, .transfer-my-shares)::before {
@@ -15421,7 +15438,12 @@ html[data-android-reduced-motion="true"] #workflowWorkspace *::after {
   gap: 12px 20px;
   width: 100%;
   margin: 0;
-  padding: 0 0 16px;
+  padding: 0 0 8px;
+  border-bottom: 0;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage[data-transfer-mode="recipient"] .transfer-header {
+  padding-bottom: 16px;
   border-bottom: 1px solid var(--ds-divider);
 }
 
@@ -15493,28 +15515,33 @@ html[data-android-reduced-motion="true"] #workflowWorkspace *::after {
   border-radius: var(--ds-radius-pill);
 }
 
-/* Subnav Tabs */
+/* Subnav Tabs (aligned full-width across workspace container, matching .admin-tabs) */
 :is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-subnav {
-  display: inline-flex;
+  display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 4px;
-  padding: 4px;
-  border: 1px solid var(--ds-border);
-  border-radius: var(--ds-radius-md);
-  background: var(--ds-surface-subtle);
-  align-self: flex-start;
-  max-width: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid var(--ds-border);
+  border-radius: 0;
+  background: transparent;
+  align-self: stretch;
+  max-width: none;
+  box-sizing: border-box;
 }
 
 :is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-tab {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-height: 36px;
-  padding: 8px 12px;
-  border: 1px solid transparent;
-  border-radius: var(--ds-radius-sm);
+  min-height: 44px;
+  padding: 8px 16px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
   background: transparent;
   color: var(--ds-text-secondary);
   font-size: 0.875rem;
@@ -15530,10 +15557,10 @@ html[data-android-reduced-motion="true"] #workflowWorkspace *::after {
 
 :is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-tab.active,
 :is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-tab[aria-selected="true"] {
-  background: var(--ds-surface);
+  background: transparent;
   color: var(--ds-text);
-  border-color: var(--ds-border);
-  box-shadow: var(--ds-shadow-card);
+  border-bottom-color: var(--ds-action-primary);
+  box-shadow: none;
   font-weight: 650;
 }
 
@@ -15594,12 +15621,16 @@ html[data-android-reduced-motion="true"] #workflowWorkspace *::after {
 :is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-tabpanel {
   display: flex;
   flex-direction: column;
+  align-items: stretch;
   gap: 16px;
+  width: 100%;
+  max-width: none;
   margin: 0;
   padding: 0;
   border: 0;
   background: transparent;
   box-shadow: none;
+  box-sizing: border-box;
 }
 
 /* Drop Zone (Hero -> Compact Append Strip) */
@@ -16572,7 +16603,10 @@ html[data-android-reduced-motion="true"] #workflowWorkspace *::after {
 /* Mobile & Narrow Viewports (<= 768px) */
 @media (max-width: 768px) {
   :is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage:not(.hidden) {
-    padding: 12px 16px 28px;
+    width: calc(100% - 32px);
+    max-width: none;
+    margin: 12px auto 32px;
+    padding: 0;
     gap: 12px;
   }
 

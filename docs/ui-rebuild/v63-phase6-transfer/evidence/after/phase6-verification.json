@@ -46,17 +46,17 @@
     "free": {
       "quota": "500.0 MiB",
       "privateEnabled": true,
-      "interactiveMs": 308.9
+      "interactiveMs": 404.2
     },
     "vip": {
       "quota": "2.00 GiB",
       "privateEnabled": true,
-      "interactiveMs": 205.1
+      "interactiveMs": 311.2
     },
     "admin": {
       "quota": "5.00 GiB",
       "privateEnabled": true,
-      "interactiveMs": 203.2
+      "interactiveMs": 280.2
     }
   },
   "viewports": [
@@ -92,28 +92,28 @@
       "width": 1440,
       "w": 1425,
       "scrollW": 1425,
-      "tabBtnH": 36,
+      "tabBtnH": 44,
       "selectBtnH": 44
     },
     {
       "width": 1920,
       "w": 1905,
       "scrollW": 1905,
-      "tabBtnH": 36,
+      "tabBtnH": 44,
       "selectBtnH": 44
     },
     {
       "width": 2560,
       "w": 2545,
       "scrollW": 2545,
-      "tabBtnH": 36,
+      "tabBtnH": 44,
       "selectBtnH": 44
     }
   ],
   "perf": {
-    "transfer_route_interactive_ms": 203.2
+    "transfer_route_interactive_ms": 280.2
   },
   "runtime_errors": [],
-  "sender_screencast_frames": 167,
-  "recipient_screencast_frames": 115
+  "sender_screencast_frames": 93,
+  "recipient_screencast_frames": 107
 }

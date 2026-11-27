@@ -1,0 +1,159 @@
+{
+  "totalUploadMs": 13403,
+  "sampleCount": 38,
+  "intermediateProgressSamples": 29,
+  "hasLiveSpeedTelemetry": true,
+  "neverPremature100WhileUploading": true,
+  "firstNonZeroSample": {
+    "dtMs": 2978,
+    "completeEnabled": false,
+    "overallPercent": "1%",
+    "telemetry": "1 个文件 · 319.1 KiB/s · 预计剩余 102s",
+    "stage": "正在分片上传（1/1 个文件进行中）",
+    "itemState": "uploading",
+    "itemPercent": "1%",
+    "itemDetail": "browser-32mib.bin · 287.8 KiB / 32.0 MiB · 319.1 KiB/s · 剩余 102s"
+  },
+  "sampleSlice": [
+    {
+      "dtMs": 114,
+      "completeEnabled": false,
+      "overallPercent": "0%",
+      "telemetry": "1 个文件",
+      "stage": "已就绪 1 个文件，准备开始上传",
+      "itemState": "pending",
+      "itemPercent": "0%",
+      "itemDetail": "browser-32mib.bin · 0 B / 32.0 MiB"
+    },
+    {
+      "dtMs": 1182,
+      "completeEnabled": false,
+      "overallPercent": "0%",
+      "telemetry": "1 个文件",
+      "stage": "正在分配文件并校验分片…",
+      "itemState": "preparing",
+      "itemPercent": "0%",
+      "itemDetail": "browser-32mib.bin · 0 B / 32.0 MiB · 正在创建安全上传任务"
+    },
+    {
+      "dtMs": 2269,
+      "completeEnabled": false,
+      "overallPercent": "0%",
+      "telemetry": "1 个文件",
+      "stage": "正在分片上传（1/1 个文件进行中）",
+      "itemState": "uploading",
+      "itemPercent": "0%",
+      "itemDetail": "browser-32mib.bin · 159.9 KiB / 32.0 MiB"
+    },
+    {
+      "dtMs": 3346,
+      "completeEnabled": false,
+      "overallPercent": "1%",
+      "telemetry": "1 个文件 · 391.1 KiB/s · 预计剩余 83s",
+      "stage": "正在分片上传（1/1 个文件进行中）",
+      "itemState": "uploading",
+      "itemPercent": "1%",
+      "itemDetail": "browser-32mib.bin · 415.8 KiB / 32.0 MiB · 391.1 KiB/s · 剩余 83s"
+    },
+    {
+      "dtMs": 4417,
+      "completeEnabled": false,
+      "overallPercent": "8%",
+      "telemetry": "1 个文件 · 1012.3 KiB/s · 预计剩余 30s",
+      "stage": "正在分片上传（1/1 个文件进行中）",
+      "itemState": "uploading",
+      "itemPercent": "8%",
+      "itemDetail": "browser-32mib.bin · 2.4 MiB / 32.0 MiB · 1012.3 KiB/s · 剩余 30s"
+    },
+    {
+      "dtMs": 5502,
+      "completeEnabled": false,
+      "overallPercent": "18%",
+      "telemetry": "1 个文件 · 1.6 MiB/s · 预计剩余 16s",
+      "stage": "正在分片上传（1/1 个文件进行中）",
+      "itemState": "uploading",
+      "itemPercent": "18%",
+      "itemDetail": "browser-32mib.bin · 5.9 MiB / 32.0 MiB · 1.6 MiB/s · 剩余 16s"
+    },
+    {
+      "dtMs": 6601,
+      "completeEnabled": false,
+      "overallPercent": "31%",
+      "telemetry": "1 个文件 · 2.5 MiB/s · 预计剩余 9s",
+      "stage": "正在分片上传（1/1 个文件进行中）",
+      "itemState": "uploading",
+      "itemPercent": "31%",
+      "itemDetail": "browser-32mib.bin · 10.0 MiB / 32.0 MiB · 2.5 MiB/s · 剩余 9s"
+    },
+    {
+      "dtMs": 7673,
+      "completeEnabled": false,
+      "overallPercent": "53%",
+      "telemetry": "1 个文件 · 4.2 MiB/s · 预计剩余 4s",
+      "stage": "正在分片上传（1/1 个文件进行中）",
+      "itemState": "uploading",
+      "itemPercent": "53%",
+      "itemDetail": "browser-32mib.bin · 17.0 MiB / 32.0 MiB · 4.2 MiB/s · 剩余 4s"
+    },
+    {
+      "dtMs": 8755,
+      "completeEnabled": false,
+      "overallPercent": "67%",
+      "telemetry": "1 个文件 · 4.2 MiB/s · 预计剩余 3s",
+      "stage": "正在分片上传（1/1 个文件进行中）",
+      "itemState": "uploading",
+      "itemPercent": "67%",
+      "itemDetail": "browser-32mib.bin · 21.5 MiB / 32.0 MiB · 4.2 MiB/s · 剩余 3s"
+    },
+    {
+      "dtMs": 9828,
+      "completeEnabled": false,
+      "overallPercent": "83%",
+      "telemetry": "1 个文件 · 5.1 MiB/s · 预计剩余 2s",
+      "stage": "正在分片上传（1/1 个文件进行中）",
+      "itemState": "uploading",
+      "itemPercent": "83%",
+      "itemDetail": "browser-32mib.bin · 26.6 MiB / 32.0 MiB · 5.1 MiB/s · 剩余 2s"
+    },
+    {
+      "dtMs": 10900,
+      "completeEnabled": false,
+      "overallPercent": "85%",
+      "telemetry": "1 个文件 · 4.5 MiB/s · 预计剩余 2s",
+      "stage": "正在分片上传（1/1 个文件进行中）",
+      "itemState": "uploading",
+      "itemPercent": "85%",
+      "itemDetail": "browser-32mib.bin · 27.3 MiB / 32.0 MiB · 4.5 MiB/s · 剩余 2s"
+    },
+    {
+      "dtMs": 11972,
+      "completeEnabled": false,
+      "overallPercent": "99%",
+      "telemetry": "1 个文件 · 3.4 MiB/s",
+      "stage": "正在分片上传（1/1 个文件进行中）",
+      "itemState": "uploading",
+      "itemPercent": "99%",
+      "itemDetail": "browser-32mib.bin · 32.0 MiB / 32.0 MiB · 3.4 MiB/s"
+    },
+    {
+      "dtMs": 13038,
+      "completeEnabled": false,
+      "overallPercent": "99%",
+      "telemetry": "1 个文件 · 3.4 MiB/s",
+      "stage": "正在分片上传（1/1 个文件进行中）",
+      "itemState": "uploading",
+      "itemPercent": "99%",
+      "itemDetail": "browser-32mib.bin · 32.0 MiB / 32.0 MiB · 3.4 MiB/s"
+    },
+    {
+      "dtMs": 13403,
+      "completeEnabled": true,
+      "overallPercent": "100%",
+      "telemetry": "1 个文件",
+      "stage": "分片与完整性已确认，可创建分享",
+      "itemState": "done",
+      "itemPercent": "100%",
+      "itemDetail": "browser-32mib.bin · 32.0 MiB / 32.0 MiB · 3.4 MiB/s"
+    }
+  ]
+}
