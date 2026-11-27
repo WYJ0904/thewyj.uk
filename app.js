@@ -9079,18 +9079,31 @@ async function boot() {
         window.location.reload();
       });
     }
+    let swRegistration = null;
     const nudgeWaitingWorker = (worker) => {
       if (!isTargetWorker(worker) || worker.state !== "installed") return;
       try { worker.postMessage({ type: "SKIP_WAITING" }); } catch {}
     };
     const scheduleReleaseRetry = () => {
-      if (swRetryTimer || swAttempts >= 6 || navigator.onLine === false) return;
+      if (swRetryTimer || swAttempts >= 12 || navigator.onLine === false) return;
       if (isTargetWorker(navigator.serviceWorker.controller)) return;
       swAttempts += 1;
       swRetryTimer = window.setTimeout(() => {
         swRetryTimer = 0;
+        if (isTargetWorker(navigator.serviceWorker.controller)) return;
+        const waiting = swRegistration?.waiting;
+        if (isTargetWorker(waiting) && waiting.state === "installed") {
+          nudgeWaitingWorker(waiting);
+          scheduleReleaseRetry();
+          return;
+        }
+        const installing = swRegistration?.installing;
+        if (isTargetWorker(installing) && installing.state !== "redundant") {
+          scheduleReleaseRetry();
+          return;
+        }
         registerReleaseWorker();
-      }, Math.min(1500, 300 * swAttempts));
+      }, Math.min(1000, 200 * swAttempts));
     };
     const watchWorkerState = (worker, registration) => {
       if (!worker || worker.__wyjStateWatched) return;
@@ -9108,6 +9121,7 @@ async function boot() {
     const registerReleaseWorker = () => {
       navigator.serviceWorker.register(`/sw.js?v=${ASSET_RELEASE}`)
         .then((registration) => {
+          swRegistration = registration;
           if (!registration.__wyjUpdateWatched) {
             registration.__wyjUpdateWatched = true;
             registration.addEventListener("updatefound", () => watchWorkerState(registration.installing, registration));

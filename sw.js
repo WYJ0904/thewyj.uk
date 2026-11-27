@@ -109,7 +109,7 @@ const TASK26_INTEGRITY = Object.freeze({
   "/spatial-experience.css?release=20261127-aeris-p6-transfer-v1": "94b261807a7ee9a77fc88f2abc79c32c92606467100b6f28505e27f77ee8cea7",
   "/changelog.js?release=20261127-aeris-p6-transfer-v1": "e7dfbb4fc6c7c9fbdf2a677b6036bd895003a197d08908ee225aa40cce88eb4e",
   "/learning-sync.js?release=20261127-aeris-p6-transfer-v1": "74ced24b8dab7c8ad16dc6b4b68ff81a89e968d18a607bbba6b066a8bee7727d",
-  "/app.js?release=20261127-aeris-p6-transfer-v1": "6509071486c501ae887ccbc9e462d03b04d502de12e1566f2ebdaa05541e7e74",
+  "/app.js?release=20261127-aeris-p6-transfer-v1": "da3e34fe134260ae01f3c81f3656e15a4e2b52050db4cbad67c24e71bdab40b6",
   "/js/core/api.js?release=20261127-aeris-p6-transfer-v1": "45a8c07a0ed3d44e596cf87a03d81d87930f6bd9e4a41baf8a2e4db7fa3a4045",
   "/js/core/changelog.js?release=20261127-aeris-p6-transfer-v1": "221697ec199b76f287a337b9d919c301808115f4eca4a138da0fe82fdeb794f8",
   "/js/core/capabilities.js?release=20261127-aeris-p6-transfer-v1": "01a07b545f76a18aa05b1c98589b093f0c4a30597d4acd5a7efc5c9ec1ef2b56",
@@ -180,7 +180,7 @@ const TASK26_INTEGRITY = Object.freeze({
   "/js/account/password-policy.js?release=20261127-aeris-p6-transfer-v1": "48fd3d494120682e5b8baac8c73fb6ff68714cbc89d567318e9ea39549c80c56",
   "/js/account/password-fields.js?release=20261127-aeris-p6-transfer-v1": "6ba9cc6e8023e6893b1bd517149845a87b393eac53f3b03bb129cbe6a30e05fb"
 });
-const PUBLICATION_HASH = "8b7bf822b6d080f3829466fc3405d8d39092f4f1379371d3edfe4b88112807f0";
+const PUBLICATION_HASH = "4d21e11c6d702eed5242d52c84052ff8c0d6af91024dfa431a273c91b0cc0d71";
 const PUBLICATION_CACHE = `${CACHE}-task26-${PUBLICATION_HASH.slice(0, 16)}`;
 const PUBLICATION_MARKER = "/__aeris/task26-publication";
 
