@@ -238,4 +238,12 @@ const pass = () => { checks += 1; };
   pass();
 }
 
+{
+  assert.match(SOURCE, /<svg class="wf-node-trace-svg"[^>]*\bwidth="0"[^>]*\bheight="0"[^>]*\bfill="none"/);
+  assert.match(SOURCE, /<rect class="wf-node-trace-rect"[^>]*\bfill="none"[^>]*\bstroke="none"[^>]*\bopacity="0"/);
+  const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
+  assert.match(html, /<svg class="wf-edges-layer" id="workflowCanvasEdges"[^>]*\bwidth="0"[^>]*\bheight="0"[^>]*\bfill="none"/);
+  pass();
+}
+
 console.log(`workflows.js self-checks: ${checks} groups passed`);

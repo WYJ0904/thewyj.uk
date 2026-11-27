@@ -1,4 +1,4 @@
-import { setControlFeedbackState } from './motion.js?release=20261121-aeris-i05-preview';
+import { setControlFeedbackState } from './motion.js?release=20261127-aeris-p5-cache-fix';
 
 export function createFeatureConsole({ api, apiGet, getAccount, refreshFeatures, document = globalThis.document }) {
   const node = id => document.getElementById(id);

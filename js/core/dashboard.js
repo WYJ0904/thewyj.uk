@@ -1,15 +1,15 @@
-import { $, escapeHtml } from "./ui.js?release=20261121-aeris-i05-preview";
-import { reconcileKeyedRows } from "./keyed-list.js?release=20261121-aeris-i05-preview";
-import { createHomeWidgets } from "./home-widgets.js?release=20261121-aeris-i05-preview";
-import { projectHomeWidgets } from "./home-widget-data.js?release=20261121-aeris-i05-preview";
+import { $, escapeHtml } from "./ui.js?release=20261127-aeris-p5-cache-fix";
+import { reconcileKeyedRows } from "./keyed-list.js?release=20261127-aeris-p5-cache-fix";
+import { createHomeWidgets } from "./home-widgets.js?release=20261127-aeris-p5-cache-fix";
+import { projectHomeWidgets } from "./home-widget-data.js?release=20261127-aeris-p5-cache-fix";
 import {
   HOME_SHORTCUT_CATALOG,
   defaultHomeShortcuts,
   homeWidgetStorageKey,
   mergeHomeShortcutsRecord,
   sanitizeHomeShortcuts,
-} from "./home-widget-layout.js?release=20261121-aeris-i05-preview";
-import { getSafeStorage, safeStorageSet } from "./storage.js?release=20261121-aeris-i05-preview";
+} from "./home-widget-layout.js?release=20261127-aeris-p5-cache-fix";
+import { getSafeStorage, safeStorageSet } from "./storage.js?release=20261127-aeris-p5-cache-fix";
 
 const SHORTCUT_ICONS = Object.freeze({
   book: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h6a2 2 0 0 1 2 2v12a1.5 1.5 0 0 0-1.5-1.5H4zM20 5h-6a2 2 0 0 0-2 2v12a1.5 1.5 0 0 1 1.5-1.5H20z"/></svg>',

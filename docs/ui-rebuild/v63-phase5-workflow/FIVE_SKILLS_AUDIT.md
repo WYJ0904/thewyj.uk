@@ -91,3 +91,20 @@
 5. **Hallmark**：
    - **执行命令**：`node hallmark/scripts/sloplint.mjs index.html spatial-experience.css workflows.js` + Chrome CDP 实测 `p5-verify-report.json`
    - **发现与整改**：初测捕获 Phase 5 `#workflowWorkspace` 内 `FAIL 48`（未纳入全局 token 的裸色值 `#779bc5` / `#9ec0e6` / `#649981`）；将颜色规范迁入 `design-system.css` `:root` 与 `:root[data-theme="dark"]` 语义变量后，Phase 5 `#workflowWorkspace` 区域 `sloplint` `FAIL` 清零；真实浏览器 1440 / 1366 / 1920 / 768 / 390 / 320 与 `enabled` / `disabled` / `error` 三态均通过零溢出、零报错、零旧版竖线泄漏复核。
+
+
+## P5 Cache-Skew Remediation & SVG Fallback Re-Audit (2026-11-27)
+
+Re-executed all five UI/UX design & quality skills after fixing the client CSS/JS cross-version cache-mixing bug, bumping `ASSET_RELEASE` to `20261127-aeris-p5-cache-fix`, hardening `_headers`, adding same-release `controllerchange` skew detection in `app.js`, and adding zero-box / transparent SVG fallback attributes in `index.html` and `workflows.js`.
+
+### 1. Web Research Summary (Cache Upgrade, SW Lifecycle & SVG Cascade)
+1. **Cloudflare Pages `_headers`**: Rules in `_headers` match exact URL paths; previously only `/index.html` and `/sw.js` were listed while canonical `/` was served as `HTTP 200` with Cloudflare Pages default `Cache-Control: public, max-age=0, must-revalidate, no-transform`, and `/index.html` returns `308 Permanent Redirect -> /`. Added explicit `/` and `/index.html` rules with `Cache-Control: no-cache, no-store, must-revalidate, no-transform` so HTML shells never linger stale in intermediaries or disk caches across deployments.
+2. **Service Worker Version-Skew Prevention (MDN / web.dev / Workbox)**: Calling `skipWaiting()` + `clients.claim()` mid-session while HTML references lazy ES modules (`import("./workflows.js?release=...")`) mixes old CSS/DOM with new lazy JS unless release identifiers rotate cleanly and unexpected active SW replacement triggers a controlled reload. Bumped `ASSET_RELEASE` to `20261127-aeris-p5-cache-fix` (which rotates query strings, SW URL, `CACHE`, and `PUBLICATION_CACHE`), and added a same-release `controllerchange` skew reload guard in `app.js` with a 15s `sessionStorage` loop guard (`wyjSwSkewReload:${ASSET_RELEASE}`) while preserving cross-release rollback behavior and retaining all user `localStorage` / `IndexedDB` / unrelated caches.
+3. **SVG Default Fill & Positioning Cascade**: In HTML5/SVG, `<rect>` defaults to `fill="black"` (`rgb(0, 0, 0)`) and `<svg>` defaults to `position: static` with `300x150` intrinsic sizing if the matching stylesheet rule (`.wf-node-trace-svg { position: absolute; }` / `.wf-node-trace-rect { fill: none; }`) is absent during cache skew. Set explicit `width="0" height="0" fill="none"` on `#workflowCanvasEdges` (`index.html`) and `.wf-node-trace-svg` + `fill="none" stroke="none" opacity="0"` on `.wf-node-trace-rect` (`workflows.js`), plus runtime `syncNodeTraceGeometry(node)` checking `getComputedStyle(svg).position === "absolute"` before expanding trace geometry.
+
+### 2. Five-Skill Tool Outputs (`20261127-aeris-p5-cache-fix`)
+- `ui-ux-pro-max` (`--domain ux` queries `dragging movements` and `reduced motion animation`): Verified pointer drag affordance & hysteresis (22px reorder threshold vs 2D intra-zone drag), accessible focus styling, and `prefers-reduced-motion` static feedback (`startNodeBorderTrace` & `.wf-edge-pulse` respect reduced motion).
+- `design-taste-frontend` (`copy-lint.mjs index.html workflows.js`): `index.html` 0 FAIL / 0 WARN; `workflows.js` 0 FAIL / 1 pre-existing regex WARN.
+- `impeccable` (`impeccable.cmd detect --json workflows.js index.html spatial-experience.css`): 0 findings in `workflows.js`.
+- `hallmark` (`sloplint.mjs workflows.js index.html spatial-experience.css --scope app --genre modern-minimal --json`): verified clean across modified workflow JS, markup, and stylesheets.
+- `frontend-design`: Confirmed SVG fallback attributes (`fill="none"`, `stroke="none"`, `opacity="0"`, `width="0" height="0"`) never alter the intended Scheme A desktop horizontal light-flow look when CSS is healthy and completely prevent any black `<rect>` artifact under degraded styling.

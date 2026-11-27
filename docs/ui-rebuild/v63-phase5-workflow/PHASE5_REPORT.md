@@ -133,3 +133,31 @@
 - **桌面/移动截图与实时 1.0x MP4 证据**（见 `docs/ui-rebuild/v63-phase5-workflow/evidence/final-remediation/`）：
   - `p5-desktop-horizontal.png` / `p5-desktop-inspector.png` / `p5-exec-running.png` / `p5-desktop-dark.png` / `p5-mobile-390.png` / `p5-mobile-320.png`
   - `p5-drag-reorder.mp4` (`8.24s`, 1.0x) / `p5-exec-animation.mp4` (`5.64s`, 1.0x)
+
+
+## P5 Cache-Skew Remediation & Local Verification (`20261127-aeris-p5-cache-fix`)
+
+### Root Cause Confirmed & Reproduced
+Reproduced in persistent Chromium profile upgrading from old P5 (`84ca5209`) to `365a7a5d`:
+1. Both releases shared `ASSET_RELEASE = "20261121-aeris-i05-preview"`, causing `app.js` `isTargetWorker()` and `sw.js` `matchingAsset()` to reuse old cached `spatial-experience.css` from old `PUBLICATION_CACHE` while lazily importing new `workflows.js`.
+2. `_headers` lacked a `/` root rule, serving `/` with `public, max-age=0, must-revalidate, no-transform` instead of `no-cache, no-store, must-revalidate, no-transform`.
+3. Under old CSS mixed with new `workflows.js`, `.wf-node-trace-svg` / `.wf-node-trace-rect` lacked SVG presentation fallback attributes, rendering a static `168.9 x 121.8` solid black (`rgb(0, 0, 0)`) `<rect>` above the node header (`repro_skew.png`) alongside stacked layout rules from older CSS.
+
+### Fixes Implemented
+- `_headers`: Added `/` and updated `/index.html` to `Cache-Control: no-cache, no-store, must-revalidate, no-transform`.
+- `index.html` & `workflows.js`: Added `width="0" height="0" fill="none"` on `#workflowCanvasEdges` and `.wf-node-trace-svg`, `fill="none" stroke="none" opacity="0"` on `.wf-node-trace-rect`, `stroke="currentColor" stroke-width="2"` on `.wf-edge-base` / `opacity="0"` on `.wf-edge-pulse`, plus runtime `syncNodeTraceGeometry()` `getComputedStyle(svg).position === "absolute"` check.
+- `app.js`: Added same-release `controllerchange` skew reload guard with 15s `sessionStorage` loop guard (`wyjSwSkewReload:${ASSET_RELEASE}`).
+- Release bump & manifest: Updated `ASSET_RELEASE` to `20261127-aeris-p5-cache-fix` (33 files) and regenerated `sw.js` manifest via `npm run task27:publication` (`PUBLICATION_HASH = 712df0eb0e4a92f1536dcc783216649b1dcd947fbafa5235a730f24e2a5e369f`).
+
+### Local Verification After Code Edits
+- `python local-backend/test_static.py`: 31 tests OK
+- `node local-backend/test_workflows_js.mjs`: 12 groups passed (including SVG fallback attribute checks)
+- `node --test qa/p07-release/sw-install.test.mjs qa/p07-r4c/sw-release.test.mjs`: 24/24 passed
+- `node scripts/check_storage_contract.mjs`: PASS (31 families)
+- `node scripts/check_js_module_graph.mjs`: PASS (67 files, 120 imports)
+- `python scripts/functional_audit_gate.py`: PASS (27 routes, 24 app flows, 104 tools, 51 tool modes, 7 checkbox controls, 12 workflow capabilities, 27 workflow flows)
+- `npm run cf:check`: PASS (`Compiled Worker successfully`)
+- `python scripts/repository_audit.py`: PASS (2565 files checked)
+- `node qa/aeris/p5-cache-upgrade-browser.mjs`: PASS (`20261127-aeris-p5-cache-fix`, `listDisplay: "flex"`, `listFlexDir: "row"`, `svgPos: "absolute"`, `rectFill: "none"`, `persistedOffsets: 1`, `wyjUserRetainedMarker` retained across upgrade, and synthetic stale CSS fallback `svgWidth: 0, svgHeight: 0, rectFill: "none", rectOpacity: "0"`)
+- `node qa/p07-release/sw-install-browser.mjs --source WORKTREE --label p5-cache-fix`: PASS (all 7 cases: `normal`, `slow`, `failure-retry`, `body-timeout`, `warm`, `task26-failure`, `stale-task26`)
+- Serial Miniflare (`workerd` + D1/R2) + headless Chrome P5 suites: `p5-loading-browser.mjs` PASS, `p5-hash-browser.mjs` PASS, `p5-pwa-browser.mjs` PASS, `p5-contract-browser.mjs` PASS.

@@ -891,8 +891,19 @@
   }
 
   function syncNodeTraceGeometry(node) {
+    const svg = node?.querySelector?.(".wf-node-trace-svg");
     const rect = node?.querySelector?.(".wf-node-trace-rect");
     if (!rect || !node) return;
+    if (svg && node.isConnected && typeof root.getComputedStyle === "function") {
+      const pos = root.getComputedStyle(svg)?.position;
+      if (pos && pos !== "absolute") {
+        svg.setAttribute("width", "0");
+        svg.setAttribute("height", "0");
+        return;
+      }
+      svg.removeAttribute("width");
+      svg.removeAttribute("height");
+    }
     const w = Math.max(12, node.offsetWidth - 2);
     const h = Math.max(12, node.offsetHeight - 2);
     rect.setAttribute("x", "1");
@@ -1537,10 +1548,13 @@
       const base = document.createElementNS(SVG_NS, "path");
       base.setAttribute("class", "wf-edge-base");
       base.setAttribute("fill", "none");
+      base.setAttribute("stroke", "currentColor");
+      base.setAttribute("stroke-width", "2");
       if (!spec.isExit) base.setAttribute("marker-end", "url(#wf-arrow-idle)");
       const pulse = document.createElementNS(SVG_NS, "path");
       pulse.setAttribute("class", "wf-edge-pulse");
       pulse.setAttribute("fill", "none");
+      pulse.setAttribute("opacity", "0");
       pulse.setAttribute("pathLength", "100");
       pulse.setAttribute("stroke-dasharray", "30 70");
       group.append(hit, base, pulse);
@@ -2204,7 +2218,7 @@
       const statusLabel = STATUS_LABELS[status] || status;
       const isSelected = step.id === selectedStepId;
       return `<li class="workflow-step wf-node${step.enabled ? "" : " disabled"}" data-step-id="${step.id}" data-flip-key="${step.id}" data-step-status="${status}" data-selected="${isSelected}" data-enabled="${step.enabled}" draggable="true" tabindex="0" aria-label="第 ${index + 1} 步：${escapeHtml(cap.name)}，状态：${escapeHtml(statusLabel)}">
-        <svg class="wf-node-trace-svg" aria-hidden="true" focusable="false"><rect class="wf-node-trace-rect" x="1" y="1" width="268" height="148" rx="13" ry="13" pathLength="100"></rect></svg>
+        <svg class="wf-node-trace-svg" width="0" height="0" fill="none" aria-hidden="true" focusable="false"><rect class="wf-node-trace-rect" x="1" y="1" width="268" height="148" rx="13" ry="13" pathLength="100" fill="none" stroke="none" opacity="0"></rect></svg>
         <span class="wf-port wf-port-in" data-port="in" aria-hidden="true"></span>
         <div class="wf-node-header">
           <button class="wf-node-drag-handle" type="button" data-wf-drag-handle aria-label="拖动调整第 ${index + 1} 步顺序" title="拖动调整顺序">${uiIconSvg("grip", "wf-grip-icon")}</button>
