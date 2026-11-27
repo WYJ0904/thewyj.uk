@@ -1,6 +1,6 @@
-import { updateCopyrightYear } from './policy-page.js?release=20261127-aeris-p5-ux-final-r2';
-import { POLICY_VERSIONS } from './policy-version.js?release=20261127-aeris-p5-ux-final-r2';
-import { wireNewPasswordField,wirePasswordVisibility } from './password-fields.js?release=20261127-aeris-p5-ux-final-r2';
+import { updateCopyrightYear } from './policy-page.js?release=20261127-aeris-p6-transfer-v1';
+import { POLICY_VERSIONS } from './policy-version.js?release=20261127-aeris-p6-transfer-v1';
+import { wireNewPasswordField,wirePasswordVisibility } from './password-fields.js?release=20261127-aeris-p6-transfer-v1';
 
 const esc=value=>String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const date=value=>value?new Date(value).toLocaleString():'尚无记录';

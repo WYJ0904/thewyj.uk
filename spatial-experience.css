@@ -15383,3 +15383,1299 @@ html[data-android-reduced-motion="true"] #workflowWorkspace *::after {
   display: none;
 }
 
+/* ==========================================================================
+   V6.3 Phase 6: File Transfer Module Layer (#transferPage & #transferPasswordModal)
+   - Token-only semantic colors from design-system.css (0 literal colors)
+   - Strictly 4px spacing scale; 0 !important; works across all p07_accessibility states
+   ========================================================================== */
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage:not(.hidden) {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 20px 24px 36px;
+  box-sizing: border-box;
+  overflow-x: clip;
+  grid-template-columns: none;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage :is(.transfer-config, .transfer-drop-zone, .transfer-queue, .transfer-share-card, .transfer-my-shares)::before {
+  display: none;
+  content: none;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .hidden,
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPasswordModal.hidden {
+  display: none;
+}
+
+/* Header & Quota */
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .transfer-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+  width: 100%;
+  margin: 0;
+  padding: 0 0 16px;
+  border-bottom: 1px solid var(--ds-divider);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-header-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-header-copy h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  color: var(--ds-text);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-header-copy p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--ds-text-secondary);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .transfer-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  max-width: 100%;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-quota-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage #transferQuotaText {
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage #transferQuotaBar {
+  display: block;
+  width: 100%;
+  min-width: 180px;
+  height: 4px;
+  margin: 0;
+  border: 0;
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-transfer-track);
+  overflow: hidden;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage #transferQuotaBar::-webkit-progress-bar {
+  background: var(--ds-transfer-track);
+  border-radius: var(--ds-radius-pill);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage #transferQuotaBar::-webkit-progress-value {
+  background: var(--ds-transfer-active);
+  border-radius: var(--ds-radius-pill);
+}
+
+/* Subnav Tabs */
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-subnav {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface-subtle);
+  align-self: flex-start;
+  max-width: 100%;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 8px 12px;
+  border: 1px solid transparent;
+  border-radius: var(--ds-radius-sm);
+  background: transparent;
+  color: var(--ds-text-secondary);
+  font-size: 0.875rem;
+  font-weight: 550;
+  cursor: pointer;
+  transition: background-color 150ms var(--ds-ease-standard), color 150ms var(--ds-ease-standard), border-color 150ms var(--ds-ease-standard);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-tab:hover {
+  color: var(--ds-text);
+  background: var(--ds-surface-hover);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-tab.active,
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-tab[aria-selected="true"] {
+  background: var(--ds-surface);
+  color: var(--ds-text);
+  border-color: var(--ds-border);
+  box-shadow: var(--ds-shadow-card);
+  font-weight: 650;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-surface-muted);
+  color: var(--ds-text-secondary);
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
+/* Mode Switching (Sender vs Recipient & Sub-tabs) */
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage[data-transfer-mode="recipient"] #transferSubtitle,
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage[data-transfer-mode="recipient"] .tf-subnav,
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage[data-transfer-mode="recipient"] .tf-quota-chip,
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage[data-transfer-mode="recipient"] #transferSendPanel,
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage[data-transfer-mode="recipient"] #transferSharesPanel,
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage[data-transfer-mode="recipient"] #transferUnfinishedPanel,
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage[data-transfer-mode="sender"]:not([data-transfer-tab="send"]) #transferShareCard,
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage[data-transfer-mode="sender"]:not([data-transfer-tab="send"]) #transferRecipientError {
+  display: none;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-recipient-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface-subtle);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-recipient-bar-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-recipient-bar-copy strong {
+  font-size: 0.9375rem;
+  color: var(--ds-text);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-recipient-bar-copy span {
+  font-size: 0.8125rem;
+  color: var(--ds-text-secondary);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-tabpanel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* Drop Zone (Hero -> Compact Append Strip) */
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage #transferDropZone {
+  margin: 0;
+  padding: 28px 24px;
+  min-height: 184px;
+  border: 1.5px dashed var(--ds-border-strong);
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 180ms var(--ds-ease-standard), background-color 180ms var(--ds-ease-standard);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage #transferDropZone[data-has-files="true"] {
+  min-height: 0;
+  padding: 16px 20px;
+  justify-content: space-between;
+  background: var(--ds-surface-subtle);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage #transferDropZone:is(.drag-over, .is-dragover, [data-drag-state="active"]) {
+  border-color: var(--ds-transfer-active);
+  border-style: solid;
+  background: var(--ds-transfer-drop-hover);
+  outline: 2px solid var(--ds-transfer-active);
+  outline-offset: 2px;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .transfer-drop-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage #transferDropZone[data-has-files="true"] .transfer-drop-copy {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+  max-width: none;
+  gap: 12px 16px;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-drop-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--ds-radius-md);
+  border: 1px solid var(--ds-border);
+  background: var(--ds-surface-subtle);
+  color: var(--ds-text);
+  flex-shrink: 0;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-drop-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1 1 280px;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-drop-text strong {
+  font-size: 1rem;
+  font-weight: 650;
+  color: var(--ds-text);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-drop-text p {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--ds-text-secondary);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage #transferDropZone[data-has-files="true"] #transferSafetyHint {
+  display: none;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-limits-line {
+  font-size: 0.75rem;
+  color: var(--ds-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .transfer-drop-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 4px;
+  flex-shrink: 0;
+}
+
+/* Validation Alert Banner */
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-validation-banner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1px solid var(--ds-error-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-transfer-error-soft);
+  color: var(--ds-text);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-validation-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-validation-body strong {
+  font-size: 0.875rem;
+  color: var(--ds-transfer-error);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-validation-list {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 0.8125rem;
+  color: var(--ds-text-secondary);
+}
+
+/* Compact Share Settings Disclosure */
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .transfer-config-fold {
+  margin: 0;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .transfer-config-fold > summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 12px 16px;
+  cursor: pointer;
+  list-style: none;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-config-summary-title {
+  font-size: 0.875rem;
+  font-weight: 650;
+  color: var(--ds-text);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-config-summary-right {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-config-summary-right small {
+  font-size: 0.8125rem;
+  color: var(--ds-text-secondary);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-config-lock-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: var(--ds-radius-pill);
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--ds-surface-muted);
+  color: var(--ds-text-secondary);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-config-lock-badge[data-locked="true"] {
+  background: var(--ds-transfer-active-soft);
+  color: var(--ds-transfer-active);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .transfer-config {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  margin: 0;
+  border: 0;
+  border-top: 1px solid var(--ds-divider);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-config-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  align-items: end;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  width: 100%;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-field > span {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ds-text-secondary);
+  white-space: nowrap;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-field :is(select, input) {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-surface);
+  color: var(--ds-text);
+  font-size: 0.875rem;
+  box-sizing: border-box;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-input-with-action,
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPasswordModal .tf-input-with-action {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-input-with-action input,
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPasswordModal .tf-input-with-action input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-inline-reveal,
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPasswordModal .tf-inline-reveal {
+  min-height: 36px;
+  padding: 0 12px;
+  font-size: 0.8125rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-config-toggles {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding-top: 4px;
+  width: 100%;
+  min-width: 0;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .transfer-config .transfer-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-height: 36px;
+  padding: 4px 0;
+  border: 0;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .transfer-config .transfer-check input {
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .transfer-config .transfer-check span {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--ds-text);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* Overall Batch Progress Panel */
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-progress-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+  color: var(--ds-text);
+  --tf-state-color: var(--ds-transfer-waiting);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-progress-panel[data-tone="active"] {
+  --tf-state-color: var(--ds-transfer-active);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-progress-panel[data-tone="complete"] {
+  --tf-state-color: var(--ds-transfer-complete);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-progress-panel[data-tone="paused"] {
+  --tf-state-color: var(--ds-transfer-paused);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-progress-panel[data-tone="error"] {
+  --tf-state-color: var(--ds-transfer-error);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-progress-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-progress-ring-wrap {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-progress-ring {
+  width: 40px;
+  height: 40px;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-ring-track {
+  stroke: var(--ds-transfer-track);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-ring-fill {
+  stroke: var(--tf-state-color);
+  stroke-linecap: round;
+  transition: stroke-dashoffset 200ms var(--ds-ease-standard), stroke 180ms var(--ds-ease-standard);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-ring-percent {
+  position: absolute;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--ds-text);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-progress-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-stage-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 12px;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage #transferStageTitle {
+  font-size: 0.9375rem;
+  color: var(--ds-text);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-stage-telemetry {
+  font-size: 0.8125rem;
+  color: var(--ds-text-secondary);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-pipeline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-pipeline li {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-surface-subtle);
+  border: 1px solid var(--ds-divider);
+  font-size: 0.75rem;
+  color: var(--ds-text-muted);
+  transition: border-color 160ms var(--ds-ease-standard), background-color 160ms var(--ds-ease-standard), color 160ms var(--ds-ease-standard);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-pipeline li[data-step-state="active"] {
+  border-color: var(--ds-transfer-active);
+  background: var(--ds-transfer-active-soft);
+  color: var(--ds-transfer-active);
+  font-weight: 600;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-pipeline li[data-step-state="done"] {
+  border-color: var(--ds-transfer-complete);
+  background: var(--ds-transfer-complete-soft);
+  color: var(--ds-transfer-complete);
+  font-weight: 600;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-pipeline li[data-step-state="error"] {
+  border-color: var(--ds-transfer-error);
+  background: var(--ds-transfer-error-soft);
+  color: var(--ds-transfer-error);
+  font-weight: 600;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .transfer-summary-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  margin: 0;
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-summary-bytes {
+  font-size: 0.8125rem;
+  color: var(--ds-text-secondary);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-overall-track {
+  width: 100%;
+  height: 6px;
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-transfer-track);
+  overflow: hidden;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-overall-fill {
+  height: 100%;
+  width: 100%;
+  transform: scaleX(0);
+  transform-origin: left center;
+  border-radius: var(--ds-radius-pill);
+  background: var(--tf-state-color);
+  transition: transform 180ms var(--ds-ease-standard), background-color 180ms var(--ds-ease-standard);
+}
+
+/* Upload Queue Rows */
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage #transferQueue {
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+  max-height: 460px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0;
+  margin: 0;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage #transferQueue .transfer-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--ds-divider);
+  transition: background-color 140ms var(--ds-ease-standard), opacity 160ms var(--ds-ease-standard), transform 180ms var(--ds-ease-standard);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage #transferQueue .transfer-item:last-child {
+  border-bottom: 0;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-item-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--ds-radius-sm);
+  border: 1px solid var(--ds-divider);
+  background: var(--ds-surface-subtle);
+  color: var(--ds-text-secondary);
+  flex-shrink: 0;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .transfer-item-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .transfer-item-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-item-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--ds-text);
+  cursor: pointer;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-item-name[data-expanded="true"] {
+  white-space: normal;
+  word-break: break-all;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .transfer-item-state {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: var(--ds-radius-pill);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+  background: var(--ds-surface-muted);
+  color: var(--ds-text-secondary);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .transfer-item-state:is([data-status="uploading"], [data-status="preparing"], [data-status="confirming"]) {
+  background: var(--ds-transfer-active-soft);
+  color: var(--ds-transfer-active);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .transfer-item-state[data-status="done"] {
+  background: var(--ds-transfer-complete-soft);
+  color: var(--ds-transfer-complete);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .transfer-item-state[data-status="paused"] {
+  background: var(--ds-transfer-paused-soft);
+  color: var(--ds-transfer-paused);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .transfer-item-state[data-status="error"] {
+  background: var(--ds-transfer-error-soft);
+  color: var(--ds-transfer-error);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .transfer-item-percent {
+  margin-left: auto;
+  font-size: 0.8125rem;
+  font-weight: 650;
+  color: var(--ds-text-secondary);
+  flex-shrink: 0;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .transfer-item-main small {
+  font-size: 0.78125rem;
+  color: var(--ds-text-secondary);
+  font-variant-numeric: tabular-nums;
+  word-break: break-word;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .transfer-item-main progress {
+  width: 100%;
+  height: 4px;
+  border: 0;
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-transfer-track);
+  overflow: hidden;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .transfer-item-main progress::-webkit-progress-bar {
+  background: var(--ds-transfer-track);
+  border-radius: var(--ds-radius-pill);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .transfer-item-main progress::-webkit-progress-value {
+  background: var(--ds-transfer-active);
+  border-radius: var(--ds-radius-pill);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .transfer-item[data-state="done"] .transfer-item-main progress::-webkit-progress-value {
+  background: var(--ds-transfer-complete);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .transfer-item[data-state="paused"] .transfer-item-main progress::-webkit-progress-value {
+  background: var(--ds-transfer-paused);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .transfer-item[data-state="error"] .transfer-item-main progress::-webkit-progress-value {
+  background: var(--ds-transfer-error);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .transfer-item-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+  min-width: 148px;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .transfer-item-actions button {
+  min-height: 36px;
+  white-space: nowrap;
+}
+
+/* Share Completion / Recipient Card */
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage #transferShareCard {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  margin: 0;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-surface);
+  color: var(--ds-text);
+  box-shadow: var(--ds-shadow-card);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-share-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-share-title-row h2 {
+  margin: 0;
+  font-size: 1.125rem;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-share-meta-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-meta-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: var(--ds-radius-pill);
+  border: 1px solid var(--ds-divider);
+  background: var(--ds-surface-subtle);
+  font-size: 0.78125rem;
+  color: var(--ds-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-share-public-box {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px 20px;
+  align-items: center;
+  padding: 16px;
+  border: 1px solid var(--ds-divider);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface-subtle);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .transfer-share-link-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage #transferShareLink {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-surface);
+  color: var(--ds-text);
+  font-size: 0.8125rem;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-qr-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage #transferQr {
+  display: block;
+  width: 112px;
+  height: 112px;
+  border-radius: var(--ds-radius-sm);
+  border: 1px solid var(--ds-border);
+  background: var(--ds-surface);
+  padding: 4px;
+  margin: 0;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage #transferQr[width="0"] {
+  display: none;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-qr-caption {
+  font-size: 0.75rem;
+  color: var(--ds-text-muted);
+  text-align: center;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .transfer-share-files {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .transfer-share-file {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1px solid var(--ds-divider);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-surface);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-share-file-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-share-file-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-share-file-copy strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.875rem;
+  color: var(--ds-text);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-share-file-copy small {
+  font-size: 0.78125rem;
+  color: var(--ds-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Recipient Error Recovery Card */
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-recipient-error {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  border: 1px solid var(--ds-error-border);
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-transfer-error-soft);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-recipient-error strong {
+  font-size: 1rem;
+  color: var(--ds-transfer-error);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-recipient-error p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--ds-text-secondary);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-recipient-error-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* My Shares & Unfinished Panels */
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-panel-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px 16px;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-panel-toolbar h2 {
+  margin: 0 0 4px;
+  font-size: 1.0625rem;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-panel-toolbar p {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--ds-text-secondary);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-shares-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-search-input {
+  flex: 1 1 220px;
+  min-width: 0;
+  min-height: 36px;
+  padding: 8px 12px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-surface);
+  color: var(--ds-text);
+  font-size: 0.875rem;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-filter-chip {
+  min-height: 32px;
+  padding: 4px 12px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-surface);
+  color: var(--ds-text-secondary);
+  font-size: 0.78125rem;
+  cursor: pointer;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-filter-chip.active {
+  background: var(--ds-action-primary);
+  color: var(--ds-on-action-primary);
+  border-color: var(--ds-action-primary);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage #transferMyShares,
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage #transferUnfinishedSessions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .transfer-share-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 16px;
+  padding: 16px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-share-row-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1 1 280px;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-share-row-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-share-row-info small {
+  font-size: 0.78125rem;
+  color: var(--ds-text-secondary);
+  font-variant-numeric: tabular-nums;
+  word-break: break-word;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .transfer-share-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-unfinished-local {
+  padding: 12px 16px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-transfer-paused-soft);
+  font-size: 0.8125rem;
+  color: var(--ds-text);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage #transferMessage {
+  min-height: 20px;
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--ds-text-secondary);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage #transferMessage[data-tone="success"] {
+  color: var(--ds-transfer-complete);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage #transferMessage[data-tone="error"] {
+  color: var(--ds-transfer-error);
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage #transferMessage[data-tone="info"] {
+  color: var(--ds-transfer-active);
+}
+
+/* Password Modal */
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPasswordModal .transfer-password-modal {
+  max-width: 440px;
+  width: 100%;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPasswordModal .tf-password-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+:is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPasswordModal .tf-modal-error {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--ds-transfer-error);
+}
+
+/* Mobile & Narrow Viewports (<= 768px) */
+@media (max-width: 768px) {
+  :is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage:not(.hidden) {
+    padding: 12px 16px 28px;
+    gap: 12px;
+  }
+
+  :is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-config-grid {
+    grid-template-columns: 1fr;
+  }
+
+  :is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-subnav {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  :is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-quota-chip {
+    width: 100%;
+  }
+
+  :is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage #transferQuotaText {
+    white-space: normal;
+    line-height: 1.4;
+    text-align: left;
+  }
+
+  :is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-tab {
+    justify-content: center;
+    min-height: 44px;
+    padding: 8px 4px;
+    font-size: 0.75rem;
+    gap: 4px;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.25;
+  }
+
+  :is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-tab svg {
+    display: none;
+  }
+
+  :is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage #transferDropZone {
+    padding: 20px 16px;
+    min-height: 0;
+  }
+
+  :is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .transfer-drop-actions {
+    width: 100%;
+  }
+
+  :is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .transfer-drop-actions button,
+  :is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage #transferCompleteBtn,
+  :is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .transfer-item-actions button,
+  :is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .transfer-share-actions button {
+    min-height: 44px;
+  }
+
+  :is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .transfer-drop-actions button {
+    flex: 1 1 120px;
+  }
+
+  :is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .transfer-summary-line {
+    width: 100%;
+    margin-left: 0;
+    justify-content: space-between;
+  }
+
+  :is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage #transferQueue .transfer-item {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  :is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .transfer-item-actions {
+    width: 100%;
+    min-width: 0;
+    justify-content: flex-end;
+  }
+
+  :is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .tf-share-public-box {
+    grid-template-columns: 1fr;
+  }
+
+  :is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .transfer-share-link-row {
+    flex-wrap: wrap;
+  }
+
+  :is(html, html[data-p07-ui="enabled"], html[data-p07-ui="disabled"], html[data-p07-ui="error"]) :is(body, body[data-workspace-route]) #transferPage .transfer-share-link-row button {
+    width: 100%;
+    min-height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #transferPage *,
+  #transferPage *::before,
+  #transferPage *::after {
+    animation-duration: 0.01ms;
+    transition-duration: 0.01ms;
+  }
+}
+
+html[data-android-reduced-motion="true"] #transferPage *,
+html[data-android-reduced-motion="true"] #transferPage *::before,
+html[data-android-reduced-motion="true"] #transferPage *::after {
+  animation-duration: 0.01ms;
+  transition-duration: 0.01ms;
+}
+
+

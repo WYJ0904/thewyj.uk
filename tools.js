@@ -9,7 +9,7 @@ import {
   searchTools,
   toolIconSvg,
   toolLayoutType,
-} from "./js/tools/catalog.js?release=20261127-aeris-p5-ux-final-r2";
+} from "./js/tools/catalog.js?release=20261127-aeris-p6-transfer-v1";
 import {
   HALF_PERCENT_MAX,
   computeCoinTargetAngle,
@@ -25,9 +25,9 @@ import {
   renderWheelPointerSvg,
   renderWheelSvg,
   serializeWeightedEntries,
-} from "./js/tools/random.js?release=20261127-aeris-p5-ux-final-r2";
-import { buildVcardPayload, buildWifiPayload } from "./js/tools/temporary.js?release=20261127-aeris-p5-ux-final-r2";
-import { getOpenCcSource, loadOpenCcMaps, runTextOperation } from "./js/tools/text.js?release=20261127-aeris-p5-ux-final-r2";
+} from "./js/tools/random.js?release=20261127-aeris-p6-transfer-v1";
+import { buildVcardPayload, buildWifiPayload } from "./js/tools/temporary.js?release=20261127-aeris-p6-transfer-v1";
+import { getOpenCcSource, loadOpenCcMaps, runTextOperation } from "./js/tools/text.js?release=20261127-aeris-p6-transfer-v1";
 import {
   csvString,
   decodeLocalText,
@@ -36,17 +36,17 @@ import {
   parseCsv,
   validateCsvTable,
   zipBlob,
-} from "./js/tools/file.js?release=20261127-aeris-p5-ux-final-r2";
+} from "./js/tools/file.js?release=20261127-aeris-p6-transfer-v1";
 import {
   exifSummary,
   parseColorValue,
   rgbToHex,
   rgbToHsl,
   stripJpegMetadata,
-} from "./js/tools/image.js?release=20261127-aeris-p5-ux-final-r2";
-import { runToolRenderer } from "./js/tools/runner.js?release=20261127-aeris-p5-ux-final-r2";
-import { reconcileKeyedRows } from "./js/core/keyed-list.js?release=20261127-aeris-p5-ux-final-r2";
-import { createParkedRows } from "./js/core/parked-rows.js?release=20261127-aeris-p5-ux-final-r2";
+} from "./js/tools/image.js?release=20261127-aeris-p6-transfer-v1";
+import { runToolRenderer } from "./js/tools/runner.js?release=20261127-aeris-p6-transfer-v1";
+import { reconcileKeyedRows } from "./js/core/keyed-list.js?release=20261127-aeris-p6-transfer-v1";
+import { createParkedRows } from "./js/core/parked-rows.js?release=20261127-aeris-p6-transfer-v1";
 (() => {
   "use strict";
   const boundToolRoots = new WeakSet();

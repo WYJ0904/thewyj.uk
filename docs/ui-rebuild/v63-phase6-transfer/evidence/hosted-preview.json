@@ -1,0 +1,142 @@
+{
+  "project": "thewyj-v63-preview",
+  "branch": "v63-phase6",
+  "aliasUrl": "https://v63-phase6.thewyj-v63-preview.pages.dev",
+  "deployedUrl": "https://f4a97e4e.thewyj-v63-preview.pages.dev",
+  "deploymentId": "f4a97e4e-b845-4c7d-ba66-c52ab8d9e35c",
+  "d1Id": "a3e6253b-689f-49f3-998b-7c5828ea255a",
+  "r2Bucket": "wyj-cloud-preview",
+  "v63Phase5PreservedDeploymentId": "f4976f59-4dc3-42f1-83cf-d638a6ac0d3f",
+  "statusJson": {
+    "ok": true,
+    "status": "ok",
+    "service": "wyj-cloud-foundation",
+    "environment": "preview",
+    "build": "2026-08-26-task15-cloud-only",
+    "time": "2026-11-27T08:08:32.339Z",
+    "auth": true,
+    "backend_ready": true,
+    "ai_ready": false,
+    "model": "Cloudflare rules only",
+    "bindings": {
+      "d1": true,
+      "r2": true,
+      "workers_ai": false
+    },
+    "task11": {
+      "schema_ready": true,
+      "schema_version": "1"
+    },
+    "task12": {
+      "schema_ready": true,
+      "schema_version": "1",
+      "session_strategy": "invalidate_legacy_sessions",
+      "password_pepper_configured": true
+    },
+    "task13": {
+      "schema_ready": true,
+      "schema_version": "1",
+      "payment_primary": true
+    },
+    "task14": {
+      "schema_ready": true,
+      "schema_version": "1",
+      "temporary_primary": true,
+      "secret_configured": true
+    },
+    "task15": {
+      "schema_ready": true,
+      "schema_version": "1",
+      "cloud_only": true
+    },
+    "task16": {
+      "schema_ready": true,
+      "schema_version": "5",
+      "cloud_reads": true,
+      "cloud_writes": true
+    },
+    "task18": {
+      "schema_ready": true,
+      "schema_version": "1",
+      "enabled": true,
+      "owner_count": 1
+    },
+    "task20": {
+      "schema_ready": true,
+      "schema_version": "1",
+      "enabled": true,
+      "session_secret_configured": true
+    },
+    "task22": {
+      "schema_ready": true,
+      "schema_version": "2",
+      "reads_enabled": true,
+      "writes_enabled": true
+    },
+    "features": {
+      "cloud_foundation": true,
+      "cloud_reads": true,
+      "cloud_writes": true,
+      "task11_cloud_reads": true,
+      "task11_cloud_writes": true,
+      "task12_cloud_accounts": true,
+      "task12_import": true,
+      "task12_password_pepper": true,
+      "task13_cloud_reads": true,
+      "task13_cloud_writes": true,
+      "task13_import": true,
+      "task13_payment_primary": true,
+      "task14_cloud_reads": true,
+      "task14_cloud_writes": true,
+      "task14_import": true,
+      "task14_temporary_primary": true,
+      "task14_legacy_writes_frozen": true,
+      "task14_temporary_secret": true,
+      "workers_ai": false,
+      "task15_cloud_only": true,
+      "task16_cloud_reads": true,
+      "task16_cloud_writes": true,
+      "task16_import": true,
+      "task18_admin_messages": true,
+      "task20_android_app": true,
+      "task22_transfer_reads": true,
+      "task22_transfer_writes": true,
+      "task25_feature_flags": true,
+      "task30_privacy": true,
+      "legacy_api_fallback": false,
+      "payment_cloud_migration": true
+    },
+    "rate_limit": {
+      "enabled": true,
+      "degraded": false,
+      "limit": 120,
+      "window_seconds": 60
+    },
+    "degraded_reasons": [],
+    "request_id": "ea75381e-ac99-4da5-a686-a169bdfdb7eb"
+  },
+  "headers": {
+    "rootCacheControl": "no-cache, no-store, must-revalidate, no-transform",
+    "transferCacheControl": "public, max-age=0, must-revalidate, no-transform",
+    "xContentTypeOptions": "nosniff"
+  },
+  "accountsVerified": {
+    "guest": "已存储 0 MiB · 上传预留 0 MiB · 总计 0 MiB / 50.0 MiB",
+    "free": "已存储 0 MiB · 上传预留 0 MiB · 总计 0 MiB / 500.0 MiB",
+    "vip": "已存储 0 MiB · 上传预留 0 MiB · 总计 0 MiB / 2.00 GiB"
+  },
+  "uploadSessionProbe": {
+    "status": 401,
+    "body": {
+      "ok": false,
+      "error": "请先登录或提供访客设备标识",
+      "code": "authentication_required",
+      "retryable": false,
+      "request_id": "4262095a-7931-48c5-ac1f-6fb3ac3a7425"
+    }
+  },
+  "schemaGapObserved": null,
+  "note": "Preview preserves single-owner task18_single_owner_required (task18-preview-owner-10f06c88 untouched); super_admin 5.00 GiB tier verified in local Miniflare.",
+  "runtimeErrors": [],
+  "chromePid": 30520
+}

@@ -317,6 +317,17 @@
   --ds-wf-success: #649981;
   --ds-wf-success-soft: color-mix(in srgb, #649981 9%, var(--ds-surface));
   --ds-wf-idle-stroke: color-mix(in srgb, var(--ds-text-muted) 42%, var(--ds-border));
+  --ds-transfer-active: #4f7bb5;
+  --ds-transfer-active-soft: color-mix(in srgb, #4f7bb5 10%, var(--ds-surface));
+  --ds-transfer-complete: #3f8266;
+  --ds-transfer-complete-soft: color-mix(in srgb, #3f8266 10%, var(--ds-surface));
+  --ds-transfer-paused: #6e737b;
+  --ds-transfer-paused-soft: color-mix(in srgb, #6e737b 10%, var(--ds-surface));
+  --ds-transfer-error: #b84a45;
+  --ds-transfer-error-soft: color-mix(in srgb, #b84a45 10%, var(--ds-surface));
+  --ds-transfer-waiting: var(--ds-text-muted);
+  --ds-transfer-track: color-mix(in srgb, var(--ds-border) 78%, var(--ds-surface-subtle));
+  --ds-transfer-drop-hover: color-mix(in srgb, #4f7bb5 6%, var(--ds-surface-subtle));
 }
 
 /* Keyboard-only route entry, using the existing semantic color/shape tokens. */
@@ -416,6 +427,17 @@ body.modal-open .skip-link { visibility: hidden; }
   --ds-card-tools-surface: #282828;
   --ds-card-tools-border: #383838;
   --ds-card-tools-accent: #eaeaea;
+  --ds-transfer-active: #7ba4d9;
+  --ds-transfer-active-soft: color-mix(in srgb, #7ba4d9 14%, var(--ds-dark-surface));
+  --ds-transfer-complete: #66b292;
+  --ds-transfer-complete-soft: color-mix(in srgb, #66b292 14%, var(--ds-dark-surface));
+  --ds-transfer-paused: #9ca3af;
+  --ds-transfer-paused-soft: color-mix(in srgb, #9ca3af 14%, var(--ds-dark-surface));
+  --ds-transfer-error: #e07b75;
+  --ds-transfer-error-soft: color-mix(in srgb, #e07b75 14%, var(--ds-dark-surface));
+  --ds-transfer-waiting: var(--ds-dark-text-muted);
+  --ds-transfer-track: color-mix(in srgb, var(--ds-dark-border) 82%, var(--ds-dark-surface-subtle));
+  --ds-transfer-drop-hover: color-mix(in srgb, #7ba4d9 10%, var(--ds-dark-surface-subtle));
   --ds-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.28), 0 8px 22px rgba(0, 0, 0, 0.22);
   --ds-shadow-raised: 0 12px 32px rgba(0, 0, 0, 0.34);
   --ds-shadow-dialog: 0 24px 64px rgba(0, 0, 0, 0.52);

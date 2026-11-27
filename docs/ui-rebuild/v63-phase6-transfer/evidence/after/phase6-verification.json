@@ -1,0 +1,119 @@
+{
+  "checks": [
+    {
+      "id": "guest_limits_and_isolation",
+      "status": "PASS"
+    },
+    {
+      "id": "three_account_quota_and_isolation",
+      "status": "PASS"
+    },
+    {
+      "id": "pre_upload_validation_no_silent_drop",
+      "status": "PASS"
+    },
+    {
+      "id": "settings_layout_and_summary",
+      "status": "PASS"
+    },
+    {
+      "id": "sender_multipart_pause_resume_share_tabs",
+      "status": "PASS"
+    },
+    {
+      "id": "private_attachment_no_link_no_qr",
+      "status": "PASS"
+    },
+    {
+      "id": "recipient_mode_password_modal_and_error_recovery",
+      "status": "PASS"
+    },
+    {
+      "id": "keyboard_nav_reduced_motion_and_p07_fallback",
+      "status": "PASS"
+    }
+  ],
+  "accounts": {
+    "guest": {
+      "quota": "已存储 0 MiB · 上传预留 0 MiB · 总计 0 MiB / 50.0 MiB",
+      "limits": "单次最多 500 个文件 · 单批上限 5.00 GiB · 当前可用配额 50.0 MiB · 分片 16.0 MiB",
+      "privDisabled": true,
+      "opt3dDisabled": true,
+      "opt7dDisabled": true,
+      "guestHintVisible": true,
+      "kickerCount": 0
+    },
+    "free": {
+      "quota": "500.0 MiB",
+      "privateEnabled": true,
+      "interactiveMs": 328.6
+    },
+    "vip": {
+      "quota": "2.00 GiB",
+      "privateEnabled": true,
+      "interactiveMs": 354.6
+    },
+    "admin": {
+      "quota": "5.00 GiB",
+      "privateEnabled": true,
+      "interactiveMs": 223.8
+    }
+  },
+  "viewports": [
+    {
+      "width": 320,
+      "w": 320,
+      "scrollW": 320,
+      "tabBtnH": 44,
+      "selectBtnH": 44
+    },
+    {
+      "width": 375,
+      "w": 375,
+      "scrollW": 375,
+      "tabBtnH": 44,
+      "selectBtnH": 44
+    },
+    {
+      "width": 390,
+      "w": 390,
+      "scrollW": 390,
+      "tabBtnH": 44,
+      "selectBtnH": 44
+    },
+    {
+      "width": 768,
+      "w": 753,
+      "scrollW": 753,
+      "tabBtnH": 44,
+      "selectBtnH": 44
+    },
+    {
+      "width": 1440,
+      "w": 1425,
+      "scrollW": 1425,
+      "tabBtnH": 36,
+      "selectBtnH": 44
+    },
+    {
+      "width": 1920,
+      "w": 1905,
+      "scrollW": 1905,
+      "tabBtnH": 36,
+      "selectBtnH": 44
+    },
+    {
+      "width": 2560,
+      "w": 2545,
+      "scrollW": 2545,
+      "tabBtnH": 36,
+      "selectBtnH": 44
+    }
+  ],
+  "perf": {
+    "transfer_route_interactive_ms": 223.8
+  },
+  "runtime_errors": [],
+  "sender_screencast_frames": 172,
+  "recipient_screencast_frames": 101
+}
