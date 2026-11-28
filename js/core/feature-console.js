@@ -1,4 +1,4 @@
-import { setControlFeedbackState } from './motion.js?release=20261127-aeris-p6-transfer-v2';
+import { setControlFeedbackState } from './motion.js?release=20261128-aeris-p7-account-v1';
 
 export function createFeatureConsole({ api, apiGet, getAccount, refreshFeatures, document = globalThis.document }) {
   const node = id => document.getElementById(id);

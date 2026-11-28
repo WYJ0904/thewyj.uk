@@ -172,6 +172,11 @@ function setupTheme() {
       node.setAttribute("aria-label", `${description}，点击切换`);
       if (node === button) node.title = `${description}，点击切换`;
     });
+    document.querySelectorAll("[data-account-theme]").forEach((node) => {
+      const active = node.dataset.accountTheme === preference;
+      node.setAttribute("aria-pressed", String(active));
+      node.classList.toggle("active", active);
+    });
     updateMeta(resolved);
     // Native shell follows the web preference: one theme source of truth.
     document.dispatchEvent(new CustomEvent("wyj:theme-changed", { detail: { preference, resolved } }));
@@ -186,13 +191,22 @@ function setupTheme() {
     updateMeta(resolved);
   };
 
-  const cycleTheme = () => {
-    preference = THEME_ORDER[(THEME_ORDER.indexOf(preference) + 1) % THEME_ORDER.length];
+  const setPreference = (next) => {
+    if (!THEME_ORDER.includes(next)) return;
+    preference = next;
     try { window.localStorage.setItem(THEME_STORAGE_KEY, preference); } catch (_) { /* Appearance remains usable in memory. */ }
     apply();
   };
 
+  const cycleTheme = () => {
+    setPreference(THEME_ORDER[(THEME_ORDER.indexOf(preference) + 1) % THEME_ORDER.length]);
+  };
+
   [button, menuButton, guestButton].forEach((node) => node?.addEventListener("click", cycleTheme));
+  document.addEventListener("click", (event) => {
+    const btn = event.target?.closest?.("[data-account-theme]");
+    if (btn) setPreference(btn.dataset.accountTheme);
+  });
   colorScheme?.addEventListener?.("change", () => {
     if (preference === "system") apply();
   });

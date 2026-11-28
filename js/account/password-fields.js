@@ -1,4 +1,4 @@
-import {passwordChecks,passwordIssues} from './password-policy.js?release=20261127-aeris-p6-transfer-v2';
+import {passwordChecks,passwordIssues} from './password-policy.js?release=20261128-aeris-p7-account-v1';
 let fieldSerial=0;
 
 export function wirePasswordVisibility(input) {

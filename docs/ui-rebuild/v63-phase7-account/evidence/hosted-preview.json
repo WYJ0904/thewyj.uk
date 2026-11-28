@@ -1,0 +1,25 @@
+{
+  "preview_url": "https://v63-phase7.thewyj-v63-p6p9-preview.pages.dev",
+  "p6_preserved_url": "https://v63-phase6.thewyj-v63-p6p9-preview.pages.dev",
+  "verified_at": "2026-11-28T02:53:30.769Z",
+  "release_detected": "20261128-aeris-p7-account-v1",
+  "accounts": {
+    "free": {
+      "username": "v63p1_free",
+      "tabs_width": 1121,
+      "all_8_plans_visible": true
+    },
+    "vip": {
+      "username": "v63p1_vip",
+      "role_pill": "普通用户",
+      "plan_badge": "全功能永久会员"
+    },
+    "admin": {
+      "username": "v63p1_admin",
+      "role_pill": "站点所有者",
+      "admin_nav_visible": true
+    }
+  },
+  "runtimeErrors": [],
+  "status": "PASS"
+}

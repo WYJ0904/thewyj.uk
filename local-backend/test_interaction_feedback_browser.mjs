@@ -194,8 +194,10 @@ async function main() {
     });
 
     await check("learning sync now shows feedback before the upload", async () => {
-      await page.navigate("/");
-      await page.waitFor("document.querySelector('#learningSyncNowBtn')", 25_000, "learning sync button");
+      await page.navigate("/account");
+      await page.waitFor("document.querySelector('#accountTabSync')?.checkVisibility()", 25_000, "account sync tab");
+      await page.click("#accountTabSync");
+      await page.waitFor("document.querySelector('#learningSyncNowBtn')?.checkVisibility()", 25_000, "learning sync button");
       await page.evaluate("document.querySelector('#learningSyncNowBtn')?.scrollIntoView()");
       await clickWithImmediateFeedback("#learningSyncNowBtn", "learning sync");
       await page.waitFor(

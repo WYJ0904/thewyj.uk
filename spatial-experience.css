@@ -4330,7 +4330,7 @@ html[data-p07-ui="enabled"] body[data-workspace-route] :is(#projectPicker, #proj
 }
 
 html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal {
-  width: min(calc(100% - 48px), 880px);
+  width: min(calc(100% - 48px), var(--ds-container-console));
   max-width: none;
   margin: 16px auto 48px;
   padding: 0;
@@ -16711,5 +16711,936 @@ html[data-android-reduced-motion="true"] #transferPage *::after {
   animation-duration: 0.01ms;
   transition-duration: 0.01ms;
 }
+
+/* ==========================================================================
+ * V6.3 Phase 7: Standalone Auth, Categorized Account Hub & Stepped Membership
+ * Zero literal colors (--ds-* tokens only), zero !important, 4px rhythm
+ * ========================================================================== */
+
+/* Standalone auth viewport framing: hide sidebar so auth centers cleanly */
+html[data-p07-ui="enabled"] body:has(#authPanel:not(.hidden)) #v3Sidebar,
+html[data-p07-ui="enabled"] body:has(#authPanel:not(.hidden)) #v3SidebarBackdrop,
+html[data-p07-ui="enabled"] body:has(#authPanel:not(.hidden)) #siteNavToggle {
+  display: none;
+}
+
+html[data-p07-ui="enabled"] body:has(#authPanel:not(.hidden)) .v3-app-frame {
+  display: block;
+}
+
+html[data-p07-ui="enabled"] body:has(#authPanel:not(.hidden)) #v3MainCanvas {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+html[data-p07-ui="enabled"] #projectApp:has(#authPanel:not(.hidden)) {
+  min-height: calc(100dvh - var(--site-nav-height, 64px) - 120px);
+  display: grid;
+  place-items: start center;
+  padding-block: 24px 48px;
+}
+
+html[data-p07-ui="enabled"] #authPanel .auth-panel-top {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin-bottom: 12px;
+}
+
+html[data-p07-ui="enabled"] #authPanel .auth-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 12px 8px 8px;
+  margin-left: -8px;
+  border-radius: var(--ds-radius-sm);
+  color: var(--ds-text-secondary);
+  font-size: var(--ds-text-sm);
+  font-weight: 600;
+  text-decoration: none;
+  transition: background var(--ds-duration-fast) var(--ds-ease-standard), color var(--ds-duration-fast) var(--ds-ease-standard);
+}
+
+html[data-p07-ui="enabled"] #authPanel .auth-back-link:hover {
+  background: var(--ds-surface-hover);
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] #authPanel .auth-logo {
+  color: var(--ds-text);
+  background: var(--ds-logo-badge-bg);
+  box-shadow: var(--ds-logo-badge-shadow);
+}
+
+#authPanel input:not([type="checkbox"]),
+html[data-p07-ui="enabled"] #authPanel input:not([type="checkbox"]) {
+  border-color: var(--ds-text-muted);
+}
+
+#authPanel input:not([type="checkbox"]):focus,
+html[data-p07-ui="enabled"] #authPanel input:not([type="checkbox"]):focus {
+  border-color: var(--ds-action-primary);
+}
+
+#authPanel .auth-recovery-link,
+html[data-p07-ui="enabled"] #authPanel .auth-recovery-link {
+  justify-self: start;
+  min-height: 44px;
+  padding: 8px 12px;
+  margin-left: -12px;
+  font-size: var(--ds-text-sm);
+  color: var(--ds-text-secondary);
+  white-space: nowrap;
+}
+
+.version-notice .version-notice-actions button,
+html[data-p07-ui="enabled"] #versionNotice #viewVersionDetailsBtn {
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+html[data-p07-ui="enabled"] #authPanel .auth-field-hint {
+  margin: -4px 0 0;
+  font-size: var(--ds-text-xs);
+  line-height: 1.5;
+  color: var(--ds-text-secondary);
+}
+
+html[data-p07-ui="enabled"] #authPanel .auth-field-hint[data-state="ok"] {
+  color: var(--ds-success);
+}
+
+html[data-p07-ui="enabled"] #authPanel .auth-field-hint[data-state="error"] {
+  color: var(--ds-error);
+}
+
+html[data-p07-ui="enabled"] #authPanel .auth-policy-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 16px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--ds-divider);
+}
+
+html[data-p07-ui="enabled"] #authPanel .auth-policy-links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding-inline: 4px;
+  font-size: var(--ds-text-xs);
+  color: var(--ds-text-secondary);
+  text-decoration: none;
+}
+
+html[data-p07-ui="enabled"] #authPanel .auth-policy-links a:hover {
+  color: var(--ds-text);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+/* Unified centering & container invariants for Account & Membership workspaces */
+html[data-p07-ui="enabled"] body[data-workspace-route] :is(#accountModal, #membershipModal) > .modal-panel {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  box-sizing: border-box;
+  display: grid;
+  gap: 16px;
+  justify-items: stretch;
+  align-content: start;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] :is(#accountModal, #membershipModal) :is(.account-header, .membership-header) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px 16px;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0 0 16px;
+  border-bottom: 1px solid var(--ds-border);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] :is(.account-header-copy, .membership-header-copy) {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] :is(.account-header-sub, .membership-header-sub) {
+  margin: 0;
+  font-size: var(--ds-text-sm);
+  color: var(--ds-text-secondary);
+  line-height: 1.5;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] :is(.account-header-actions, .membership-header-actions) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Account Settings 6-Category Subnav & Panels */
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountSubnav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 4px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface-subtle);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountSubnav .account-tab {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 8px 16px;
+  border: 1px solid transparent;
+  border-radius: var(--ds-radius-sm);
+  background: transparent;
+  color: var(--ds-text-secondary);
+  font-size: var(--ds-text-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--ds-duration-fast) var(--ds-ease-standard), color var(--ds-duration-fast) var(--ds-ease-standard), border-color var(--ds-duration-fast) var(--ds-ease-standard);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountSubnav .account-tab:hover {
+  color: var(--ds-text);
+  background: var(--ds-surface-hover);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountSubnav .account-tab.active,
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountSubnav .account-tab[aria-selected="true"] {
+  background: var(--ds-surface);
+  color: var(--ds-text);
+  border-color: var(--ds-border);
+  box-shadow: var(--ds-seg-shadow);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountSubnav .account-tab:focus-visible,
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal button:focus-visible,
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal button:focus-visible,
+html[data-p07-ui="enabled"] #authPanel :is(button, a, input):focus-visible {
+  outline: 2px solid var(--ds-focus);
+  outline-offset: 2px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-tabpanel {
+  display: grid;
+  gap: 16px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  align-content: start;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-tabpanel.hidden,
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-tabpanel[hidden] {
+  display: none;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-group {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 16px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-group > .account-section-subtitle,
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-group-head .account-section-subtitle {
+  margin: 0;
+  font-size: var(--ds-text-md);
+  font-weight: 650;
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-group-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--ds-divider);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-group-head .meta-line {
+  margin: 4px 0 0;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-overview-banner {
+  display: grid;
+  gap: 16px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 16px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-overview-identity {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-summary-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  flex: 0 0 auto;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-surface-subtle);
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-summary-meta {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  flex: 1 1 220px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-summary-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-profile-name {
+  margin: 0;
+  font-size: var(--ds-text-lg);
+  font-weight: 700;
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal :is(.account-role-badge, .account-plan-pill) {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 4px 12px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-surface-subtle);
+  color: var(--ds-text-secondary);
+  font-size: var(--ds-text-xs);
+  font-weight: 600;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-profile-id {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: var(--ds-text-xs);
+  color: var(--ds-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-copy-btn {
+  min-height: 32px;
+  padding: 4px 12px;
+  font-size: var(--ds-text-xs);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-overview-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  padding-top: 12px;
+  border-top: 1px solid var(--ds-divider);
+  font-size: var(--ds-text-xs);
+  color: var(--ds-text-secondary);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-overview-meta-row strong {
+  color: var(--ds-text);
+  font-weight: 600;
+}
+
+/* Grouped Hairline Setting Rows */
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-settings-rows,
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-security-rows,
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-security-sessions,
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-security-events {
+  display: grid;
+  gap: 0;
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--ds-divider);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+  overflow: clip;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-setting-row-btn,
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-setting-item,
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-security-row,
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-session-row,
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-event-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 16px;
+  width: 100%;
+  min-height: 56px;
+  box-sizing: border-box;
+  padding: 12px 16px;
+  border: 0;
+  border-bottom: 1px solid var(--ds-divider);
+  border-radius: 0;
+  background: transparent;
+  text-align: left;
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-setting-row-btn:last-child,
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-setting-item:last-child,
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-security-row:last-child,
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-session-row:last-child,
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-event-row:last-child {
+  border-bottom: 0;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-setting-row-btn {
+  cursor: pointer;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-setting-row-btn:hover {
+  background: var(--ds-surface-subtle);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-setting-main,
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-security-row-copy,
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-session-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  flex: 1 1 240px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal :is(.account-setting-main, .account-security-row-copy, .account-session-copy) small {
+  font-size: var(--ds-text-xs);
+  color: var(--ds-text-secondary);
+  line-height: 1.5;
+  font-weight: 400;
+  overflow-wrap: anywhere;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-setting-action {
+  flex: 0 0 auto;
+  font-size: var(--ds-text-xs);
+  font-weight: 600;
+  color: var(--ds-text-secondary);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-security-inline {
+  display: grid;
+  gap: 16px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-security-row-actions,
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-security-subhead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-security-subhead {
+  margin-top: 4px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal :is(.account-security-subhead h3, .account-subsection-title) {
+  margin: 0;
+  font-size: var(--ds-text-sm);
+  font-weight: 650;
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal #changeSecretForm {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal #openDeleteAccountBtn:hover {
+  background: var(--ds-error);
+  border-color: var(--ds-error);
+  color: var(--ds-on-error);
+}
+
+/* Account Membership Tab */
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-membership-summary-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1px solid var(--ds-divider);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface-subtle);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-membership-summary-row .meta-line {
+  margin: 4px 0 0;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-membership-stacked,
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-order-preview-list {
+  display: grid;
+  gap: 8px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-membership-row,
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-order-preview-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 12px 16px;
+  border: 1px solid var(--ds-divider);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-surface);
+  font-size: var(--ds-text-sm);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-order-preview-row small {
+  display: block;
+  margin-top: 4px;
+  font-size: var(--ds-text-xs);
+  color: var(--ds-text-secondary);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-order-preview-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-entitlement-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-entitlement-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 4px 12px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-surface-subtle);
+  color: var(--ds-text);
+  font-size: var(--ds-text-xs);
+  font-weight: 600;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-entitlement-chip.muted {
+  color: var(--ds-text-secondary);
+  font-weight: 500;
+}
+
+/* Preferences Theme Switcher */
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-theme-switcher {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-theme-switcher button {
+  min-height: 44px;
+  min-width: 108px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-theme-switcher button[aria-pressed="true"],
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-theme-switcher button.active {
+  background: var(--ds-action-primary);
+  color: var(--ds-on-action-primary);
+  border-color: var(--ds-action-primary);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-motion-note {
+  margin: 0;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal #releaseChannelSection {
+  margin-bottom: 0;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal #accountMessage {
+  margin: 0;
+  min-height: 20px;
+}
+
+/* Stepped Membership & Recharge Workspace */
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-current-summary {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-summary-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-summary-top .meta-line {
+  margin: 4px 0 0;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal :is(.membership-summary-chips, .membership-entitlement-row) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal :is(.membership-summary-chip, .membership-entitlement-tag) {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 4px 12px;
+  border: 1px solid var(--ds-divider);
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-surface-subtle);
+  color: var(--ds-text);
+  font-size: var(--ds-text-xs);
+  font-weight: 600;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal :is(.membership-summary-chip, .membership-entitlement-tag).muted {
+  color: var(--ds-text-secondary);
+  font-weight: 500;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-v3-stepper {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .v3-step-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+  color: var(--ds-text-secondary);
+  font-size: var(--ds-text-xs);
+  font-weight: 600;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .v3-step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+  border-radius: var(--ds-radius-pill);
+  border: 1px solid var(--ds-border-strong);
+  font-size: var(--ds-text-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .v3-step-item.active {
+  border-color: var(--ds-action-primary);
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .v3-step-item.active .v3-step-num {
+  background: var(--ds-action-primary);
+  border-color: var(--ds-action-primary);
+  color: var(--ds-on-action-primary);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .v3-step-item.done {
+  border-color: var(--ds-success-border);
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .v3-step-item.done .v3-step-num {
+  background: var(--ds-success-soft);
+  border-color: var(--ds-success-border);
+  color: var(--ds-success);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-goal-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 12px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-goal-option {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  min-width: 0;
+  min-height: 76px;
+  padding: 12px 16px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal :is(.membership-goal-option, .plan-option) :is(strong, span, small) {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-step-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  margin-bottom: 12px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-step-head legend,
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-step-title {
+  margin: 0;
+  font-size: var(--ds-text-md);
+  font-weight: 650;
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-option-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-option-badges {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal :is(.plan-badge-owned, .plan-badge-platform) {
+  font-style: normal;
+  font-size: var(--ds-text-xs);
+  padding: 4px 8px;
+  border-radius: var(--ds-radius-pill);
+  border: 1px solid var(--ds-border);
+  background: var(--ds-surface-subtle);
+  color: var(--ds-text-secondary);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .payment-order-dual-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(260px, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .payment-order-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .payment-order-card-title {
+  margin: 0 0 12px;
+  font-size: var(--ds-text-md);
+  font-weight: 650;
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .payment-order-head .payment-order-card-title {
+  margin-bottom: 0;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .payment-timeline-list {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 12px 0 0;
+  border-top: 1px solid var(--ds-divider);
+  display: grid;
+  gap: 8px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .payment-timeline-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--ds-divider);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-surface-subtle);
+  font-size: var(--ds-text-xs);
+  color: var(--ds-text-secondary);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .payment-timeline-item.is-done {
+  border-color: var(--ds-success-border);
+  background: var(--ds-success-soft);
+  color: var(--ds-success);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .payment-timeline-item.is-active {
+  border-color: var(--ds-border-strong);
+  background: var(--ds-surface);
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .payment-timeline-item.is-rejected {
+  border-color: var(--ds-error-border);
+  background: var(--ds-error-soft);
+  color: var(--ds-error);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-order-history {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-order-history-list {
+  display: grid;
+  gap: 8px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-history-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 12px;
+  border: 1px solid var(--ds-divider);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-surface-subtle);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-history-main {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-history-main span {
+  font-size: var(--ds-text-xs);
+  color: var(--ds-text-secondary);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-history-side {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 900px) {
+  html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-v3-stepper {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .payment-order-dual-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 760px) {
+  html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-theme-switcher {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    width: 100%;
+  }
+
+  html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal .account-theme-switcher button {
+    width: 100%;
+  }
+
+  html[data-p07-ui="enabled"] body[data-workspace-route] #accountModal :is(.account-group-head, .account-setting-item, .account-security-row, .account-session-row) button {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 480px) {
+  html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-v3-stepper {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  html[data-p07-ui="enabled"] #authPanel {
+    width: calc(100% - 24px);
+    padding: 24px 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(#authPanel, #accountModal, #membershipModal) *,
+  :is(#authPanel, #accountModal, #membershipModal) *::before,
+  :is(#authPanel, #accountModal, #membershipModal) *::after {
+    animation-duration: 0.001ms;
+    transition-duration: 0.001ms;
+  }
+}
+
+html[data-android-reduced-motion="true"] :is(#authPanel, #accountModal, #membershipModal) *,
+html[data-android-reduced-motion="true"] :is(#authPanel, #accountModal, #membershipModal) *::before,
+html[data-android-reduced-motion="true"] :is(#authPanel, #accountModal, #membershipModal) *::after {
+  animation-duration: 0.001ms;
+  transition-duration: 0.001ms;
+}
+
 
 

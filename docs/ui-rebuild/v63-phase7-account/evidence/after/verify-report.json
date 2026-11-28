@@ -1,0 +1,189 @@
+{
+  "source": "isolated Miniflare D1/R2 + headless Chrome",
+  "checks": [
+    {
+      "name": "auth_standalone_centering_and_validation",
+      "status": "PASS",
+      "sidebarDisplay": "none",
+      "panelLeft": 478.5,
+      "panelRight": 946.5,
+      "panelWidth": 468,
+      "canvasLeft": 0,
+      "canvasWidth": 1425,
+      "appLeft": 262.5,
+      "appWidth": 900,
+      "viewportW": 1440,
+      "innerW": 1440,
+      "centerDelta": 7.5,
+      "canvasDelta": 0
+    },
+    {
+      "name": "auth_policies_and_recovery_routes_200",
+      "status": "PASS"
+    },
+    {
+      "name": "account_hub_centering_tabs_themes_axe_and_rbac",
+      "status": "PASS",
+      "expandedSidebar": {
+        "overview": {
+          "left": 280,
+          "width": 1121,
+          "modalCenterX": 840.5,
+          "canvasCenterX": 840.5,
+          "overflowX": false
+        },
+        "security": {
+          "left": 280,
+          "width": 1121,
+          "modalCenterX": 840.5,
+          "canvasCenterX": 840.5,
+          "overflowX": false
+        },
+        "membership": {
+          "left": 280,
+          "width": 1121,
+          "modalCenterX": 840.5,
+          "canvasCenterX": 840.5,
+          "overflowX": false
+        },
+        "data": {
+          "left": 280,
+          "width": 1121,
+          "modalCenterX": 840.5,
+          "canvasCenterX": 840.5,
+          "overflowX": false
+        },
+        "preferences": {
+          "left": 280,
+          "width": 1121,
+          "modalCenterX": 840.5,
+          "canvasCenterX": 840.5,
+          "overflowX": false
+        },
+        "sync": {
+          "left": 280,
+          "width": 1121,
+          "modalCenterX": 840.5,
+          "canvasCenterX": 840.5,
+          "overflowX": false
+        }
+      }
+    },
+    {
+      "name": "membership_all8_plans_qr_cancel_confirm_history",
+      "status": "PASS"
+    },
+    {
+      "name": "role_separation_vip_stacked_and_super_admin",
+      "status": "PASS"
+    },
+    {
+      "name": "responsive_viewports_and_reduced_motion",
+      "status": "PASS",
+      "count": 7
+    },
+    {
+      "name": "password_change_revokes_all_sessions",
+      "status": "PASS"
+    }
+  ],
+  "geometry": {
+    "expandedSidebar": {
+      "overview": {
+        "left": 280,
+        "width": 1121,
+        "modalCenterX": 840.5,
+        "canvasCenterX": 840.5,
+        "overflowX": false
+      },
+      "security": {
+        "left": 280,
+        "width": 1121,
+        "modalCenterX": 840.5,
+        "canvasCenterX": 840.5,
+        "overflowX": false
+      },
+      "membership": {
+        "left": 280,
+        "width": 1121,
+        "modalCenterX": 840.5,
+        "canvasCenterX": 840.5,
+        "overflowX": false
+      },
+      "data": {
+        "left": 280,
+        "width": 1121,
+        "modalCenterX": 840.5,
+        "canvasCenterX": 840.5,
+        "overflowX": false
+      },
+      "preferences": {
+        "left": 280,
+        "width": 1121,
+        "modalCenterX": 840.5,
+        "canvasCenterX": 840.5,
+        "overflowX": false
+      },
+      "sync": {
+        "left": 280,
+        "width": 1121,
+        "modalCenterX": 840.5,
+        "canvasCenterX": 840.5,
+        "overflowX": false
+      }
+    }
+  },
+  "viewports": [
+    {
+      "width": 320,
+      "height": 640,
+      "overflow": false
+    },
+    {
+      "width": 375,
+      "height": 812,
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "overflow": false
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "overflow": false
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "overflow": false
+    },
+    {
+      "width": 1920,
+      "height": 1080,
+      "overflow": false
+    },
+    {
+      "width": 2560,
+      "height": 1440,
+      "overflow": false
+    }
+  ],
+  "videos": [
+    "desktop-account-walkthrough.mp4",
+    "mobile-account-walkthrough.mp4"
+  ],
+  "screenshots": [
+    "desktop-account-overview-light.png",
+    "desktop-account-preferences-dark.png",
+    "desktop-account-security-light.png",
+    "desktop-login-light.png",
+    "desktop-membership-history-light.png",
+    "desktop-membership-order-light.png",
+    "desktop-register-light.png",
+    "mobile-account-overview-light.png",
+    "mobile-membership-light.png"
+  ],
+  "status": "PASS"
+}

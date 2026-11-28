@@ -63,6 +63,8 @@ for (const width of [390, 1366]) {
 
     // Account preferences are server confirmed and cannot change the formal APK.
     await page.click('#accountBtn');
+    await page.waitFor("document.getElementById('accountTabPreferences')?.checkVisibility()");
+    await page.click('#accountTabPreferences');
     await page.waitFor("!document.getElementById('releaseChannelSection').classList.contains('hidden') && !document.getElementById('saveReleaseChannelBtn').disabled");
     for (const channel of ['beta', 'experimental', 'stable']) {
       await page.setFields({ '#releaseChannelSelect': channel });

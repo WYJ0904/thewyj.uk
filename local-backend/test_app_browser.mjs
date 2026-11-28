@@ -995,6 +995,7 @@ async function main() {
       await send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
       await click("#v3Sidebar [data-v3-nav=account]");
       await waitFor("!document.querySelector('#accountModal').classList.contains('hidden')", 3_000, "account modal sync");
+      await click("#accountTabSync");
     });
 
     await check("learning data sync is local-first and receives a second-device update", async () => {
@@ -1002,6 +1003,7 @@ async function main() {
         await click("#v3Sidebar [data-v3-nav=account]");
         await waitFor("!document.querySelector('#accountModal').classList.contains('hidden')", 3_000, "account modal sync");
       }
+      await click("#accountTabSync");
       await waitFor(
         "/已同步|已合并/.test(document.querySelector('#dashboardSyncStatus')?.textContent || '')",
         15_000,
@@ -2441,6 +2443,7 @@ async function main() {
       await click("#v3Sidebar [data-v3-nav=account]");
       await waitFor("!document.querySelector('#accountModal')?.classList.contains('hidden')", 3_000, "account modal");
       assert.ok((await evaluate("document.querySelector('#accountDetails').textContent")).includes(USERNAME));
+      await click("#accountTabSecurity");
       await setFields({ "#currentSecretInput": USER_SECRET, "#newSecretInput": USER_SECRET_NEW, "#newSecretConfirmInput": USER_SECRET_NEW });
       expectSessionInvalidationSync();
       try {
@@ -2464,6 +2467,7 @@ async function main() {
         localStorage.setItem(other,'other-account-fixture');return {own,other};
       })()`);
       await click("#v3Sidebar [data-v3-nav=account]");
+      await click("#accountTabData");
       await click("#openDeleteAccountBtn");
       await waitFor("!document.querySelector('#deleteAccountModal')?.classList.contains('hidden')", 3_000, "delete confirmation");
       await setFields({ "#deleteSecretInput": disposable.secret });
