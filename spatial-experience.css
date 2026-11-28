@@ -17735,10 +17735,16 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .members
   width: 100%;
   max-width: 1080px;
   margin-inline: auto;
+  transition: max-width 320ms var(--ds-ease-decelerate);
 }
 
-/* Fixed 3-column horizontal comparison grid on desktop (never wraps 2+1 on desktop) */
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-plan-step[data-plans-scope="all"] .membership-plan-catalog {
+  max-width: var(--ds-container-console);
+}
+
+/* Fixed 3-column default -> 4-column same-row desktop comparison grid */
 html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-grid-recommended {
+  position: relative;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
@@ -17747,40 +17753,22 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-gr
   margin: 0;
 }
 
-/* Smooth in-place expansion for remaining merged Dual Language card */
-html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-extra-plans {
-  display: grid;
-  grid-template-rows: 0fr;
-  opacity: 0;
-  transition: grid-template-rows 280ms var(--ds-ease-decelerate), opacity 220ms var(--ds-ease-standard);
+/* Keep cards aligned cleanly when collapsed, lock closed siblings at baseline row height so only the expanded card grows */
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-grid-recommended:has(.plan-full-details[open]) {
+  align-items: start;
 }
 
-html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-extra-plans.is-expanded {
-  grid-template-rows: 1fr;
-  opacity: 1;
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-grid-recommended:has(.plan-full-details[open]) > .plan-card:not(:has(.plan-full-details[open])) {
+  min-height: var(--plan-sibling-min-height, 0px);
 }
 
-html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-extra-plans-inner {
-  overflow: clip;
-  min-height: 0;
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-plan-step[data-plans-scope="all"] .plan-grid-recommended {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
-html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-grid-extra {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 16px;
-  width: 100%;
-  padding-top: 4px;
-}
-
-html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-grid-extra > .plan-option.plan-card {
-  flex: 0 1 348px;
-  width: 100%;
-  max-width: 348px;
-}
-
-html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-option.plan-card {
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-option.plan-card,
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-option.plan-card.selected,
+:root[data-theme="dark"] html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-option.plan-card.selected {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   gap: 12px;
@@ -17792,16 +17780,45 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-op
   border-radius: var(--ds-radius-lg);
   background: var(--ds-surface);
   color: var(--ds-text);
+  box-shadow: none;
   cursor: pointer;
+  transition: border-color 160ms var(--ds-ease-standard), box-shadow 160ms var(--ds-ease-standard), background-color 160ms var(--ds-ease-standard);
 }
 
-html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-option.plan-card.is-featured {
-  border-color: var(--ds-action-primary);
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-plan-step[data-plans-scope="all"] .plan-option.plan-card {
+  padding: 20px 16px;
 }
 
-html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-option.plan-card.is-owned {
-  border-color: var(--ds-text);
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-option.plan-card:hover {
+  border-color: var(--ds-border-hover);
+  background: var(--ds-surface);
+  box-shadow: var(--ds-shadow-card);
+  transform: none;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-option.plan-card:focus-visible {
+  outline: 2px solid var(--ds-focus);
+  outline-offset: 2px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-option.plan-card.is-owned,
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-option.plan-card.is-owned.selected {
+  border-color: var(--ds-border-strong);
   background: var(--ds-surface-subtle);
+  box-shadow: none;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-option.plan-card.is-owned:hover {
+  border-color: var(--ds-border-hover);
+  background: var(--ds-surface-subtle);
+  box-shadow: var(--ds-shadow-card);
+}
+
+/* Sole emphasis border reserved strictly for recommended All-Access card */
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-option.plan-card.is-featured,
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-option.plan-card.is-featured.selected,
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-option.plan-card.is-featured:hover {
+  border-color: var(--ds-action-primary);
 }
 
 html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-option.plan-card span {
@@ -17868,7 +17885,7 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-ba
   color: var(--ds-text-secondary);
 }
 
-/* GPT Pro Sliding Segmented Variant Switcher (CSP-safe data attributes) */
+/* GPT Pro Sliding Segmented Variant Switcher (high light/dark active contrast) */
 html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-variant-switch {
   --variant-count: 2;
   --variant-index: 0;
@@ -17876,11 +17893,17 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-va
   display: grid;
   grid-template-columns: repeat(var(--variant-count, 2), minmax(0, 1fr));
   align-items: center;
+  max-width: 100%;
   padding: 4px;
-  border: 1px solid var(--ds-border);
+  border: 1px solid var(--ds-border-strong);
   border-radius: var(--ds-radius-pill);
-  background: var(--ds-surface-subtle);
+  background: var(--ds-surface-active);
   flex-shrink: 0;
+}
+
+:root[data-theme="dark"] html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-variant-switch {
+  background: var(--ds-bg-subtle);
+  border-color: var(--ds-border);
 }
 
 html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-variant-switch[data-variant-count="3"] {
@@ -17902,12 +17925,18 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-va
   left: 4px;
   width: calc((100% - 8px) / var(--variant-count, 2));
   border-radius: var(--ds-radius-pill);
-  background: var(--ds-surface);
-  border: 1px solid var(--ds-border);
-  box-shadow: var(--ds-seg-shadow);
+  background: var(--ds-knob-surface);
+  border: 1px solid var(--ds-border-strong);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.14), 0 1px 2px rgba(0, 0, 0, 0.08);
   transform: translateX(calc(var(--variant-index, 0) * 100%));
   transition: transform 220ms var(--ds-ease-decelerate);
   pointer-events: none;
+}
+
+:root[data-theme="dark"] html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-variant-thumb {
+  background: color-mix(in srgb, var(--ds-text) 16%, var(--ds-surface-raised));
+  border-color: var(--ds-border-hover);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.48), inset 0 1px 0 rgba(255, 255, 255, 0.14);
 }
 
 html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-variant-btn {
@@ -17921,14 +17950,29 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-va
   background: transparent;
   color: var(--ds-text-secondary);
   font-size: var(--ds-text-xs);
-  font-weight: 600;
+  font-weight: 500;
   white-space: nowrap;
   text-align: center;
   cursor: pointer;
+  transition: color 160ms var(--ds-ease-standard);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-variant-switch[data-variant-count="3"] .plan-variant-btn {
+  padding: 4px 8px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-variant-btn:hover {
+  color: var(--ds-text);
 }
 
 html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-variant-btn.active {
   color: var(--ds-text);
+  font-weight: 600;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal :is(.plan-buy-btn, .plan-variant-btn, .plan-lang-chip, .plan-full-details summary, .membership-show-all-link):focus-visible {
+  outline: 2px solid var(--ds-focus);
+  outline-offset: 2px;
 }
 
 html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-single-mode-pill {
@@ -18004,6 +18048,8 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-pr
   letter-spacing: -0.02em;
   color: var(--ds-text);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-price-cycle {
@@ -18011,6 +18057,19 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-pr
   font-size: var(--ds-text-xs);
   color: var(--ds-text-secondary);
   font-weight: 500;
+  white-space: nowrap;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-plan-step[data-plans-scope="all"] .plan-price-row {
+  gap: 6px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-plan-step[data-plans-scope="all"] .plan-price-value {
+  font-size: clamp(1.25rem, 1.55vw, 1.45rem);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-plan-step[data-plans-scope="all"] .plan-price-cycle {
+  font-size: 0.75rem;
 }
 
 html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-features-block {
@@ -18034,26 +18093,72 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-ca
 }
 
 html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-card-lang-pills {
-  display: inline-flex;
-  gap: 4px;
+  --lang-index: 0;
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 4px;
+  border: 1px solid var(--ds-border-strong);
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-surface-active);
+}
+
+:root[data-theme="dark"] html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-card-lang-pills {
+  background: var(--ds-bg-subtle);
+  border-color: var(--ds-border);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-card-lang-pills[data-lang-index="1"] {
+  --lang-index: 1;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-lang-thumb {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  width: calc((100% - 8px) / 2);
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-knob-surface);
+  border: 1px solid var(--ds-border-strong);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.14), 0 1px 2px rgba(0, 0, 0, 0.08);
+  transform: translateX(calc(var(--lang-index, 0) * 100%));
+  transition: transform 200ms var(--ds-ease-decelerate);
+  pointer-events: none;
+}
+
+:root[data-theme="dark"] html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-lang-thumb {
+  background: color-mix(in srgb, var(--ds-text) 16%, var(--ds-surface-raised));
+  border-color: var(--ds-border-hover);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.48), inset 0 1px 0 rgba(255, 255, 255, 0.14);
 }
 
 html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-lang-chip {
-  min-height: 28px;
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  min-height: 24px;
   padding: 4px 12px;
-  border: 1px solid var(--ds-border);
+  border: 0;
   border-radius: var(--ds-radius-pill);
-  background: var(--ds-surface-subtle);
+  background: transparent;
   color: var(--ds-text-secondary);
   font-size: var(--ds-text-xs);
   font-weight: 500;
+  white-space: nowrap;
+  text-align: center;
   cursor: pointer;
+  transition: color 160ms var(--ds-ease-standard);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-lang-chip:hover {
+  color: var(--ds-text);
 }
 
 html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-lang-chip.active {
-  background: var(--ds-action-primary);
-  border-color: var(--ds-action-primary);
-  color: var(--ds-on-action-primary);
+  background: transparent;
+  color: var(--ds-text);
+  font-weight: 600;
 }
 
 /* Normal weight/size features per Section 3 */
@@ -18104,38 +18209,20 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-fu
   display: none;
 }
 
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-full-details summary svg {
+  transition: transform 200ms var(--ds-ease-standard);
+}
+
 html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-full-details[open] summary svg {
   transform: rotate(180deg);
 }
 
 html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-full-details-body {
-  display: grid;
-  gap: 8px;
   padding-top: 8px;
 }
 
-html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-entitlement-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-entitlement-chips span {
-  padding: 2px 8px;
-  border: 1px solid var(--ds-border);
-  border-radius: var(--ds-radius-pill);
-  background: var(--ds-surface-subtle);
-  font-size: var(--ds-text-xs);
-  font-weight: 400;
-  color: var(--ds-text-secondary);
-}
-
-html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-card-footnote {
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-full-features-list {
   margin: 0;
-  font-size: var(--ds-text-xs);
-  font-weight: 400;
-  color: var(--ds-text-secondary);
-  line-height: 1.5;
 }
 
 /* Bottom centered "查看所有套餐" trigger */
@@ -18510,25 +18597,31 @@ html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .members
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-extra-plans,
+  html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-plan-catalog,
+  html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-option.plan-card,
   html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-variant-thumb,
+  html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-lang-thumb,
+  html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-full-details summary svg,
   html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-card-body.is-updating {
     transition: none;
     animation: none;
   }
 }
 
+/* Mid-narrow screens: wrap expanded 4-card state into clean 2x2 grid only when space gets tight */
+@media (max-width: 1080px) {
+  html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-plan-step[data-plans-scope="all"] .plan-grid-recommended {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 /* Mobile-only stacking (strictly narrow screens, never applied to normal desktop windows) */
 @media (max-width: 900px) {
-  html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-grid-recommended {
+  html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-grid-recommended,
+  html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-plan-step[data-plans-scope="all"] .plan-grid-recommended {
     grid-template-columns: minmax(0, 1fr);
     max-width: 480px;
     margin-inline: auto;
-  }
-
-  html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-grid-extra > .plan-option.plan-card {
-    flex: 1 1 100%;
-    max-width: 480px;
   }
 
   html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .gpt-checkout-layout {

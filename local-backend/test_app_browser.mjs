@@ -1192,14 +1192,18 @@ async function main() {
         await collectVisibleCards();
       }
       await click("#membershipShowAllPlansBtn");
-      await waitFor("document.getElementById('membershipExtraPlansRegion')?.classList.contains('is-expanded')", 3_000, "expand dual-language extra card");
+      await waitFor("document.getElementById('membershipPlanStep')?.dataset.plansScope === 'all' && document.querySelectorAll('#membershipRecommendedPlanList [data-plan]').length === 4", 3_000, "expand dual-language into same 4-card row");
+      assert.deepEqual(
+        await evaluate("[...document.querySelectorAll('#membershipRecommendedPlanList > [data-card-family]')].map(node => node.dataset.cardFamily)"),
+        ["single", "tools", "bilingual", "all"],
+      );
       await collectVisibleCards();
       await click('[data-card-variant="japanese_lifetime"]');
-      await waitFor("Boolean(document.querySelector('#membershipExtraPlanList [data-plan=\"japanese_lifetime\"]'))", 3_000, "switch dual-language card to lifetime");
+      await waitFor("Boolean(document.querySelector('#membershipRecommendedPlanList [data-plan=\"japanese_lifetime\"]'))", 3_000, "switch dual-language card to lifetime");
       await collectVisibleCards();
       await click('[data-card-variant="dual_language_monthly"]');
       await click("#membershipShowAllPlansBtn");
-      await waitFor("!document.getElementById('membershipExtraPlansRegion')?.classList.contains('is-expanded')", 3_000, "collapse back to 3 cards");
+      await waitFor("document.getElementById('membershipPlanStep')?.dataset.plansScope === 'recommended' && document.querySelectorAll('#membershipRecommendedPlanList [data-plan]').length === 3", 3_000, "collapse back to 3 cards");
 
       assert.deepEqual([...observedCodes].sort(), ["all_access_lifetime", "all_access_monthly", "dual_language_monthly", "finance_monthly", "japanese_lifetime", "notification_archive_access", "tools_monthly", "trial_single_language"]);
       assert.ok(planTextByCode.trial_single_language.includes("8"));
@@ -1214,7 +1218,11 @@ async function main() {
       assert.ok(planTextByCode.japanese_lifetime.includes("70"));
       assert.ok(planTextByCode.japanese_lifetime.includes("双语言"));
       assert.ok(planTextByCode.all_access_lifetime.includes("100"));
-      await assertReadable(".plan-card-footnote");
+      await assertReadable(".plan-features-list li");
+      await click('[data-card-family="all"] .plan-full-details summary');
+      await waitFor("document.querySelector('[data-card-family=\"all\"] .plan-full-details')?.open === true", 3_000, "full details open in app matrix");
+      await assertReadable(".plan-full-features-list li");
+      await click('[data-card-family="all"] .plan-full-details summary');
       await delay(240);
       assert.deepEqual(await auditVisibleTextContrast("#membershipModal"), []);
       assert.equal(await evaluate("document.querySelector('#paymentMethodField').classList.contains('hidden')"), true);

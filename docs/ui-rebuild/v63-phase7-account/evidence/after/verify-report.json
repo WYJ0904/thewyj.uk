@@ -171,6 +171,7 @@
     }
   ],
   "videos": [
+    "desktop-membership-walkthrough.mp4",
     "desktop-account-walkthrough.mp4",
     "mobile-account-walkthrough.mp4"
   ],
@@ -183,8 +184,10 @@
     "desktop-membership-checkout-agreement.png",
     "desktop-membership-checkout-qr.png",
     "desktop-membership-checkout.png",
+    "desktop-membership-details-open.png",
     "desktop-membership-expiry-banner.png",
     "desktop-membership-orders.png",
+    "desktop-membership-plans-dark.png",
     "desktop-membership-plans.png",
     "desktop-membership-qr-error.png",
     "desktop-membership-waiting-review.png",

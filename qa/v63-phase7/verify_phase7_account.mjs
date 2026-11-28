@@ -122,7 +122,7 @@ function encodeFramesToMp4(framesList, dir, outPath) {
   for (let i = 0; i < framesList.length; i += 1) {
     lines.push(`file '${framesList[i].file}'`);
     if (i < framesList.length - 1) {
-      const dt = Math.max(0.02, Math.min(0.6, framesList[i + 1].ts - framesList[i].ts));
+      const dt = Math.max(0.02, Math.min(2.0, framesList[i + 1].ts - framesList[i].ts));
       lines.push(`duration ${dt.toFixed(4)}`);
     }
   }
@@ -342,7 +342,11 @@ try {
       } catch {}
       await new Promise((r) => setTimeout(r, 100));
     }
-    throw new Error(`waitFor timeout (${timeoutMs}ms): ${label}`);
+    let diag = "";
+    try {
+      diag = await evalJs(`JSON.stringify({ path: location.pathname, dataPlanCount: document.querySelectorAll('#membershipRecommendedPlanList [data-plan]').length, cardCount: document.querySelectorAll('#membershipRecommendedPlanList > .plan-card').length, cards: Array.from(document.querySelectorAll('#membershipRecommendedPlanList > .plan-card')).map(e => ({ fam: e.dataset.cardFamily, plan: e.dataset.plan })), msg: document.getElementById('rechargeMessage')?.textContent || '' })`);
+    } catch {}
+    throw new Error(`waitFor timeout (${timeoutMs}ms): ${label}; pageErrors=${JSON.stringify(pageErrors)}; diag=${diag}`);
   };
   const click = async (selector) => {
     await waitFor(`(() => { const el = document.querySelector(${JSON.stringify(selector)}); return Boolean(el && !el.disabled && el.offsetParent !== null); })()`, 15000, `clickable ${selector}`);
@@ -611,36 +615,130 @@ try {
   assert.equal(await evalJs("document.getElementById('membershipShowAllPlansBtn').textContent.trim()"), "查看所有套餐");
   await shot("desktop-membership-plans.png");
 
-  // Exercise GPT Pro card-internal variant switchers + inline EN/JA toggle + expandable details
-  const reachablePlans = new Set(await evalJs("Array.from(document.querySelectorAll('#membershipPlanList [data-plan]')).map(el => el.dataset.plan)"));
+  // Exercise GPT Pro card-internal variant switchers + contrast + inline EN/JA toggle + unified full details list
+  const reachablePlans = new Set(await evalJs("Array.from(document.querySelectorAll('#membershipRecommendedPlanList [data-plan]')).map(el => el.dataset.plan)"));
+  const switcherContrastLight = await evalJs(`(() => {
+    const sw = document.querySelector('[data-card-family="single"] .plan-variant-switch');
+    const th = document.querySelector('[data-card-family="single"] .plan-variant-thumb');
+    const langWrap = document.querySelector('[data-card-family="single"] .plan-card-lang-pills');
+    const langThumb = document.querySelector('[data-card-family="single"] .plan-lang-thumb');
+    return {
+      variantTrack: getComputedStyle(sw).backgroundColor,
+      variantThumb: getComputedStyle(th).backgroundColor,
+      variantShadow: getComputedStyle(th).boxShadow,
+      langTrack: getComputedStyle(langWrap).backgroundColor,
+      langThumb: getComputedStyle(langThumb).backgroundColor,
+    };
+  })()`);
+  assert.notEqual(switcherContrastLight.variantTrack, switcherContrastLight.variantThumb, "Variant thumb must contrast cleanly against track");
+  assert.notEqual(switcherContrastLight.langTrack, switcherContrastLight.langThumb, "EN/JA thumb must contrast cleanly against track");
+
+  // Record dedicated normal-speed membership interactions video (switchers, EN/JA, details expand, 3<->4 FLIP)
+  const memFrames = [];
+  const framesMembershipDir = path.join(tmpDir, "frames-membership");
+  fs.mkdirSync(framesMembershipDir, { recursive: true });
+  await cdp.send("Page.stopScreencast", {}, sessionId);
+  activeRecording = { dir: framesMembershipDir, frames: memFrames };
+  await cdp.send("Page.startScreencast", { format: "jpeg", quality: 90, maxWidth: 1440, maxHeight: 900, everyNthFrame: 1 }, sessionId);
+  await new Promise((r) => setTimeout(r, 450));
+
   for (const variant of ["notification_archive_access", "finance_monthly", "trial_single_language"]) {
     await click(`[data-card-family="single"] [data-card-variant="${variant}"]`);
     await waitFor(`document.querySelector('[data-card-family="single"]').dataset.plan === '${variant}'`, 5000, `single switch ${variant}`);
+    await new Promise((r) => setTimeout(r, 450));
     reachablePlans.add(variant);
   }
   await click('[data-card-family="single"] [data-card-lang="japanese"]');
   assert.equal(await evalJs("document.getElementById('trialLanguageSelect').value"), "japanese", "Inline card language pill syncs trialLanguageSelect");
+  await new Promise((r) => setTimeout(r, 400));
   await click('[data-card-family="all"] [data-card-variant="all_access_monthly"]');
   await waitFor("document.querySelector('[data-card-family=\"all\"]').dataset.plan === 'all_access_monthly'", 5000, "all switch monthly");
+  await new Promise((r) => setTimeout(r, 400));
   reachablePlans.add("all_access_monthly");
   await click('[data-card-family="all"] [data-card-variant="all_access_lifetime"]');
-  await click('[data-card-family="all"] .plan-full-details summary');
-  assert.equal(await evalJs("document.querySelector('[data-card-family=\"all\"] .plan-full-details').open"), true, "Full entitlements drawer expands");
-  await click('[data-card-family="all"] .plan-full-details summary');
+  await new Promise((r) => setTimeout(r, 350));
 
-  // Toggle remaining merged Dual Language card cleanly in-place via bottom button (reaches all 8 SKUs)
+  // Expand Full Entitlements inside Card 3 -> verify unified checkmark list (ZERO chips), smooth open, and ZERO blank height stretch on Card 2
+  const toolsHeightBeforeDetails = await evalJs("document.querySelector('[data-card-family=\"tools\"]').getBoundingClientRect().height");
+  await click('[data-card-family="all"] .plan-full-details summary');
+  await waitFor("document.querySelector('[data-card-family=\"all\"] .plan-full-details').open === true", 5000, "Full entitlements drawer opens");
+  await new Promise((r) => setTimeout(r, 400));
+  assert.equal(await evalJs("document.querySelectorAll('.plan-entitlement-chips').length"), 0, "Full entitlements must NEVER use pill chips");
+  assert.ok((await evalJs("document.querySelectorAll('[data-card-family=\"all\"] .plan-full-features-list li svg').length")) >= 2, "Full entitlements must use unified checkmark list");
+  const toolsHeightAfterDetails = await evalJs("document.querySelector('[data-card-family=\"tools\"]').getBoundingClientRect().height");
+  assert.ok(Math.abs(toolsHeightAfterDetails - toolsHeightBeforeDetails) <= 2, `Expanding one card details must not stretch sibling cards (${toolsHeightBeforeDetails} -> ${toolsHeightAfterDetails})`);
+  await shot("desktop-membership-details-open.png");
+
+  // Expand all plans cleanly onto the SAME desktop row: [single | tools | bilingual | all] + preserve active selections & open details
   await click("#membershipShowAllPlansBtn");
-  await waitFor("document.getElementById('membershipPlanStep').dataset.plansScope === 'all' && document.getElementById('membershipExtraPlansRegion').classList.contains('is-expanded')", 10000, "extra plans expanded");
-  reachablePlans.add(await evalJs("document.querySelector('#membershipExtraPlansRegion [data-card-family=\"bilingual\"]').dataset.plan"));
-  const extraCardWidth = await evalJs("document.querySelector('#membershipExtraPlansRegion .plan-card').getBoundingClientRect().width");
-  assert.ok(extraCardWidth <= 355, `Merged Row 2 card must keep clean width <=355px (got ${extraCardWidth})`);
+  await waitFor("document.getElementById('membershipPlanStep').dataset.plansScope === 'all' && document.querySelectorAll('#membershipRecommendedPlanList > .plan-card:not([data-flip-exiting])').length === 4", 10000, "4 cards visible in single grid");
+  await new Promise((r) => setTimeout(r, 550));
+  assert.deepEqual(
+    await evalJs("Array.from(document.querySelectorAll('#membershipRecommendedPlanList > .plan-card:not([data-flip-exiting])')).map(el => el.dataset.cardFamily)"),
+    ["single", "tools", "bilingual", "all"],
+    "4 cards must appear in exact horizontal order: single | tools | bilingual | all",
+  );
+  const all4Box = await measurePlansLayout();
+  assert.equal(all4Box.cardCount, 4, "All plans view must render 4 cards");
+  assert.ok(all4Box.rowTopDelta <= 2, `4 cards must sit on the SAME desktop horizontal row (rowTopDelta=${all4Box.rowTopDelta})`);
+  assert.ok(all4Box.widthDelta <= 2, `4 cards must share equal widths (widthDelta=${all4Box.widthDelta})`);
+  assert.ok(all4Box.buyTopDelta <= 2, `4 card CTA buttons must align horizontally (buyTopDelta=${all4Box.buyTopDelta})`);
+  assert.ok(all4Box.priceTopDelta <= 2, `4 card prices must align horizontally (priceTopDelta=${all4Box.priceTopDelta})`);
+  assert.equal(await evalJs("document.getElementById('trialLanguageSelect').value"), "japanese", "Single card language selection preserved across 3->4 FLIP");
+  assert.equal(await evalJs("document.querySelector('[data-card-family=\"all\"] .plan-full-details').open"), true, "Open details state preserved across 3->4 FLIP");
+  reachablePlans.add(await evalJs("document.querySelector('#membershipRecommendedPlanList [data-card-family=\"bilingual\"]').dataset.plan"));
   await click('[data-card-family="bilingual"] [data-card-variant="japanese_lifetime"]');
   await waitFor("document.querySelector('[data-card-family=\"bilingual\"]').dataset.plan === 'japanese_lifetime'", 5000, "bilingual switch lifetime");
+  await new Promise((r) => setTimeout(r, 500));
   reachablePlans.add("japanese_lifetime");
   assert.equal(reachablePlans.size, 8, `All 8 real SKUs must be reachable across cards (got ${Array.from(reachablePlans).join(',')})`);
   await shot("desktop-membership-all8.png");
+
+  // Dark mode contrast screenshot on 4-card state
+  await evalJs("document.documentElement.dataset.theme = 'dark'; true");
+  await new Promise((r) => setTimeout(r, 250));
+  const darkSwitchContrast = await evalJs(`(() => {
+    const sw = document.querySelector('[data-card-family="single"] .plan-variant-switch');
+    const th = document.querySelector('[data-card-family="single"] .plan-variant-thumb');
+    return { track: getComputedStyle(sw).backgroundColor, thumb: getComputedStyle(th).backgroundColor };
+  })()`);
+  assert.notEqual(darkSwitchContrast.track, darkSwitchContrast.thumb, "Dark mode thumb must contrast clearly against track");
+  await shot("desktop-membership-plans-dark.png");
+  await evalJs("document.documentElement.dataset.theme = 'light'; true");
+  await new Promise((r) => setTimeout(r, 200));
+
+  // Collapse details + collapse 4 -> 3 cards with FLIP
+  await click('[data-card-family="all"] .plan-full-details summary');
+  await waitFor("!document.querySelector('[data-card-family=\"all\"] .plan-full-details').open", 5000, "details smoothly collapsed");
+  await new Promise((r) => setTimeout(r, 350));
   await click("#membershipShowAllPlansBtn");
-  await waitFor("document.getElementById('membershipPlanStep').dataset.plansScope === 'recommended'", 5000, "collapse back to recommended");
+  await waitFor("document.getElementById('membershipPlanStep').dataset.plansScope === 'recommended' && document.querySelectorAll('#membershipRecommendedPlanList > .plan-card:not([data-flip-exiting])').length === 3", 5000, "collapse back to 3 cards");
+  await new Promise((r) => setTimeout(r, 550));
+
+  await cdp.send("Page.stopScreencast", {}, sessionId);
+  const membershipMp4 = path.join(OUT_DIR, "desktop-membership-walkthrough.mp4");
+  encodeFramesToMp4(memFrames, framesMembershipDir, membershipMp4);
+  report.videos.push("desktop-membership-walkthrough.mp4");
+  activeRecording = { dir: framesDesktopDir, frames: desktopFrames };
+  await cdp.send("Page.startScreencast", { format: "jpeg", quality: 85, maxWidth: 1440, maxHeight: 900, everyNthFrame: 1 }, sessionId);
+
+  // Duplicate Black Border Regression Check: buy Card 1 -> go Checkout -> return via #membershipTabPlans -> ONLY All-Access has black emphasis border!
+  await click('[data-card-family="single"] [data-plan-buy]');
+  await waitFor("document.getElementById('membershipModal').dataset.membershipView === 'checkout'", 10000, "checkout from single card");
+  await click("#membershipTabPlans");
+  await waitFor("document.getElementById('membershipModal').dataset.membershipView === 'plans'", 5000, "return via top Plans tab");
+  const borderCheck = await evalJs(`(() => {
+    const res = {};
+    for (const fam of ['single', 'tools', 'all']) {
+      const el = document.querySelector('[data-card-family="' + fam + '"]');
+      const cs = getComputedStyle(el);
+      res[fam] = { selectedClass: el.classList.contains('selected'), border: cs.borderColor, boxShadow: cs.boxShadow };
+    }
+    return res;
+  })()`);
+  assert.equal(borderCheck.single.selectedClass, false, "Single card must not carry stale .selected emphasis class");
+  assert.equal(borderCheck.single.boxShadow, "none", "Single card must not display stale inset black border");
+  assert.notEqual(borderCheck.single.border, borderCheck.all.border, "Single card border must stay lighter than recommended card border");
 
   // State 2: Dedicated Two-Column GPT Checkout + Agreement Gate + QR Error Fixture + Real QR Checkout
   await click('[data-card-family="all"] [data-card-variant="all_access_monthly"]');

@@ -1,8 +1,8 @@
 {
   "preview_url": "https://v63-phase7.thewyj-v63-p6p9-preview.pages.dev",
   "p6_preserved_url": "https://v63-phase6.thewyj-v63-p6p9-preview.pages.dev",
-  "verified_at": "2026-11-28T06:12:02.678Z",
-  "release_detected": "20261128-aeris-p7-account-v3",
+  "verified_at": "2026-11-28T07:40:23.012Z",
+  "release_detected": "20261128-aeris-p7-account-v4",
   "accounts": {
     "free": {
       "username": "v63p1_free",
@@ -14,7 +14,18 @@
         "buyTopDelta": 0,
         "priceTopDelta": 0,
         "allDefault": "all_access_lifetime",
-        "badgeCount": 1
+        "badgeCount": 1,
+        "singleShadow": "none",
+        "singleSelected": false
+      },
+      "all4": {
+        "order": [
+          "single",
+          "tools",
+          "bilingual",
+          "all"
+        ],
+        "rowTopDelta": 0
       },
       "orders_preserved": true
     },
@@ -29,7 +40,7 @@
       "admin_nav_visible": true
     },
     "temp_checkout_user": {
-      "username": "p7tmpx00jqt9",
+      "username": "p7tmpx03p7qq",
       "agreement_blocked": true,
       "checkout_order_created": true,
       "qr_state": "error",

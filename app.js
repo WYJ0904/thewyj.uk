@@ -1,4 +1,4 @@
-import { createSecurityCenter } from './js/account/security-center.js?release=20261128-aeris-p7-account-v3';
+import { createSecurityCenter } from './js/account/security-center.js?release=20261128-aeris-p7-account-v4';
 let task27Ui = null;
 import {
   AI_TIMEOUT_MS,
@@ -11,27 +11,27 @@ import {
   BUSINESS_TIME_ZONE,
   STATUS_RETRY_BASE_DELAYS_MS,
   STATUS_TIMEOUT_MS,
-} from "./js/core/config.js?release=20261128-aeris-p7-account-v3";
-import { reconcileKeyedRows } from "./js/core/keyed-list.js?release=20261128-aeris-p7-account-v3";
+} from "./js/core/config.js?release=20261128-aeris-p7-account-v4";
+import { reconcileKeyedRows } from "./js/core/keyed-list.js?release=20261128-aeris-p7-account-v4";
 import {
   capabilityProblems,
   detectCapabilities,
   randomId,
-} from "./js/core/capabilities.js?release=20261128-aeris-p7-account-v3";
+} from "./js/core/capabilities.js?release=20261128-aeris-p7-account-v4";
 import {
   createApiClient,
   fetchWithTimeout,
   isCanonicalSessionFailure,
   retryDelayWithJitter,
   waitForDelay,
-} from "./js/core/api.js?release=20261128-aeris-p7-account-v3";
+} from "./js/core/api.js?release=20261128-aeris-p7-account-v4";
 import {
   createChangelogSelection,
   loadCloudChangelog,
   mergeChangelogEntries,
   staticChangelogEntries,
-} from "./js/core/changelog.js?release=20261128-aeris-p7-account-v3";
-import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation, nativeAppRoute } from "./js/core/router.js?release=20261128-aeris-p7-account-v3";
+} from "./js/core/changelog.js?release=20261128-aeris-p7-account-v4";
+import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation, nativeAppRoute } from "./js/core/router.js?release=20261128-aeris-p7-account-v4";
 import {
   ACCOUNT_CACHE_KEY,
   NATIVE_ACCOUNT_SESSION,
@@ -44,33 +44,33 @@ import {
   requestNativeSessionRefresh,
   restoreAccountSession,
   subscribeAccountSessionChanges,
-} from "./js/core/session.js?release=20261128-aeris-p7-account-v3";
-import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?release=20261128-aeris-p7-account-v3";
-import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?release=20261128-aeris-p7-account-v3";
-import { initDesignSystem, setExperienceMode, setInterfaceEnhancementsEnabled, dialogFocusTargets, focusDialog, workspaceRouteMeta, syncWorkspaceShell, syncSidebarActiveIndicator, syncSystemNoticeLayout, closeAccountPopover, closeActiveSelectPopover } from "./js/core/design-system.js?release=20261128-aeris-p7-account-v3";
-import { createPublicUiPolicyController } from "./js/core/public-ui-policy.js?release=20261128-aeris-p7-account-v3";
-import { completeStartupSplash, canPresentWorkspace, waitForPresentation } from "./js/core/startup.js?release=20261128-aeris-p7-account-v3";
-import { installMotionSystem, motionDuration, prefersReducedMotion, attachSheetAdapter, syncModalScrollLock, setControlFeedbackState, getSharedToastManager, showToast, dismissToastByKey, invalidateToastContext, animateRouteViewEntrance, createAssetPrefetcher } from "./js/core/motion.js?release=20261128-aeris-p7-account-v3";
-import { initPublicExperience, renderPublicPlanCatalog } from "./js/core/public-experience.js?release=20261128-aeris-p7-account-v3";
-import { createAndroidDownloadController } from "./js/core/download.js?release=20261128-aeris-p7-account-v3";
-import { createFeatureController } from "./js/core/feature-flags.js?release=20261128-aeris-p7-account-v3";
-import { createFeatureConsole } from "./js/core/feature-console.js?release=20261128-aeris-p7-account-v3";
-import { createMasteryController } from "./js/language/mastery.js?release=20261128-aeris-p7-account-v3";
-import { createWrongReviewController } from './js/language/wrong-review-sync.js?release=20261128-aeris-p7-account-v3';
-import { wrongEntryWord, wrongEntryKey, findWrongEntry } from './js/language/wrong-book.js?release=20261128-aeris-p7-account-v3';
-import { orderWrongReview, wrongReviewView, mergeWrongReview, wrongReviewDigest, wrongReviewSource, reviewDictationOptions } from './js/language/wrong-review.js?release=20261128-aeris-p7-account-v3';
-import { clearMasteryJournalAccount } from "./js/language/mastery-journal.js?release=20261128-aeris-p7-account-v3";
-import { masteryStorageKey, parseIssuedQuestion } from "./js/language/mastery-state.js?release=20261128-aeris-p7-account-v3";
-import { speakText, stopSpeech } from "./js/language/speech.js?release=20261128-aeris-p7-account-v3";
+} from "./js/core/session.js?release=20261128-aeris-p7-account-v4";
+import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?release=20261128-aeris-p7-account-v4";
+import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?release=20261128-aeris-p7-account-v4";
+import { initDesignSystem, setExperienceMode, setInterfaceEnhancementsEnabled, dialogFocusTargets, focusDialog, workspaceRouteMeta, syncWorkspaceShell, syncSidebarActiveIndicator, syncSystemNoticeLayout, closeAccountPopover, closeActiveSelectPopover } from "./js/core/design-system.js?release=20261128-aeris-p7-account-v4";
+import { createPublicUiPolicyController } from "./js/core/public-ui-policy.js?release=20261128-aeris-p7-account-v4";
+import { completeStartupSplash, canPresentWorkspace, waitForPresentation } from "./js/core/startup.js?release=20261128-aeris-p7-account-v4";
+import { installMotionSystem, motionDuration, prefersReducedMotion, attachSheetAdapter, syncModalScrollLock, setControlFeedbackState, getSharedToastManager, showToast, dismissToastByKey, invalidateToastContext, animateRouteViewEntrance, createAssetPrefetcher, captureFlipSnapshot, playFlipSnapshot } from "./js/core/motion.js?release=20261128-aeris-p7-account-v4";
+import { initPublicExperience, renderPublicPlanCatalog } from "./js/core/public-experience.js?release=20261128-aeris-p7-account-v4";
+import { createAndroidDownloadController } from "./js/core/download.js?release=20261128-aeris-p7-account-v4";
+import { createFeatureController } from "./js/core/feature-flags.js?release=20261128-aeris-p7-account-v4";
+import { createFeatureConsole } from "./js/core/feature-console.js?release=20261128-aeris-p7-account-v4";
+import { createMasteryController } from "./js/language/mastery.js?release=20261128-aeris-p7-account-v4";
+import { createWrongReviewController } from './js/language/wrong-review-sync.js?release=20261128-aeris-p7-account-v4';
+import { wrongEntryWord, wrongEntryKey, findWrongEntry } from './js/language/wrong-book.js?release=20261128-aeris-p7-account-v4';
+import { orderWrongReview, wrongReviewView, mergeWrongReview, wrongReviewDigest, wrongReviewSource, reviewDictationOptions } from './js/language/wrong-review.js?release=20261128-aeris-p7-account-v4';
+import { clearMasteryJournalAccount } from "./js/language/mastery-journal.js?release=20261128-aeris-p7-account-v4";
+import { masteryStorageKey, parseIssuedQuestion } from "./js/language/mastery-state.js?release=20261128-aeris-p7-account-v4";
+import { speakText, stopSpeech } from "./js/language/speech.js?release=20261128-aeris-p7-account-v4";
 import {
   loadSpeechRate,
   saveSpeechRate,
-} from "./js/language/speech-rate.js?release=20261128-aeris-p7-account-v3";
-import { formatFinanceMoney } from "./js/finance/format.js?release=20261128-aeris-p7-account-v3";
-import { createLazyController, installLazyTools, createRetryableImport } from "./js/core/lazy-controller.js?release=20261128-aeris-p7-account-v3";
-import { createDashboardView } from "./js/core/dashboard.js?release=20261128-aeris-p7-account-v3";
-import { TOOLS, CATEGORY_DEFINITIONS, searchTools } from "./js/tools/catalog.js?release=20261128-aeris-p7-account-v3";
-import { homeWidgetStorageKey } from "./js/core/home-widget-layout.js?release=20261128-aeris-p7-account-v3";
+} from "./js/language/speech-rate.js?release=20261128-aeris-p7-account-v4";
+import { formatFinanceMoney } from "./js/finance/format.js?release=20261128-aeris-p7-account-v4";
+import { createLazyController, installLazyTools, createRetryableImport } from "./js/core/lazy-controller.js?release=20261128-aeris-p7-account-v4";
+import { createDashboardView } from "./js/core/dashboard.js?release=20261128-aeris-p7-account-v4";
+import { TOOLS, CATEGORY_DEFINITIONS, searchTools } from "./js/tools/catalog.js?release=20261128-aeris-p7-account-v4";
+import { homeWidgetStorageKey } from "./js/core/home-widget-layout.js?release=20261128-aeris-p7-account-v4";
 import {
   INTERACTION_STAGES,
   beginInteraction,
@@ -78,15 +78,15 @@ import {
   interactionTraceApi,
   withInteractionFeedback,
   withInteractionFeedbackQuiet,
-} from "./js/core/perf.js?release=20261128-aeris-p7-account-v3";
-import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?release=20261128-aeris-p7-account-v3";
+} from "./js/core/perf.js?release=20261128-aeris-p7-account-v4";
+import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?release=20261128-aeris-p7-account-v4";
 import {
   calculateStudyStreak,
   formatDuration,
   localDayKey,
   sanitizeStudyRecords,
   studyDaySeries,
-} from "./js/language/history.js?release=20261128-aeris-p7-account-v3";
+} from "./js/language/history.js?release=20261128-aeris-p7-account-v4";
 import {
   DEFAULT_PROFILE,
   LANGUAGE_LABELS,
@@ -123,16 +123,16 @@ import {
   trimRubricCache,
   wordIdentity,
   wordMatchesLanguage,
-} from "./js/language/quiz.js?release=20261128-aeris-p7-account-v3";
-import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?release=20261128-aeris-p7-account-v3";
-import { createWrongBookPdf } from "./js/language/pdf.js?release=20261128-aeris-p7-account-v3";
+} from "./js/language/quiz.js?release=20261128-aeris-p7-account-v4";
+import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?release=20261128-aeris-p7-account-v4";
+import { createWrongBookPdf } from "./js/language/pdf.js?release=20261128-aeris-p7-account-v4";
 import {
   filterWrongBookByLanguage as filterWrongBookByLanguageModel,
   mergeWrongBooks,
   removeLanguageFromWrongBook as removeLanguageFromWrongBookModel,
   sanitizeWrongBook,
   updateWrongEntry as updateWrongEntryModel,
-} from "./js/language/wrong-book.js?release=20261128-aeris-p7-account-v3";
+} from "./js/language/wrong-book.js?release=20261128-aeris-p7-account-v4";
 import {
   accountEntitlements as accountEntitlementsModel,
   accountMembershipSummary as accountMembershipSummaryModel,
@@ -141,7 +141,7 @@ import {
   isAdmin as isAdminModel,
   isSuperAdmin as isSuperAdminModel,
   membershipLabel,
-} from "./js/membership/account.js?release=20261128-aeris-p7-account-v3";
+} from "./js/membership/account.js?release=20261128-aeris-p7-account-v4";
 import {
   MEMBERSHIP_GOALS,
   MEMBERSHIP_PLAN_ORDER,
@@ -149,20 +149,20 @@ import {
   membershipGoalForPlan,
   normalizedMembershipGoal,
   planDetails as planDetailsModel,
-} from "./js/membership/plans.js?release=20261128-aeris-p7-account-v3";
+} from "./js/membership/plans.js?release=20261128-aeris-p7-account-v4";
 import {
   DEFAULT_PAYMENT_METHODS,
   normalizedPaymentMethod as normalizedPaymentMethodModel,
   paymentMethodLabel as paymentMethodLabelModel,
   paymentStatusLabel,
   rechargeStatusLabel,
-} from "./js/membership/recharge.js?release=20261128-aeris-p7-account-v3";
+} from "./js/membership/recharge.js?release=20261128-aeris-p7-account-v4";
 import {
   createAdminEmailCenter,
   loginLocationLabel,
   loginReasonLabel,
   membershipDateValue as membershipDateValueModel,
-} from "./js/admin/formatters.js?release=20261128-aeris-p7-account-v3";
+} from "./js/admin/formatters.js?release=20261128-aeris-p7-account-v4";
 
 const localStorage = getSafeStorage("localStorage");
 const sessionStorage = getSafeStorage("sessionStorage");
@@ -295,6 +295,17 @@ const MEMBERSHIP_CARD_FAMILIES = Object.freeze([
     variants: [],
   },
   {
+    id: "bilingual",
+    section: "extra",
+    title: "双语言套餐",
+    subtitle: "同时开通英语与日语完整测验",
+    defaultPlan: "dual_language_monthly",
+    variants: [
+      { label: "包月", planCode: "dual_language_monthly" },
+      { label: "永久", planCode: "japanese_lifetime" },
+    ],
+  },
+  {
     id: "all",
     section: "recommended",
     title: "全功能套餐",
@@ -306,24 +317,14 @@ const MEMBERSHIP_CARD_FAMILIES = Object.freeze([
       { label: "永久", planCode: "all_access_lifetime" },
     ],
   },
-  {
-    id: "bilingual",
-    section: "extra",
-    title: "双语言套餐",
-    subtitle: "同时开通英语与日语完整测验",
-    defaultPlan: "dual_language_monthly",
-    variants: [
-      { label: "包月", planCode: "dual_language_monthly" },
-      { label: "永久", planCode: "japanese_lifetime" },
-    ],
-  },
 ]);
 const membershipCardSelections = {
   single: "trial_single_language",
   tools: "tools_monthly",
-  all: "all_access_lifetime",
   bilingual: "dual_language_monthly",
+  all: "all_access_lifetime",
 };
+const expandedCardDetailsFamilies = new Set();
 let membershipViewState = MEMBERSHIP_VIEWS.PLANS;
 let membershipOrderHistory = [];
 let membershipOrderHistoryLoaded = false;
@@ -2425,8 +2426,52 @@ function planConciseFeaturesFor(item) {
 
 function planFullEntitlementsFor(item) {
   if (!item) return [];
-  const entitlements = Array.isArray(item.entitlements) ? item.entitlements : [];
-  return entitlements.map((code) => entitlementLabel(code));
+  const curatedFullMap = {
+    trial_single_language: [
+      "可在英语或日语中任选 1 门语言使用词表练习、测验、错题本与同步",
+      "所选体验语言有效期 1 个月，不含另一门语言",
+      "不包含在线工具箱、个人财务账本与 Android 通知保存",
+    ],
+    notification_archive_access: [
+      "解锁 Android 客户端本机通知历史归档、来源筛选与本地检索",
+      "有效期 1 个月，所有记录保存在本机授权范围内",
+      "仅限 Android 端使用，Web 端不采集或解锁通知保存，不含语言或财务",
+    ],
+    finance_monthly: [
+      "Web 与 Android 共享个人财务记账、分类统计与对账视图",
+      "支持预算管理与加密备份导出，有效期 1 个月",
+      "不包含语言学习、在线工具箱与 Android 通知保存",
+    ],
+    tools_monthly: [
+      "解锁全部 104 款在线实用工具与 12 套自动化批处理工作流",
+      "支持临时文件分享、文本互传与常用工具参数预设",
+      "有效期 1 个月，Web 全端可用；不含语言学习、财务账本与通知保存",
+    ],
+    dual_language_monthly: [
+      "同时解锁英语与日语完整学习、词表导入导出及听写测验",
+      "包含错题巩固、智能判定复习与多端学习进度云端同步",
+      "有效期 1 个月，不含在线工具箱、个人财务账本与 Android 通知保存",
+    ],
+    japanese_lifetime: [
+      "一次购买，永久解锁英语与日语双语言完整学习、测验与错题同步",
+      "永久权益不设到期时间，无到期续费提醒",
+      "不包含在线工具箱、个人财务账本与 Android 通知保存",
+    ],
+    all_access_monthly: [
+      "同时解锁英语/日语双语言学习、104 款在线工具箱及自动化工作流",
+      "包含 Web 与 Android 个人财务账本及临时文件传输服务",
+      "包含 Android 端通知保存功能，全核心模块有效期 1 个月",
+    ],
+    all_access_lifetime: [
+      "一次购买，永久解锁双语言学习、104 款在线工具箱与工作流",
+      "永久包含 Web/Android 个人财务账本、临时文件传输与 Android 通知保存",
+      "后续同源已开放核心模块持续可用，无到期时间或续费提醒",
+    ],
+  };
+  if (curatedFullMap[item.code]) return curatedFullMap[item.code];
+  const entitlements = Array.isArray(item.entitlements) ? item.entitlements.map((code) => entitlementLabel(code)) : [];
+  if (item.description && !entitlements.includes(item.description)) entitlements.push(item.description);
+  return entitlements;
 }
 
 function renderCheckoutVariants() {
@@ -2759,7 +2804,82 @@ function resetRechargeOrderUi() {
   if ($("paymentOrderTimeline")) $("paymentOrderTimeline").innerHTML = "";
 }
 
-function renderCardDynamicBody(card, family, item, activeMemberships) {
+function syncPlanGridSiblingHeight(gridEl, openingBeforeOpen = false) {
+  if (!gridEl) return;
+  const openCount = gridEl.querySelectorAll(":scope > .plan-card:not([data-flip-exiting]) .plan-full-details[open]").length;
+  if (!openingBeforeOpen && openCount === 0) {
+    gridEl.style.removeProperty("--plan-sibling-min-height");
+    return;
+  }
+  if (openingBeforeOpen && openCount > 0) return;
+  gridEl.style.removeProperty("--plan-sibling-min-height");
+  const closedHeights = [...gridEl.querySelectorAll(":scope > .plan-card:not([data-flip-exiting])")]
+    .filter((card) => !card.querySelector(".plan-full-details[open]"))
+    .map((card) => card.getBoundingClientRect().height)
+    .filter((h) => h > 0);
+  const targetHeight = closedHeights.length ? Math.round(Math.max(...closedHeights)) : 0;
+  if (targetHeight > 0) gridEl.style.setProperty("--plan-sibling-min-height", `${targetHeight}px`);
+}
+
+function animatePlanDetailsToggle(detailsEl, shouldOpen) {
+  if (!detailsEl) return;
+  const bodyEl = detailsEl.querySelector(".plan-full-details-body");
+  const gridEl = detailsEl.closest(".plan-grid-recommended");
+  const familyId = detailsEl.dataset.detailsFamily || "";
+  if (familyId) {
+    if (shouldOpen) expandedCardDetailsFamilies.add(familyId);
+    else expandedCardDetailsFamilies.delete(familyId);
+  }
+  if (shouldOpen) syncPlanGridSiblingHeight(gridEl, true);
+  if (!bodyEl || prefersReducedMotion() || typeof bodyEl.animate !== "function") {
+    detailsEl.open = shouldOpen;
+    if (!shouldOpen) syncPlanGridSiblingHeight(gridEl, false);
+    return;
+  }
+  if (detailsEl._aerisAnim) {
+    try { detailsEl._aerisAnim.cancel(); } catch (_) {}
+    detailsEl._aerisAnim = null;
+  }
+  if (shouldOpen) {
+    detailsEl.open = true;
+    const targetHeight = bodyEl.scrollHeight;
+    bodyEl.style.overflow = "clip";
+    const anim = bodyEl.animate(
+      [{ height: "0px", opacity: 0 }, { height: `${targetHeight}px`, opacity: 1 }],
+      { duration: 220, easing: "cubic-bezier(0.2, 0, 0, 1)" },
+    );
+    detailsEl._aerisAnim = anim;
+    const done = () => {
+      if (detailsEl._aerisAnim !== anim) return;
+      detailsEl._aerisAnim = null;
+      bodyEl.style.overflow = "";
+    };
+    anim.finished.then(done, done);
+  } else {
+    const startHeight = bodyEl.offsetHeight;
+    bodyEl.style.overflow = "clip";
+    const anim = bodyEl.animate(
+      [{ height: `${startHeight}px`, opacity: 1 }, { height: "0px", opacity: 0 }],
+      { duration: 180, easing: "cubic-bezier(0.2, 0, 0, 1)" },
+    );
+    detailsEl._aerisAnim = anim;
+    const finishClose = () => {
+      if (detailsEl._aerisAnim !== anim) return;
+      detailsEl._aerisAnim = null;
+      detailsEl.open = false;
+      bodyEl.style.overflow = "";
+      syncPlanGridSiblingHeight(gridEl, false);
+    };
+    const abortClose = () => {
+      if (detailsEl._aerisAnim !== anim) return;
+      detailsEl._aerisAnim = null;
+      bodyEl.style.overflow = "";
+    };
+    anim.finished.then(finishClose, abortClose);
+  }
+}
+
+function renderCardDynamicBody(card, family, item, activeMemberships, options = {}) {
   if (!card || !family || !item) return;
   const PLAN_OWNERSHIP_ALIASES = {
     dual_language_lifetime: "japanese_lifetime",
@@ -2788,12 +2908,13 @@ function renderCardDynamicBody(card, family, item, activeMemberships) {
   const features = planConciseFeaturesFor(item);
   const fullEntitlements = planFullEntitlementsFor(item);
   const selectedLang = $("trialLanguageSelect")?.value === "japanese" ? "japanese" : "english";
+  const detailsWasOpen = expandedCardDetailsFamilies.has(family.id);
 
   card.dataset.plan = item.code;
   card.dataset.planCard = item.code;
   card.dataset.owned = owned ? "true" : "false";
   card.classList.toggle("is-owned", owned);
-  card.classList.toggle("selected", item.code === selectedRechargePlan);
+  card.classList.remove("selected");
 
   const badgeSlot = card.querySelector("[data-plan-badges]");
   if (badgeSlot) {
@@ -2810,7 +2931,8 @@ function renderCardDynamicBody(card, family, item, activeMemberships) {
   const langPickerHtml = item.code === "trial_single_language"
     ? `<div class="plan-card-lang-row" role="group" aria-label="选择体验语言">
         <span class="plan-card-lang-label">体验语言</span>
-        <div class="plan-card-lang-pills">
+        <div class="plan-card-lang-pills" data-lang-index="${selectedLang === "japanese" ? "1" : "0"}">
+          <span class="plan-lang-thumb" aria-hidden="true"></span>
           <button type="button" class="plan-lang-chip ${selectedLang === "english" ? "active" : ""}" data-card-lang="english" aria-pressed="${selectedLang === "english"}">英语</button>
           <button type="button" class="plan-lang-chip ${selectedLang === "japanese" ? "active" : ""}" data-card-lang="japanese" aria-pressed="${selectedLang === "japanese"}">日语</button>
         </div>
@@ -2826,18 +2948,32 @@ function renderCardDynamicBody(card, family, item, activeMemberships) {
     <div class="plan-features-block">
       ${langPickerHtml}
       <ul class="plan-features-list">${features.map((label) => `<li>${checkSvg}<span>${escapeHtml(label)}</span></li>`).join("")}</ul>
-      <details class="plan-full-details">
+      <details class="plan-full-details" data-details-family="${escapeHtml(family.id)}" ${detailsWasOpen ? "open" : ""}>
         <summary><span>查看完整权益</span>${chevronSvg}</summary>
         <div class="plan-full-details-body">
-          ${fullEntitlements.length ? `<div class="plan-entitlement-chips">${fullEntitlements.map((label) => `<span>${escapeHtml(label)}</span>`).join("")}</div>` : ""}
-          <p class="plan-card-footnote">${escapeHtml(item.description || "")}</p>
+          ${fullEntitlements.length ? `<ul class="plan-features-list plan-full-features-list">${fullEntitlements.map((label) => `<li>${checkSvg}<span>${escapeHtml(label)}</span></li>`).join("")}</ul>` : ""}
         </div>
       </details>
     </div>`;
 
-  bodyEl.classList.remove("is-updating");
-  void bodyEl.offsetWidth;
-  bodyEl.classList.add("is-updating");
+  if (options.animateSwap) {
+    bodyEl.classList.remove("is-updating");
+    void bodyEl.offsetWidth;
+    bodyEl.classList.add("is-updating");
+  }
+
+  const detailsEl = bodyEl.querySelector(".plan-full-details");
+  const summaryEl = detailsEl?.querySelector("summary");
+  if (summaryEl && detailsEl) {
+    summaryEl.addEventListener("click", (event) => {
+      event.preventDefault();
+      animatePlanDetailsToggle(detailsEl, !detailsEl.open);
+    });
+    detailsEl.addEventListener("toggle", () => {
+      if (detailsEl.open) expandedCardDetailsFamilies.add(family.id);
+      else expandedCardDetailsFamilies.delete(family.id);
+    });
+  }
 
   bodyEl.querySelectorAll("[data-plan-buy]").forEach((btn) => {
     btn.addEventListener("click", (event) => {
@@ -2850,6 +2986,8 @@ function renderCardDynamicBody(card, family, item, activeMemberships) {
       event.stopPropagation();
       const lang = btn.dataset.cardLang === "japanese" ? "japanese" : "english";
       if ($("trialLanguageSelect")) $("trialLanguageSelect").value = lang;
+      const pillsEl = bodyEl.querySelector(".plan-card-lang-pills");
+      if (pillsEl) pillsEl.dataset.langIndex = lang === "japanese" ? "1" : "0";
       bodyEl.querySelectorAll("[data-card-lang]").forEach((chip) => {
         const active = chip.dataset.cardLang === lang;
         chip.classList.toggle("active", active);
@@ -2867,10 +3005,12 @@ function buildMembershipFamilyCard(family, plansByCode, activeMemberships) {
     || (availableVariants[0] && plansByCode.get(availableVariants[0].planCode))
     || null;
   if (!item) return null;
+  membershipCardSelections[family.id] = item.code;
   const activeIdx = Math.max(0, availableVariants.findIndex((v) => v.planCode === item.code));
   const article = document.createElement("article");
   article.className = `plan-option plan-card${family.recommended ? " is-featured" : ""}`;
   article.dataset.cardFamily = family.id;
+  article.dataset.flipKey = family.id;
 
   const switcherHtml = availableVariants.length > 1
     ? `<div class="plan-variant-switch" role="group" aria-label="${escapeHtml(family.title)}套餐切换" data-variant-count="${availableVariants.length}" data-variant-index="${activeIdx}">
@@ -2904,7 +3044,7 @@ function buildMembershipFamilyCard(family, plansByCode, activeMemberships) {
         candidate.classList.toggle("active", active);
         candidate.setAttribute("aria-pressed", String(active));
       });
-      renderCardDynamicBody(article, family, nextPlan, activeMemberships);
+      renderCardDynamicBody(article, family, nextPlan, activeMemberships, { animateSwap: true });
     });
   });
 
@@ -2916,42 +3056,100 @@ function buildMembershipFamilyCard(family, plansByCode, activeMemberships) {
   return article;
 }
 
-function renderMembershipPlans() {
-  const recommendedList = $("membershipRecommendedPlanList");
-  const extraList = $("membershipExtraPlanList");
-  const extraRegion = $("membershipExtraPlansRegion");
+function renderMembershipPlans(options = {}) {
+  const gridEl = $("membershipRecommendedPlanList");
   const stepSection = $("membershipPlanStep");
   const showingAll = Boolean(showAllMembershipPlans);
+  const previousScope = stepSection?.dataset.plansScope || "recommended";
 
   stepSection?.classList.remove("hidden");
-  if (stepSection) stepSection.dataset.plansScope = showingAll ? "all" : "recommended";
-  if (extraRegion) {
-    extraRegion.classList.toggle("is-expanded", showingAll);
-    extraRegion.setAttribute("aria-hidden", String(!showingAll));
-  }
   const showAllBtn = $("membershipShowAllPlansBtn");
   if (showAllBtn) {
     showAllBtn.setAttribute("aria-expanded", String(showingAll));
     showAllBtn.textContent = showingAll ? "收起部分套餐" : "查看所有套餐";
   }
 
-  if (recommendedList && extraList) {
+  if (gridEl) {
     if (membershipPlans.length) {
+      gridEl.querySelectorAll("[data-flip-exiting]").forEach((node) => node.remove());
+      const animateLayout = Boolean(options.animateLayout && previousScope !== (showingAll ? "all" : "recommended") && gridEl.querySelector(":scope > .plan-card"));
+      const beforeSnapshot = animateLayout
+        ? captureFlipSnapshot(gridEl, { selector: ":scope > .plan-card:not([data-flip-exiting])", getKey: (el) => el.dataset.flipKey || el.dataset.cardFamily })
+        : null;
+      const gridRect = animateLayout ? gridEl.getBoundingClientRect() : null;
+      const existingByFamily = new Map(
+        [...gridEl.querySelectorAll(":scope > .plan-card:not([data-flip-exiting])")].map((el) => [el.dataset.cardFamily, el])
+      );
       const plansByCode = new Map(membershipPlans.map((item) => [item.code, item]));
       const activeMemberships = Array.isArray(state.account?.memberships) ? state.account.memberships : [];
-      recommendedList.innerHTML = "";
-      extraList.innerHTML = "";
-      for (const family of MEMBERSHIP_CARD_FAMILIES) {
-        const card = buildMembershipFamilyCard(family, plansByCode, activeMemberships);
-        if (!card) continue;
-        if (family.section === "extra") extraList.append(card);
-        else recommendedList.append(card);
+      const visibleFamilies = MEMBERSHIP_CARD_FAMILIES.filter((family) => showingAll || family.section !== "extra");
+
+      // If collapsing back from 4 -> 3 cards, detach exiting bilingual card cleanly at its current rect for smooth fade
+      let exitingCard = null;
+      if (animateLayout && !showingAll && existingByFamily.has("bilingual") && beforeSnapshot?.has("bilingual") && gridRect) {
+        exitingCard = existingByFamily.get("bilingual");
+        const first = beforeSnapshot.get("bilingual").rect;
+        exitingCard.dataset.flipExiting = "true";
+        exitingCard.setAttribute("aria-hidden", "true");
+        exitingCard.style.position = "absolute";
+        exitingCard.style.left = `${(first.left - gridRect.left).toFixed(2)}px`;
+        exitingCard.style.top = `${(first.top - gridRect.top).toFixed(2)}px`;
+        exitingCard.style.width = `${first.width.toFixed(2)}px`;
+        exitingCard.style.height = `${first.height.toFixed(2)}px`;
+        exitingCard.style.pointerEvents = "none";
+        exitingCard.style.zIndex = "0";
+      }
+
+      if (stepSection) stepSection.dataset.plansScope = showingAll ? "all" : "recommended";
+
+      // Remove loading notice, non-visible cards, and any prior nodes on non-FLIP re-renders
+      const keptNodes = new Set();
+      if (animateLayout) {
+        if (exitingCard) keptNodes.add(exitingCard);
+        for (const family of visibleFamilies) {
+          const existing = existingByFamily.get(family.id);
+          if (existing) keptNodes.add(existing);
+        }
+      }
+      [...gridEl.children].forEach((child) => {
+        if (!keptNodes.has(child)) child.remove();
+      });
+
+      for (const family of visibleFamilies) {
+        const reused = animateLayout ? existingByFamily.get(family.id) : null;
+        if (reused) {
+          gridEl.append(reused);
+        } else {
+          const card = buildMembershipFamilyCard(family, plansByCode, activeMemberships);
+          if (card) gridEl.append(card);
+        }
+      }
+      syncPlanGridSiblingHeight(gridEl, false);
+
+      if (animateLayout && beforeSnapshot) {
+        if (exitingCard && typeof exitingCard.animate === "function" && !prefersReducedMotion()) {
+          const exitAnim = exitingCard.animate(
+            [{ opacity: 1, transform: "scale(1)" }, { opacity: 0, transform: "scale(0.95)" }],
+            { duration: 200, easing: "cubic-bezier(0.2, 0, 0, 1)", fill: "forwards" },
+          );
+          exitAnim.finished.then(() => exitingCard.remove(), () => exitingCard.remove());
+        } else if (exitingCard) {
+          exitingCard.remove();
+        }
+        playFlipSnapshot(gridEl, beforeSnapshot, {
+          selector: ":scope > .plan-card:not([data-flip-exiting])",
+          getKey: (el) => el.dataset.flipKey || el.dataset.cardFamily,
+          duration: 360,
+          scale: true,
+          animateEnter: true,
+        });
       }
       $("membershipPlanRecovery")?.classList.add("hidden");
     } else if (!membershipPlansPromise) {
-      recommendedList.innerHTML = "";
-      extraList.innerHTML = "";
+      gridEl.innerHTML = "";
     }
+  } else if (stepSection) {
+    stepSection.dataset.plansScope = showingAll ? "all" : "recommended";
   }
 
   const singleLanguage = selectedRechargePlan === "trial_single_language";
@@ -2994,7 +3192,6 @@ function selectMembershipGoal(goal, options = {}) {
 function showMembershipPlanRecovery(message) {
   if (!membershipPlans.length) {
     if ($("membershipRecommendedPlanList")) $("membershipRecommendedPlanList").innerHTML = "";
-    if ($("membershipExtraPlanList")) $("membershipExtraPlanList").innerHTML = "";
   }
   $("membershipPlanError").textContent = message || "会员方案暂时无法加载。";
   $("membershipPlanRecovery").classList.remove("hidden");
@@ -3135,6 +3332,7 @@ async function loadMembershipWorkspace(options = {}) {
   selectedRechargePlan = "";
   selectedPaymentMethod = "";
   showAllMembershipPlans = false;
+  expandedCardDetailsFamilies.clear();
   if ($("paymentAgreementCheckbox")) $("paymentAgreementCheckbox").checked = false;
   selectedMembershipGoal = normalizedMembershipGoal(options.goal);
   if (selectedMembershipGoal === "finance") membershipCardSelections.single = "finance_monthly";
@@ -3252,13 +3450,14 @@ function renderPaymentOrder(record, options = {}) {
     return;
   }
   currentPaymentOrder = record;
+  const preserveBrowseView = Boolean(options.preserveView && membershipViewState === MEMBERSHIP_VIEWS.PLANS);
   const orderFamily = planCardFamilyForCode(record.plan_code);
-  if (orderFamily) membershipCardSelections[orderFamily.id] = record.plan_code;
+  if (orderFamily && !preserveBrowseView) membershipCardSelections[orderFamily.id] = record.plan_code;
   selectedMembershipGoal = membershipGoalForPlan(record.plan_code, record.trial_language);
   selectedRechargePlan = record.plan_code;
   selectedPaymentMethod = orderPaymentMethod;
   renderMembershipGoals();
-  renderMembershipPlans();
+  if (!preserveBrowseView) renderMembershipPlans();
   const isActiveOrder = ["pending_payment", "user_paid", "processing"].includes(record.status);
   setPaymentControlsLocked(isActiveOrder);
   const plan = membershipPlans.find((item) => item.code === record.plan_code);
@@ -3268,7 +3467,7 @@ function renderPaymentOrder(record, options = {}) {
   $("paymentLanguageTerm").classList.toggle("hidden", !languageLabel);
   $("paymentLanguage").classList.toggle("hidden", !languageLabel);
   $("paymentLanguage").textContent = languageLabel || "-";
-  if (languageLabel) $("trialLanguageSelect").value = record.trial_language;
+  if (languageLabel && !preserveBrowseView) $("trialLanguageSelect").value = record.trial_language;
   $("paymentMethod").textContent = paymentMethodLabel(orderPaymentMethod);
   $("paymentAmount").textContent = `${(Number(record.amount_cents || 0) / 100).toFixed(2)} ${record.currency || "CNY"}`;
   $("paymentOrderNumber").textContent = record.order_number || "-";
@@ -6436,14 +6635,14 @@ async function apiGet(path,options={}) {
 }
 
 installLazyTools({
-  loadTools: createRetryableImport(new URL("./tools.js?release=20261128-aeris-p7-account-v3", import.meta.url)),
-  loadWorkflows: createRetryableImport(new URL("./workflows.js?release=20261128-aeris-p7-account-v3", import.meta.url)),
+  loadTools: createRetryableImport(new URL("./tools.js?release=20261128-aeris-p7-account-v4", import.meta.url)),
+  loadWorkflows: createRetryableImport(new URL("./workflows.js?release=20261128-aeris-p7-account-v4", import.meta.url)),
   onReady: () => renderDashboard(),
 });
 
-const loadFinanceModule = createRetryableImport(new URL("./js/finance/app.js?release=20261128-aeris-p7-account-v3", import.meta.url));
-const loadCandidateModule = createRetryableImport(new URL("./js/finance/candidates.js?release=20261128-aeris-p7-account-v3", import.meta.url));
-const loadTransferModule = createRetryableImport(new URL("./js/transfer/app.js?release=20261128-aeris-p7-account-v3", import.meta.url));
+const loadFinanceModule = createRetryableImport(new URL("./js/finance/app.js?release=20261128-aeris-p7-account-v4", import.meta.url));
+const loadCandidateModule = createRetryableImport(new URL("./js/finance/candidates.js?release=20261128-aeris-p7-account-v4", import.meta.url));
+const loadTransferModule = createRetryableImport(new URL("./js/transfer/app.js?release=20261128-aeris-p7-account-v4", import.meta.url));
 
 financeController = createLazyController({
   methods: ["syncNow", "verifyTransaction", "render", "setSubView"],
@@ -8742,7 +8941,7 @@ function showAuthTransition(message = "正在验证身份与权限…") {
     overlay.setAttribute("aria-label", message);
     overlay.setAttribute("aria-hidden", "false");
     overlay.innerHTML = '<div class="entry-content">' +
-      '<img class="entry-logo" src="/icon-192.png?release=20261128-aeris-p7-account-v3" width="76" height="76" alt="" />' +
+      '<img class="entry-logo" src="/icon-192.png?release=20261128-aeris-p7-account-v4" width="76" height="76" alt="" />' +
       '<strong>Aeris</strong>' +
       '<span class="entry-progress" aria-hidden="true"></span>' +
       '</div>';
@@ -9629,7 +9828,7 @@ async function boot() {
   });
   $("membershipShowAllPlansBtn")?.addEventListener("click", () => {
     showAllMembershipPlans = !showAllMembershipPlans;
-    renderMembershipPlans();
+    renderMembershipPlans({ animateLayout: true });
   });
   $("membershipBackToPlansBtn")?.addEventListener("click", () => selectRechargePlan(""));
   $("reviewBackToPlansBtn")?.addEventListener("click", () => setMembershipView(MEMBERSHIP_VIEWS.PLANS));

@@ -14,7 +14,7 @@
 - **Applied Recommendations**:
   - Preserved native password manager compatibility (`autocomplete="username"`, `current-password`, `new-password`, explicit `<label for>` + `name`), live password confirmation feedback (`#registerConfirmHint` `aria-live="polite"`), and real button loading states (`aria-busy="true"`) without clearing `#usernameInput` on failure.
   - Full WAI-ARIA `tablist` / `tab` / `tabpanel` semantics with `ArrowLeft` / `ArrowRight` / `Home` / `End` keyboard navigation across `#accountSubnav` and `.auth-tabs`.
-  - Refactored Membership & Recharge after the ChatGPT Pro & Checkout screen recording study into 3 crisp horizontal comparison cards (`repeat(3, minmax(0, 1fr))` on desktop) with CSP-safe sliding `data-variant-count`/`data-variant-index` switchers, smooth in-place Row 2 reveal (`查看所有套餐`), two-column isolated GPT Checkout with explicit payment-agreement checkbox gating, and calm Order Management.
+  - Refactored Membership & Recharge after the ChatGPT Pro & Checkout screen recording study into 3 crisp horizontal comparison cards (`repeat(3, minmax(0, 1fr))` on desktop) that expand smoothly via FLIP (`js/core/motion.js`) onto the same 4-column desktop row (`[single, tools, bilingual, all]`), with high-contrast light/dark GPT Pro sliding switchers, inline sliding EN/JA language pills, unified checkmark `<details class="plan-full-details">` drawers with sibling-height preservation, two-column isolated GPT Checkout with explicit payment-agreement checkbox gating, and calm Order Management.
 
 ## 3. design-taste-frontend
 - **Script Executed**: `node <skills-root>/design-taste-frontend/scripts/copy-lint.mjs index.html app.js js/membership/plans.js js/membership/recharge.js js/membership/account.js`
