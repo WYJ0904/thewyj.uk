@@ -90,14 +90,17 @@ export async function onRequest(context) {
   const pathname = url.pathname;
   const requestedContext = context.request.headers.get(WEB_SESSION_CONTEXT_HEADER);
   const requestId = context.data?.requestId || "";
-  if (pathname === "/api/auth/session") {
-    if (context.request.method !== "GET") return apiError("method_not_allowed", "仅支持读取会话", 405, requestId, { headers: { Allow: "GET" } });
+  const route = `${context.request.method} ${pathname}`;
+  if (route === "GET /api/auth/session") {
     const token = requestedContext === "restore" && !url.search && cookieOnlyWebSession(context.request);
     if (!token) return apiError("authentication_required", "请先登录", 401, requestId);
     if (!featureFlags(context.env).task12CloudAccounts) return apiError("cloud_accounts_disabled", "云端账户服务当前未启用", 503, requestId);
     const auth = await resolveTask12Account(context, { token, touch: false });
     if (!auth.authenticated) return apiError(auth.code, "账户会话不可用", auth.status, requestId);
     return jsonResponse({ account_context: await webSessionContext(token) }, 200, requestId);
+  }
+  if (pathname === "/api/auth/session") {
+    return apiError("method_not_allowed", "仅支持读取会话", 405, requestId, { headers: { Allow: "GET" } });
   }
   if (requestedContext !== null) {
     const token = cookieOnlyWebSession(context.request);
