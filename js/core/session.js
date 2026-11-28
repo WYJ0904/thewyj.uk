@@ -4,6 +4,9 @@ export const ACCOUNT_SESSION_KEY = "wyjAccountSession";
 export const ACCOUNT_CACHE_KEY = "wyjAccountCache";
 export const NATIVE_ACCOUNT_SESSION = "__wyj_native_cookie__";
 const LEGACY_SESSION_KEY = "vocabSession";
+const COOKIE_CONTEXT_PREFIX = "cookie:";
+const COOKIE_CONTEXT_HEADER = "X-Aeris-Session-Context";
+const COOKIE_RESTORE_PAUSED_KEY = "wyjCookieRestorePaused";
 
 export function isThewyjAndroidApp() {
   return /(?:^|\s)thewyj-android\/[A-Za-z0-9._+-]+(?:\s|$)/i.test(String(globalThis.navigator?.userAgent || ""));
@@ -11,6 +14,9 @@ export function isThewyjAndroidApp() {
 
 export function accountSessionHeaders(value) {
   const session = String(value || "").trim();
+  if (session.startsWith(COOKIE_CONTEXT_PREFIX)) {
+    return { [COOKIE_CONTEXT_HEADER]: session.slice(COOKIE_CONTEXT_PREFIX.length) };
+  }
   return session && session !== NATIVE_ACCOUNT_SESSION ? { "X-Session-Token": session } : {};
 }
 
@@ -108,9 +114,30 @@ export function restoreAccountSession() {
   return restored;
 }
 
+export async function readCookieAccountSession(signal) {
+  if (getSafeStorage("localStorage").getItem(COOKIE_RESTORE_PAUSED_KEY) === "1") return "";
+  const response = await fetch("/api/auth/session", {
+    headers: { [COOKIE_CONTEXT_HEADER]: "restore" },
+    credentials: "same-origin", cache: "no-store", redirect: "error", signal,
+  });
+  if ([401, 403, 404, 428].includes(response.status)) return "";
+  if (!response.ok) throw new Error("账户会话暂时无法验证");
+  const { account_context: context } = await response.json();
+  if (typeof context !== "string" || !/^[a-f0-9]{64}$/u.test(context)) {
+    throw new Error("账户会话校验失败");
+  }
+  return COOKIE_CONTEXT_PREFIX + context;
+}
+
+export function pauseCookieSessionRestore() {
+  if (!isThewyjAndroidApp()) safeStorageSet(getSafeStorage("localStorage"), COOKIE_RESTORE_PAUSED_KEY, "1");
+}
+
 export function persistAccountSession(session) {
   if (isThewyjAndroidApp()) return true;
-  return safeStorageSet(getSafeStorage("localStorage"), ACCOUNT_SESSION_KEY, session);
+  const storage = getSafeStorage("localStorage");
+  storage.removeItem(COOKIE_RESTORE_PAUSED_KEY);
+  return safeStorageSet(storage, ACCOUNT_SESSION_KEY, session);
 }
 
 export function clearAccountSessionStorage() {
