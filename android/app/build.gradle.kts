@@ -93,6 +93,12 @@ android {
 
     testOptions {
         unitTests.isIncludeAndroidResources = true
+        // Robolectric downloads its SDKs through a separate runtime resolver.
+        if (providers.environmentVariable("RUNNER_ENVIRONMENT").orNull == "github-hosted") {
+            unitTests.all {
+                it.systemProperty("robolectric.dependency.repo.url", "https://maven-central.storage-download.googleapis.com/maven2")
+            }
+        }
     }
     sourceSets.getByName("test").resources.directories.add("../../qa/task25")
     sourceSets.getByName("androidTest").assets.directories.add("../../qa/task25")
