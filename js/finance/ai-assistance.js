@@ -1,5 +1,5 @@
-import {currencyDigits,moneyText,SUPPORTED_CURRENCIES} from './money.js?release=20261128-aeris-p8-admin-v1';
-import {formatFinanceMoney} from './format.js?release=20261128-aeris-p8-admin-v1';
+import {currencyDigits,moneyText,SUPPORTED_CURRENCIES} from './money.js?release=20261128-aeris-p8-admin-v2';
+import {formatFinanceMoney} from './format.js?release=20261128-aeris-p8-admin-v2';
 
 const ROLES=['actual_paid','actual_received','original','discount','balance','fee','refund','unknown'];
 const CATEGORIES=['food','transport','shopping','housing','health','education','entertainment','income','transfer','refund','other'];

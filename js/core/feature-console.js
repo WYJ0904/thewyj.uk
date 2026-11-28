@@ -1,4 +1,4 @@
-import { setControlFeedbackState } from './motion.js?release=20261128-aeris-p8-admin-v1';
+import { setControlFeedbackState } from './motion.js?release=20261128-aeris-p8-admin-v2';
 
 export function createFeatureConsole({ api, apiGet, getAccount, refreshFeatures, document = globalThis.document }) {
   const node = id => document.getElementById(id);

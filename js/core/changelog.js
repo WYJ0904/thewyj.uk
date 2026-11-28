@@ -1,4 +1,4 @@
-import { fetchWithTimeout } from "./api.js?release=20261128-aeris-p8-admin-v1";
+import { fetchWithTimeout } from "./api.js?release=20261128-aeris-p8-admin-v2";
 
 const CHANGELOG_TIMEOUT_MS = 3500;
 

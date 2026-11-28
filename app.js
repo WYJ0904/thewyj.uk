@@ -1,4 +1,4 @@
-import { createSecurityCenter } from './js/account/security-center.js?release=20261128-aeris-p8-admin-v1';
+import { createSecurityCenter } from './js/account/security-center.js?release=20261128-aeris-p8-admin-v2';
 let task27Ui = null;
 import {
   AI_TIMEOUT_MS,
@@ -11,27 +11,27 @@ import {
   BUSINESS_TIME_ZONE,
   STATUS_RETRY_BASE_DELAYS_MS,
   STATUS_TIMEOUT_MS,
-} from "./js/core/config.js?release=20261128-aeris-p8-admin-v1";
-import { reconcileKeyedRows } from "./js/core/keyed-list.js?release=20261128-aeris-p8-admin-v1";
+} from "./js/core/config.js?release=20261128-aeris-p8-admin-v2";
+import { reconcileKeyedRows } from "./js/core/keyed-list.js?release=20261128-aeris-p8-admin-v2";
 import {
   capabilityProblems,
   detectCapabilities,
   randomId,
-} from "./js/core/capabilities.js?release=20261128-aeris-p8-admin-v1";
+} from "./js/core/capabilities.js?release=20261128-aeris-p8-admin-v2";
 import {
   createApiClient,
   fetchWithTimeout,
   isCanonicalSessionFailure,
   retryDelayWithJitter,
   waitForDelay,
-} from "./js/core/api.js?release=20261128-aeris-p8-admin-v1";
+} from "./js/core/api.js?release=20261128-aeris-p8-admin-v2";
 import {
   createChangelogSelection,
   loadCloudChangelog,
   mergeChangelogEntries,
   staticChangelogEntries,
-} from "./js/core/changelog.js?release=20261128-aeris-p8-admin-v1";
-import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation, nativeAppRoute } from "./js/core/router.js?release=20261128-aeris-p8-admin-v1";
+} from "./js/core/changelog.js?release=20261128-aeris-p8-admin-v2";
+import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation, nativeAppRoute } from "./js/core/router.js?release=20261128-aeris-p8-admin-v2";
 import {
   ACCOUNT_CACHE_KEY,
   NATIVE_ACCOUNT_SESSION,
@@ -44,33 +44,33 @@ import {
   requestNativeSessionRefresh,
   restoreAccountSession,
   subscribeAccountSessionChanges,
-} from "./js/core/session.js?release=20261128-aeris-p8-admin-v1";
-import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?release=20261128-aeris-p8-admin-v1";
-import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?release=20261128-aeris-p8-admin-v1";
-import { initDesignSystem, setExperienceMode, setInterfaceEnhancementsEnabled, dialogFocusTargets, focusDialog, workspaceRouteMeta, syncWorkspaceShell, syncSidebarActiveIndicator, syncSystemNoticeLayout, closeAccountPopover, closeActiveSelectPopover } from "./js/core/design-system.js?release=20261128-aeris-p8-admin-v1";
-import { createPublicUiPolicyController } from "./js/core/public-ui-policy.js?release=20261128-aeris-p8-admin-v1";
-import { completeStartupSplash, canPresentWorkspace, waitForPresentation } from "./js/core/startup.js?release=20261128-aeris-p8-admin-v1";
-import { installMotionSystem, motionDuration, prefersReducedMotion, attachSheetAdapter, syncModalScrollLock, setControlFeedbackState, getSharedToastManager, showToast, dismissToastByKey, invalidateToastContext, animateRouteViewEntrance, createAssetPrefetcher, captureFlipSnapshot, playFlipSnapshot } from "./js/core/motion.js?release=20261128-aeris-p8-admin-v1";
-import { initPublicExperience, renderPublicPlanCatalog } from "./js/core/public-experience.js?release=20261128-aeris-p8-admin-v1";
-import { createAndroidDownloadController } from "./js/core/download.js?release=20261128-aeris-p8-admin-v1";
-import { createFeatureController } from "./js/core/feature-flags.js?release=20261128-aeris-p8-admin-v1";
-import { createFeatureConsole } from "./js/core/feature-console.js?release=20261128-aeris-p8-admin-v1";
-import { createMasteryController } from "./js/language/mastery.js?release=20261128-aeris-p8-admin-v1";
-import { createWrongReviewController } from './js/language/wrong-review-sync.js?release=20261128-aeris-p8-admin-v1';
-import { wrongEntryWord, wrongEntryKey, findWrongEntry } from './js/language/wrong-book.js?release=20261128-aeris-p8-admin-v1';
-import { orderWrongReview, wrongReviewView, mergeWrongReview, wrongReviewDigest, wrongReviewSource, reviewDictationOptions } from './js/language/wrong-review.js?release=20261128-aeris-p8-admin-v1';
-import { clearMasteryJournalAccount } from "./js/language/mastery-journal.js?release=20261128-aeris-p8-admin-v1";
-import { masteryStorageKey, parseIssuedQuestion } from "./js/language/mastery-state.js?release=20261128-aeris-p8-admin-v1";
-import { speakText, stopSpeech } from "./js/language/speech.js?release=20261128-aeris-p8-admin-v1";
+} from "./js/core/session.js?release=20261128-aeris-p8-admin-v2";
+import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?release=20261128-aeris-p8-admin-v2";
+import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?release=20261128-aeris-p8-admin-v2";
+import { initDesignSystem, setExperienceMode, setInterfaceEnhancementsEnabled, dialogFocusTargets, focusDialog, workspaceRouteMeta, syncWorkspaceShell, syncSidebarActiveIndicator, syncSystemNoticeLayout, closeAccountPopover, closeActiveSelectPopover } from "./js/core/design-system.js?release=20261128-aeris-p8-admin-v2";
+import { createPublicUiPolicyController } from "./js/core/public-ui-policy.js?release=20261128-aeris-p8-admin-v2";
+import { completeStartupSplash, canPresentWorkspace, waitForPresentation } from "./js/core/startup.js?release=20261128-aeris-p8-admin-v2";
+import { installMotionSystem, motionDuration, prefersReducedMotion, attachSheetAdapter, syncModalScrollLock, setControlFeedbackState, getSharedToastManager, showToast, dismissToastByKey, invalidateToastContext, animateRouteViewEntrance, createAssetPrefetcher, captureFlipSnapshot, playFlipSnapshot } from "./js/core/motion.js?release=20261128-aeris-p8-admin-v2";
+import { initPublicExperience, renderPublicPlanCatalog } from "./js/core/public-experience.js?release=20261128-aeris-p8-admin-v2";
+import { createAndroidDownloadController } from "./js/core/download.js?release=20261128-aeris-p8-admin-v2";
+import { createFeatureController } from "./js/core/feature-flags.js?release=20261128-aeris-p8-admin-v2";
+import { createFeatureConsole } from "./js/core/feature-console.js?release=20261128-aeris-p8-admin-v2";
+import { createMasteryController } from "./js/language/mastery.js?release=20261128-aeris-p8-admin-v2";
+import { createWrongReviewController } from './js/language/wrong-review-sync.js?release=20261128-aeris-p8-admin-v2';
+import { wrongEntryWord, wrongEntryKey, findWrongEntry } from './js/language/wrong-book.js?release=20261128-aeris-p8-admin-v2';
+import { orderWrongReview, wrongReviewView, mergeWrongReview, wrongReviewDigest, wrongReviewSource, reviewDictationOptions } from './js/language/wrong-review.js?release=20261128-aeris-p8-admin-v2';
+import { clearMasteryJournalAccount } from "./js/language/mastery-journal.js?release=20261128-aeris-p8-admin-v2";
+import { masteryStorageKey, parseIssuedQuestion } from "./js/language/mastery-state.js?release=20261128-aeris-p8-admin-v2";
+import { speakText, stopSpeech } from "./js/language/speech.js?release=20261128-aeris-p8-admin-v2";
 import {
   loadSpeechRate,
   saveSpeechRate,
-} from "./js/language/speech-rate.js?release=20261128-aeris-p8-admin-v1";
-import { formatFinanceMoney } from "./js/finance/format.js?release=20261128-aeris-p8-admin-v1";
-import { createLazyController, installLazyTools, createRetryableImport } from "./js/core/lazy-controller.js?release=20261128-aeris-p8-admin-v1";
-import { createDashboardView } from "./js/core/dashboard.js?release=20261128-aeris-p8-admin-v1";
-import { TOOLS, CATEGORY_DEFINITIONS, searchTools } from "./js/tools/catalog.js?release=20261128-aeris-p8-admin-v1";
-import { homeWidgetStorageKey } from "./js/core/home-widget-layout.js?release=20261128-aeris-p8-admin-v1";
+} from "./js/language/speech-rate.js?release=20261128-aeris-p8-admin-v2";
+import { formatFinanceMoney } from "./js/finance/format.js?release=20261128-aeris-p8-admin-v2";
+import { createLazyController, installLazyTools, createRetryableImport } from "./js/core/lazy-controller.js?release=20261128-aeris-p8-admin-v2";
+import { createDashboardView } from "./js/core/dashboard.js?release=20261128-aeris-p8-admin-v2";
+import { TOOLS, CATEGORY_DEFINITIONS, searchTools } from "./js/tools/catalog.js?release=20261128-aeris-p8-admin-v2";
+import { homeWidgetStorageKey } from "./js/core/home-widget-layout.js?release=20261128-aeris-p8-admin-v2";
 import {
   INTERACTION_STAGES,
   beginInteraction,
@@ -78,15 +78,15 @@ import {
   interactionTraceApi,
   withInteractionFeedback,
   withInteractionFeedbackQuiet,
-} from "./js/core/perf.js?release=20261128-aeris-p8-admin-v1";
-import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?release=20261128-aeris-p8-admin-v1";
+} from "./js/core/perf.js?release=20261128-aeris-p8-admin-v2";
+import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?release=20261128-aeris-p8-admin-v2";
 import {
   calculateStudyStreak,
   formatDuration,
   localDayKey,
   sanitizeStudyRecords,
   studyDaySeries,
-} from "./js/language/history.js?release=20261128-aeris-p8-admin-v1";
+} from "./js/language/history.js?release=20261128-aeris-p8-admin-v2";
 import {
   DEFAULT_PROFILE,
   LANGUAGE_LABELS,
@@ -123,16 +123,16 @@ import {
   trimRubricCache,
   wordIdentity,
   wordMatchesLanguage,
-} from "./js/language/quiz.js?release=20261128-aeris-p8-admin-v1";
-import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?release=20261128-aeris-p8-admin-v1";
-import { createWrongBookPdf } from "./js/language/pdf.js?release=20261128-aeris-p8-admin-v1";
+} from "./js/language/quiz.js?release=20261128-aeris-p8-admin-v2";
+import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?release=20261128-aeris-p8-admin-v2";
+import { createWrongBookPdf } from "./js/language/pdf.js?release=20261128-aeris-p8-admin-v2";
 import {
   filterWrongBookByLanguage as filterWrongBookByLanguageModel,
   mergeWrongBooks,
   removeLanguageFromWrongBook as removeLanguageFromWrongBookModel,
   sanitizeWrongBook,
   updateWrongEntry as updateWrongEntryModel,
-} from "./js/language/wrong-book.js?release=20261128-aeris-p8-admin-v1";
+} from "./js/language/wrong-book.js?release=20261128-aeris-p8-admin-v2";
 import {
   accountEntitlements as accountEntitlementsModel,
   accountMembershipSummary as accountMembershipSummaryModel,
@@ -141,7 +141,7 @@ import {
   isAdmin as isAdminModel,
   isSuperAdmin as isSuperAdminModel,
   membershipLabel,
-} from "./js/membership/account.js?release=20261128-aeris-p8-admin-v1";
+} from "./js/membership/account.js?release=20261128-aeris-p8-admin-v2";
 import {
   MEMBERSHIP_GOALS,
   MEMBERSHIP_PLAN_ORDER,
@@ -149,22 +149,22 @@ import {
   membershipGoalForPlan,
   normalizedMembershipGoal,
   planDetails as planDetailsModel,
-} from "./js/membership/plans.js?release=20261128-aeris-p8-admin-v1";
+} from "./js/membership/plans.js?release=20261128-aeris-p8-admin-v2";
 import {
   DEFAULT_PAYMENT_METHODS,
   normalizedPaymentMethod as normalizedPaymentMethodModel,
   paymentMethodLabel as paymentMethodLabelModel,
   paymentStatusLabel,
   rechargeStatusLabel,
-} from "./js/membership/recharge.js?release=20261128-aeris-p8-admin-v1";
+} from "./js/membership/recharge.js?release=20261128-aeris-p8-admin-v2";
 import {
   createAdminEmailCenter,
   loginLocationLabel,
   loginReasonLabel,
   membershipDateValue as membershipDateValueModel,
-} from "./js/admin/formatters.js?release=20261128-aeris-p8-admin-v1";
+} from "./js/admin/formatters.js?release=20261128-aeris-p8-admin-v2";
 
-const loadToolCatalogModule = createRetryableImport(new URL("./js/tools/catalog.js?release=20261128-aeris-p8-admin-v1", import.meta.url));
+const loadToolCatalogModule = createRetryableImport(new URL("./js/tools/catalog.js?release=20261128-aeris-p8-admin-v2", import.meta.url));
 
 const localStorage = getSafeStorage("localStorage");
 const sessionStorage = getSafeStorage("sessionStorage");
@@ -4468,11 +4468,14 @@ function renderAdminToolStats(tools = null) {
           <span class="admin-tool-uses-num">${escapeHtml(uses)} 次</span>
           <span class="meta-line">${escapeHtml(item.users || 0)} 人使用</span>
         </div>
-        <div class="admin-tool-bar" aria-hidden="true"><span class="admin-tool-bar-fill" style="width:${pct}%"></span></div>
+        <div class="admin-tool-bar" aria-hidden="true"><span class="admin-tool-bar-fill" data-tool-stat-percent="${pct}"></span></div>
       </div>
       <p class="admin-log-col-time">最近使用：${escapeHtml(formatLocalDateTime(item.last_used_at, "无"))}</p>
     </article>`;
   }).join("") || `<p class="admin-empty-state">${adminToolStats.length ? "没有匹配的工具统计" : "暂无工具使用记录"}</p>`;
+  for (const fill of list.querySelectorAll(".admin-tool-bar-fill")) {
+    fill.style.width = `${fill.dataset.toolStatPercent}%`;
+  }
 }
 
 function siteMessageTypeLabel(type) {
@@ -7259,14 +7262,14 @@ async function apiGet(path,options={}) {
 }
 
 installLazyTools({
-  loadTools: createRetryableImport(new URL("./tools.js?release=20261128-aeris-p8-admin-v1", import.meta.url)),
-  loadWorkflows: createRetryableImport(new URL("./workflows.js?release=20261128-aeris-p8-admin-v1", import.meta.url)),
+  loadTools: createRetryableImport(new URL("./tools.js?release=20261128-aeris-p8-admin-v2", import.meta.url)),
+  loadWorkflows: createRetryableImport(new URL("./workflows.js?release=20261128-aeris-p8-admin-v2", import.meta.url)),
   onReady: () => renderDashboard(),
 });
 
-const loadFinanceModule = createRetryableImport(new URL("./js/finance/app.js?release=20261128-aeris-p8-admin-v1", import.meta.url));
-const loadCandidateModule = createRetryableImport(new URL("./js/finance/candidates.js?release=20261128-aeris-p8-admin-v1", import.meta.url));
-const loadTransferModule = createRetryableImport(new URL("./js/transfer/app.js?release=20261128-aeris-p8-admin-v1", import.meta.url));
+const loadFinanceModule = createRetryableImport(new URL("./js/finance/app.js?release=20261128-aeris-p8-admin-v2", import.meta.url));
+const loadCandidateModule = createRetryableImport(new URL("./js/finance/candidates.js?release=20261128-aeris-p8-admin-v2", import.meta.url));
+const loadTransferModule = createRetryableImport(new URL("./js/transfer/app.js?release=20261128-aeris-p8-admin-v2", import.meta.url));
 
 financeController = createLazyController({
   methods: ["syncNow", "verifyTransaction", "render", "setSubView"],
@@ -9565,7 +9568,7 @@ function showAuthTransition(message = "正在验证身份与权限…") {
     overlay.setAttribute("aria-label", message);
     overlay.setAttribute("aria-hidden", "false");
     overlay.innerHTML = '<div class="entry-content">' +
-      '<img class="entry-logo" src="/icon-192.png?release=20261128-aeris-p8-admin-v1" width="76" height="76" alt="" />' +
+      '<img class="entry-logo" src="/icon-192.png?release=20261128-aeris-p8-admin-v2" width="76" height="76" alt="" />' +
       '<strong>Aeris</strong>' +
       '<span class="entry-progress" aria-hidden="true"></span>' +
       '</div>';

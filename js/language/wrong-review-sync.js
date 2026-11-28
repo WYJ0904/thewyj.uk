@@ -1,4 +1,4 @@
-import { WRONG_REVIEW_ALGORITHM, initialWrongReview } from './wrong-review.js?release=20261128-aeris-p8-admin-v1';
+import { WRONG_REVIEW_ALGORITHM, initialWrongReview } from './wrong-review.js?release=20261128-aeris-p8-admin-v2';
 
 export const WRONG_REVIEW_DB = 'aeris-wrong-review-outbox-v1';
 export function createWrongReviewJournal(indexedDB=globalThis.indexedDB) {
