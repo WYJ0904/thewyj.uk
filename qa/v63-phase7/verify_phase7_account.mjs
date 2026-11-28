@@ -241,19 +241,29 @@ try {
   const vipHash = await hashSecret(VIP_SECRET, PEPPER);
   const adminHash = await hashSecret(ADMIN_SECRET, PEPPER);
 
+  const nearExpiryIso = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString();
   await db.prepare(`INSERT INTO task12_users (id, username, username_normalized, password_hash, password_scheme, password_iterations, role, registered_at, created_at, updated_at, source_updated_at) VALUES ('p7-free-1', 'p7_free', 'p7_free', ?1, 'pbkdf2_sha256', 310000, 'user', ?2, ?2, ?2, ?2)`).bind(freeHash, now).run();
   await db.prepare(`INSERT INTO task12_users (id, username, username_normalized, password_hash, password_scheme, password_iterations, role, registered_at, created_at, updated_at, source_updated_at) VALUES ('p7-vip-1', 'p7_vip', 'p7_vip', ?1, 'pbkdf2_sha256', 310000, 'user', ?2, ?2, ?2, ?2)`).bind(vipHash, now).run();
+  await db.prepare(`INSERT INTO task12_users (id, username, username_normalized, password_hash, password_scheme, password_iterations, role, registered_at, created_at, updated_at, source_updated_at) VALUES ('p7-expiring-1', 'p7_expiring', 'p7_expiring', ?1, 'pbkdf2_sha256', 310000, 'user', ?2, ?2, ?2, ?2)`).bind(freeHash, now).run();
   await db.prepare(`INSERT INTO task12_users (id, username, username_normalized, password_hash, password_scheme, password_iterations, role, registered_at, created_at, updated_at, source_updated_at) VALUES ('p7-admin-1', 'wyj', 'wyj', ?1, 'pbkdf2_sha256', 310000, 'super_admin', ?2, ?2, ?2, ?2)`).bind(adminHash, now).run();
 
-  // Stacked memberships for p7_vip (lifetime dual language + timed finance monthly)
+  // Stacked memberships for p7_vip (lifetime dual language + timed finance monthly) + near-expiry user p7_expiring
   await db.prepare(`INSERT INTO task13_user_memberships (id, user_id, plan_code, starts_at, expires_at, is_lifetime, status, source, source_ref, created_by, metadata_json, created_at, updated_at) VALUES ('p7-mem-1', 'p7-vip-1', 'dual_language_lifetime', ?1, '', 1, 'active', 'admin', 'p7-seed-1', 'wyj', '{}', ?1, ?1)`).bind(now).run();
   await db.prepare(`INSERT INTO task13_user_memberships (id, user_id, plan_code, starts_at, expires_at, is_lifetime, status, source, source_ref, created_by, metadata_json, created_at, updated_at) VALUES ('p7-mem-2', 'p7-vip-1', 'finance_monthly', ?1, ?2, 0, 'active', 'admin', 'p7-seed-2', 'wyj', '{}', ?1, ?1)`).bind(now, nextMonth).run();
+  await db.prepare(`INSERT INTO task13_user_memberships (id, user_id, plan_code, starts_at, expires_at, is_lifetime, status, source, source_ref, created_by, metadata_json, created_at, updated_at) VALUES ('p7-mem-3', 'p7-expiring-1', 'tools_monthly', ?1, ?2, 0, 'active', 'admin', 'p7-seed-3', 'wyj', '{}', ?1, ?1)`).bind(now, nearExpiryIso).run();
 
   await db.prepare(`INSERT INTO task25_feature_flags (flag_key, description, enabled, kill_switch, channels_json, rollout_basis_points, revision, updated_at, updated_by, mutation_id, request_id) VALUES ('p07_accessibility', 'Phase 7 verify', 1, 0, '["stable","beta","experimental"]', 10000, 1, ?1, 'p7-admin-1', 'seed-1', 'seed-1') ON CONFLICT(flag_key) DO UPDATE SET enabled=1, kill_switch=0, channels_json='["stable","beta","experimental"]', rollout_basis_points=10000`).bind(now).run();
 
+  let forcePaymentQr503 = false;
   server = http.createServer(async (req, res) => {
     try {
-      const targetUrl = new URL(req.url || "/", BASE_URL).toString();
+      const parsedReqUrl = new URL(req.url || "/", BASE_URL);
+      if (forcePaymentQr503 && parsedReqUrl.pathname === "/api/recharge/qr") {
+        res.writeHead(503, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
+        res.end(JSON.stringify({ ok: false, error: "收款二维码在当前预览环境下暂不可用" }));
+        return;
+      }
+      const targetUrl = parsedReqUrl.toString();
       const headers = new Headers();
       for (const [k, v] of Object.entries(req.headers)) {
         if (v === undefined || k.toLowerCase() === "host" || k.toLowerCase() === "connection") continue;
@@ -545,7 +555,7 @@ try {
   assert.equal(adminProbe, 403, "Ordinary user must receive 403 on /api/admin/users");
   pass("account_hub_centering_tabs_themes_axe_and_rbac", report.geometry);
 
-  // 3. Membership & Recharge Stepped Flow
+  // 3. Membership & Recharge (3 Independent States + Decision 36A)
   await click("#v3Sidebar [data-v3-nav=recharge]");
   await waitFor("location.pathname === '/recharge' && !document.getElementById('membershipModal').classList.contains('hidden')", 15000, "recharge route");
   await waitFor("document.getElementById('membershipCurrentSummary').textContent.includes('免费基础版')", 15000, "membership summary");
@@ -559,32 +569,98 @@ try {
   assert.ok(Math.abs(membershipBox.width - report.geometry.expandedSidebar.overview.width) <= 1, "Membership width must match Account Hub width");
   assert.ok(membershipBox.centerDelta <= 2, "Membership must center inside #v3MainCanvas");
 
-  // Show all 8 plans
+  // State 1: Immediate ChatGPT-style recommended comparison cards (no forced 7-card gate)
+  await waitFor("document.getElementById('membershipModal').dataset.membershipView === 'plans'", 5000, "initial plans view");
+  assert.equal(await evalJs("document.getElementById('membershipPlanStep').dataset.plansScope"), "recommended");
+  assert.equal(await evalJs("document.querySelectorAll('#membershipPlanList [data-plan]').length"), 4, "4 recommended plans rendered immediately");
+  assert.equal(await evalJs("document.getElementById('membershipShowAllPlansBtn').textContent.trim()"), "查看所有套餐");
+  assert.equal(await evalJs("Boolean(document.getElementById('membershipShowAllPlansBtn').closest('.membership-plans-footer'))"), true, "查看所有套餐 must live in bottom footer");
+  await shot("desktop-membership-plans.png");
+
+  // Toggle all 8 plans cleanly via bottom button
   await click("#membershipShowAllPlansBtn");
-  await waitFor("document.querySelectorAll('#membershipPlanList [data-plan]').length === 8", 10000, "all 8 plans visible");
+  await waitFor("document.getElementById('membershipPlanStep').dataset.plansScope === 'all' && document.querySelectorAll('#membershipPlanList [data-plan]').length === 8", 10000, "all 8 plans visible");
   assert.ok(await evalJs("document.getElementById('membershipPlanList').textContent.includes('仅限 Android')"));
+  await shot("desktop-membership-all8.png");
   await click("#membershipShowAllPlansBtn");
-  await click('[data-membership-goal="all"]');
-  await click('[data-plan="all_access_monthly"]');
+  await waitFor("document.getElementById('membershipPlanStep').dataset.plansScope === 'recommended'", 5000, "collapse back to recommended");
+
+  // State 2: Dedicated Checkout View + QR Error Fixture + Real QR Checkout
+  await click('[data-plan="all_access_monthly"] [data-plan-buy]');
+  await waitFor("document.getElementById('membershipModal').dataset.membershipView === 'checkout' && document.getElementById('membershipPlansView').classList.contains('hidden')", 10000, "isolated checkout view");
+  assert.ok((await evalJs("document.getElementById('membershipSelectedPlanCard').textContent")).includes("30 CNY"));
+
+  // Back to plans cleanly
+  await click("#membershipBackToPlansBtn");
+  await waitFor("document.getElementById('membershipModal').dataset.membershipView === 'plans'", 5000, "return from checkout to plans");
+
+  // Re-enter checkout and test honest 503 QR unavailable error state
+  await click('[data-plan="all_access_monthly"] [data-plan-buy]');
+  await waitFor("document.getElementById('membershipModal').dataset.membershipView === 'checkout'", 10000, "checkout view re-entered");
+  await evalJs("document.querySelector('input[name=paymentMethod][value=wechat]').click(); true");
+  forcePaymentQr503 = true;
+  await click("#submitRechargeBtn");
+  await waitFor("document.getElementById('paymentQrWrap').dataset.qrState === 'error' && document.getElementById('paymentQrMessage').textContent.includes('切勿盲目转账')", 15000, "honest 503 QR unavailable state");
+  await shot("desktop-membership-qr-error.png");
+  forcePaymentQr503 = false;
+
+  // Cancel broken preview QR order and create valid WeChat QR order
+  await click("#cancelPaymentOrderBtn");
+  await waitFor("document.getElementById('membershipModal').dataset.membershipView === 'checkout' && document.getElementById('paymentOrderBox').classList.contains('hidden')", 15000, "cancelled order returns to configurator");
   await evalJs("document.querySelector('input[name=paymentMethod][value=wechat]').click(); true");
   await click("#submitRechargeBtn");
-  await waitFor("!document.getElementById('paymentOrderBox').classList.contains('hidden')", 15000, "payment order locked");
+  await waitFor("!document.getElementById('paymentOrderBox').classList.contains('hidden') && document.getElementById('paymentOrderBox').dataset.orderMode === 'qr'", 15000, "payment order QR locked");
   await waitFor("document.getElementById('paymentQrImage').complete && document.getElementById('paymentQrImage').naturalWidth > 0", 15000, "payment QR decoded");
   await waitFor("document.querySelectorAll('#paymentOrderTimeline .payment-timeline-item').length === 4", 5000, "timeline rendered");
-  await shot("desktop-membership-order-light.png");
+  await shot("desktop-membership-checkout-qr.png");
 
-  // Cancel and recreate with Alipay, then notify admin ("我已付款")
+  // Cancel and recreate with Alipay, then notify admin ("我已付款") -> Dedicated Waiting-for-Review / Orders View
   await click("#cancelPaymentOrderBtn");
-  await waitFor("document.getElementById('paymentOrderBox').classList.contains('hidden')", 15000, "order cancelled");
+  await waitFor("document.getElementById('paymentOrderBox').classList.contains('hidden')", 15000, "order cancelled before alipay");
   await evalJs("document.querySelector('input[name=paymentMethod][value=alipay]').click(); true");
   await click("#submitRechargeBtn");
   await waitFor("!document.getElementById('confirmPaymentBtn').classList.contains('hidden')", 15000, "recreated alipay order");
   await click("#confirmPaymentBtn");
-  await waitFor("document.getElementById('paymentStatus').textContent.includes('等待管理员') || document.getElementById('submitRechargeBtn').textContent.includes('等待管理员')", 15000, "confirm payment submitted");
+  await waitFor("document.getElementById('membershipModal').dataset.membershipView === 'orders' && document.getElementById('paymentOrderBox').dataset.orderMode === 'review'", 15000, "dedicated review view");
+  await waitFor("!document.getElementById('membershipReviewBanner').classList.contains('hidden')", 5000, "review banner shown");
+  assert.equal(await evalJs("document.getElementById('paymentOrderActionCard').classList.contains('hidden')"), true, "QR payment card must hide in review view");
+  assert.equal(await evalJs("document.getElementById('membershipCurrentSummary').textContent.includes('免费基础版')"), true, "Membership MUST NOT show active before admin approval");
   await waitFor("document.querySelectorAll('#membershipOrderHistoryList .membership-history-row').length >= 1", 15000, "order history updated");
   await runAxe("#membershipModal");
-  await shot("desktop-membership-history-light.png");
-  pass("membership_all8_plans_qr_cancel_confirm_history");
+  await shot("desktop-membership-waiting-review.png");
+  await shot("desktop-membership-orders.png");
+
+  // Approve order as admin via API, then refresh in user view -> becomes approved cleanly
+  const adminLoginRes = await fetch(`${BASE_URL}/api/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Origin": BASE_URL },
+    body: JSON.stringify({ username: "wyj", secret: ADMIN_SECRET }),
+  });
+  const adminLoginJson = await adminLoginRes.json();
+  assert.equal(adminLoginRes.status, 200, "Admin login for approval check");
+  const pendingOrderId = await evalJs("fetch('/api/recharge/mine', { headers: { 'X-Session-Token': localStorage.getItem('wyjAccountSession') || '' } }).then(r => r.json()).then(d => (d.requests || []).find(item => ['user_paid', 'processing', 'pending_payment'].includes(item.status))?.id || '')");
+  assert.ok(pendingOrderId, "Expected open order ID");
+  const stepupRes = await fetch(`${BASE_URL}/api/security/stepup`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Origin": BASE_URL, "X-Session-Token": adminLoginJson.session },
+    body: JSON.stringify({ password: ADMIN_SECRET, scope: "admin_entitlements" }),
+  });
+  const stepupJson = await stepupRes.json().catch(() => ({}));
+  const approveHeaders = {
+    "Content-Type": "application/json",
+    "Origin": BASE_URL,
+    "X-Session-Token": adminLoginJson.session,
+    ...(stepupJson?.grant ? { "X-Aeris-Stepup": stepupJson.grant } : {}),
+  };
+  const approveRes = await fetch(`${BASE_URL}/api/admin/recharge/process`, {
+    method: "POST",
+    headers: approveHeaders,
+    body: JSON.stringify({ request_id: pendingOrderId, action: "approve", admin_note: "p7 verify approved" }),
+  });
+  assert.equal(approveRes.status, 200, "Admin approval API");
+  await click("#refreshReviewOrderBtn");
+  await waitFor("document.getElementById('membershipCurrentSummary').textContent.includes('全功能')", 15000, "membership updated after admin approval");
+  pass("membership_3states_all8_plans_qr_error_and_waiting_review");
 
   // Stop desktop recording and encode
   await cdp.send("Page.stopScreencast", {}, sessionId);
@@ -604,6 +680,22 @@ try {
   await click("#accountSubnav [data-account-tab='membership']");
   await waitFor("document.getElementById('accountMembershipStackedList').textContent.includes('双语言') && document.getElementById('accountMembershipStackedList').textContent.includes('财务')", 15000, "stacked plans rendered");
   assert.equal(await evalJs("document.getElementById('accountHeaderRolePill').textContent.trim()"), "普通用户", "Paid VIP must remain普通用户 role, never管理员");
+  assert.equal(await evalJs("document.getElementById('membershipExpiryNotice').classList.contains('hidden')"), true, "Lifetime member MUST NOT see expiry or renewal reminder banner");
+  await cdp.send("Page.navigate", { url: `${BASE_URL}/recharge` }, sessionId);
+  await waitFor("location.pathname === '/recharge' && document.querySelectorAll('#membershipPlanList [data-plan]').length >= 1", 15000, "vip recharge cards");
+  await click("#membershipShowAllPlansBtn");
+  await waitFor("document.querySelectorAll('#membershipPlanList [data-owned=\"true\"]').length >= 1", 10000, "vip owned plan cards marked cleanly");
+
+  // Near-expiry timed member MUST see top renewal announcement banner
+  await click("#logoutBtn");
+  await waitFor("location.pathname === '/login'", 15000, "logout to expiring user");
+  await setField("#usernameInput", "p7_expiring");
+  await setField("#secretInput", FREE_SECRET);
+  await click("#loginSubmitBtn");
+  await waitFor("location.pathname === '/'", 20000, "expiring login");
+  await waitFor("!document.getElementById('membershipExpiryNotice').classList.contains('hidden')", 10000, "near-expiry top announcement shown");
+  assert.ok((await evalJs("document.getElementById('membershipExpiryNotice').textContent")).includes("前往续订"));
+  await shot("desktop-membership-expiry-banner.png");
 
   await click("#logoutBtn");
   await waitFor("location.pathname === '/login'", 15000, "logout to admin");
@@ -642,7 +734,18 @@ try {
   await click("#accountSubnav [data-account-tab='overview']");
   await cdp.send("Page.navigate", { url: `${BASE_URL}/recharge` }, sessionId);
   await waitFor("location.pathname === '/recharge' && !document.getElementById('membershipModal').classList.contains('hidden')", 15000, "mobile recharge");
-  await shot("mobile-membership-light.png");
+  assert.equal(await evalJs("document.documentElement.scrollWidth > window.innerWidth + 1"), false, "Mobile 390px overflow on /recharge");
+  await shot("mobile-membership-plans.png");
+  await click("#membershipTabOrders");
+  await waitFor("document.getElementById('membershipModal').dataset.membershipView === 'orders'", 5000, "mobile orders view");
+  await shot("mobile-membership-review.png");
+  await click("#ordersBackToPlansBtn");
+  await waitFor("document.getElementById('membershipModal').dataset.membershipView === 'plans'", 5000, "mobile back to plans");
+  await click('[data-plan="all_access_monthly"] [data-plan-buy]');
+  await waitFor("document.getElementById('membershipModal').dataset.membershipView === 'checkout'", 10000, "mobile checkout");
+  assert.equal(await evalJs("document.documentElement.scrollWidth > window.innerWidth + 1"), false, "Mobile 390px overflow on checkout");
+  await shot("mobile-membership-checkout.png");
+  await click("#membershipBackToPlansBtn");
 
   await cdp.send("Page.stopScreencast", {}, sessionId);
   activeRecording = null;

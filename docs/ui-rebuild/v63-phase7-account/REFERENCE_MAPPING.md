@@ -42,9 +42,9 @@
 - **Aeris 独立映射**：
   - 保留并增强 `password-fields.js`、`generateOwnSecret()`、`task27Secrets` 一次性恢复码确认门禁及 Task29 浏览器端 `Web Crypto AES-256-GCM` 加密备份与只读预检流水线。
 
-### 6. Stripe Customer Portal（`docs.stripe.com/customer-management`）
+### 6. ChatGPT Pricing & Upgrade Modal (`chatgpt.com/pricing`) + Stripe Customer Portal (`docs.stripe.com/customer-management`)
 - **研究要点**：
-  - 先展示当前生效权益、有效期与模块覆盖，再提供清晰的套餐比较与分步结账状态反馈。
-  - 异步订单状态（待付款、处理中、已确认、已取消/过期/拒绝）在界面上明确区分，不把未确认支付伪装成已激活。
+  - **套餐并列比较结构**：首屏直接展示推荐方案对比卡片，名称、副标题、醒目价格/周期、全宽圆角主购买按钮、勾选权益清单与页脚说明保持统一行基准与等高对齐；明确标记「当前已拥有 / Current Plan」，底部提供全量展开入口，不强迫用户在看到价格前先填写冗长用途选择大卡片。
+  - **三状态独立流程与等待审核聚焦**：选择方案后切换独立结账视口，仅聚焦已选方案、支付方式及受保护二维码（预览/离线无码时如实提示）；提交「我已付款」后聚焦等待人工审核与历史订单，严格禁止在管理员确认前伪造会员已生效。
 - **Aeris 独立映射**：
-  - `#membershipModal` 首屏增设「当前会员与已激活权益」概览区；保留 7 类用途推荐与新增「查看全部方案」全量对照；`#paymentOrderBox` 增设状态时间线、`刷新订单状态` 与「我的历史订单」列表，严格保持人工核对支付契约。
+  - `#membershipModal` 重构为三大互斥视图（`#membershipPlansView`、`#membershipCheckoutView`、`#membershipOrdersView`），并按第 36 项方案 A 默认呈现 4 款主流推荐对比卡、明确标注 `当前已拥有`、于卡片网格底部居中提供「查看所有套餐」直达全部 8 款方案，保留轻量化 7 类用途筛选标签、带锁未开通入口与全站顶部临近到期公告栏 `#membershipExpiryNotice`（严格豁免永久会员）。

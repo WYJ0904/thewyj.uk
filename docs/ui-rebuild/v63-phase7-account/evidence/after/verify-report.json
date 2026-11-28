@@ -70,7 +70,7 @@
       }
     },
     {
-      "name": "membership_all8_plans_qr_cancel_confirm_history",
+      "name": "membership_3states_all8_plans_qr_error_and_waiting_review",
       "status": "PASS"
     },
     {
@@ -179,11 +179,21 @@
     "desktop-account-preferences-dark.png",
     "desktop-account-security-light.png",
     "desktop-login-light.png",
+    "desktop-membership-all8.png",
+    "desktop-membership-checkout-qr.png",
+    "desktop-membership-expiry-banner.png",
     "desktop-membership-history-light.png",
     "desktop-membership-order-light.png",
+    "desktop-membership-orders.png",
+    "desktop-membership-plans.png",
+    "desktop-membership-qr-error.png",
+    "desktop-membership-waiting-review.png",
     "desktop-register-light.png",
     "mobile-account-overview-light.png",
-    "mobile-membership-light.png"
+    "mobile-membership-checkout.png",
+    "mobile-membership-light.png",
+    "mobile-membership-plans.png",
+    "mobile-membership-review.png"
   ],
   "status": "PASS"
 }

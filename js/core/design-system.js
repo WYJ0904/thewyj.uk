@@ -49,16 +49,18 @@ export function syncSystemNoticeLayout(doc = globalThis.document) {
   }
   root.style.setProperty("--ds-hud-save-offset", `${saveOffset}px`);
 
-  const verEl = doc.getElementById("versionNotice");
-  let versionOffset = 0;
-  if (verEl && !verEl.classList?.contains("hidden") && !verEl.hidden) {
-    const style = view?.getComputedStyle?.(verEl);
+  const measureTopNotice = (el) => {
+    if (!el || el.classList?.contains("hidden") || el.hidden) return 0;
+    const style = view?.getComputedStyle?.(el);
     if (!style || style.position === "fixed") {
-      const h = Math.ceil(verEl.getBoundingClientRect?.().height || 0);
-      if (h > 0) versionOffset = h;
+      return Math.ceil(el.getBoundingClientRect?.().height || 0);
     }
-  }
-  root.style.setProperty("--ds-hud-version-offset", `${versionOffset}px`);
+    return 0;
+  };
+  const versionBarHeight = measureTopNotice(doc.getElementById("versionNotice"));
+  const expiryBarHeight = measureTopNotice(doc.getElementById("membershipExpiryNotice"));
+  root.style.setProperty("--ds-hud-version-bar-height", `${versionBarHeight}px`);
+  root.style.setProperty("--ds-hud-version-offset", `${versionBarHeight + expiryBarHeight}px`);
 
   const financeModal = doc.getElementById("financeTransactionModal");
   const rightDrawerOpen = Boolean(

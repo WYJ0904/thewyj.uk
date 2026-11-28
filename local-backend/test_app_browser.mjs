@@ -1213,6 +1213,7 @@ async function main() {
       assert.equal(await evaluate("document.querySelector('#trialLanguageSelect').value"), "english");
       assert.equal(await evaluate("document.querySelector('#trialLanguageSelect').disabled"), true);
       assert.equal(await evaluate("document.querySelectorAll('#paymentMethodList input[name=\"paymentMethod\"]').length"), 2);
+      await click("#membershipBackToPlansBtn");
       await click('[data-membership-goal="tools"]');
       await click('[data-plan="all_access_monthly"]');
       assert.ok((await evaluate("document.querySelector('#purchaseSummary').textContent")).includes("30 CNY"));

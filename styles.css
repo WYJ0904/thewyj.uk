@@ -3457,4 +3457,10 @@ textarea::placeholder {
 .feature-console pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 280px; overflow: auto; }
 #releaseChannelSection { padding-block: 12px; }
 #releaseChannelSection .action-row { flex-wrap: wrap; margin-block: 12px; }
+#accountSubnav { display: flex; flex-wrap: wrap; gap: 6px; margin-block: 12px; }
+#accountSubnav .account-tab { min-height: 44px; padding: 8px 14px; border-radius: 8px; }
+#accountSubnav .account-tab.active, #accountSubnav .account-tab[aria-selected="true"] { background: var(--accent, #242424); color: #ffffff; }
+#accountModal .account-tabpanel { display: grid; gap: 12px; }
+#accountModal .account-tabpanel.hidden, #accountModal .account-tabpanel[hidden] { display: none; }
+#accountModal .account-theme-switcher { display: flex; flex-wrap: wrap; gap: 8px; }
 .admin-list-head { display: none; }

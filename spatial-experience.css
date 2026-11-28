@@ -9117,12 +9117,14 @@ html[data-p07-ui="enabled"] .account-menu-pill {
     z-index: calc(var(--ds-z-modal) - 2);
     transform: translateX(-104%);
     visibility: hidden;
+    pointer-events: none;
     transition: transform 260ms var(--ds-ease-decelerate), visibility 260ms step-end;
   }
 
   html[data-p07-ui="enabled"] #v3Sidebar.v3-sidebar.mobile-drawer-open {
     transform: translateX(0);
     visibility: visible;
+    pointer-events: auto;
     transition: transform 260ms var(--ds-ease-decelerate), visibility 0s;
   }
 
@@ -9769,7 +9771,7 @@ html[data-p07-ui="enabled"] .gpt-workbench-header .aeris-product-tabs > .capabil
   flex: 0 0 auto;
   width: auto;
   min-width: 0;
-  min-height: 40px;
+  min-height: 44px;
   padding: 0 14px;
   border: 0;
   border-radius: var(--ds-radius-pill);
@@ -9857,7 +9859,7 @@ html[data-p07-ui="enabled"] .gpt-workbench-body .aeris-panel-copy .button-link {
   }
 }
 
-html[data-p07-ui="enabled"] #versionNotice:not(.hidden) {
+html[data-p07-ui="enabled"] :is(#versionNotice, #membershipExpiryNotice):not(.hidden) {
   position: fixed;
   top: var(--owner-preview-banner-height, 0px);
   left: 0;
@@ -9884,7 +9886,11 @@ html[data-p07-ui="enabled"] #versionNotice:not(.hidden) {
   animation: dsTopBannerIn 240ms var(--ds-ease-spring) both;
 }
 
-html[data-p07-ui="enabled"] #versionNotice .version-notice-copy {
+html[data-p07-ui="enabled"] #membershipExpiryNotice:not(.hidden) {
+  top: calc(var(--owner-preview-banner-height, 0px) + var(--ds-hud-version-bar-height, 0px));
+}
+
+html[data-p07-ui="enabled"] :is(#versionNotice, #membershipExpiryNotice) .version-notice-copy {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
@@ -9893,25 +9899,25 @@ html[data-p07-ui="enabled"] #versionNotice .version-notice-copy {
   flex: 1 1 260px;
 }
 
-html[data-p07-ui="enabled"] #versionNotice .version-notice-copy strong {
+html[data-p07-ui="enabled"] :is(#versionNotice, #membershipExpiryNotice) .version-notice-copy strong {
   font-size: 0.8125rem;
   font-weight: 600;
 }
 
-html[data-p07-ui="enabled"] #versionNotice .version-notice-copy p {
+html[data-p07-ui="enabled"] :is(#versionNotice, #membershipExpiryNotice) .version-notice-copy p {
   margin: 0;
   font-size: 0.8125rem;
   color: var(--ds-text-secondary);
 }
 
-html[data-p07-ui="enabled"] #versionNotice .version-notice-actions {
+html[data-p07-ui="enabled"] :is(#versionNotice, #membershipExpiryNotice) .version-notice-actions {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
 }
 
-html[data-p07-ui="enabled"] #versionNotice .version-notice-close {
+html[data-p07-ui="enabled"] :is(#versionNotice, #membershipExpiryNotice) .version-notice-close {
   position: static;
   display: inline-flex;
   align-items: center;
@@ -16878,6 +16884,13 @@ html[data-p07-ui="enabled"] body[data-workspace-route] :is(.account-header-copy,
   min-width: 0;
 }
 
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-header-copy h1,
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal #membershipTitle {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
 html[data-p07-ui="enabled"] body[data-workspace-route] :is(.account-header-sub, .membership-header-sub) {
   margin: 0;
   font-size: var(--ds-text-sm);
@@ -17641,6 +17654,429 @@ html[data-android-reduced-motion="true"] :is(#authPanel, #accountModal, #members
   animation-duration: 0.001ms;
   transition-duration: 0.001ms;
 }
+
+/* ==========================================================================
+ * V6.3 Phase 7 Membership Redesign: ChatGPT 3-State Plans / Checkout / Orders
+ * ========================================================================== */
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-view-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface-subtle);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-view-tab {
+  min-height: 44px;
+  padding: 8px 16px;
+  border: 1px solid transparent;
+  border-radius: var(--ds-radius-sm);
+  background: transparent;
+  color: var(--ds-text-secondary);
+  font-size: var(--ds-text-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-view-tab.active,
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-view-tab[aria-selected="true"] {
+  background: var(--ds-surface);
+  color: var(--ds-text);
+  border-color: var(--ds-border);
+  box-shadow: var(--ds-seg-shadow);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-view-panel {
+  display: grid;
+  gap: 16px;
+  width: 100%;
+  min-width: 0;
+  align-content: start;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-view-panel.hidden,
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-view-panel[hidden],
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-checkout-grid.hidden,
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-checkout-grid[hidden],
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-view-tab.hidden,
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-view-tab[hidden],
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-global-message:empty {
+  display: none;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-summary-order-alert {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--ds-divider);
+}
+
+/* Lightweight filter pill bar above comparison grid */
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-current-summary {
+  padding: 12px 16px;
+  gap: 8px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal #membershipGoalField {
+  display: grid;
+  gap: 8px;
+  padding: 12px 16px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal #paymentQrImage {
+  width: 220px;
+  height: 220px;
+  max-width: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-filter-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-filter-legend {
+  margin: 0;
+  padding: 0;
+  font-size: var(--ds-text-sm);
+  font-weight: 650;
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-goal-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-goal-option {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  flex: 0 0 auto;
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px 16px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-surface-subtle);
+  color: var(--ds-text);
+  font-size: var(--ds-text-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-goal-option small {
+  font-size: var(--ds-text-xs);
+  font-weight: 400;
+  color: var(--ds-text-secondary);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-goal-option[aria-pressed="true"],
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-goal-option.selected {
+  background: var(--ds-action-primary);
+  color: var(--ds-on-action-primary);
+  border-color: var(--ds-action-primary);
+  box-shadow: none;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-goal-option[aria-pressed="true"] small,
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-goal-option.selected small {
+  color: var(--ds-on-action-primary);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal #membershipPlanStep {
+  padding: 0;
+  border: 0;
+}
+
+/* ChatGPT-inspired side-by-side plan comparison cards */
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 248px), 1fr));
+  gap: 16px;
+  align-items: stretch;
+  margin: 0;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-option.plan-card {
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+  gap: 16px;
+  align-content: stretch;
+  justify-items: stretch;
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-surface);
+  color: var(--ds-text);
+  cursor: pointer;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-option.plan-card.is-featured {
+  border-color: var(--ds-action-primary);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-option.plan-card.is-owned {
+  border-color: var(--ds-text);
+  background: var(--ds-surface-subtle);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-plans-footer {
+  display: flex;
+  justify-content: center;
+  padding-top: 20px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-show-all-btn {
+  min-height: 44px;
+  padding: 0 24px;
+  border-radius: var(--ds-radius-pill);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-card-header {
+  display: grid;
+  gap: 8px;
+  min-height: 76px;
+  align-content: start;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-card-header h3 {
+  margin: 0;
+  font-size: var(--ds-text-lg);
+  font-weight: 700;
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-card-tagline {
+  margin: 0;
+  font-size: var(--ds-text-xs);
+  color: var(--ds-text-secondary);
+  line-height: 1.5;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-price-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  min-height: 44px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-price-value {
+  margin: 0;
+  font-size: var(--ds-text-2xl);
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-price-cycle {
+  margin: 0;
+  font-size: var(--ds-text-xs);
+  color: var(--ds-text-secondary);
+  font-weight: 500;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-buy-btn {
+  width: 100%;
+  min-height: 44px;
+  border-radius: var(--ds-radius-pill);
+  font-weight: 650;
+  justify-content: center;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-features-list {
+  list-style: none;
+  margin: 0;
+  padding: 16px 0 0;
+  border-top: 1px solid var(--ds-divider);
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-features-list li {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  font-size: var(--ds-text-sm);
+  line-height: 1.45;
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-features-list svg {
+  margin-top: 4px;
+  color: var(--ds-text-secondary);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-option.plan-card small.plan-card-footnote {
+  margin: 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--ds-divider);
+  font-size: var(--ds-text-xs);
+  color: var(--ds-text-secondary);
+  line-height: 1.5;
+}
+
+/* State 2: Dedicated Checkout View */
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-subview-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--ds-divider);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-checkout-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-selected-plan-card {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-surface);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-checkout-controls {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal #paymentMethodField {
+  padding: 16px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal #paymentMethodField legend {
+  margin-bottom: 12px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-checkout-bar {
+  margin: 0;
+  padding: 16px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .payment-qr-wrap[data-qr-state="error"] #paymentQrMessage {
+  padding: 12px;
+  border: 1px solid var(--ds-error-border);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-error-soft);
+  color: var(--ds-error);
+  font-weight: 600;
+}
+
+/* State 3: Focused Waiting-for-Review Banner & Orders */
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-review-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  border: 1px solid var(--ds-border-strong);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface-subtle);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-review-banner-copy {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  flex: 1 1 300px;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-review-banner-copy h2 {
+  margin: 0;
+  font-size: var(--ds-text-lg);
+  font-weight: 700;
+  color: var(--ds-text);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-review-banner-copy p {
+  margin: 0;
+  font-size: var(--ds-text-sm);
+  color: var(--ds-text-secondary);
+  line-height: 1.5;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal #paymentOrderBox[data-order-mode="review"] .payment-order-dual-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal #paymentOrderBox[data-order-mode="review"] :is(#paymentOrderActionCard, .payment-order-head #refreshPaymentOrderBtn) {
+  display: none;
+}
+
+html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-global-message {
+  margin: 0;
+  padding: 12px 16px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface-subtle);
+  color: var(--ds-text);
+}
+
+@media (max-width: 900px) {
+  html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-checkout-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .plan-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-goal-list {
+    gap: 8px;
+  }
+
+  html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-goal-option {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+
+  html[data-p07-ui="enabled"] body[data-workspace-route] #membershipModal .membership-view-tabs {
+    width: 100%;
+    overflow-x: auto;
+  }
+}
+
 
 
 

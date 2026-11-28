@@ -10,15 +10,17 @@
   - `python <skills-root>/ui-ux-pro-max/scripts/search.py "account settings security dashboard membership" --design-system -p "Aeris Account & Membership"`
   - `python <skills-root>/ui-ux-pro-max/scripts/search.py "accessible authentication form error validation" --domain ux`
   - `python <skills-root>/ui-ux-pro-max/scripts/search.py "keyboard focus modal tabs navigation" --domain ux`
+  - `python <skills-root>/ui-ux-pro-max/scripts/search.py "pricing comparison cards checkout billing order status" --design-system -p "Aeris Membership & Checkout"`
 - **Applied Recommendations**:
   - Preserved native password manager compatibility (`autocomplete="username"`, `current-password`, `new-password`, explicit `<label for>` + `name`), live password confirmation feedback (`#registerConfirmHint` `aria-live="polite"`), and real button loading states (`aria-busy="true"`) without clearing `#usernameInput` on failure.
   - Full WAI-ARIA `tablist` / `tab` / `tabpanel` semantics with `ArrowLeft` / `ArrowRight` / `Home` / `End` keyboard navigation across `#accountSubnav` and `.auth-tabs`.
+  - Split Membership & Recharge into clear visual tiers: equal-height comparison cards with aligned price/period/CTA rows, isolated checkout without stacked card clutter, and a calm focus-only waiting-for-review & order history screen.
 
 ## 3. design-taste-frontend
-- **Script Executed**: `node <skills-root>/design-taste-frontend/scripts/copy-lint.mjs index.html app.js js/account/security-center.js`
+- **Script Executed**: `node <skills-root>/design-taste-frontend/scripts/copy-lint.mjs index.html app.js js/membership/plans.js js/membership/recharge.js js/membership/account.js`
 - **Findings & Assessment**:
-  - `index.html`: **0 FAIL, 0 WARN**.
-  - Added neutral plain-Chinese labels across auth, account subnav, security rows, membership summary, 4-stage stepper, and payment review timeline without marketing superlatives, fake status badges, or exclamation marks in UI copy.
+  - `index.html`, `js/membership/plans.js`, `js/membership/recharge.js`: **0 FAIL, 0 WARN**.
+  - Added neutral plain-Chinese labels across auth, account subnav, security rows, 4 recommended comparison cards, bottom `查看所有套餐` toggle, honest 503 QR unavailable warning, and payment review timeline without marketing superlatives or fake active states.
 
 ## 4. impeccable
 - **Commands Executed**:

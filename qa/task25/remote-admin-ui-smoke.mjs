@@ -260,6 +260,7 @@ try {
   await visibleClick(userPage, '#accountMenu summary');
   await userPage.waitFor("document.getElementById('accountMenu').open");
   await visibleClick(userPage, '#accountBtn');
+  await visibleClick(userPage, '#accountTabPreferences');
   await userPage.waitFor("!document.getElementById('releaseChannelSection').classList.contains('hidden') && !document.getElementById('saveReleaseChannelBtn').disabled");
   for (const channel of ['beta', 'experimental', 'stable']) {
     await userPage.setFields({ '#releaseChannelSelect': channel });
