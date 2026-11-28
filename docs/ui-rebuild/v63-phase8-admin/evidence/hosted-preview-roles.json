@@ -1,0 +1,138 @@
+{
+  "environment": "hosted-preview",
+  "origin": "https://v63-phase8.thewyj-v63-p6p9-preview.pages.dev",
+  "sourceCommit": "e542b90995046224a5e4c0f78dbd7090b19fff47",
+  "release": "20261128-aeris-p8-admin-v1",
+  "publication": "7ed26b6567f5de1b26e60205a9be439622184196e0f2d2ac830d00b26ca5a97e",
+  "isolatedDeploymentId": "266a059b-f0d2-4bbb-b616-c0c21a667bb5",
+  "isolationVerifiedViaCloudflareApiBeforeWrites": true,
+  "delegatedFixture": {
+    "registered": true,
+    "granted": true,
+    "grantRequestId": "c4a811f9-7578-43a9-8cf6-50162ecaa7b3"
+  },
+  "accounts": {
+    "owner": {
+      "role": "super_admin",
+      "planCodes": [],
+      "financeAccess": true,
+      "api": {
+        "users": 200,
+        "roles": 200,
+        "flags": 200,
+        "ownerStatus": 200,
+        "finance": 200
+      }
+    },
+    "delegated": {
+      "role": "admin",
+      "planCodes": [],
+      "financeAccess": false,
+      "api": {
+        "users": 200,
+        "roles": 403,
+        "flags": 200,
+        "ownerStatus": 403,
+        "finance": 403,
+        "rolesPost": 403
+      }
+    },
+    "free": {
+      "role": "user",
+      "planCodes": [],
+      "financeAccess": false,
+      "api": {
+        "users": 403,
+        "roles": 403,
+        "flags": 403,
+        "ownerStatus": 403,
+        "finance": 403
+      }
+    },
+    "member": {
+      "role": "user",
+      "planCodes": [
+        "all_access_lifetime"
+      ],
+      "financeAccess": true,
+      "api": {
+        "users": 403,
+        "roles": 403,
+        "flags": 403,
+        "ownerStatus": 403,
+        "finance": 200
+      }
+    }
+  },
+  "preservedAliasStatuses": {
+    "v63-phase6": 200,
+    "v63-phase7": 200,
+    "v63-phase8": 200
+  },
+  "browser": {
+    "engine": "Chrome/158.0.8127.38",
+    "headless": true,
+    "realFormLogin": true,
+    "guestAdminRedirect": "/login",
+    "owner": {
+      "formLogin": true,
+      "adminNav": true,
+      "adminRoleContext": "当前身份：站点所有者",
+      "ownerRolesTabVisible": true,
+      "featureFlagsTabVisible": true,
+      "usersKpiMatchesApi": true,
+      "noHorizontalOverflow1440": true,
+      "noHorizontalOverflow390": true
+    },
+    "free": {
+      "formLogin": true,
+      "adminNav": false,
+      "adminRedirect": "/",
+      "accountRolePill": "普通用户",
+      "planBadge": "免费基础版",
+      "financeWorkspaceVisible": false
+    },
+    "member": {
+      "formLogin": true,
+      "adminNav": false,
+      "adminRedirect": "/",
+      "accountRolePill": "普通用户",
+      "planBadge": "全功能永久会员",
+      "financeWorkspaceVisible": true
+    },
+    "delegated": {
+      "formLogin": true,
+      "adminNav": true,
+      "adminRoleContext": "当前身份：委派管理员",
+      "ownerRolesTabVisible": false,
+      "featureFlagsTabVisible": true,
+      "usersKpiMatchesApi": true,
+      "noHorizontalOverflow1440": true
+    },
+    "runtimeErrors": [],
+    "ownedProcessCleanup": "owned Chrome process tree terminated"
+  },
+  "status": "PASS",
+  "guestUsersApi": 401,
+  "ownerUsersTotal": 6,
+  "logout": {
+    "owner": [
+      200,
+      200
+    ],
+    "free": [
+      200,
+      200
+    ],
+    "member": [
+      200,
+      200
+    ],
+    "delegated": [
+      200,
+      200,
+      200
+    ]
+  },
+  "completedAt": "2026-11-28T10:11:38.741Z"
+}
