@@ -1,0 +1,162 @@
+{
+  "environment": "hosted-preview",
+  "origin": "https://v63-phase8.thewyj-v63-p6p9-preview.pages.dev",
+  "sourceCommit": "181af602ef1581664127825feedce11a1a81ccbe",
+  "release": "20261128-aeris-p8-admin-v2",
+  "publication": "76e554356152965db5374f4baa09c2b0d957d10644d52558c1508f87a4dce873",
+  "isolatedDeploymentId": "912c7d00-a5a4-4d00-8989-b9bac74046a9",
+  "isolationVerifiedViaCloudflareApiBeforeAuth": true,
+  "delegatedFixture": {
+    "existingAccountReused": true,
+    "registered": false,
+    "granted": false
+  },
+  "accounts": {
+    "owner": {
+      "role": "super_admin",
+      "planCodes": [],
+      "financeAccess": true,
+      "api": {
+        "users": 200,
+        "roles": 200,
+        "flags": 200,
+        "ownerStatus": 200,
+        "finance": 200,
+        "toolStats": 200
+      }
+    },
+    "delegated": {
+      "role": "admin",
+      "planCodes": [],
+      "financeAccess": false,
+      "api": {
+        "users": 200,
+        "roles": 403,
+        "flags": 200,
+        "ownerStatus": 403,
+        "finance": 403,
+        "toolStats": 200
+      }
+    },
+    "free": {
+      "role": "user",
+      "planCodes": [],
+      "financeAccess": false,
+      "api": {
+        "users": 403,
+        "roles": 403,
+        "flags": 403,
+        "ownerStatus": 403,
+        "finance": 403,
+        "toolStats": 403
+      }
+    },
+    "member": {
+      "role": "user",
+      "planCodes": [
+        "all_access_lifetime"
+      ],
+      "financeAccess": true,
+      "api": {
+        "users": 403,
+        "roles": 403,
+        "flags": 403,
+        "ownerStatus": 403,
+        "finance": 200,
+        "toolStats": 403
+      }
+    }
+  },
+  "preservedAliasStatuses": {
+    "v63-phase6": 200,
+    "v63-phase7": 200,
+    "v63-phase8": 200
+  },
+  "browser": {
+    "engine": "Chrome/158.0.8127.38",
+    "headless": true,
+    "realFormLogin": true,
+    "guestAdminRedirect": "/login",
+    "owner": {
+      "formLogin": true,
+      "adminNav": true,
+      "preToolStatsCspViolations": [],
+      "toolStats": {
+        "rows": 0,
+        "empty": "暂无工具使用记录",
+        "bars": [],
+        "proportion": "NOT_TESTED_NO_LIVE_STATS",
+        "cspViolations": []
+      },
+      "adminRoleContext": "当前身份：站点所有者",
+      "ownerRolesTabVisible": true,
+      "featureFlagsTabVisible": true,
+      "usersKpiMatchesApi": true,
+      "noHorizontalOverflow1440": true,
+      "noHorizontalOverflow390": true
+    },
+    "free": {
+      "formLogin": true,
+      "adminNav": false,
+      "adminRedirect": "/",
+      "accountRolePill": "普通用户",
+      "planBadge": "免费基础版",
+      "financeWorkspaceVisible": false
+    },
+    "member": {
+      "formLogin": true,
+      "adminNav": false,
+      "adminRedirect": "/",
+      "accountRolePill": "普通用户",
+      "planBadge": "全功能永久会员",
+      "financeWorkspaceVisible": true
+    },
+    "delegated": {
+      "formLogin": true,
+      "adminNav": true,
+      "preToolStatsCspViolations": [],
+      "toolStats": {
+        "rows": 0,
+        "empty": "暂无工具使用记录",
+        "bars": [],
+        "proportion": "NOT_TESTED_NO_LIVE_STATS",
+        "cspViolations": []
+      },
+      "adminRoleContext": "当前身份：委派管理员",
+      "ownerRolesTabVisible": false,
+      "featureFlagsTabVisible": true,
+      "usersKpiMatchesApi": true,
+      "noHorizontalOverflow1440": true
+    },
+    "runtimeErrors": [],
+    "ownedProcessCleanup": "owned Chrome process tree terminated"
+  },
+  "status": "PASS",
+  "immutableDeploymentUrl": "https://912c7d00.thewyj-v63-p6p9-preview.pages.dev",
+  "adminDocumentEnforcesCsp": true,
+  "guestUsersApi": 401,
+  "ownerUsersTotal": 6,
+  "toolStatsLiveUses": {
+    "owner": [],
+    "delegated": []
+  },
+  "logout": {
+    "owner": [
+      200,
+      200
+    ],
+    "free": [
+      200,
+      200
+    ],
+    "member": [
+      200,
+      200
+    ],
+    "delegated": [
+      200,
+      200
+    ]
+  },
+  "completedAt": "2026-11-28T10:38:38.761Z"
+}

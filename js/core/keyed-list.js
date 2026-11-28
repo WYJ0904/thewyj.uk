@@ -1,7 +1,7 @@
 // Presentation only: preserve unaffected rows, focus and scroll position.
 // Durable entities, ordering and lifecycle decisions remain with each caller.
-import { rowRenderRoot } from "./parked-rows.js?release=20261128-aeris-p7-account-v4";
-import { captureFlipSnapshot, playFlipSnapshot } from "./motion.js?release=20261128-aeris-p7-account-v4";
+import { rowRenderRoot } from "./parked-rows.js?release=20261128-aeris-p8-admin-v2";
+import { captureFlipSnapshot, playFlipSnapshot } from "./motion.js?release=20261128-aeris-p8-admin-v2";
 
 const lists = new WeakMap();
 const focusable = 'button,input,select,textarea,a[href],[tabindex]';

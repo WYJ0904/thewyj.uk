@@ -1,4 +1,4 @@
-import { createSecurityCenter } from './js/account/security-center.js?release=20261128-aeris-p7-account-v4';
+import { createSecurityCenter } from './js/account/security-center.js?release=20261128-aeris-p8-admin-v2';
 let task27Ui = null;
 import {
   AI_TIMEOUT_MS,
@@ -11,27 +11,27 @@ import {
   BUSINESS_TIME_ZONE,
   STATUS_RETRY_BASE_DELAYS_MS,
   STATUS_TIMEOUT_MS,
-} from "./js/core/config.js?release=20261128-aeris-p7-account-v4";
-import { reconcileKeyedRows } from "./js/core/keyed-list.js?release=20261128-aeris-p7-account-v4";
+} from "./js/core/config.js?release=20261128-aeris-p8-admin-v2";
+import { reconcileKeyedRows } from "./js/core/keyed-list.js?release=20261128-aeris-p8-admin-v2";
 import {
   capabilityProblems,
   detectCapabilities,
   randomId,
-} from "./js/core/capabilities.js?release=20261128-aeris-p7-account-v4";
+} from "./js/core/capabilities.js?release=20261128-aeris-p8-admin-v2";
 import {
   createApiClient,
   fetchWithTimeout,
   isCanonicalSessionFailure,
   retryDelayWithJitter,
   waitForDelay,
-} from "./js/core/api.js?release=20261128-aeris-p7-account-v4";
+} from "./js/core/api.js?release=20261128-aeris-p8-admin-v2";
 import {
   createChangelogSelection,
   loadCloudChangelog,
   mergeChangelogEntries,
   staticChangelogEntries,
-} from "./js/core/changelog.js?release=20261128-aeris-p7-account-v4";
-import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation, nativeAppRoute } from "./js/core/router.js?release=20261128-aeris-p7-account-v4";
+} from "./js/core/changelog.js?release=20261128-aeris-p8-admin-v2";
+import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation, nativeAppRoute } from "./js/core/router.js?release=20261128-aeris-p8-admin-v2";
 import {
   ACCOUNT_CACHE_KEY,
   NATIVE_ACCOUNT_SESSION,
@@ -44,33 +44,33 @@ import {
   requestNativeSessionRefresh,
   restoreAccountSession,
   subscribeAccountSessionChanges,
-} from "./js/core/session.js?release=20261128-aeris-p7-account-v4";
-import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?release=20261128-aeris-p7-account-v4";
-import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?release=20261128-aeris-p7-account-v4";
-import { initDesignSystem, setExperienceMode, setInterfaceEnhancementsEnabled, dialogFocusTargets, focusDialog, workspaceRouteMeta, syncWorkspaceShell, syncSidebarActiveIndicator, syncSystemNoticeLayout, closeAccountPopover, closeActiveSelectPopover } from "./js/core/design-system.js?release=20261128-aeris-p7-account-v4";
-import { createPublicUiPolicyController } from "./js/core/public-ui-policy.js?release=20261128-aeris-p7-account-v4";
-import { completeStartupSplash, canPresentWorkspace, waitForPresentation } from "./js/core/startup.js?release=20261128-aeris-p7-account-v4";
-import { installMotionSystem, motionDuration, prefersReducedMotion, attachSheetAdapter, syncModalScrollLock, setControlFeedbackState, getSharedToastManager, showToast, dismissToastByKey, invalidateToastContext, animateRouteViewEntrance, createAssetPrefetcher, captureFlipSnapshot, playFlipSnapshot } from "./js/core/motion.js?release=20261128-aeris-p7-account-v4";
-import { initPublicExperience, renderPublicPlanCatalog } from "./js/core/public-experience.js?release=20261128-aeris-p7-account-v4";
-import { createAndroidDownloadController } from "./js/core/download.js?release=20261128-aeris-p7-account-v4";
-import { createFeatureController } from "./js/core/feature-flags.js?release=20261128-aeris-p7-account-v4";
-import { createFeatureConsole } from "./js/core/feature-console.js?release=20261128-aeris-p7-account-v4";
-import { createMasteryController } from "./js/language/mastery.js?release=20261128-aeris-p7-account-v4";
-import { createWrongReviewController } from './js/language/wrong-review-sync.js?release=20261128-aeris-p7-account-v4';
-import { wrongEntryWord, wrongEntryKey, findWrongEntry } from './js/language/wrong-book.js?release=20261128-aeris-p7-account-v4';
-import { orderWrongReview, wrongReviewView, mergeWrongReview, wrongReviewDigest, wrongReviewSource, reviewDictationOptions } from './js/language/wrong-review.js?release=20261128-aeris-p7-account-v4';
-import { clearMasteryJournalAccount } from "./js/language/mastery-journal.js?release=20261128-aeris-p7-account-v4";
-import { masteryStorageKey, parseIssuedQuestion } from "./js/language/mastery-state.js?release=20261128-aeris-p7-account-v4";
-import { speakText, stopSpeech } from "./js/language/speech.js?release=20261128-aeris-p7-account-v4";
+} from "./js/core/session.js?release=20261128-aeris-p8-admin-v2";
+import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?release=20261128-aeris-p8-admin-v2";
+import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?release=20261128-aeris-p8-admin-v2";
+import { initDesignSystem, setExperienceMode, setInterfaceEnhancementsEnabled, dialogFocusTargets, focusDialog, workspaceRouteMeta, syncWorkspaceShell, syncSidebarActiveIndicator, syncSystemNoticeLayout, closeAccountPopover, closeActiveSelectPopover } from "./js/core/design-system.js?release=20261128-aeris-p8-admin-v2";
+import { createPublicUiPolicyController } from "./js/core/public-ui-policy.js?release=20261128-aeris-p8-admin-v2";
+import { completeStartupSplash, canPresentWorkspace, waitForPresentation } from "./js/core/startup.js?release=20261128-aeris-p8-admin-v2";
+import { installMotionSystem, motionDuration, prefersReducedMotion, attachSheetAdapter, syncModalScrollLock, setControlFeedbackState, getSharedToastManager, showToast, dismissToastByKey, invalidateToastContext, animateRouteViewEntrance, createAssetPrefetcher, captureFlipSnapshot, playFlipSnapshot } from "./js/core/motion.js?release=20261128-aeris-p8-admin-v2";
+import { initPublicExperience, renderPublicPlanCatalog } from "./js/core/public-experience.js?release=20261128-aeris-p8-admin-v2";
+import { createAndroidDownloadController } from "./js/core/download.js?release=20261128-aeris-p8-admin-v2";
+import { createFeatureController } from "./js/core/feature-flags.js?release=20261128-aeris-p8-admin-v2";
+import { createFeatureConsole } from "./js/core/feature-console.js?release=20261128-aeris-p8-admin-v2";
+import { createMasteryController } from "./js/language/mastery.js?release=20261128-aeris-p8-admin-v2";
+import { createWrongReviewController } from './js/language/wrong-review-sync.js?release=20261128-aeris-p8-admin-v2';
+import { wrongEntryWord, wrongEntryKey, findWrongEntry } from './js/language/wrong-book.js?release=20261128-aeris-p8-admin-v2';
+import { orderWrongReview, wrongReviewView, mergeWrongReview, wrongReviewDigest, wrongReviewSource, reviewDictationOptions } from './js/language/wrong-review.js?release=20261128-aeris-p8-admin-v2';
+import { clearMasteryJournalAccount } from "./js/language/mastery-journal.js?release=20261128-aeris-p8-admin-v2";
+import { masteryStorageKey, parseIssuedQuestion } from "./js/language/mastery-state.js?release=20261128-aeris-p8-admin-v2";
+import { speakText, stopSpeech } from "./js/language/speech.js?release=20261128-aeris-p8-admin-v2";
 import {
   loadSpeechRate,
   saveSpeechRate,
-} from "./js/language/speech-rate.js?release=20261128-aeris-p7-account-v4";
-import { formatFinanceMoney } from "./js/finance/format.js?release=20261128-aeris-p7-account-v4";
-import { createLazyController, installLazyTools, createRetryableImport } from "./js/core/lazy-controller.js?release=20261128-aeris-p7-account-v4";
-import { createDashboardView } from "./js/core/dashboard.js?release=20261128-aeris-p7-account-v4";
-import { TOOLS, CATEGORY_DEFINITIONS, searchTools } from "./js/tools/catalog.js?release=20261128-aeris-p7-account-v4";
-import { homeWidgetStorageKey } from "./js/core/home-widget-layout.js?release=20261128-aeris-p7-account-v4";
+} from "./js/language/speech-rate.js?release=20261128-aeris-p8-admin-v2";
+import { formatFinanceMoney } from "./js/finance/format.js?release=20261128-aeris-p8-admin-v2";
+import { createLazyController, installLazyTools, createRetryableImport } from "./js/core/lazy-controller.js?release=20261128-aeris-p8-admin-v2";
+import { createDashboardView } from "./js/core/dashboard.js?release=20261128-aeris-p8-admin-v2";
+import { TOOLS, CATEGORY_DEFINITIONS, searchTools } from "./js/tools/catalog.js?release=20261128-aeris-p8-admin-v2";
+import { homeWidgetStorageKey } from "./js/core/home-widget-layout.js?release=20261128-aeris-p8-admin-v2";
 import {
   INTERACTION_STAGES,
   beginInteraction,
@@ -78,15 +78,15 @@ import {
   interactionTraceApi,
   withInteractionFeedback,
   withInteractionFeedbackQuiet,
-} from "./js/core/perf.js?release=20261128-aeris-p7-account-v4";
-import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?release=20261128-aeris-p7-account-v4";
+} from "./js/core/perf.js?release=20261128-aeris-p8-admin-v2";
+import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?release=20261128-aeris-p8-admin-v2";
 import {
   calculateStudyStreak,
   formatDuration,
   localDayKey,
   sanitizeStudyRecords,
   studyDaySeries,
-} from "./js/language/history.js?release=20261128-aeris-p7-account-v4";
+} from "./js/language/history.js?release=20261128-aeris-p8-admin-v2";
 import {
   DEFAULT_PROFILE,
   LANGUAGE_LABELS,
@@ -123,16 +123,16 @@ import {
   trimRubricCache,
   wordIdentity,
   wordMatchesLanguage,
-} from "./js/language/quiz.js?release=20261128-aeris-p7-account-v4";
-import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?release=20261128-aeris-p7-account-v4";
-import { createWrongBookPdf } from "./js/language/pdf.js?release=20261128-aeris-p7-account-v4";
+} from "./js/language/quiz.js?release=20261128-aeris-p8-admin-v2";
+import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?release=20261128-aeris-p8-admin-v2";
+import { createWrongBookPdf } from "./js/language/pdf.js?release=20261128-aeris-p8-admin-v2";
 import {
   filterWrongBookByLanguage as filterWrongBookByLanguageModel,
   mergeWrongBooks,
   removeLanguageFromWrongBook as removeLanguageFromWrongBookModel,
   sanitizeWrongBook,
   updateWrongEntry as updateWrongEntryModel,
-} from "./js/language/wrong-book.js?release=20261128-aeris-p7-account-v4";
+} from "./js/language/wrong-book.js?release=20261128-aeris-p8-admin-v2";
 import {
   accountEntitlements as accountEntitlementsModel,
   accountMembershipSummary as accountMembershipSummaryModel,
@@ -141,7 +141,7 @@ import {
   isAdmin as isAdminModel,
   isSuperAdmin as isSuperAdminModel,
   membershipLabel,
-} from "./js/membership/account.js?release=20261128-aeris-p7-account-v4";
+} from "./js/membership/account.js?release=20261128-aeris-p8-admin-v2";
 import {
   MEMBERSHIP_GOALS,
   MEMBERSHIP_PLAN_ORDER,
@@ -149,20 +149,22 @@ import {
   membershipGoalForPlan,
   normalizedMembershipGoal,
   planDetails as planDetailsModel,
-} from "./js/membership/plans.js?release=20261128-aeris-p7-account-v4";
+} from "./js/membership/plans.js?release=20261128-aeris-p8-admin-v2";
 import {
   DEFAULT_PAYMENT_METHODS,
   normalizedPaymentMethod as normalizedPaymentMethodModel,
   paymentMethodLabel as paymentMethodLabelModel,
   paymentStatusLabel,
   rechargeStatusLabel,
-} from "./js/membership/recharge.js?release=20261128-aeris-p7-account-v4";
+} from "./js/membership/recharge.js?release=20261128-aeris-p8-admin-v2";
 import {
   createAdminEmailCenter,
   loginLocationLabel,
   loginReasonLabel,
   membershipDateValue as membershipDateValueModel,
-} from "./js/admin/formatters.js?release=20261128-aeris-p7-account-v4";
+} from "./js/admin/formatters.js?release=20261128-aeris-p8-admin-v2";
+
+const loadToolCatalogModule = createRetryableImport(new URL("./js/tools/catalog.js?release=20261128-aeris-p8-admin-v2", import.meta.url));
 
 const localStorage = getSafeStorage("localStorage");
 const sessionStorage = getSafeStorage("sessionStorage");
@@ -358,12 +360,20 @@ let adminUsers = [];
 let adminMessageTargetUsers = [];
 let adminRoleCandidateUsers = [];
 let adminUserPage = { page: 1, limit: 30, total: 0, has_more: false, query: "", match: "partial" };
+let adminRechargeRequests = [];
+let adminAuditLogs = [];
+let adminLoginLogs = [];
+let adminToolStats = [];
+let adminToolNameMap = null;
 let adminFeedback = [];
 let adminMessages = [];
 let adminRoleState = null;
 const adminMessageSelectedUserIds = new Set();
 let adminLoadSequence = 0;
 let adminUserSearchSequence = 0;
+let adminUserSearchAbortController = null;
+let adminEditInitialSnapshot = "";
+let adminLastUpdatedAt = "";
 let feedbackLoadSequence = 0;
 let cloudChangelogEntries = null;
 let cloudChangelogPromise = null;
@@ -1416,8 +1426,11 @@ function refreshWorkspaceShell() {
   const toolTitle = path.startsWith("/tools/") && path !== "/tools/workflows"
     ? ($("toolWorkbenchTitle")?.textContent.trim() || "")
     : "";
-  const adminSection = path === "/admin"
-    ? (document.querySelector(".admin-tabs button.active:not(.hidden)")?.textContent.trim() || "")
+  const activeAdminTab = path === "/admin"
+    ? document.querySelector(".admin-tabs button.active:not(.hidden)")
+    : null;
+  const adminSection = activeAdminTab
+    ? (activeAdminTab.dataset.tabLabel || activeAdminTab.querySelector(".admin-tab-label")?.textContent?.trim() || activeAdminTab.textContent.trim())
     : "";
   const languageSection = path.startsWith("/language") && !$("projectApp")?.classList.contains("hidden") && !$("workspace")?.classList.contains("hidden")
     ? (document.querySelector("#workspace > .tabs button.active:not(.hidden)")?.textContent.trim() || "")
@@ -1435,8 +1448,15 @@ function setAdminKpi(id, value, status = "ready") {
 
 function resetAdminKpis() {
   for (const id of ["adminKpiUsers", "adminKpiRecharge", "adminKpiAudit", "adminKpiLoginFailed"]) {
-    setAdminKpi(id, "—", "pending");
+    setAdminKpi(id, "待读取", "pending");
   }
+}
+
+function updateAdminLastUpdated(timestamp = new Date()) {
+  const el = $("adminLastUpdated");
+  if (!el) return;
+  adminLastUpdatedAt = formatLocalDateTime(timestamp, "");
+  el.textContent = adminLastUpdatedAt ? `最近同步：${adminLastUpdatedAt}` : "尚未同步服务端数据";
 }
 
 function renderAccountUi() {
@@ -2108,9 +2128,16 @@ function openModal(id) {
   focusDialog(modal);
 }
 
-function closeModal(id, immediate = false) {
+function closeModal(id, immediate = false, { force = false } = {}) {
   const modal = $(id);
   if (!modal || modal.classList.contains("hidden")) return;
+  if (id === "adminEditModal" && !force && !immediate && isAdminEditDirty()) {
+    askConfirmation("会员编辑表单存在未保存修改，确认放弃更改并关闭？", () => {
+      adminEditInitialSnapshot = "";
+      closeModal("adminEditModal", false, { force: true });
+    });
+    return;
+  }
   if (!immediate && modal.classList.contains("is-closing") && modalCloseTimers.has(id)) return;
   const pendingClose = modalCloseTimers.get(id);
   if (pendingClose) {
@@ -2142,6 +2169,7 @@ function closeModal(id, immediate = false) {
     remaining.forEach((layer, index) => { layer.inert = index !== remaining.length - 1; });
     if (id === "accountModal") clearOwnSecretEditor();
     if (id === "adminEditModal") clearAdminSecretEditor();
+    if (id === "adminEditModal") adminEditInitialSnapshot = "";
     const { hasBlockingModal } = syncShellInteractivity();
     const returnFocus = modalReturnFocus.get(id);
     modalReturnFocus.delete(id);
@@ -3861,6 +3889,83 @@ function mergeAdminUserPage(users, append) {
   return [...merged.values()];
 }
 
+function adminEntitlementLabelList(entitlements) {
+  return (entitlements || []).map((item) => ({
+    language_japanese_access: "日语",
+    language_english_access: "英语",
+    language_all_access: "全部语言",
+    tools_access: "工具箱",
+    tools_batch_access: "批量处理",
+    temporary_share_access: "临时分享",
+    save_tool_config: "配置保存",
+    all_features_access: "全功能",
+  }[item] || item));
+}
+
+function adminEditSnapshot() {
+  return JSON.stringify([
+    $("adminEditUserId")?.value || "",
+    $("adminMembershipAction")?.value || "grant",
+    $("adminMembershipSelect")?.value || "trial_single_language",
+    $("adminTrialLanguageSelect")?.value || "",
+    $("adminMembershipStart")?.value || "",
+    $("adminMembershipExpires")?.value || "",
+    $("adminMembershipNote")?.value || "",
+    Boolean($("adminPreserveJapanese")?.checked),
+  ]);
+}
+
+function isAdminEditDirty() {
+  if (!adminEditInitialSnapshot) return false;
+  return adminEditSnapshot() !== adminEditInitialSnapshot;
+}
+
+function ensureAdminToolNameMap() {
+  if (adminToolNameMap) return Promise.resolve(adminToolNameMap);
+  return loadToolCatalogModule()
+    .then((mod) => {
+      const map = new Map();
+      (mod?.TOOLS || []).forEach((tool) => {
+        if (tool?.id) map.set(tool.id, tool.name || tool.id);
+      });
+      adminToolNameMap = map;
+      return map;
+    })
+    .catch(() => null);
+}
+
+function openAdminDetailDrawer({ title, subtitle = "", bodyHtml = "", actionsHtml = "", onBind = null }) {
+  const drawer = $("adminDetailDrawer");
+  if (!drawer) return;
+  if ($("adminDetailTitle")) $("adminDetailTitle").textContent = title || "记录详情";
+  if ($("adminDetailSubtitle")) $("adminDetailSubtitle").textContent = subtitle || "";
+  if ($("adminDetailBody")) $("adminDetailBody").innerHTML = bodyHtml;
+  if ($("adminDetailActions")) $("adminDetailActions").innerHTML = actionsHtml;
+  if ($("adminDetailStatus")) setInlineFeedback("adminDetailStatus", "idle", "");
+  if (typeof onBind === "function") onBind(drawer);
+  openModal("adminDetailDrawer");
+}
+
+function switchAdminView(viewId) {
+  const targetBtn = document.querySelector(`[data-admin-view="${viewId}"]`);
+  if (!targetBtn || targetBtn.classList.contains("hidden")) return false;
+  document.querySelectorAll("[data-admin-view]").forEach((item) => {
+    const active = item === targetBtn;
+    item.classList.toggle("active", active);
+    item.setAttribute("aria-selected", String(active));
+  });
+  document.querySelectorAll(".admin-view").forEach((view) => view.classList.toggle("active", view.id === viewId));
+  refreshWorkspaceShell();
+  if (viewId === "adminFeedbackView") loadAdminFeedback();
+  if (viewId === "adminEmailView") loadAdminEmailCenterFn?.();
+  if (viewId === "adminFeatureFlagsView" && !document.querySelectorAll("#featureFlagSelect option").length) {
+    void featureConsole?.load();
+  }
+  return true;
+}
+
+let loadAdminEmailCenterFn = null;
+
 function renderAdminUsers(data = null, { append = false } = {}) {
   if (data && Array.isArray(data.users)) {
     adminUsers = mergeAdminUserPage(data.users, append);
@@ -3879,37 +3984,56 @@ function renderAdminUsers(data = null, { append = false } = {}) {
     adminUserPage = { ...adminUserPage, page: 1, total: data.length, has_more: false };
     if (!$('adminRoleUserSearch')?.value.trim()) adminRoleCandidateUsers = [...adminUsers];
   }
+  const localFilter = $("adminUserFilter")?.value || "all";
+  const visibleUsers = adminUsers.filter((user) => {
+    if (localFilter === "paid") return Array.isArray(user.memberships) && user.memberships.length > 0;
+    if (localFilter === "admin") return Boolean(user.is_admin || user.is_super_admin);
+    if (localFilter === "banned") return Boolean(user.banned);
+    return true;
+  });
   const list = $("adminUserList");
   const count = $("adminUserCount");
-  if (count) count.textContent = adminUserPage.query
-    ? `找到 ${adminUserPage.total} 个用户，已显示 ${adminUsers.length} 个`
-    : `共 ${adminUserPage.total} 个用户，已显示 ${adminUsers.length} 个`;
+  if (count) {
+    const baseText = adminUserPage.query
+      ? `找到 ${adminUserPage.total} 个用户，已加载 ${adminUsers.length} 个`
+      : `共 ${adminUserPage.total} 个用户，已加载 ${adminUsers.length} 个`;
+    count.textContent = localFilter === "all" ? baseText : `${baseText}（当前页筛选 ${visibleUsers.length} 个）`;
+  }
   if (!adminUserPage.query) setAdminKpi("adminKpiUsers", adminUserPage.total);
-  reconcileKeyedRows(list, adminUsers, {
+  reconcileKeyedRows(list, visibleUsers, {
     key: user => user.id,
     signature: user => JSON.stringify([user, isSuperAdmin(), state.account?.id]),
-    empty: `<p class="admin-empty-state">${adminUserPage.query ? "没有匹配的用户" : "暂无用户"}</p>`,
+    empty: `<p class="admin-empty-state">${adminUserPage.query || localFilter !== "all" ? "当前筛选条件下没有匹配用户" : "暂无用户"}</p>`,
     render: (user) => {
     const protectedUser = user.is_super_admin || user.id === state.account?.id;
-    const roleLabel = user.is_super_admin ? "站点所有者" : user.is_admin ? "管理员" : "普通用户";
+    const roleLabel = user.is_super_admin ? "站点所有者" : user.is_admin ? "委派管理员" : "普通用户";
+    const roleTone = user.is_super_admin ? "owner" : user.is_admin ? "admin" : "user";
     const stateClass = user.banned ? "account-state-bad" : "account-state-good";
     const summary = accountMembershipSummary(user);
     const memberships = (user.memberships || []).map((item) => `${item.plan_name || membershipLabel(item.plan_code)}${item.is_lifetime ? " · 永久" : item.expires_at ? ` · 至 ${formatLocalDateTime(item.expires_at)}` : ""}`).join("；") || "无有效会员";
-    const entitlements = (user.entitlements || []).map((item) => ({
-      language_japanese_access: "日语",
-      language_english_access: "英语",
-      language_all_access: "全部语言",
-      tools_access: "工具箱",
-      tools_batch_access: "批量处理",
-      temporary_share_access: "临时分享",
-      save_tool_config: "配置保存",
-      all_features_access: "全功能",
-    }[item] || item)).join("、") || "基础功能";
-    return `<article class="admin-user-card" data-user-id="${escapeHtml(user.id)}">
-      <div class="admin-user-identity"><h2>${escapeHtml(user.username)}</h2><p class="admin-user-id">${escapeHtml(user.id)}</p><p><span class="status-badge">${escapeHtml(roleLabel)}</span></p><p class="${stateClass}">${user.banned ? "已永久封禁" : "正常"}</p></div>
-      <div class="admin-user-facts"><p><span>最高等级</span><strong>${escapeHtml(summary.name)}</strong></p><p><span>有效会员</span><strong>${escapeHtml(memberships)}</strong></p><p><span>合并权益</span><strong>${escapeHtml(entitlements)}</strong></p></div>
-      <div class="admin-user-security"><p><span class="admin-field-name">登录密码</span><span class="secret-value">不可读取 · 可安全重置</span></p><p class="admin-last-login">最后登录：${escapeHtml(formatLocalDateTime(user.last_login_at, "从未"))}</p></div>
-      <div class="action-row compact admin-user-actions"><button class="button-secondary" data-admin-edit type="button" ${protectedUser ? "disabled" : ""}>编辑</button></div>
+    const entitlements = adminEntitlementLabelList(user.entitlements).join("、") || "基础功能";
+    const registeredAt = formatLocalDateTime(user.registered_at || user.created_at, "未知");
+    return `<article class="admin-user-card" data-user-id="${escapeHtml(user.id)}" ${protectedUser ? "" : 'data-row-clickable="true"'}>
+      <div class="admin-user-identity">
+        <div class="admin-user-head-line">
+          <h2>${escapeHtml(user.username)}</h2>
+          <span class="status-badge admin-role-badge" data-role-tone="${roleTone}">${escapeHtml(roleLabel)}</span>
+          <span class="admin-status-inline ${stateClass}">${user.banned ? "已永久封禁" : "正常"}</span>
+        </div>
+        <div class="admin-user-id-row">
+          <code class="admin-user-id">${escapeHtml(user.id)}</code>
+          <button class="button-ghost admin-copy-btn" type="button" data-copy-user-id="${escapeHtml(user.id)}" data-copy-label="复制 ID">复制 ID</button>
+        </div>
+      </div>
+      <div class="admin-user-facts">
+        <p><span>方案</span><strong>${escapeHtml(summary.name)}</strong></p>
+        <p><span>权益</span><span class="admin-fact-value">${escapeHtml(memberships)} · ${escapeHtml(entitlements)}</span></p>
+      </div>
+      <div class="admin-user-security">
+        <p><span class="admin-field-name">注册时间</span><time class="admin-last-login">${escapeHtml(registeredAt)}</time></p>
+        <p><span class="admin-field-name">最近登录</span><time class="admin-last-login">${escapeHtml(formatLocalDateTime(user.last_login_at, "从未"))}</time></p>
+      </div>
+      <div class="action-row compact admin-user-actions"><button class="button-secondary" data-admin-edit type="button" ${protectedUser ? 'disabled title="当前账户或站点所有者受保护"' : ""}>${protectedUser ? "受保护" : "管理"}</button></div>
     </article>`;
     },
   });
@@ -3927,6 +4051,8 @@ async function loadAdminUsers({ page = 1, append = false } = {}) {
   const list = $("adminUserList");
   const loadMore = $("adminUserLoadMoreBtn");
   const sequence = ++adminUserSearchSequence;
+  if (adminUserSearchAbortController) adminUserSearchAbortController.abort();
+  adminUserSearchAbortController = typeof AbortController === "function" ? new AbortController() : null;
   const query = $("adminUserSearch")?.value.trim() || "";
   const match = $("adminUserMatch")?.value || "partial";
   list?.setAttribute("aria-busy", "true");
@@ -3935,11 +4061,12 @@ async function loadAdminUsers({ page = 1, append = false } = {}) {
     loadMore.textContent = "正在加载…";
   }
   try {
-    const data = await apiGet(adminUsersQueryPath({ page, query, match }));
+    const data = await apiGet(adminUsersQueryPath({ page, query, match }), adminUserSearchAbortController ? { signal: adminUserSearchAbortController.signal } : {});
     if (sequence !== adminUserSearchSequence) return;
     renderAdminUsers(data, { append });
     $("adminError").textContent = "";
   } catch (error) {
+    if (error?.name === "AbortError" || error?.code === "request_aborted") return;
     if (sequence !== adminUserSearchSequence) return;
     $("adminError").textContent = error.message;
     if (!adminUsers.length) list.innerHTML = `<p class="admin-empty-state">${escapeHtml(error.message)}</p>`;
@@ -3955,6 +4082,10 @@ async function loadAdminUsers({ page = 1, append = false } = {}) {
 
 function markAdminUserSearchPending() {
   adminUserSearchSequence += 1;
+  if (adminUserSearchAbortController) {
+    adminUserSearchAbortController.abort();
+    adminUserSearchAbortController = null;
+  }
   const list = $("adminUserList");
   if (list) {
     list.setAttribute("aria-busy", "true");
@@ -3964,83 +4095,414 @@ function markAdminUserSearchPending() {
   if (loadMore) loadMore.classList.add("hidden");
 }
 
-function renderAdminRecharge(requests) {
-  const items = Array.isArray(requests) ? requests : [];
-  setAdminKpi("adminKpiRecharge", items.filter((item) => item?.status === "user_paid").length);
+function rechargeTone(status) {
+  if (["activated", "approved"].includes(status)) return "success";
+  if (["pending", "pending_payment", "user_paid", "processing"].includes(status)) return "pending";
+  if (status === "rejected") return "error";
+  return "neutral";
+}
+
+function processRechargeRequest(request, action, triggerBtn = null) {
+  if (!request || request.status !== "user_paid") return;
+  const amountText = `${(Number(request.amount_cents || 0) / 100).toFixed(2)} ${request.currency || "CNY"}`;
+  const planName = request.plan_name || membershipLabel(request.plan_code || request.plan);
+  const summary = action === "approve"
+    ? `确认“${request.username}”已实际到账 ${amountText}，并开通「${planName}」？注意：用户点击“我已付款”不代表资金到账。`
+    : `确认拒绝“${request.username}”的 ${amountText}「${planName}」充值申请（订单 ${request.order_number || request.id}）？`;
+  askConfirmation(
+    summary,
+    ({ confirmButton } = {}) => withInteractionFeedback(
+      confirmButton || triggerBtn,
+      `admin-recharge-${action}`,
+      async () => {
+        await api("/api/admin/recharge/process", {
+          request_id: request.id,
+          action,
+          admin_note: action === "approve" ? "管理员人工核对付款通过" : "管理员人工核对未通过",
+        });
+        await loadAdminData();
+        closeModal("adminDetailDrawer", true);
+        showAchievementToast(action === "approve" ? "已确认到账并开通会员" : "已拒绝该充值申请", {
+          tone: action === "approve" ? "success" : "info",
+          dedupeKey: `admin:recharge:${request.id}`,
+        });
+      },
+    ),
+  );
+}
+
+function openAdminRechargeDetail(requestId) {
+  const request = adminRechargeRequests.find((item) => item.id === requestId);
+  if (!request) return;
+  const amountText = `${(Number(request.amount_cents || 0) / 100).toFixed(2)} ${request.currency || "CNY"}`;
+  const planName = request.plan_name || membershipLabel(request.plan_code || request.plan);
+  const statusTone = rechargeTone(request.status);
+  const historyRows = Array.isArray(request.history) ? request.history : [];
+  const bodyHtml = `
+    <section class="admin-editor-section">
+      <div class="admin-detail-kv-head">
+        <span class="admin-request-badge" data-tone="${statusTone}">${escapeHtml(rechargeStatusLabel(request.status))}</span>
+        <strong class="admin-detail-amount">${escapeHtml(amountText)}</strong>
+      </div>
+      ${request.status === "user_paid" ? '<p class="admin-review-warning">审核安全提示：用户点击“我已付款”仅代表提交付款声明，不代表资金已到账。请在核对收款渠道实收金额与付款备注后再执行开通。</p>' : ""}
+      <dl class="admin-detail-dl">
+        <dt>订单编号</dt>
+        <dd class="admin-detail-copy-row"><code>${escapeHtml(request.order_number || request.id)}</code><button class="button-ghost admin-copy-btn" type="button" data-detail-copy="${escapeHtml(request.order_number || request.id)}" data-copy-label="复制单号">复制单号</button></dd>
+        <dt>订单 ID</dt>
+        <dd><code>${escapeHtml(request.id)}</code></dd>
+        <dt>申请用户</dt>
+        <dd>${escapeHtml(request.username)}（<code>${escapeHtml(request.user_id || "-")}</code>）</dd>
+        <dt>目标方案</dt>
+        <dd>${escapeHtml(planName)}（<code>${escapeHtml(request.plan_code || request.plan || "-")}</code>）</dd>
+        <dt>支付方式</dt>
+        <dd>${escapeHtml(paymentMethodLabel(request.payment_method))}</dd>
+        <dt>付款备注</dt>
+        <dd class="admin-detail-copy-row"><span>${escapeHtml(request.payment_note || "-")}</span>${request.payment_note ? `<button class="button-ghost admin-copy-btn" type="button" data-detail-copy="${escapeHtml(request.payment_note)}" data-copy-label="复制备注">复制备注</button>` : ""}</dd>
+        <dt>创建时间</dt>
+        <dd>${escapeHtml(formatLocalDateTime(request.requested_at, "未知"))}</dd>
+        <dt>用户声明付款</dt>
+        <dd>${escapeHtml(formatLocalDateTime(request.user_confirmed_at, "未声明"))}</dd>
+        <dt>订单有效期</dt>
+        <dd>${escapeHtml(formatLocalDateTime(request.expires_at, "无"))}</dd>
+        <dt>处理时间</dt>
+        <dd>${escapeHtml(formatLocalDateTime(request.handled_at, "未处理"))}</dd>
+        ${request.handled_by_username ? `<dt>处理管理员</dt><dd>${escapeHtml(request.handled_by_username)}</dd>` : ""}
+        ${request.admin_note ? `<dt>审核备注</dt><dd>${escapeHtml(request.admin_note)}</dd>` : ""}
+      </dl>
+    </section>
+    ${historyRows.length ? `<section class="admin-editor-section"><h3>状态流转记录</h3><ol class="admin-detail-timeline">${historyRows.map((entry) => `<li><strong>${escapeHtml(rechargeStatusLabel(entry.to_status || entry.status))}</strong><time>${escapeHtml(formatLocalDateTime(entry.created_at))}</time><p>${escapeHtml([entry.actor_username, entry.note].filter(Boolean).join(" · ") || "系统记录")}</p></li>`).join("")}</ol></section>` : ""}
+  `;
+  const actionsHtml = request.status === "user_paid"
+    ? `<button class="primary" type="button" data-detail-recharge-approve>确认付款并开通会员</button><button class="danger-button" type="button" data-detail-recharge-reject>拒绝申请</button>`
+    : "";
+  openAdminDetailDrawer({
+    title: `订单 ${request.order_number || request.id}`,
+    subtitle: `${request.username} · ${planName}`,
+    bodyHtml,
+    actionsHtml,
+    onBind: (drawer) => {
+      drawer.querySelectorAll("[data-detail-copy]").forEach((btn) => {
+        btn.addEventListener("click", () => copyTextWithFeedback(btn.dataset.detailCopy, btn));
+      });
+      drawer.querySelector("[data-detail-recharge-approve]")?.addEventListener("click", (ev) => processRechargeRequest(request, "approve", ev.currentTarget));
+      drawer.querySelector("[data-detail-recharge-reject]")?.addEventListener("click", (ev) => processRechargeRequest(request, "reject", ev.currentTarget));
+    },
+  });
+}
+
+function renderAdminRecharge(requests = null) {
+  if (Array.isArray(requests)) adminRechargeRequests = requests;
+  const pendingCount = adminRechargeRequests.filter((item) => item?.status === "user_paid").length;
+  setAdminKpi("adminKpiRecharge", pendingCount);
+  const badge = $("adminRechargeBadge");
+  if (badge) {
+    badge.textContent = pendingCount > 0 ? String(pendingCount) : "";
+    badge.classList.toggle("hidden", pendingCount <= 0);
+  }
+  const statusFilter = $("adminRechargeStatusFilter")?.value || "all";
+  const query = ($("adminRechargeSearch")?.value || "").trim().toLowerCase();
+  const filtered = adminRechargeRequests
+    .filter((item) => {
+      if (statusFilter === "user_paid") return item.status === "user_paid";
+      if (statusFilter === "pending_payment") return item.status === "pending_payment" || item.status === "pending";
+      if (statusFilter === "activated") return item.status === "activated" || item.status === "approved";
+      if (statusFilter === "rejected") return item.status === "rejected";
+      if (statusFilter === "closed") return ["cancelled", "expired"].includes(item.status);
+      return true;
+    })
+    .filter((item) => {
+      if (!query) return true;
+      const haystack = [item.order_number, item.id, item.username, item.user_id, item.payment_note, item.plan_name, item.plan_code]
+        .filter(Boolean).join(" ").toLowerCase();
+      return haystack.includes(query);
+    })
+    .sort((left, right) => {
+      const leftPending = left?.status === "user_paid" ? 0 : 1;
+      const rightPending = right?.status === "user_paid" ? 0 : 1;
+      return leftPending - rightPending;
+    });
+  const countEl = $("adminRechargeCount");
+  if (countEl) {
+    countEl.textContent = filtered.length === adminRechargeRequests.length
+      ? `共 ${adminRechargeRequests.length} 笔订单（待审核 ${pendingCount} 笔）`
+      : `显示 ${filtered.length} / ${adminRechargeRequests.length} 笔订单（待审核 ${pendingCount} 笔）`;
+  }
   const list = $("adminRechargeList");
-  list.innerHTML = items.map((request) => {
-    const statusTone = ["activated", "approved"].includes(request.status) ? "success"
-      : ["pending", "pending_payment", "user_paid", "processing"].includes(request.status) ? "pending"
-      : request.status === "rejected" ? "error" : "neutral";
-    return `<article class="admin-user-card admin-recharge-card" data-request-id="${escapeHtml(request.id)}">
-    <div class="admin-user-identity"><h2>${escapeHtml(request.username)}</h2><p class="admin-user-id">${escapeHtml(request.order_number || request.id)}</p><p class="admin-last-login">申请：${escapeHtml(formatLocalDateTime(request.requested_at, "未知"))}</p></div>
-    <div class="admin-user-facts"><p><span>套餐</span><strong>${escapeHtml(request.plan_name || membershipLabel(request.plan_code || request.plan))}</strong></p><p><span>支付方式</span><strong>${escapeHtml(paymentMethodLabel(request.payment_method))}</strong></p><p><span>金额</span><strong>${escapeHtml(`${(Number(request.amount_cents || 0) / 100).toFixed(2)} ${request.currency || "CNY"}`)}</strong></p><p><span>付款备注</span><strong>${escapeHtml(request.payment_note || "-")}</strong></p></div>
-    <div class="admin-request-status"><div class="admin-request-status-heading"><span>状态</span><strong class="admin-request-badge" data-tone="${statusTone}">${escapeHtml(rechargeStatusLabel(request.status))}</strong></div>${request.user_confirmed_at ? `<div class="admin-request-confirmed"><span>用户确认时间</span><time datetime="${escapeHtml(request.user_confirmed_at)}">${escapeHtml(formatLocalDateTime(request.user_confirmed_at))}</time></div>` : ""}</div>
-    <div class="action-row compact admin-user-actions">${request.status === "user_paid" ? '<button class="primary" data-recharge-approve type="button">确认付款并开通</button><button class="button-ghost danger-text" data-recharge-reject type="button">拒绝</button>' : ""}</div>
+  list.innerHTML = filtered.map((request) => {
+    const statusTone = rechargeTone(request.status);
+    const orderNum = request.order_number || request.id;
+    const amountText = `${(Number(request.amount_cents || 0) / 100).toFixed(2)} ${request.currency || "CNY"}`;
+    return `<article class="admin-user-card admin-recharge-card" data-request-id="${escapeHtml(request.id)}" data-row-clickable="true">
+    <div class="admin-user-identity">
+      <div class="admin-user-head-line"><h2>${escapeHtml(request.username)}</h2></div>
+      <div class="admin-user-id-row">
+        <code class="admin-user-id">${escapeHtml(orderNum)}</code>
+        <button class="button-ghost admin-copy-btn" type="button" data-copy-order-id="${escapeHtml(orderNum)}" data-copy-label="复制单号">复制单号</button>
+      </div>
+      <p class="admin-last-login">申请：${escapeHtml(formatLocalDateTime(request.requested_at, "未知"))}</p>
+    </div>
+    <div class="admin-user-facts">
+      <p><span>套餐</span><strong>${escapeHtml(request.plan_name || membershipLabel(request.plan_code || request.plan))}</strong></p>
+      <p><span>支付</span><span class="admin-fact-value">${escapeHtml(paymentMethodLabel(request.payment_method))} · <strong class="admin-amount-mono">${escapeHtml(amountText)}</strong></span></p>
+      <p><span>备注</span><span class="admin-fact-value admin-truncate">${escapeHtml(request.payment_note || "-")}</span></p>
+    </div>
+    <div class="admin-request-status">
+      <div class="admin-request-status-heading"><strong class="admin-request-badge" data-tone="${statusTone}">${escapeHtml(rechargeStatusLabel(request.status))}</strong></div>
+      ${request.user_confirmed_at ? `<div class="admin-request-confirmed"><span>用户声明付款</span><time datetime="${escapeHtml(request.user_confirmed_at)}">${escapeHtml(formatLocalDateTime(request.user_confirmed_at))}</time></div>` : '<span class="meta-line">尚未声明付款</span>'}
+    </div>
+    <div class="action-row compact admin-user-actions">
+      <button class="button-ghost" data-recharge-detail type="button">详情</button>
+      ${request.status === "user_paid" ? '<button class="primary" data-recharge-approve type="button">确认付款并开通</button><button class="button-ghost danger-text" data-recharge-reject type="button">拒绝</button>' : ""}
+    </div>
   </article>`;
-  }).join("") || '<p class="admin-empty-state">暂无充值申请</p>';
-  list.querySelectorAll("[data-recharge-approve], [data-recharge-reject]").forEach((button) => button.addEventListener("click", () => {
+  }).join("") || `<p class="admin-empty-state">${adminRechargeRequests.length ? "没有符合筛选条件的订单" : "暂无充值申请"}</p>`;
+  list.querySelectorAll("[data-copy-order-id]").forEach((btn) => btn.addEventListener("click", (ev) => {
+    ev.stopPropagation();
+    copyTextWithFeedback(btn.dataset.copyOrderId, btn);
+  }));
+  list.querySelectorAll("[data-recharge-detail]").forEach((btn) => btn.addEventListener("click", (ev) => {
+    ev.stopPropagation();
+    openAdminRechargeDetail(btn.closest("[data-request-id]").dataset.requestId);
+  }));
+  list.querySelectorAll("[data-recharge-approve], [data-recharge-reject]").forEach((button) => button.addEventListener("click", (ev) => {
+    ev.stopPropagation();
     const requestId = button.closest("[data-request-id]").dataset.requestId;
+    const request = adminRechargeRequests.find((item) => item.id === requestId);
     const action = button.hasAttribute("data-recharge-approve") ? "approve" : "reject";
-    askConfirmation(
-      action === "approve" ? "确认开通该会员套餐？" : "确认拒绝该充值申请？",
-      // #7: the admin approval round trip must show feedback on the button that
-      // was pressed, not only after the list reloads.
-      ({ confirmButton } = {}) => withInteractionFeedback(
-        confirmButton || button,
-        `admin-recharge-${action}`,
-        async () => {
-          await api("/api/admin/recharge/process", {
-            request_id: requestId,
-            action,
-            admin_note: action === "approve" ? "管理员人工核对付款通过" : "管理员人工核对未通过",
-          });
-          await loadAdminData();
-        },
-      ),
-    );
+    processRechargeRequest(request, action, button);
   }));
 }
 
-function renderAdminAudit(logs) {
-  const items = Array.isArray(logs) ? logs : [];
-  setAdminKpi("adminKpiAudit", items.length);
-  const list = $("adminAuditList");
-  list.innerHTML = items.map((log) => {
-    const success = log.success !== false && Number(log.success ?? 1) !== 0;
-    const target = log.target_username || log.target_label || log.target_id || "-";
-    const detail = log.note || log.error_code || (log.after && Object.keys(log.after).length ? JSON.stringify(log.after) : "无备注");
-    return `<article class="admin-log-card admin-audit-card">
-      <div class="admin-log-col-primary"><strong>${escapeHtml(log.action)}</strong><time>${escapeHtml(formatLocalDateTime(log.created_at))}</time></div>
-      <div class="admin-log-col-actor"><p>管理员：${escapeHtml(log.actor_username || "-")} · 角色：${escapeHtml(log.actor_role === "super_admin" ? "站点所有者" : log.actor_role === "admin" ? "管理员" : "-")}</p><p class="meta-line">对象：${escapeHtml(target)}</p></div>
-      <div class="admin-log-col-detail"><p><span class="status-badge" data-tone="${success ? "success" : "error"}">${success ? "成功" : "失败"}</span> ${escapeHtml(detail)}</p>${log.request_id ? `<p class="meta-line">请求 ID：${escapeHtml(log.request_id)}</p>` : ""}</div>
-    </article>`;
-  }).join("") || '<p class="admin-empty-state">暂无审计记录</p>';
+function isHighRiskAuditAction(action) {
+  return ["admin_delete", "ban", "password_reset", "admin_role_change", "admin_role_revoke", "feature_flag_kill_switch"].includes(String(action || ""));
 }
 
-function renderAdminLoginLogs(logs) {
-  const items = Array.isArray(logs) ? logs : [];
-  setAdminKpi("adminKpiLoginFailed", items.filter((log) => !log?.success).length);
+function openAdminAuditDetail(index) {
+  const log = adminAuditLogs[index];
+  if (!log) return;
+  const success = log.success !== false && Number(log.success ?? 1) !== 0;
+  const target = log.target_username || log.target_label || log.target_id || "-";
+  const bodyHtml = `
+    <section class="admin-editor-section">
+      <div class="admin-detail-kv-head">
+        <span class="status-badge" data-tone="${success ? "success" : "error"}">${success ? "操作成功" : "操作失败"}</span>
+        ${isHighRiskAuditAction(log.action) ? '<span class="status-badge" data-tone="error">高风险操作</span>' : ""}
+      </div>
+      <dl class="admin-detail-dl">
+        <dt>操作类型</dt><dd><code>${escapeHtml(log.action || "-")}</code></dd>
+        <dt>操作时间</dt><dd>${escapeHtml(formatLocalDateTime(log.created_at, "未知"))}</dd>
+        <dt>操作者</dt><dd>${escapeHtml(log.actor_username || "-")}（${escapeHtml(log.actor_role === "super_admin" ? "站点所有者" : log.actor_role === "admin" ? "委派管理员" : log.actor_role || "-")}）</dd>
+        <dt>目标对象</dt><dd>${escapeHtml(target)}</dd>
+        <dt>备注 / 错误码</dt><dd>${escapeHtml(log.note || log.error_code || "无")}</dd>
+        <dt>请求追踪 ID</dt><dd><code>${escapeHtml(log.request_id || "无")}</code></dd>
+      </dl>
+    </section>
+    ${log.before && Object.keys(log.before).length ? `<section class="admin-editor-section"><h3>变更前 (before)</h3><pre class="admin-detail-json">${escapeHtml(JSON.stringify(log.before, null, 2))}</pre></section>` : ""}
+    ${log.after && Object.keys(log.after).length ? `<section class="admin-editor-section"><h3>变更后 (after)</h3><pre class="admin-detail-json">${escapeHtml(JSON.stringify(log.after, null, 2))}</pre></section>` : ""}
+  `;
+  openAdminDetailDrawer({
+    title: `审计记录 · ${log.action || "未知动作"}`,
+    subtitle: `只读不可篡改记录 · ${formatLocalDateTime(log.created_at, "未知")}`,
+    bodyHtml,
+  });
+}
+
+function renderAdminAudit(logs = null) {
+  if (Array.isArray(logs)) adminAuditLogs = logs;
+  setAdminKpi("adminKpiAudit", adminAuditLogs.length);
+  const query = ($("adminAuditSearch")?.value || "").trim().toLowerCase();
+  const resultFilter = $("adminAuditResultFilter")?.value || "all";
+  const filtered = adminAuditLogs.map((log, idx) => ({ log, idx })).filter(({ log }) => {
+    const success = log.success !== false && Number(log.success ?? 1) !== 0;
+    if (resultFilter === "success" && !success) return false;
+    if (resultFilter === "failed" && success) return false;
+    if (!query) return true;
+    const text = [log.action, log.actor_username, log.target_username, log.target_label, log.target_id, log.note, log.error_code, log.request_id]
+      .filter(Boolean).join(" ").toLowerCase();
+    return text.includes(query);
+  });
+  const countEl = $("adminAuditCount");
+  if (countEl) {
+    countEl.textContent = filtered.length === adminAuditLogs.length
+      ? `已加载最近 ${adminAuditLogs.length} 条只读审计`
+      : `已加载最近 ${adminAuditLogs.length} 条中筛选出 ${filtered.length} 条`;
+  }
+  const list = $("adminAuditList");
+  list.innerHTML = filtered.map(({ log, idx }) => {
+    const success = log.success !== false && Number(log.success ?? 1) !== 0;
+    const highRisk = isHighRiskAuditAction(log.action);
+    const target = log.target_username || log.target_label || log.target_id || "-";
+    const detail = log.note || log.error_code || (log.after && Object.keys(log.after).length ? JSON.stringify(log.after) : "无备注");
+    return `<article class="admin-log-card admin-audit-card ${highRisk ? "is-high-risk" : ""}" data-audit-idx="${idx}" data-row-clickable="true">
+      <div class="admin-log-col-primary">
+        <div class="admin-log-action-line"><strong>${escapeHtml(log.action)}</strong>${highRisk ? '<span class="admin-risk-tag">高风险</span>' : ""}</div>
+        <time>${escapeHtml(formatLocalDateTime(log.created_at))}</time>
+      </div>
+      <div class="admin-log-col-actor"><p>操作者：${escapeHtml(log.actor_username || "-")}（${escapeHtml(log.actor_role === "super_admin" ? "站点所有者" : log.actor_role === "admin" ? "管理员" : "-")}）</p><p class="meta-line">对象：${escapeHtml(target)}</p></div>
+      <div class="admin-log-col-detail">
+        <div class="admin-log-detail-top">
+          <p class="admin-truncate"><span class="status-badge" data-tone="${success ? "success" : "error"}">${success ? "成功" : "失败"}</span> ${escapeHtml(detail)}</p>
+          <button class="button-ghost admin-row-detail-btn" type="button" data-audit-detail="${idx}">详情</button>
+        </div>
+        ${log.request_id ? `<p class="meta-line">请求 ID：${escapeHtml(log.request_id)}</p>` : ""}
+      </div>
+    </article>`;
+  }).join("") || `<p class="admin-empty-state">${adminAuditLogs.length ? "没有匹配的审计记录" : "暂无审计记录"}</p>`;
+  list.querySelectorAll("[data-audit-detail]").forEach((btn) => btn.addEventListener("click", (ev) => {
+    ev.stopPropagation();
+    openAdminAuditDetail(Number(btn.dataset.auditDetail));
+  }));
+}
+
+function summarizeUserAgent(ua) {
+  const raw = String(ua || "").trim();
+  if (!raw) return "未知浏览器";
+  if (raw.includes("Thewyj-Android")) return `Aeris Android 客户端 (${raw.slice(0, 32)})`;
+  return raw.length > 72 ? `${raw.slice(0, 72)}…` : raw;
+}
+
+function openAdminLoginDetail(index) {
+  const log = adminLoginLogs[index];
+  if (!log) return;
+  const success = Boolean(log.success);
+  const source = { cloudflare_pages: "网站代理", cloudflare: "Cloudflare", direct: "直接连接" }[log.source] || log.source || "未知来源";
+  openAdminDetailDrawer({
+    title: `登录记录 · ${log.username || "未知账号"}`,
+    subtitle: `${loginReasonLabel(log.reason)} · ${formatLocalDateTime(log.created_at, "未知")}`,
+    bodyHtml: `<section class="admin-editor-section">
+      <div class="admin-detail-kv-head"><span class="status-badge" data-tone="${success ? "success" : "error"}">${success ? "登录成功" : "登录失败"}</span></div>
+      <dl class="admin-detail-dl">
+        <dt>账号</dt><dd>${escapeHtml(log.username || "未知账号")}</dd>
+        <dt>结果说明</dt><dd>${escapeHtml(loginReasonLabel(log.reason))}</dd>
+        <dt>时间</dt><dd>${escapeHtml(formatLocalDateTime(log.created_at, "未知"))}</dd>
+        <dt>IP 地址</dt><dd><code>${escapeHtml(log.ip_address || "未知")}</code></dd>
+        <dt>网络位置</dt><dd>${escapeHtml(loginLocationLabel(log))}</dd>
+        <dt>连接来源</dt><dd>${escapeHtml(source)}</dd>
+        <dt>完整客户端标识</dt><dd><pre class="admin-detail-json">${escapeHtml(log.user_agent || "未知浏览器（服务端未记录）")}</pre></dd>
+      </dl>
+    </section>`,
+  });
+}
+
+function renderAdminLoginLogs(logs = null) {
+  if (Array.isArray(logs)) adminLoginLogs = logs;
+  const failedCount = adminLoginLogs.filter((log) => !log?.success).length;
+  setAdminKpi("adminKpiLoginFailed", failedCount);
+  const query = ($("adminLoginSearch")?.value || "").trim().toLowerCase();
+  const resultFilter = $("adminLoginResultFilter")?.value || "all";
+  const filtered = adminLoginLogs.map((log, idx) => ({ log, idx })).filter(({ log }) => {
+    const success = Boolean(log.success);
+    if (resultFilter === "success" && !success) return false;
+    if (resultFilter === "failed" && success) return false;
+    if (!query) return true;
+    const text = [log.username, log.ip_address, loginLocationLabel(log), log.user_agent, log.reason, log.source]
+      .filter(Boolean).join(" ").toLowerCase();
+    return text.includes(query);
+  });
+  const countEl = $("adminLoginCount");
+  if (countEl) {
+    countEl.textContent = filtered.length === adminLoginLogs.length
+      ? `已加载最近 ${adminLoginLogs.length} 条记录（失败 ${failedCount} 条）`
+      : `已加载最近 ${adminLoginLogs.length} 条中筛选出 ${filtered.length} 条`;
+  }
   const list = $("adminLoginList");
-  list.innerHTML = items.map((log) => {
+  list.innerHTML = filtered.map(({ log, idx }) => {
     const success = Boolean(log.success);
     const username = log.username || "未知账号";
     const source = { cloudflare_pages: "网站代理", cloudflare: "Cloudflare", direct: "直接连接" }[log.source] || log.source || "未知来源";
-    return `<article class="admin-log-card admin-login-card">
+    return `<article class="admin-log-card admin-login-card" data-login-idx="${idx}" data-row-clickable="true">
       <div><strong class="${success ? "login-success" : "login-failed"}">${escapeHtml(username)} · ${escapeHtml(loginReasonLabel(log.reason))}</strong><time>${escapeHtml(formatLocalDateTime(log.created_at))}</time></div>
       <p class="admin-login-location">位置：${escapeHtml(loginLocationLabel(log))} · IP：${escapeHtml(log.ip_address || "未知")} · ${escapeHtml(source)}</p>
-      <p class="admin-login-agent">设备：${escapeHtml(log.user_agent || "未知浏览器")}</p>
+      <div class="admin-log-detail-top">
+        <p class="admin-login-agent">设备：${escapeHtml(summarizeUserAgent(log.user_agent))}</p>
+        <button class="button-ghost admin-row-detail-btn" type="button" data-login-detail="${idx}">完整环境</button>
+      </div>
     </article>`;
-  }).join("") || '<p class="admin-empty-state">暂无登录记录</p>';
+  }).join("") || `<p class="admin-empty-state">${adminLoginLogs.length ? "没有匹配的登录记录" : "暂无登录记录"}</p>`;
+  list.querySelectorAll("[data-login-detail]").forEach((btn) => btn.addEventListener("click", (ev) => {
+    ev.stopPropagation();
+    openAdminLoginDetail(Number(btn.dataset.loginDetail));
+  }));
 }
 
-function renderAdminToolStats(tools) {
+function renderAdminToolStats(tools = null) {
+  if (Array.isArray(tools)) adminToolStats = tools;
+  if (!adminToolNameMap && adminToolStats.length) {
+    void ensureAdminToolNameMap().then((map) => {
+      if (map && $("adminToolStatsView")?.classList.contains("active")) renderAdminToolStats();
+    });
+  }
+  const query = ($("adminToolStatsSearch")?.value || "").trim().toLowerCase();
+  const sortMode = $("adminToolStatsSort")?.value || "uses";
+  const maxUses = Math.max(1, ...adminToolStats.map((item) => Number(item.uses || 0)));
+  const rows = adminToolStats
+    .filter((item) => {
+      if (!query) return true;
+      const friendly = adminToolNameMap?.get(item.tool_id) || "";
+      return String(item.tool_id || "").toLowerCase().includes(query) || friendly.toLowerCase().includes(query);
+    })
+    .slice()
+    .sort((left, right) => {
+      if (sortMode === "users") return Number(right.users || 0) - Number(left.users || 0) || Number(right.uses || 0) - Number(left.uses || 0);
+      if (sortMode === "recent") return String(right.last_used_at || "").localeCompare(String(left.last_used_at || ""));
+      return Number(right.uses || 0) - Number(left.uses || 0);
+    });
+  const countEl = $("adminToolStatsCount");
+  if (countEl) {
+    countEl.textContent = rows.length === adminToolStats.length
+      ? `服务端累计记录 ${adminToolStats.length} 项工具`
+      : `显示 ${rows.length} / ${adminToolStats.length} 项工具`;
+  }
   const list = $("adminToolStatsList");
-  list.innerHTML = (tools || []).map((item) => `<article class="admin-log-card admin-tool-stat-card"><div class="admin-log-col-primary"><strong>${escapeHtml(item.tool_id)}</strong></div><div class="admin-log-col-metrics"><span>${escapeHtml(item.uses || 0)} 次 · ${escapeHtml(item.users || 0)} 人</span></div><p class="admin-log-col-time">最近使用：${escapeHtml(formatLocalDateTime(item.last_used_at, "无"))}</p></article>`).join("") || '<p class="admin-empty-state">暂无工具使用记录</p>';
+  list.innerHTML = rows.map((item) => {
+    const uses = Number(item.uses || 0);
+    const pct = Math.max(2, Math.round((uses / maxUses) * 100));
+    const displayName = adminToolNameMap?.get(item.tool_id);
+    return `<article class="admin-log-card admin-tool-stat-card">
+      <div class="admin-log-col-primary">
+        <strong>${escapeHtml(displayName || item.tool_id)}</strong>
+        ${displayName ? `<code class="admin-tool-id-code">${escapeHtml(item.tool_id)}</code>` : ""}
+      </div>
+      <div class="admin-log-col-metrics">
+        <div class="admin-tool-metrics-row">
+          <span class="admin-tool-uses-num">${escapeHtml(uses)} 次</span>
+          <span class="meta-line">${escapeHtml(item.users || 0)} 人使用</span>
+        </div>
+        <div class="admin-tool-bar" aria-hidden="true"><span class="admin-tool-bar-fill" data-tool-stat-percent="${pct}"></span></div>
+      </div>
+      <p class="admin-log-col-time">最近使用：${escapeHtml(formatLocalDateTime(item.last_used_at, "无"))}</p>
+    </article>`;
+  }).join("") || `<p class="admin-empty-state">${adminToolStats.length ? "没有匹配的工具统计" : "暂无工具使用记录"}</p>`;
+  for (const fill of list.querySelectorAll(".admin-tool-bar-fill")) {
+    fill.style.width = `${fill.dataset.toolStatPercent}%`;
+  }
 }
 
 function siteMessageTypeLabel(type) {
   return SITE_MESSAGE_TYPE_LABELS[type] || "普通";
+}
+
+function updateAdminMessageLivePreview() {
+  const titleEl = $("adminMessagePreviewTitle");
+  const bodyEl = $("adminMessagePreviewBody");
+  const typeEl = $("adminMessagePreviewType");
+  const metaEl = $("adminMessagePreviewMeta");
+  const summaryEl = $("adminMessageSelectedSummary");
+  if (!titleEl || !bodyEl) return;
+  const scope = $("adminMessageScope")?.value || "single";
+  const channel = $("adminMessageChannel")?.value || "broadcast";
+  const msgType = $("adminMessageType")?.value || "normal";
+  const requiresConfirm = Boolean($("adminMessageRequiresConfirmation")?.checked);
+  const scopeText = scope === "all" ? "全部用户" : scope === "multiple" ? `已选 ${adminMessageSelectedUserIds.size} 人` : `指定单人 (${adminMessageSelectedUserIds.size}/1)`;
+  const channelText = channel === "inbox" ? "个人通知收件箱" : "广播／公告";
+  if (summaryEl) summaryEl.textContent = scope === "all" ? "全部用户" : `已选 ${adminMessageSelectedUserIds.size} 名用户`;
+  if (metaEl) metaEl.textContent = `范围：${scopeText} · 方式：${channelText}${requiresConfirm ? " · 需确认已读" : ""}`;
+  if (typeEl) {
+    typeEl.textContent = siteMessageTypeLabel(msgType);
+    typeEl.dataset.messageType = msgType;
+  }
+  titleEl.textContent = $("adminMessageTitle")?.value.trim() || "消息标题预览";
+  bodyEl.textContent = $("adminMessageBody")?.value.trim() || "填写正文后可在此预览纯文本换行效果。";
 }
 
 function adminMessageTargetLabel(message) {
@@ -4055,6 +4517,7 @@ function renderAdminMessageTargets(users = null) {
   if (!list) return;
   const scope = $("adminMessageScope")?.value || "single";
   $("adminMessageTargets")?.classList.toggle("hidden", scope === "all");
+  updateAdminMessageLivePreview();
   if (scope === "all") return;
   const visibleUsers = $("adminMessageTargetSearch")?.value.trim() ? adminMessageTargetUsers : adminUsers;
   list.innerHTML = visibleUsers.map((user) => `<label class="admin-message-target-option">
@@ -4068,6 +4531,7 @@ function renderAdminMessageTargets(users = null) {
     }
     if (input.checked) adminMessageSelectedUserIds.add(input.value);
     else adminMessageSelectedUserIds.delete(input.value);
+    updateAdminMessageLivePreview();
   }));
 }
 
@@ -4090,16 +4554,21 @@ async function loadAdminMessageTargets() {
 
 function renderAdminMessages(messages = null) {
   if (Array.isArray(messages)) adminMessages = messages;
+  const countEl = $("adminMessageCount");
+  if (countEl) countEl.textContent = `已加载 ${adminMessages.length} 条站内消息`;
   const list = $("adminMessageList");
   if (!list) return;
-  list.innerHTML = adminMessages.map((message) => `<article class="admin-log-card admin-message-card" data-admin-message-id="${escapeHtml(message.id)}">
+  list.innerHTML = adminMessages.map((message) => {
+    const channelLabel = message.delivery_channel === "inbox" ? "个人收件箱" : "广播／公告";
+    return `<article class="admin-log-card admin-message-card" data-admin-message-id="${escapeHtml(message.id)}">
     <div><strong>${escapeHtml(message.title)}</strong><time>${escapeHtml(formatLocalDateTime(message.created_at))}</time></div>
-    <p><span class="status-badge" data-message-type="${escapeHtml(message.type)}">${escapeHtml(siteMessageTypeLabel(message.type))}</span> · ${escapeHtml(message.status === "active" ? "有效" : message.status === "revoked" ? "已撤回" : "已到期")} · ${message.requires_confirmation ? "需明确确认" : "关闭即已读"}</p>
+    <p><span class="status-badge" data-message-type="${escapeHtml(message.type)}">${escapeHtml(siteMessageTypeLabel(message.type))}</span> · ${escapeHtml(channelLabel)} · ${escapeHtml(message.status === "active" ? "有效" : message.status === "revoked" ? "已撤回" : "已到期")} · ${message.requires_confirmation ? "需明确确认" : "关闭即已读"}</p>
     <p class="admin-message-body">${escapeHtml(message.body)}</p>
     <p>目标：${escapeHtml(adminMessageTargetLabel(message))}</p>
-    <p>已展示 ${escapeHtml(message.seen_count || 0)} · 已关闭 ${escapeHtml(message.dismissed_count || 0)} · 已确认 ${escapeHtml(message.acknowledged_count || 0)}${message.expires_at ? ` · 到期 ${escapeHtml(formatLocalDateTime(message.expires_at))}` : ""}</p>
+    <p class="admin-message-metrics">已展示 ${escapeHtml(message.seen_count || 0)} · 已关闭 ${escapeHtml(message.dismissed_count || 0)} · 已确认 ${escapeHtml(message.acknowledged_count || 0)}${message.expires_at ? ` · 到期 ${escapeHtml(formatLocalDateTime(message.expires_at))}` : ""}</p>
     <div class="action-row compact"><button class="danger-button" data-admin-message-revoke type="button" ${message.can_revoke ? "" : "disabled"}>撤回</button></div>
-  </article>`).join("") || '<p class="admin-empty-state">尚未发送站内消息</p>';
+  </article>`;
+  }).join("") || '<p class="admin-empty-state">尚未发送站内消息</p>';
   list.querySelectorAll("[data-admin-message-revoke]:not(:disabled)").forEach((button) => button.addEventListener("click", () => {
     const messageId = button.closest("[data-admin-message-id]").dataset.adminMessageId;
     askConfirmation("确认撤回这条站内消息？未读用户将不再看到。", async () => {
@@ -4136,7 +4605,9 @@ async function sendAdminMessage(event) {
     idempotency_key: `admin-message:${randomId()}`,
   };
   const targetDescription = scope === "all" ? "全部用户" : `${targetUserIds.length} 个指定用户`;
-  askConfirmation(`确认向${targetDescription}发送“${payload.title}”？发送后只能撤回，不能修改。`, async () => {
+  const channelLabel = payload.delivery_channel === "inbox" ? "个人通知收件箱" : "广播／公告";
+  const typeLabel = siteMessageTypeLabel(payload.message_type);
+  askConfirmation(`确认向${targetDescription}通过「${channelLabel}」发送「${typeLabel}」消息“${payload.title}”？发送后只能撤回，不能修改。`, async () => {
     const button = $("sendAdminMessageBtn");
     button.disabled = true;
     setControlFeedbackState(button, "pending");
@@ -4175,14 +4646,14 @@ function renderAdminRoles(data = null) {
     if (candidates.some((user) => user.id === prior)) select.value = prior;
   }
   $("adminRoleList").innerHTML = [
-    owner ? `<article class="admin-log-card"><div><strong>${escapeHtml(owner.username)} · 站点所有者</strong><span>唯一 owner</span></div><p>${escapeHtml(owner.id)}</p></article>` : "",
-    ...admins.map((admin) => `<article class="admin-log-card" data-admin-role-user-id="${escapeHtml(admin.id)}"><div><strong>${escapeHtml(admin.username)} · 管理员</strong><time>${escapeHtml(formatLocalDateTime(admin.granted_at))}</time></div><p>授权人：${escapeHtml(admin.granted_by_username)}</p><div class="action-row compact"><button class="danger-button" data-revoke-admin-role type="button">撤销管理员</button></div></article>`),
+    owner ? `<article class="admin-log-card admin-role-owner-card"><div><strong>${escapeHtml(owner.username)}</strong><span class="status-badge admin-role-badge" data-role-tone="owner">唯一站点所有者</span></div><p class="meta-line">ID：<code>${escapeHtml(owner.id)}</code> · 受服务端与数据库单所有者保护</p></article>` : "",
+    ...admins.map((admin) => `<article class="admin-log-card" data-admin-role-user-id="${escapeHtml(admin.id)}"><div><strong>${escapeHtml(admin.username)}</strong><span class="status-badge admin-role-badge" data-role-tone="admin">委派管理员</span><time>${escapeHtml(formatLocalDateTime(admin.granted_at))}</time></div><p>授权人：${escapeHtml(admin.granted_by_username)} · ID：<code>${escapeHtml(admin.id)}</code></p><div class="action-row compact"><button class="danger-button" data-revoke-admin-role type="button">撤销管理员</button></div></article>`),
   ].join("") || '<p class="admin-empty-state">暂无管理员角色数据</p>';
   $("adminRoleAuditList").innerHTML = (adminRoleState.audit || []).map((item) => `<article class="admin-log-card"><div><strong>${escapeHtml(item.action === "admin_grant" ? "授予管理员" : "撤销管理员")}</strong><time>${escapeHtml(formatLocalDateTime(item.created_at))}</time></div><p>${escapeHtml(item.actor_username)} → ${escapeHtml(item.target_username)} · ${escapeHtml(item.before_role)} → ${escapeHtml(item.after_role)}</p><p>${escapeHtml(item.note || "无备注")}</p></article>`).join("") || '<p class="admin-empty-state">暂无角色变更记录</p>';
   $("adminRoleList").querySelectorAll("[data-revoke-admin-role]").forEach((button) => button.addEventListener("click", () => {
     const userId = button.closest("[data-admin-role-user-id]").dataset.adminRoleUserId;
     const user = adminUserById(userId);
-    askConfirmation(`确认撤销“${user?.username || userId}”的管理员角色？`, async () => {
+    askConfirmation(`确认撤销“${user?.username || userId}”的委派管理员角色？撤销后该用户将立即失去管理后台访问权限。`, async () => {
       await api("/api/admin/roles", { user_id: userId, role: "user", note: $("adminRoleNote").value.trim() });
       $("adminRoleStatus").textContent = "管理员角色已撤销";
       await loadAdminData();
@@ -4218,7 +4689,7 @@ function grantSelectedAdminRole() {
     $("adminRoleStatus").textContent = "请先选择普通用户";
     return;
   }
-  askConfirmation(`确认授予“${user?.username || userId}”普通管理员权限？`, async () => {
+  askConfirmation(`确认授予“${user?.username || userId}”委派管理员权限？该账户可访问用户、充值、审计、反馈、消息与邮件模块（不含所有者专属功能）。`, async () => {
     await api("/api/admin/roles", { user_id: userId, role: "admin", note: $("adminRoleNote").value.trim() });
     $("adminRoleStatus").textContent = "管理员角色已授予";
     await loadAdminData();
@@ -4241,28 +4712,120 @@ function adminFeedbackStatusOptions(selected) {
   return Object.entries(FEEDBACK_STATUS_LABELS).map(([value, label]) => `<option value="${value}" ${value === selected ? "selected" : ""}>${escapeHtml(label)}</option>`).join("");
 }
 
+function openAdminFeedbackDetail(feedbackId) {
+  const item = adminFeedback.find((entry) => entry.id === feedbackId);
+  if (!item) return;
+  const canMerge = ["feature_suggestion", "new_tool"].includes(item.type);
+  const bodyHtml = `
+    <section class="admin-editor-section">
+      <div class="admin-detail-kv-head">
+        <span class="feedback-type">${escapeHtml(feedbackTypeLabel(item.type))}</span>
+        <span class="status-badge">${escapeHtml(feedbackStatusLabel(item.status))}</span>
+        <strong>${escapeHtml(item.vote_count || 0)} 票</strong>
+      </div>
+      <p class="admin-feedback-content">${escapeHtml(item.content)}</p>
+      <dl class="admin-detail-dl">
+        <dt>反馈 ID</dt><dd><code>${escapeHtml(item.id)}</code></dd>
+        <dt>提交用户</dt><dd>${escapeHtml(item.username)}</dd>
+        <dt>提交时间</dt><dd>${escapeHtml(formatLocalDateTime(item.created_at, "未知"))}</dd>
+        ${feedbackMetadata(item) ? `<dt>关联信息</dt><dd>${escapeHtml(feedbackMetadata(item))}</dd>` : ""}
+        ${item.browser_info ? `<dt>客户端环境</dt><dd>${escapeHtml(item.browser_info)}</dd>` : ""}
+        ${item.merged_into_id ? `<dt>已合并至</dt><dd><code>${escapeHtml(item.merged_into_id)}</code></dd>` : ""}
+      </dl>
+    </section>
+    <section class="admin-editor-section">
+      <h3>处理与状态</h3>
+      <div class="admin-feedback-drawer-form" data-drawer-feedback-id="${escapeHtml(item.id)}">
+        <label class="field-label"><span>处理状态</span><select data-feedback-admin-status>${adminFeedbackStatusOptions(item.status)}</select></label>
+        <label class="field-label"><span>管理员备注</span><textarea data-feedback-admin-note maxlength="1000" placeholder="内部处理备注">${escapeHtml(item.admin_note || "")}</textarea></label>
+        <div class="action-row"><button class="primary" type="button" data-drawer-feedback-save>保存状态与备注</button></div>
+      </div>
+    </section>
+    <section class="admin-editor-section admin-danger-section">
+      <h3>合并与垃圾处理</h3>
+      <p class="meta-line">${canMerge ? "合并仅适用于「功能建议」与「新工具建议」，投票将去重后转移至目标建议。" : "当前反馈类型不支持合并（仅功能建议与新工具建议可合并）。"}</p>
+      <div class="admin-feedback-drawer-form" data-drawer-feedback-actions="${escapeHtml(item.id)}">
+        <label class="field-label"><span>合并到目标反馈 ID</span><input data-feedback-merge-target maxlength="64" placeholder="目标反馈 ID" ${canMerge ? "" : "disabled"} /></label>
+        <div class="action-row">
+          <button class="button-secondary" type="button" data-drawer-feedback-merge ${canMerge ? "" : "disabled"}>合并重复建议</button>
+          <button class="danger-button" type="button" data-drawer-feedback-delete>删除垃圾反馈</button>
+        </div>
+      </div>
+    </section>
+  `;
+  openAdminDetailDrawer({
+    title: item.title || "反馈详情",
+    subtitle: `${item.username} · ${formatLocalDateTime(item.created_at, "未知")}`,
+    bodyHtml,
+    onBind: (drawer) => {
+      const readPayload = (action) => ({
+        dataset: { adminFeedbackId: item.id },
+        querySelector: (sel) => drawer.querySelector(sel),
+      });
+      drawer.querySelector("[data-drawer-feedback-save]")?.addEventListener("click", () => {
+        applyAdminFeedbackAction(readPayload("update"), "update")
+          .then(() => { setInlineFeedback("adminDetailStatus", "success", "反馈状态与备注已保存"); })
+          .catch((error) => setInlineFeedback("adminDetailStatus", "error", error.message));
+      });
+      drawer.querySelector("[data-drawer-feedback-merge]")?.addEventListener("click", () => {
+        const target = drawer.querySelector("[data-feedback-merge-target]")?.value.trim();
+        if (!target) {
+          setInlineFeedback("adminDetailStatus", "error", "请先填写要合并到的建议 ID。");
+          return;
+        }
+        askConfirmation(`确认将反馈 ${item.id} 合并至 ${target}？投票将去重转移，原反馈状态置为已拒绝。`, async () => {
+          await applyAdminFeedbackAction(readPayload("merge"), "merge");
+          closeModal("adminDetailDrawer", true);
+        }, { errorTarget: $("adminDetailStatus") });
+      });
+      drawer.querySelector("[data-drawer-feedback-delete]")?.addEventListener("click", () => {
+        askConfirmation(`确认永久删除垃圾反馈 ${item.id}（${item.title}）？此操作会记录审计且不可撤销。`, async () => {
+          await applyAdminFeedbackAction(readPayload("delete_spam"), "delete_spam");
+          closeModal("adminDetailDrawer", true);
+        }, { errorTarget: $("adminDetailStatus") });
+      });
+    },
+  });
+}
+
 function renderAdminFeedback(items = null) {
   if (Array.isArray(items)) adminFeedback = items;
+  const countEl = $("adminFeedbackCount");
+  if (countEl) countEl.textContent = `当前筛选共 ${adminFeedback.length} 条反馈`;
   const list = $("adminFeedbackList");
   if (!list) return;
   list.innerHTML = adminFeedback.map((item) => `<article class="admin-feedback-card" data-admin-feedback-id="${escapeHtml(item.id)}">
-    <header><div><span class="feedback-type">${escapeHtml(feedbackTypeLabel(item.type))}</span><h3>${escapeHtml(item.title)}</h3></div><div class="admin-feedback-summary"><span>${escapeHtml(item.vote_count)} 票</span><span>${escapeHtml(feedbackStatusLabel(item.status))}</span></div></header>
-    <p class="admin-feedback-author">${escapeHtml(item.username)} · ${escapeHtml(formatLocalDateTime(item.created_at, "未知"))} · ${escapeHtml(item.id)}</p>
+    <header>
+      <div class="admin-feedback-head-main">
+        <span class="feedback-type">${escapeHtml(feedbackTypeLabel(item.type))}</span>
+        <h3>${escapeHtml(item.title)}</h3>
+      </div>
+      <div class="admin-feedback-summary">
+        <span class="admin-feedback-votes">${escapeHtml(item.vote_count)} 票</span>
+        <span class="status-badge">${escapeHtml(feedbackStatusLabel(item.status))}</span>
+        <button class="button-ghost admin-row-detail-btn" data-feedback-detail type="button">详情与合并</button>
+      </div>
+    </header>
+    <p class="admin-feedback-author">${escapeHtml(item.username)} · ${escapeHtml(formatLocalDateTime(item.created_at, "未知"))} · <code>${escapeHtml(item.id)}</code></p>
     <p class="admin-feedback-content">${escapeHtml(item.content)}</p>
     ${feedbackMetadata(item) ? `<p class="admin-feedback-meta">${escapeHtml(feedbackMetadata(item))}</p>` : ""}
-    ${item.browser_info ? `<p class="admin-feedback-meta">浏览器：${escapeHtml(item.browser_info)}</p>` : ""}
     ${item.merged_into_id ? `<p class="admin-feedback-meta">已合并至：${escapeHtml(item.merged_into_id)}</p>` : ""}
     <div class="admin-feedback-controls">
       <label><span>状态</span><select data-feedback-admin-status>${adminFeedbackStatusOptions(item.status)}</select></label>
       <label class="admin-feedback-note"><span>管理员备注</span><textarea data-feedback-admin-note maxlength="1000" placeholder="内部处理备注">${escapeHtml(item.admin_note || "")}</textarea></label>
       <button class="primary" data-feedback-admin-save type="button">保存状态与备注</button>
     </div>
-    <div class="admin-feedback-merge">
-      <label><span>合并到建议 ID</span><input data-feedback-merge-target maxlength="64" placeholder="目标反馈 ID" /></label>
-      <button class="button-secondary" data-feedback-admin-merge type="button" ${["feature_suggestion", "new_tool"].includes(item.type) ? "" : "disabled"}>合并重复建议</button>
-      <button class="danger-button" data-feedback-admin-delete type="button">删除垃圾反馈</button>
-    </div>
+    <details class="admin-feedback-advanced">
+      <summary>合并或删除操作${item.browser_info ? " · 查看客户端环境" : ""}</summary>
+      ${item.browser_info ? `<p class="admin-feedback-meta">浏览器：${escapeHtml(item.browser_info)}</p>` : ""}
+      <div class="admin-feedback-merge">
+        <label><span>合并到建议 ID</span><input data-feedback-merge-target maxlength="64" placeholder="目标反馈 ID" ${["feature_suggestion", "new_tool"].includes(item.type) ? "" : "disabled"} /></label>
+        <button class="button-secondary" data-feedback-admin-merge type="button" ${["feature_suggestion", "new_tool"].includes(item.type) ? "" : "disabled"}>合并重复建议</button>
+        <button class="danger-button" data-feedback-admin-delete type="button">删除垃圾反馈</button>
+      </div>
+    </details>
   </article>`).join("") || '<p class="admin-empty-state">没有符合条件的反馈。</p>';
+  list.querySelectorAll("[data-feedback-detail]").forEach((button) => button.addEventListener("click", () => openAdminFeedbackDetail(button.closest("[data-admin-feedback-id]").dataset.adminFeedbackId)));
   list.querySelectorAll("[data-feedback-admin-save]").forEach((button) => button.addEventListener("click", () => adminFeedbackAction(button.closest("[data-admin-feedback-id]"), "update")));
   list.querySelectorAll("[data-feedback-admin-merge]").forEach((button) => button.addEventListener("click", () => adminFeedbackAction(button.closest("[data-admin-feedback-id]"), "merge")));
   list.querySelectorAll("[data-feedback-admin-delete]").forEach((button) => button.addEventListener("click", () => adminFeedbackAction(button.closest("[data-admin-feedback-id]"), "delete_spam")));
@@ -4291,7 +4854,7 @@ async function applyAdminFeedbackAction(card, action) {
     action,
     status: card.querySelector("[data-feedback-admin-status]").value,
     admin_note: card.querySelector("[data-feedback-admin-note]").value.trim(),
-    merged_into_id: card.querySelector("[data-feedback-merge-target]").value.trim(),
+    merged_into_id: card.querySelector("[data-feedback-merge-target]")?.value.trim() || "",
   };
   await api("/api/admin/feedback/update", payload);
   const [feedbackResult, auditResult] = await Promise.allSettled([
@@ -4325,12 +4888,15 @@ function adminFeedbackAction(card, action) {
   });
 }
 
-async function loadAdminData() {
+async function loadAdminData({ priorityOnly = false } = {}) {
   if (!isAdmin()) return;
   const sequence = ++adminLoadSequence;
   const refreshButton = $("refreshAdminBtn");
-  refreshButton.disabled = true;
-  refreshButton.textContent = "刷新中…";
+  const refreshSpan = refreshButton?.querySelector("span") || refreshButton;
+  if (refreshButton && !priorityOnly) {
+    refreshButton.disabled = true;
+    if (refreshSpan) refreshSpan.textContent = "刷新中…";
+  }
   $("adminPanel").setAttribute("aria-busy", "true");
   $("adminError").textContent = "";
   if (!adminUsers.length) {
@@ -4338,51 +4904,75 @@ async function loadAdminData() {
     if (!$("adminUserList").children.length) $("adminUserList").innerHTML = '<p class="admin-empty-state">正在连接服务器…</p>';
   }
   const requests = [
-    { label: "用户", path: adminUsersQueryPath({ page: 1 }), target: "adminUserList", apply: (data) => renderAdminUsers(data) },
-    { label: "充值申请", path: "/api/admin/recharge", target: "adminRechargeList", apply: (data) => renderAdminRecharge(data.requests) },
-    { label: "审计日志", path: "/api/admin/audit", target: "adminAuditList", apply: (data) => renderAdminAudit(data.logs) },
-    { label: "登录记录", path: "/api/admin/login-logs", target: "adminLoginList", apply: (data) => renderAdminLoginLogs(data.logs) },
-    { label: "工具统计", path: "/api/admin/tool-stats", target: "adminToolStatsList", apply: (data) => renderAdminToolStats(data.tools) },
-    { label: "反馈与投票", path: adminFeedbackQueryPath(), target: "adminFeedbackList", apply: (data) => renderAdminFeedback(data.feedback) },
-    { label: "站内消息", path: "/api/admin/messages", target: "adminMessageList", apply: (data) => renderAdminMessages(data.messages) },
+    { view: "adminUsersView", label: "用户", path: adminUsersQueryPath({ page: 1 }), target: "adminUserList", kpi: "adminKpiUsers", apply: (data) => renderAdminUsers(data) },
+    { view: "adminRechargeView", label: "充值申请", path: "/api/admin/recharge", target: "adminRechargeList", kpi: "adminKpiRecharge", apply: (data) => renderAdminRecharge(data.requests) },
+    { view: "adminAuditView", label: "审计日志", path: "/api/admin/audit", target: "adminAuditList", kpi: "adminKpiAudit", apply: (data) => renderAdminAudit(data.logs) },
+    { view: "adminLoginView", label: "登录记录", path: "/api/admin/login-logs", target: "adminLoginList", kpi: "adminKpiLoginFailed", apply: (data) => renderAdminLoginLogs(data.logs) },
+    { view: "adminToolStatsView", label: "工具统计", path: "/api/admin/tool-stats", target: "adminToolStatsList", apply: (data) => renderAdminToolStats(data.tools) },
+    { view: "adminFeedbackView", label: "反馈与投票", path: adminFeedbackQueryPath(), target: "adminFeedbackList", apply: (data) => renderAdminFeedback(data.feedback) },
+    { view: "adminMessagesView", label: "站内消息", path: "/api/admin/messages", target: "adminMessageList", apply: (data) => renderAdminMessages(data.messages) },
   ];
   if (isSuperAdmin()) {
-    requests.push({ label: "管理员角色", path: "/api/admin/roles", target: "adminRoleList", apply: renderAdminRoles });
+    requests.push({ view: "adminRolesView", label: "管理员角色", path: "/api/admin/roles", target: "adminRoleList", apply: renderAdminRoles });
   }
-  try {
-    const results = await Promise.allSettled(requests.map((request) => apiGet(request.path)));
-    if (sequence !== adminLoadSequence || !state.session || !isAdmin()) return;
-    const failures = [];
-    results.forEach((result, index) => {
-      const request = requests[index];
-      if (result.status === "fulfilled") {
-        try {
-          request.apply(result.value);
-        } catch (_error) {
-          failures.push(`${request.label}返回格式异常`);
-        }
-        return;
+  const activeViewId = document.querySelector(".admin-view.active")?.id || "adminUsersView";
+  const failures = [];
+  const settleOne = async (request) => {
+    try {
+      const value = await apiGet(request.path);
+      if (sequence !== adminLoadSequence || !state.session || !isAdmin()) return;
+      try {
+        request.apply(value);
+      } catch (_error) {
+        failures.push(`${request.label}返回格式异常`);
       }
-      failures.push(`${request.label}：${result.reason?.message || "加载失败"}`);
-      const kpiFailureTargets = {
-        "用户": "adminKpiUsers",
-        "充值申请": "adminKpiRecharge",
-        "审计日志": "adminKpiAudit",
-        "登录记录": "adminKpiLoginFailed",
-      };
-      if (kpiFailureTargets[request.label]) setAdminKpi(kpiFailureTargets[request.label], "加载失败", "error");
+    } catch (error) {
+      if (sequence !== adminLoadSequence || !state.session || !isAdmin()) return;
+      failures.push(`${request.label}：${error?.message || "加载失败"}`);
+      if (request.kpi) setAdminKpi(request.kpi, "加载失败", "error");
       const target = $(request.target);
       const missingUsers = request.label === "用户" && !adminUsers.length;
-      if (target && (!target.children.length || missingUsers)) target.innerHTML = `<p class="admin-empty-state">${request.label}尚未加载，请点击刷新重试。</p>`;
+      if (target && (!target.children.length || missingUsers)) {
+        target.innerHTML = `<p class="admin-empty-state">${request.label}尚未加载，请点击刷新重试。</p>`;
+      }
       if (missingUsers) $("adminUserCount").textContent = "用户尚未加载";
-    });
-    $("adminError").textContent = failures.length
-      ? `${failures.join("；")}。已加载的内容会保留，请点击刷新重试。`
-      : "";
+    }
+  };
+  try {
+    if (priorityOnly) {
+      const primaryRequests = requests.filter((req) => req.view === activeViewId);
+      const secondaryRequests = requests.filter((req) => req.view !== activeViewId);
+      const primaryDone = Promise.allSettled(primaryRequests.map(settleOne));
+      const secondaryDone = Promise.allSettled(secondaryRequests.map(settleOne));
+      await primaryDone;
+      if (sequence === adminLoadSequence) {
+        $("adminPanel").setAttribute("aria-busy", "false");
+        updateAdminLastUpdated();
+        $("adminError").textContent = failures.length
+          ? `${failures.join("；")}。已加载的内容会保留，请点击刷新重试。`
+          : "";
+      }
+      void secondaryDone.then(() => {
+        if (sequence !== adminLoadSequence || !state.session || !isAdmin()) return;
+        updateAdminLastUpdated();
+        $("adminError").textContent = failures.length
+          ? `${failures.join("；")}。已加载的内容会保留，请点击刷新重试。`
+          : "";
+      });
+    } else {
+      await Promise.allSettled(requests.map(settleOne));
+      if (sequence !== adminLoadSequence || !state.session || !isAdmin()) return;
+      updateAdminLastUpdated();
+      $("adminError").textContent = failures.length
+        ? `${failures.join("；")}。已加载的内容会保留，请点击刷新重试。`
+        : "";
+    }
   } finally {
     if (sequence === adminLoadSequence) {
-      refreshButton.disabled = false;
-      refreshButton.textContent = "刷新";
+      if (refreshButton && !priorityOnly) {
+        refreshButton.disabled = false;
+        if (refreshSpan) refreshSpan.textContent = "刷新";
+      }
       $("adminPanel").setAttribute("aria-busy", "false");
     }
   }
@@ -4407,11 +4997,18 @@ async function showAdminPanel(pushHistory = true, generation = routeGeneration) 
   renderAccountUi();
   const reapplyPopScroll = applyWorkspaceRouteScroll(pushHistory);
   if ($("adminRoleContext")) {
-    $("adminRoleContext").textContent = `当前身份：${isSuperAdmin() ? "站点所有者" : "管理员"}`;
+    $("adminRoleContext").textContent = `当前身份：${isSuperAdmin() ? "站点所有者" : "委派管理员"}`;
   }
-  await loadAdminData();
+  await loadAdminData({ priorityOnly: true });
   if (!isRouteGenerationCurrent(generation)) return;
-  await featureConsole?.load();
+  const activeViewId = document.querySelector(".admin-view.active")?.id || "adminUsersView";
+  if (activeViewId === "adminFeatureFlagsView") {
+    await featureConsole?.load();
+  } else if (activeViewId === "adminEmailView") {
+    loadAdminEmailCenterFn?.();
+  } else {
+    void featureConsole?.load();
+  }
   if (isRouteGenerationCurrent(generation)) reapplyPopScroll();
 }
 
@@ -4471,17 +5068,38 @@ function renderAdminCurrentMemberships(user) {
     const source = `来源：${item.source || "系统"}`;
     return `<article><strong>${escapeHtml(item.plan_name || membershipLabel(item.plan_code))}</strong><span>${item.is_lifetime ? "永久有效" : `到期 ${escapeHtml(formatLocalDateTime(item.expires_at, "未知"))}`}</span><small>${escapeHtml([language, source].filter(Boolean).join(" · "))}</small></article>`;
   }).join("") || "<p>当前没有有效会员</p>";
+  const entitlementsEl = $("adminEditEntitlements");
+  if (entitlementsEl) {
+    const labels = adminEntitlementLabelList(user?.entitlements);
+    entitlementsEl.innerHTML = labels.length
+      ? `<span class="meta-line">合并权益：</span>${labels.map((label) => `<span class="admin-entitlement-chip">${escapeHtml(label)}</span>`).join("")}`
+      : '<span class="meta-line">合并权益：基础功能</span>';
+  }
 }
 
 function openAdminEditor(userId) {
   const user = adminUserById(userId);
   if (!user || user.is_super_admin || user.id === state.account?.id) return;
-  const resetOnly=Boolean(user.is_admin);
-  document.querySelectorAll('#adminEditModal .admin-editor-section').forEach(section=>{
-    section.classList.toggle('hidden',resetOnly && !section.querySelector('#saveAdminSecretBtn'));
+  const resetOnly = Boolean(user.is_admin);
+  document.querySelectorAll('#adminEditModal .admin-editor-section').forEach((section, idx) => {
+    section.classList.toggle('hidden', resetOnly && !section.querySelector('#saveAdminSecretBtn') && idx > 0);
   });
   $("adminEditUserId").value = user.id;
   $("adminEditTitle").textContent = `编辑 ${user.username}`;
+  const metaEl = $("adminEditMeta");
+  if (metaEl) {
+    const roleLabel = user.is_super_admin ? "站点所有者" : user.is_admin ? "委派管理员" : "普通用户";
+    const statusLabel = user.banned ? "已永久封禁" : "正常";
+    metaEl.innerHTML = `
+      <span class="status-badge admin-role-badge" data-role-tone="${user.is_admin ? "admin" : "user"}">${escapeHtml(roleLabel)}</span>
+      <span class="status-badge" data-tone="${user.banned ? "error" : "success"}">${escapeHtml(statusLabel)}</span>
+      <code class="admin-user-id">${escapeHtml(user.id)}</code>
+      <button class="button-ghost admin-copy-btn" type="button" data-copy-edit-id="${escapeHtml(user.id)}" data-copy-label="复制 ID">复制 ID</button>
+      <span class="meta-line">注册：${escapeHtml(formatLocalDateTime(user.registered_at || user.created_at, "未知"))} · 最近登录：${escapeHtml(formatLocalDateTime(user.last_login_at, "从未"))}</span>
+    `;
+    const copyEditBtn = metaEl.querySelector("[data-copy-edit-id]");
+    copyEditBtn?.addEventListener("click", () => copyTextWithFeedback(user.id, copyEditBtn));
+  }
   const preferred = (user.memberships || [])
     .filter((item) => ["all_access_lifetime", "dual_language_lifetime", "all_access_monthly", "dual_language_monthly", "tools_monthly", "finance_monthly", "notification_archive_access", "japanese_lifetime", "trial_single_language"].includes(item.plan_code))
     .sort((left, right) => Number(right.priority || 0) - Number(left.priority || 0))[0];
@@ -4499,6 +5117,7 @@ function openAdminEditor(userId) {
   setInlineFeedback("adminEditMessage", "idle", "");
   renderAdminCurrentMemberships(user);
   updateAdminMembershipFields(false);
+  adminEditInitialSnapshot = adminEditSnapshot();
   openModal("adminEditModal");
 }
 
@@ -4526,11 +5145,14 @@ async function saveAdminMembership() {
         trial_language: planCode === "trial_single_language" ? $("adminTrialLanguageSelect").value : "",
       });
       await loadAdminData();
+      if ($("adminEditUserId").value !== userId) return;
       const refreshed = adminUserById(userId) || data.user;
       renderAdminCurrentMemberships(refreshed);
+      adminEditInitialSnapshot = adminEditSnapshot();
       setControlFeedbackState(button, "success");
       setInlineFeedback("adminEditMessage", "success", "会员设置已保存并立即生效");
     } catch (error) {
+      if ($("adminEditUserId").value !== userId) return;
       const cancelled = error?.message === "操作已取消";
       setControlFeedbackState(button, cancelled ? "idle" : "error");
       setInlineFeedback("adminEditMessage", cancelled ? "info" : "error", cancelled ? "已取消身份验证，会员设置未变更。" : error.message);
@@ -4556,15 +5178,17 @@ function updateAdminToolsOverride(allowed) {
       note: $("adminMembershipNote").value.trim(),
     });
     await loadAdminData();
+    if ($("adminEditUserId").value !== userId) return;
     renderAdminCurrentMemberships(adminUserById(userId));
+    adminEditInitialSnapshot = adminEditSnapshot();
     setInlineFeedback("adminEditMessage", "success", allowed === false ? "已单独取消工具权限" : "已恢复按会员方案计算工具权限");
   }, { errorTarget: $("adminEditMessage") });
 }
 
 async function saveAdminSecret() {
-  const supported=await task27Ui.isSupported();
-  const legacySecret=$('adminNewSecretInput').value;
-  if(!supported&&!legacySecret){setInlineFeedback('adminEditMessage', 'error', '请先输入或生成新的登录密码');return;}
+  const supported = await task27Ui.isSupported();
+  const legacySecret = $('adminNewSecretInput').value;
+  if (!supported && !legacySecret) { setInlineFeedback('adminEditMessage', 'error', '请先输入或生成新的登录密码'); return; }
   const saveButton = $("saveAdminSecretBtn");
   const generateButton = $("generateAdminSecretBtn");
   const userId = $("adminEditUserId").value;
@@ -4575,15 +5199,17 @@ async function saveAdminSecret() {
     setControlFeedbackState(saveButton, "pending");
     setInlineFeedback("adminEditMessage", "pending", "正在重置登录密码…");
     try {
-      const result = await api("/api/admin/secret", { user_id: userId, ...(supported?{grant:await task27Ui.stepup(`admin_reset:${userId}`)}:{secret:legacySecret}) });
+      const result = await api("/api/admin/secret", { user_id: userId, ...(supported ? { grant:await task27Ui.stepup(`admin_reset:${userId}`) } : { secret: legacySecret }) });
       await loadAdminData();
+      if ($("adminEditUserId").value !== userId) return;
       $("adminNewSecretInput").value = "";
       setAdminSecretVisibility(false);
       $("adminSecretResultValue").textContent = supported?result.temporary_password:legacySecret;
       $("adminSecretResult").classList.remove("hidden");
       setControlFeedbackState(saveButton, "success");
-      setInlineFeedback("adminEditMessage", "success", supported?"已生成随机 20 位临时密码，仅本次显示。旧会话已撤销，原 MFA 保留，用户须在首次登录时设置新密码。":"密码已修改，旧密码和旧会话均已失效。请立即复制新密码。");
+      setInlineFeedback("adminEditMessage", "success", supported ? "已生成随机 20 位临时密码，仅本次显示。旧会话已撤销，原 MFA 保留，用户须在首次登录时设置新密码。" : "密码已修改，旧密码和旧会话均已失效。请立即复制新密码。");
     } catch (error) {
+      if ($("adminEditUserId").value !== userId) return;
       const cancelled = error?.message === "操作已取消";
       setControlFeedbackState(saveButton, cancelled ? "idle" : "error");
       setInlineFeedback("adminEditMessage", cancelled ? "info" : "error", cancelled ? "已取消身份验证，用户密码未重置。" : error.message);
@@ -4639,6 +5265,7 @@ function adminUserAction(kind) {
     setInlineFeedback("adminEditMessage", "pending", "正在提交账户操作…");
     await api(path, payload);
     await loadAdminData();
+    adminEditInitialSnapshot = "";
     closeModal("adminEditModal");
     setInlineFeedback("adminError", "success", doneMessage);
   }, { errorTarget: $("adminEditMessage") });
@@ -6635,14 +7262,14 @@ async function apiGet(path,options={}) {
 }
 
 installLazyTools({
-  loadTools: createRetryableImport(new URL("./tools.js?release=20261128-aeris-p7-account-v4", import.meta.url)),
-  loadWorkflows: createRetryableImport(new URL("./workflows.js?release=20261128-aeris-p7-account-v4", import.meta.url)),
+  loadTools: createRetryableImport(new URL("./tools.js?release=20261128-aeris-p8-admin-v2", import.meta.url)),
+  loadWorkflows: createRetryableImport(new URL("./workflows.js?release=20261128-aeris-p8-admin-v2", import.meta.url)),
   onReady: () => renderDashboard(),
 });
 
-const loadFinanceModule = createRetryableImport(new URL("./js/finance/app.js?release=20261128-aeris-p7-account-v4", import.meta.url));
-const loadCandidateModule = createRetryableImport(new URL("./js/finance/candidates.js?release=20261128-aeris-p7-account-v4", import.meta.url));
-const loadTransferModule = createRetryableImport(new URL("./js/transfer/app.js?release=20261128-aeris-p7-account-v4", import.meta.url));
+const loadFinanceModule = createRetryableImport(new URL("./js/finance/app.js?release=20261128-aeris-p8-admin-v2", import.meta.url));
+const loadCandidateModule = createRetryableImport(new URL("./js/finance/candidates.js?release=20261128-aeris-p8-admin-v2", import.meta.url));
+const loadTransferModule = createRetryableImport(new URL("./js/transfer/app.js?release=20261128-aeris-p8-admin-v2", import.meta.url));
 
 financeController = createLazyController({
   methods: ["syncNow", "verifyTransaction", "render", "setSubView"],
@@ -8941,7 +9568,7 @@ function showAuthTransition(message = "正在验证身份与权限…") {
     overlay.setAttribute("aria-label", message);
     overlay.setAttribute("aria-hidden", "false");
     overlay.innerHTML = '<div class="entry-content">' +
-      '<img class="entry-logo" src="/icon-192.png?release=20261128-aeris-p7-account-v4" width="76" height="76" alt="" />' +
+      '<img class="entry-logo" src="/icon-192.png?release=20261128-aeris-p8-admin-v2" width="76" height="76" alt="" />' +
       '<strong>Aeris</strong>' +
       '<span class="entry-progress" aria-hidden="true"></span>' +
       '</div>';
@@ -9975,7 +10602,7 @@ async function boot() {
   document.querySelectorAll("[data-feedback-view]").forEach((button) => button.addEventListener("click", () => showFeedbackView(button.dataset.feedbackView)));
   $("refreshMyFeedbackBtn").addEventListener("click", loadMyFeedback);
   $("refreshVotingBtn").addEventListener("click", loadFeatureVoting);
-  $("refreshAdminBtn").addEventListener("click", loadAdminData);
+  $("refreshAdminBtn").addEventListener("click", () => loadAdminData({ priorityOnly: false }));
   $("leaveAdminBtn").addEventListener("click", leaveAdminPanel);
   $("adminUserSearch").addEventListener("input", () => {
     window.clearTimeout(adminUserSearchTimer);
@@ -9987,11 +10614,50 @@ async function boot() {
     markAdminUserSearchPending();
     loadAdminUsers({ page: 1 });
   });
+  $("adminUserFilter")?.addEventListener("change", () => renderAdminUsers());
   $("adminUserLoadMoreBtn").addEventListener("click", () => loadAdminUsers({ page: adminUserPage.page + 1, append: true }));
   $("adminUserList").addEventListener("click", (event) => {
+    const copyButton = event.target.closest("[data-copy-user-id]");
+    if (copyButton) {
+      event.stopPropagation();
+      copyTextWithFeedback(copyButton.dataset.copyUserId, copyButton);
+      return;
+    }
     const button = event.target.closest("[data-admin-edit]");
-    if (button && !button.disabled) openAdminEditor(button.closest("[data-user-id]").dataset.userId);
+    if (button && !button.disabled) {
+      openAdminEditor(button.closest("[data-user-id]").dataset.userId);
+      return;
+    }
+    if (event.target.closest("button, a, input, select, textarea, summary, details")) return;
+    const row = event.target.closest("[data-user-id][data-row-clickable='true']");
+    if (row) openAdminEditor(row.dataset.userId);
   });
+  $("adminRechargeSearch")?.addEventListener("input", () => renderAdminRecharge());
+  $("adminRechargeStatusFilter")?.addEventListener("change", () => renderAdminRecharge());
+  $("adminRechargeList")?.addEventListener("click", (event) => {
+    if (event.target.closest("button, a, input, select, textarea, summary, details")) return;
+    const row = event.target.closest("[data-request-id][data-row-clickable='true']");
+    if (row) openAdminRechargeDetail(row.dataset.requestId);
+  });
+  $("adminAuditSearch")?.addEventListener("input", () => renderAdminAudit());
+  $("adminAuditResultFilter")?.addEventListener("change", () => renderAdminAudit());
+  $("adminAuditList")?.addEventListener("click", (event) => {
+    if (event.target.closest("button, a, input, select, textarea, summary, details")) return;
+    const row = event.target.closest("[data-audit-idx][data-row-clickable='true']");
+    if (row) openAdminAuditDetail(Number(row.dataset.auditIdx));
+  });
+  $("adminLoginSearch")?.addEventListener("input", () => renderAdminLoginLogs());
+  $("adminLoginResultFilter")?.addEventListener("change", () => renderAdminLoginLogs());
+  $("adminLoginList")?.addEventListener("click", (event) => {
+    if (event.target.closest("button, a, input, select, textarea, summary, details")) return;
+    const row = event.target.closest("[data-login-idx][data-row-clickable='true']");
+    if (row) openAdminLoginDetail(Number(row.dataset.loginIdx));
+  });
+  $("adminToolStatsSearch")?.addEventListener("input", () => renderAdminToolStats());
+  $("adminToolStatsSort")?.addEventListener("change", () => renderAdminToolStats());
+  document.querySelectorAll("[data-admin-jump]").forEach((button) => button.addEventListener("click", () => {
+    switchAdminView(button.dataset.adminJump);
+  }));
   $("adminMessageForm")?.addEventListener("submit", sendAdminMessage);
   $("adminMessageTargetSearch")?.addEventListener("input", () => {
     window.clearTimeout(adminMessageTargetSearchTimer);
@@ -10008,6 +10674,11 @@ async function boot() {
       if (firstUserId) adminMessageSelectedUserIds.add(firstUserId);
     }
     renderAdminMessageTargets();
+    updateAdminMessageLivePreview();
+  });
+  ["adminMessageTitle", "adminMessageBody"].forEach((id) => $(id)?.addEventListener("input", updateAdminMessageLivePreview));
+  ["adminMessageType", "adminMessageChannel", "adminMessagePurpose", "adminMessageRequiresConfirmation"].forEach((id) => {
+    $(id)?.addEventListener("change", updateAdminMessageLivePreview);
   });
   $("grantAdminRoleBtn")?.addEventListener("click", grantSelectedAdminRole);
   $("siteMessageCloseIcon")?.addEventListener("click", () => { void dismissActiveSiteMessage(); });
@@ -10027,16 +10698,26 @@ async function boot() {
     }
     adminEmailCenterController?.load();
   }
-  document.querySelectorAll("[data-admin-view]").forEach((button) => button.addEventListener("click", () => {
-    document.querySelectorAll("[data-admin-view]").forEach((item) => {
-      const active = item === button;
-      item.classList.toggle("active", active);
-      item.setAttribute("aria-selected", String(active));
+  loadAdminEmailCenterFn = loadAdminEmailCenter;
+  const adminTabButtons = [...document.querySelectorAll("[data-admin-view]")];
+  adminTabButtons.forEach((button) => {
+    button.addEventListener("click", () => switchAdminView(button.dataset.adminView));
+    button.addEventListener("keydown", (event) => {
+      if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+      const visible = adminTabButtons.filter((item) => !item.classList.contains("hidden"));
+      const idx = visible.indexOf(button);
+      if (idx === -1 || !visible.length) return;
+      event.preventDefault();
+      let nextIdx = idx;
+      if (event.key === "ArrowRight") nextIdx = (idx + 1) % visible.length;
+      else if (event.key === "ArrowLeft") nextIdx = (idx - 1 + visible.length) % visible.length;
+      else if (event.key === "Home") nextIdx = 0;
+      else if (event.key === "End") nextIdx = visible.length - 1;
+      const target = visible[nextIdx];
+      target.focus({ preventScroll: true });
+      switchAdminView(target.dataset.adminView);
     });
-    document.querySelectorAll(".admin-view").forEach((view) => view.classList.toggle("active", view.id === button.dataset.adminView));
-    if (button.dataset.adminView === "adminFeedbackView") loadAdminFeedback();
-    if (button.dataset.adminView === "adminEmailView") loadAdminEmailCenter();
-  }));
+  });
   $("adminFeedbackSearch").addEventListener("input", () => {
     window.clearTimeout(adminFeedbackSearchTimer);
     adminFeedbackSearchTimer = window.setTimeout(loadAdminFeedback, 250);
