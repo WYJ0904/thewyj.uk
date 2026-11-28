@@ -2,7 +2,7 @@ import {
   MOTION,
   createScrollProgressController,
   createTabSkeletonSwitcher,
-} from "./motion.js?release=20261128-aeris-p7-account-v4";
+} from "./motion.js?release=20261128-aeris-p8-admin-v1";
 
 /** P3 / I03 public window: real local interactions, no authenticated writes or timers. */
 export function publicTextMetrics(value) {

@@ -1,17 +1,30 @@
-import { setControlFeedbackState } from './motion.js?release=20261128-aeris-p7-account-v4';
+import { setControlFeedbackState } from './motion.js?release=20261128-aeris-p8-admin-v1';
 
 export function createFeatureConsole({ api, apiGet, getAccount, refreshFeatures, document = globalThis.document }) {
   const node = id => document.getElementById(id);
-  let available = false, flags = [], generation = 0, loading = false, accountId = '';
+  let available = false, flags = [], generation = 0, loading = false, accountId = '', directoryQuery = '';
   const isAdmin = () => Boolean(getAccount()?.is_admin || getAccount()?.is_super_admin);
   const ownerId = () => String(getAccount()?.id || '');
   const current = () => flags.find(flag => flag.flag_key === node('featureFlagSelect')?.value);
+  const evalReasonLabels = Object.freeze({
+    kill_switch: '紧急关闭拦截',
+    global_off: '全局开关已关闭',
+    channel_excluded: '当前通道未开放',
+    user_override: '命中用户强制覆盖',
+    percentage_rollout: '按放量比例分桶评估',
+  });
   const message = (text, tone = 'idle') => {
     const el = node('featureConsoleStatus');
     if (!el) return;
     el.textContent = text;
     if (el.dataset) el.dataset.feedbackState = text ? tone : 'idle';
   };
+  function syncRolloutRange(value) {
+    const rangeEl = node('featureFlagPercentageRange');
+    if (!rangeEl) return;
+    const numeric = Number(value);
+    if (Number.isFinite(numeric)) rangeEl.value = String(Math.max(0, Math.min(100, numeric)));
+  }
   function persistedForForm() {
     const key = node('featureFlagKey')?.value?.trim();
     const rev = Number(node('featureFlagForm')?.dataset?.revision || 0);
@@ -41,6 +54,7 @@ export function createFeatureConsole({ api, apiGet, getAccount, refreshFeatures,
     const channelsEl = node('featureFlagChannelCapsules');
     const revEl = node('featureFlagRevisionCapsule');
     const warnEl = node('featureFlagKillWarning');
+    const dirtyEl = node('featureFlagDirtyBanner');
     const key = node('featureFlagKey')?.value?.trim();
     const enabled = Boolean(node('featureFlagEnabled')?.checked);
     const killSwitch = Boolean(node('featureFlagKillSwitch')?.checked);
@@ -49,9 +63,11 @@ export function createFeatureConsole({ api, apiGet, getAccount, refreshFeatures,
     const serverKillActive = persisted?.kill_switch === true;
     const dirty = isDraftDirty(persisted);
     const pct = node('featureFlagPercentage')?.value ?? '100';
+    syncRolloutRange(pct);
     const channels = ['stable', 'beta', 'experimental']
       .filter(ch => node(`featureChannel_${ch}`)?.checked)
       .map(ch => ch[0].toUpperCase() + ch.slice(1));
+    if (dirtyEl) dirtyEl.classList.toggle('hidden', !dirty);
     if (stateEl) {
       if (killSwitch) {
         stateEl.textContent = serverKillActive ? '紧急关闭 · 已生效' : '紧急关闭 · 未保存';
@@ -104,10 +120,59 @@ export function createFeatureConsole({ api, apiGet, getAccount, refreshFeatures,
     node('featureFlagKey').value = flag?.flag_key || ''; node('featureFlagKey').readOnly = Boolean(flag);
     node('featureFlagDescription').value = flag?.description || '';
     node('featureFlagEnabled').checked = flag?.enabled === true; node('featureFlagKillSwitch').checked = flag?.kill_switch === true;
-    node('featureFlagPercentage').value = flag?.rollout_percentage ?? 100;
+    const pctVal = flag?.rollout_percentage ?? 100;
+    node('featureFlagPercentage').value = pctVal;
+    syncRolloutRange(pctVal);
     for (const channel of ['stable', 'beta', 'experimental']) node(`featureChannel_${channel}`).checked = (flag?.channels || ['experimental']).includes(channel);
     node('featureFlagForm').dataset.revision = String(flag?.revision || 0);
     syncCapsules();
+  }
+  function renderDirectory() {
+    const summaryList = node('featureFlagSummaryList');
+    const countEl = node('featureDirectoryCount');
+    const needle = directoryQuery.trim().toLowerCase();
+    const visibleFlags = needle
+      ? flags.filter(flag => String(flag.flag_key || '').toLowerCase().includes(needle)
+        || String(flag.description || '').toLowerCase().includes(needle))
+      : flags;
+    if (countEl) {
+      countEl.textContent = needle ? `${visibleFlags.length} / ${flags.length} 项` : `共 ${flags.length} 项`;
+    }
+    if (!summaryList) return;
+    if (!visibleFlags.length) {
+      const empty = document.createElement('li');
+      empty.className = 'feature-directory-empty';
+      empty.textContent = needle ? '没有匹配的功能标识' : '暂无功能开关';
+      summaryList.replaceChildren(empty);
+      return;
+    }
+    summaryList.replaceChildren(...visibleFlags.map(flag => {
+      const row = document.createElement('li');
+      row.className = 'feature-directory-row';
+      const item = document.createElement('button');
+      item.type = 'button';
+      item.className = 'feature-directory-item';
+      item.dataset.flagKey = flag.flag_key;
+      const state = flag.kill_switch ? 'kill' : flag.enabled ? 'on' : 'off';
+      const stateLabel = flag.kill_switch ? '紧急关闭' : flag.enabled ? 'ON' : 'OFF';
+      const keySpan = document.createElement('code');
+      keySpan.textContent = flag.flag_key;
+      const metaSpan = document.createElement('span');
+      metaSpan.className = 'feature-directory-meta';
+      metaSpan.textContent = `${Number(flag.rollout_percentage ?? 100)}% · v${flag.revision}`;
+      const pill = document.createElement('span');
+      pill.className = 'feature-capsule';
+      pill.dataset.state = state;
+      pill.textContent = stateLabel;
+      item.append(keySpan, metaSpan, pill);
+      item.addEventListener('click', () => {
+        const select = node('featureFlagSelect');
+        if (select) { select.value = flag.flag_key; }
+        edit(flag);
+      });
+      row.append(item);
+      return row;
+    }));
   }
   function render() {
     const selected = node('featureFlagSelect').value;
@@ -117,36 +182,7 @@ export function createFeatureConsole({ api, apiGet, getAccount, refreshFeatures,
       return option;
     }));
     if (flags.some(flag => flag.flag_key === selected)) node('featureFlagSelect').value = selected;
-    const summaryList = node('featureFlagSummaryList');
-    if (summaryList) {
-      summaryList.replaceChildren(...flags.map(flag => {
-        const row = document.createElement('li');
-        row.className = 'feature-directory-row';
-        const item = document.createElement('button');
-        item.type = 'button';
-        item.className = 'feature-directory-item';
-        item.dataset.flagKey = flag.flag_key;
-        const state = flag.kill_switch ? 'kill' : flag.enabled ? 'on' : 'off';
-        const stateLabel = flag.kill_switch ? '紧急关闭' : flag.enabled ? 'ON' : 'OFF';
-        const keySpan = document.createElement('code');
-        keySpan.textContent = flag.flag_key;
-        const metaSpan = document.createElement('span');
-        metaSpan.className = 'feature-directory-meta';
-        metaSpan.textContent = `${Number(flag.rollout_percentage ?? 100)}% · v${flag.revision}`;
-        const pill = document.createElement('span');
-        pill.className = 'feature-capsule';
-        pill.dataset.state = state;
-        pill.textContent = stateLabel;
-        item.append(keySpan, metaSpan, pill);
-        item.addEventListener('click', () => {
-          const select = node('featureFlagSelect');
-          if (select) { select.value = flag.flag_key; }
-          edit(flag);
-        });
-        row.append(item);
-        return row;
-      }));
-    }
+    renderDirectory();
     edit(current());
   }
   async function load({ resetDraft = false, refreshButton = null } = {}) {
@@ -216,12 +252,32 @@ export function createFeatureConsole({ api, apiGet, getAccount, refreshFeatures,
       generation++; loading = false; flags = []; available = next; accountId = nextId;
       node('featureFlagSelect')?.replaceChildren(); node('featureFlagAudit')?.replaceChildren();
       node('featureFlagSummaryList')?.replaceChildren(); node('featureFlagAuditTimeline')?.replaceChildren();
-      node('featureEvaluationResult')?.replaceChildren(); edit(); message('', 'idle');
+      node('featureEvaluationResult')?.replaceChildren();
+      node('featureEvaluationPretty')?.replaceChildren();
+      node('featureEvaluationPretty')?.classList.add('hidden');
+      if (node('featureDirectoryCount')) node('featureDirectoryCount').textContent = '待读取';
+      if (node('featureFlagSearch')) node('featureFlagSearch').value = '';
+      directoryQuery = '';
+      edit(); message('', 'idle');
       node('learningMetrics')?.replaceChildren();
       for (const id of ['featureOverrideUser', 'featureEvaluateUser']) node(id).value = '';
     }
     node('adminFeatureFlagsTab')?.classList.toggle('hidden', !available);
   }
+  node('featureFlagSearch')?.addEventListener('input', event => {
+    directoryQuery = event.target.value || '';
+    renderDirectory();
+    syncCapsules();
+  });
+  node('featureFlagPercentageRange')?.addEventListener('input', event => {
+    const pctEl = node('featureFlagPercentage');
+    if (pctEl) pctEl.value = event.target.value;
+    syncCapsules();
+  });
+  node('resetFeatureFlagDraftBtn')?.addEventListener('click', () => {
+    setControlFeedbackState(node('saveFeatureFlagBtn'), 'idle');
+    edit(persistedForForm() || current() || null);
+  });
   node('featureFlagForm')?.addEventListener('change', syncCapsules);
   node('featureFlagForm')?.addEventListener('input', syncCapsules);
   async function mutate(path, payload, button) {
@@ -292,8 +348,32 @@ export function createFeatureConsole({ api, apiGet, getAccount, refreshFeatures,
     const ticket = generation, owner = ownerId(), button = node('evaluateFeatureBtn'); button.disabled = true;
     try {
       const response = await api('/api/admin/feature-flags/evaluate', { user_id: node('featureEvaluateUser').value, channel: node('featureEvaluateChannel').value });
-      if (ticket === generation && owner === ownerId()) node('featureEvaluationResult').textContent = Object.entries(response.snapshot.flags)
-        .map(([key, flag]) => `${key}: ${flag.enabled ? 'ON' : 'OFF'} (${flag.reason}, v${flag.revision})`).join('\n');
+      if (ticket === generation && owner === ownerId()) {
+        const entries = Object.entries(response.snapshot.flags || {});
+        node('featureEvaluationResult').textContent = entries
+          .map(([key, flag]) => `${key}: ${flag.enabled ? 'ON' : 'OFF'} (${flag.reason}, v${flag.revision})`).join('\n');
+        const prettyEl = node('featureEvaluationPretty');
+        if (prettyEl) {
+          prettyEl.classList.toggle('hidden', !entries.length);
+          prettyEl.replaceChildren(...entries.map(([key, flag]) => {
+            const row = document.createElement('div');
+            row.className = 'feature-eval-row';
+            const code = document.createElement('code');
+            code.textContent = key;
+            const state = document.createElement('span');
+            state.className = 'feature-capsule';
+            state.dataset.state = flag.enabled ? 'on' : 'off';
+            state.textContent = flag.enabled ? 'ON' : 'OFF';
+            const reason = document.createElement('span');
+            reason.className = 'feature-eval-reason';
+            const reasonName = evalReasonLabels[flag.reason] || flag.reason;
+            const bucketInfo = Number.isFinite(Number(flag.bucket)) ? ` · bucket ${flag.bucket}` : '';
+            reason.textContent = `${reasonName} (v${flag.revision}${bucketInfo})`;
+            row.append(code, state, reason);
+            return row;
+          }));
+        }
+      }
     } catch (error) { if (owner === ownerId()) message(error.message); }
     finally { button.disabled = false; }
   });

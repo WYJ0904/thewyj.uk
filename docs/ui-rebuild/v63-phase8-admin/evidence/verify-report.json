@@ -1,0 +1,120 @@
+{
+  "scope": "Isolated Cloudflare Pages Functions workerd (Miniflare D1/R2) + headless Chrome CDP (Phase 8)",
+  "checkedAt": "2026-11-28T09:23:14.487Z",
+  "checks": [
+    {
+      "name": "guest_401_and_normal_user_403",
+      "status": "PASS"
+    },
+    {
+      "name": "admin_priority_load_kpi_error_and_exact_counts",
+      "status": "PASS",
+      "apiUsersTotal": 36
+    },
+    {
+      "name": "users_pagination_search_8skus_override_and_stepup_reset",
+      "status": "PASS"
+    },
+    {
+      "name": "recharge_detail_drawer_approve_and_kpi_sync",
+      "status": "PASS"
+    },
+    {
+      "name": "audit_login_and_tool_stats_views",
+      "status": "PASS"
+    },
+    {
+      "name": "feedback_messages_email_and_delegated_admin_rbac",
+      "status": "PASS"
+    },
+    {
+      "name": "feature_flags_001_slider_dirty_override_and_kill_switch",
+      "status": "PASS"
+    },
+    {
+      "name": "dark_responsive_reduced_motion_and_legacy_p07_disabled",
+      "status": "PASS"
+    }
+  ],
+  "rbac": {
+    "guestAndUser": {
+      "guestUsersStatus": 401,
+      "userUsersStatus": 403,
+      "userRolesStatus": 403,
+      "userFlagsStatus": 403
+    },
+    "delegatedAdmin": {
+      "role": "admin",
+      "getRolesApi": 403,
+      "postRolesApi": 403,
+      "task18StatusApi": 403,
+      "flagsReadApi": 200,
+      "resetOwnerSecret": 403
+    }
+  },
+  "timingsMs": {
+    "publicHomeColdStartMs": 1337,
+    "adminEntryPriorityMs": 1085,
+    "tabSwitchMs": 33
+  },
+  "viewports": [
+    {
+      "width": 320,
+      "height": 640,
+      "overflow": false
+    },
+    {
+      "width": 375,
+      "height": 812,
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "overflow": false
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "overflow": false
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "overflow": false
+    },
+    {
+      "width": 1920,
+      "height": 1080,
+      "overflow": false
+    },
+    {
+      "width": 2560,
+      "height": 1440,
+      "overflow": false
+    }
+  ],
+  "videos": [
+    "video-1-users-membership.mp4",
+    "video-2-recharge-review.mp4",
+    "video-3-feedback-messages-roles.mp4",
+    "video-4-feature-flags-kill-switch.mp4"
+  ],
+  "screenshots": [
+    "admin-audit.png",
+    "admin-dark-1440.png",
+    "admin-email.png",
+    "admin-feature-flags.png",
+    "admin-feedback.png",
+    "admin-login.png",
+    "admin-messages.png",
+    "admin-mobile-390.png",
+    "admin-recharge-detail.png",
+    "admin-recharge.png",
+    "admin-roles.png",
+    "admin-tool-stats.png",
+    "admin-user-drawer.png",
+    "admin-users.png"
+  ],
+  "status": "PASS"
+}
