@@ -1,5 +1,5 @@
 import { hashSecret, PASSWORD_HASH_ITERATIONS, sessionStorageKey, verifySecret } from './task12-crypto.mjs';
-import { isAdminAccount, isOwnerAccount, validateSecret } from './task12-model.mjs';
+import { isAdminAccount, isOwnerAccount, MIN_SECRET_LENGTH, validateSecret } from './task12-model.mjs';
 import { task20TokenFromRequest } from './task20-model.mjs';
 import { cleanEmailAddress,emailSendingEnabled,emailBindingConfigured,EmailServiceError,parseAllowedTestRecipients } from './email-service.mjs';
 import { activeUser, assertion, atomic, changed, DAY, EVENT_TEXT, eventStatements, fail, first, generationAssertion, nowIso, rows, run, securityState, stmt, revokeAllStatements } from './task27-store.mjs';
@@ -232,5 +232,5 @@ export async function overview(context,account) {
     rows(db,'SELECT event_type,created_at FROM task27_events WHERE user_id=?1 ORDER BY created_at DESC,id DESC LIMIT 30',[account.id]),listSessions(context,account)]);
   return {email:state.verified_email,email_verified_at:state.email_verified_at,mfa_method:state.mfa_method,recovery_codes_remaining:Number(codes.count),
     password_changed_at:state.password_changed_at,password_age_measured_from:state.password_changed_at || state.password_age_start_at,password_advice_only:true,
-    enrollment_enabled:task27EnrollmentEnabled(context.env),email_sending_enabled:emailSendingEnabled(context.env)&&emailBindingConfigured(context.env),email_test_allowlist_active:parseAllowedTestRecipients(context.env).length>0,password_guidance:'为了提高账户安全性，建议使用至少 9 位、包含大小写字母、数字和特殊符号的密码。',sessions,events};
+    enrollment_enabled:task27EnrollmentEnabled(context.env),email_sending_enabled:emailSendingEnabled(context.env)&&emailBindingConfigured(context.env),email_test_allowlist_active:parseAllowedTestRecipients(context.env).length>0,password_guidance:`为了提高账户安全性，建议使用至少 ${MIN_SECRET_LENGTH} 位、包含大小写字母、数字和特殊符号的密码。`,sessions,events};
 }

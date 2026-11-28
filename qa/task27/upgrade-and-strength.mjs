@@ -9,7 +9,7 @@ import {temporaryPassword} from '../../functions/_lib/task27-crypto.mjs';
 import {POLICY_VERSIONS} from '../../functions/_lib/task27-policy.mjs';
 
 const root=path.resolve(import.meta.dirname,'../..'),out=path.join(root,'.wrangler/task27-increment',crypto.randomUUID());await mkdir(out,{recursive:true});
-const pepper='task27-upgrade-synthetic-pepper-0123456789',oldPassword='123456',newPassword='Abcdef1!x';
+const pepper='task27-upgrade-synthetic-pepper-0123456789',oldPassword='123456',newPassword='Abcde1!x';
 const config=JSON.parse(await readFile(path.join(root,'wrangler.jsonc'),'utf8'));
 const mf=new Miniflare({modules:true,scriptPath:path.join(root,'.wrangler/functions-build/index.js'),compatibilityDate:config.compatibility_date,d1Databases:['WYJ_DB'],r2Buckets:['WYJ_STORAGE'],bindings:{...config.env.preview.vars,WYJ_ENVIRONMENT:'development',WORKERS_AI_ENABLED:'false',EMAIL_SENDING_ENABLED:'false',TASK27_SECURITY_ENABLED:'true',
   WYJ_TASK12_PASSWORD_PEPPER:pepper,WYJ_TASK20_DEVICE_SESSION_SECRET:'task27-upgrade-synthetic-device-0123456789',WYJ_TASK27_CHALLENGE_SECRET:'task27-upgrade-synthetic-challenge-0123456789',WYJ_TASK27_TOTP_KEY:Buffer.alloc(32,3).toString('base64url')},serviceBindings:{ASSETS:()=>new Response('fixture',{status:404})}});
@@ -56,17 +56,17 @@ try{
   for(const username of ['legacy-owner','legacy:cf.user@example.test']){const current=await call('/api/login',{username,secret:oldPassword});assert.equal(current.status,200);assert.ok(current.body.session);assert.ok(!current.body.mfa_required&&!current.body.password_change_required);if(username==='legacy:cf.user@example.test')oldUserSession=current.body.session;else ownerSession=current.body.session;}
   assert.equal((await one("SELECT must_change_password FROM task27_security WHERE user_id='legacy:cf.user@example.test'")).must_change_password,0);
  });
- const denied=[['eight','Abcde1!x'],['upper','abcdef12!'],['lower','ABCDEF12!'],['digit','Abcdefgh!'],['symbol','Abcdef123'],['common','Password1!'],['unicode-eight','Aa1!💫xxx'],['space-symbol','Abcdef123 '],['too-long','Ab1!'+'x'.repeat(125)]];
- await check('direct registration API rejects eight characters, every missing class, common weak passwords and overlength',async()=>{
+ const denied=[['seven','Abcd1!x'],['upper','abcdef12!'],['lower','ABCDEF12!'],['digit','Abcdefgh!'],['symbol','Abcdef123'],['common','Password1!'],['unicode-seven','Aa1!💫xx'],['space-symbol','Abcdef123 '],['too-long','Ab1!'+'x'.repeat(125)]];
+ await check('direct registration API rejects seven characters, every missing class, common weak passwords and overlength',async()=>{
   for(const [label,password]of denied){const result=await registration('deny-'+label,password);assert.equal(result.status,400);assert.ok(result.body.error);assert.equal((await one('SELECT COUNT(*) AS count FROM task12_users WHERE username_normalized=?1','deny-'+label)).count,0);}
  });
  let newAccount;
- await check('nine-character compliant, Unicode and 128-character passwords register successfully',async()=>{
-  for(const [username,password]of [['new-nine',newPassword],['new-unicode','Aa1!中中中中中'],['new-long','Ab1!'+'x'.repeat(124)]]){const result=await registration(username,password);assert.equal(result.status,201);if(username==='new-nine')newAccount=result.body.account;}
+ await check('eight-character compliant, Unicode and 128-character passwords register successfully',async()=>{
+  for(const [username,password]of [['new-eight',newPassword],['new-unicode','Aa1!中中中中'],['new-long','Ab1!'+'x'.repeat(124)]]){const result=await registration(username,password);assert.equal(result.status,201);if(username==='new-eight')newAccount=result.body.account;}
  });
  await check('old password can authorize a voluntary change, while the newly chosen password must satisfy new policy',async()=>{
   const step=await call('/api/security/stepup',{password:oldPassword,scope:'password_change'},oldUserSession);assert.equal(step.status,200);
-  assert.equal((await call('/api/account/secret',{new_secret:'Abcde1!x',confirm_secret:'Abcde1!x',grant:step.body.grant},oldUserSession)).status,400);
+  assert.equal((await call('/api/account/secret',{new_secret:'Abcd1!x',confirm_secret:'Abcd1!x',grant:step.body.grant},oldUserSession)).status,400);
   assert.equal((await call('/api/account/secret',{new_secret:newPassword,confirm_secret:newPassword,grant:step.body.grant},oldUserSession)).status,200);
   assert.equal((await call('/api/me',undefined,oldUserSession)).status,401);
   assert.equal((await call('/api/login',{username:'legacy:cf.user@example.test',secret:newPassword})).status,200);
@@ -82,12 +82,12 @@ try{
   const preview=await call('/api/admin/email/preview',{target_mode:'single',subject:'Synthetic existing-ID check',body:'Synthetic service integration',recipient_user_ids:['legacy:cf.user@example.test']},ownerSession);assert.equal(preview.status,200);assert.equal(preview.body.effective_recipient_count,1);
  });
  await check('unverified email cannot enable email MFA and unavailable mail never reports a sent code',async()=>{
-  const login=await call('/api/login',{username:'new-nine',secret:newPassword}),token=login.body.session;
+  const login=await call('/api/login',{username:'new-eight',secret:newPassword}),token=login.body.session;
   const mfaStep=await call('/api/security/stepup',{password:newPassword,scope:'mfa_change'},token);
   const denied=await call('/api/security/mfa/start',{method:'email',grant:mfaStep.body.grant},token);assert.equal(denied.status,400);assert.equal(denied.body.code,'verified_email_required');
   const emailStep=await call('/api/security/stepup',{password:newPassword,scope:'email_change'},token);
   const binding=await call('/api/security/email/start',{email:'synthetic@example.test',grant:emailStep.body.grant},token);assert.equal(binding.status,503);assert.equal(binding.body.code,'email_sending_unavailable');assert.equal(binding.body.challenge,undefined);
-  for(const username of ['new-nine','nonexistent-user']){const forgot=await call('/api/security/password/request',{username,method:'email'});assert.equal(forgot.status,503);assert.equal(forgot.body.code,'email_sending_unavailable');assert.equal(forgot.body.challenge,undefined);}
+  for(const username of ['new-eight','nonexistent-user']){const forgot=await call('/api/security/password/request',{username,method:'email'});assert.equal(forgot.status,503);assert.equal(forgot.body.code,'email_sending_unavailable');assert.equal(forgot.body.challenge,undefined);}
   assert.equal((await one('SELECT verified_email FROM task27_security WHERE user_id=?1',newAccount.id)).verified_email,'');
  });
  await check('voluntary password operations leave membership, finance and learning content unchanged',async()=>{

@@ -444,7 +444,7 @@ export function createTransferController({
       ...extra,
     };
     if (!authenticated()) value["X-Transfer-Guest-Id"] = guestId();
-    if (includeBody && value["X-Session-Token"]) value["Content-Type"] = "application/json";
+    if (includeBody && (value["X-Session-Token"] || value["X-Aeris-Session-Context"])) value["Content-Type"] = "application/json";
     return value;
   }
 

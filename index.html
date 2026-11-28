@@ -676,8 +676,8 @@
           </form>
           </div><div id="registerTabPanel" class="hidden" role="tabpanel" aria-labelledby="showRegisterBtn"><form id="registerForm" class="login-form hidden" aria-labelledby="showRegisterBtn" aria-describedby="loginError">
             <label class="field-label auth-field"><span>用户名</span><input id="registerUsernameInput" autocomplete="username" maxlength="40" placeholder="请输入用户名" required /></label>
-            <label class="field-label auth-field"><span>登录密码</span><input id="registerSecretInput" type="password" autocomplete="new-password" minlength="9" maxlength="256" placeholder="至少 9 位，包含大小写字母、数字和特殊符号" required /></label>
-            <label class="field-label auth-field"><span>确认登录密码</span><input id="registerConfirmInput" type="password" autocomplete="new-password" minlength="9" maxlength="256" placeholder="再次输入登录密码" required /></label>
+            <label class="field-label auth-field"><span>登录密码</span><input id="registerSecretInput" type="password" autocomplete="new-password" minlength="8" maxlength="256" placeholder="至少 8 位，包含大小写字母、数字和特殊符号" required /></label>
+            <label class="field-label auth-field"><span>确认登录密码</span><input id="registerConfirmInput" type="password" autocomplete="new-password" minlength="8" maxlength="256" placeholder="再次输入登录密码" required /></label>
             <div class="task27-policy-consent"><input id="registerTermsConsent" type="checkbox" required /><label for="registerTermsConsent">我已阅读并同意<a href="/terms" target="_blank" rel="noopener">《Aeris 使用条款》</a>，并已获提供<a href="/privacy" target="_blank" rel="noopener">《Aeris 隐私政策》</a>和<a href="/security-privacy" target="_blank" rel="noopener">《Aeris 安全与隐私说明》</a>。</label></div>
             <button class="primary" id="registerSubmitBtn" type="submit">创建账户</button>
           </form>
@@ -1218,10 +1218,10 @@
           <h2 class="account-settings-title">修改登录密钥</h2>
           <label data-p07-label for="currentSecretInput">当前登录密钥</label>
           <div class="secret-input-row"><input id="currentSecretInput" type="password" autocomplete="current-password" maxlength="256" placeholder="当前登录密钥" required /><button id="toggleCurrentSecretBtn" type="button" aria-pressed="false">显示</button></div>
-          <label data-p07-label for="newSecretInput">新密码（至少 9 位，包含大小写字母、数字和特殊符号）</label>
-          <div class="secret-input-row"><input id="newSecretInput" type="password" autocomplete="new-password" minlength="9" maxlength="256" placeholder="设置新的混合密码" required /><button id="toggleNewSecretBtn" type="button" aria-pressed="false">显示</button></div>
+          <label data-p07-label for="newSecretInput">新密码（至少 8 位，包含大小写字母、数字和特殊符号）</label>
+          <div class="secret-input-row"><input id="newSecretInput" type="password" autocomplete="new-password" minlength="8" maxlength="256" placeholder="设置新的混合密码" required /><button id="toggleNewSecretBtn" type="button" aria-pressed="false">显示</button></div>
           <label data-p07-label for="newSecretConfirmInput">再次输入新登录密钥</label>
-          <input id="newSecretConfirmInput" type="password" autocomplete="new-password" minlength="9" maxlength="256" placeholder="再次输入新登录密码" required />
+          <input id="newSecretConfirmInput" type="password" autocomplete="new-password" minlength="8" maxlength="256" placeholder="再次输入新登录密码" required />
           <div class="account-secret-actions"><button id="generateOwnSecretBtn" type="button">生成安全密钥</button><button class="primary" type="submit">保存并退出全部会话</button></div>
         </form>
         <div class="danger-zone">

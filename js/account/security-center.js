@@ -191,7 +191,7 @@ export function createSecurityCenter({api,apiGet,publicApi,getSession,getAccount
   async function completeLogin(result) {
     if(result.mfa_required)result=await publicApi('/api/security/login/verify',{challenge:result.challenge,code:await codePrompt(result.method,'登录双重验证')});
     if(result.password_change_required){
-      const values=await prompt('设置新的登录密码',[{name:'new_secret',label:'新密码（至少 9 位混合密码）',type:'password',autocomplete:'new-password'},{name:'confirm_secret',label:'再次输入新密码',type:'password',autocomplete:'new-password'}],{message:'临时密码只能用于设置新密码。完成后请重新登录。'});
+      const values=await prompt('设置新的登录密码',[{name:'new_secret',label:'新密码（至少 8 位混合密码）',type:'password',autocomplete:'new-password'},{name:'confirm_secret',label:'再次输入新密码',type:'password',autocomplete:'new-password'}],{message:'临时密码只能用于设置新密码。完成后请重新登录。'});
       await publicApi('/api/security/password/complete',{challenge:result.password_change_token,...values});
       throw new Error('密码已修改，请使用新密码重新登录');
     }
@@ -244,7 +244,7 @@ export function createSecurityCenter({api,apiGet,publicApi,getSession,getAccount
       }).catch(() => {});
       bind(node,'[data-security-password]',async()=>{
         const grant=await stepup('password_change');
-        const values=await prompt('修改登录密码',[{name:'new_secret',label:'新密码（至少 9 位混合密码）',type:'password',autocomplete:'new-password'},{name:'confirm_secret',label:'再次输入新密码',type:'password',autocomplete:'new-password'}]);
+        const values=await prompt('修改登录密码',[{name:'new_secret',label:'新密码（至少 8 位混合密码）',type:'password',autocomplete:'new-password'},{name:'confirm_secret',label:'再次输入新密码',type:'password',autocomplete:'new-password'}]);
         await invalidate(await api('/api/account/secret',{grant,...values}),'密码已修改，请重新登录');
       });
       bind(node,'[data-security-email]',async()=>{

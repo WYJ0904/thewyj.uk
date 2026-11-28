@@ -212,7 +212,7 @@ export function createApiClient({
       xhr.timeout = options.timeoutMs || 180000;
       xhr.setRequestHeader("Content-Type", "application/json");
       const sessionHeaders = accountSessionHeaders(getSession());
-      if (sessionHeaders["X-Session-Token"]) xhr.setRequestHeader("X-Session-Token", sessionHeaders["X-Session-Token"]);
+      for (const [name, value] of Object.entries(sessionHeaders)) xhr.setRequestHeader(name, value);
       xhr.upload.onprogress = (event) => {
         if (event.lengthComputable && typeof options.onProgress === "function") {
           options.onProgress(Math.max(0, Math.min(1, event.loaded / event.total)), event.loaded, event.total);
@@ -281,7 +281,7 @@ export function createApiClient({
       xhr.timeout = options.timeoutMs || 600000;
       xhr.setRequestHeader("Content-Type", options.contentType || body?.type || "application/octet-stream");
       const sessionHeaders = accountSessionHeaders(getSession());
-      if (sessionHeaders["X-Session-Token"]) xhr.setRequestHeader("X-Session-Token", sessionHeaders["X-Session-Token"]);
+      for (const [name, value] of Object.entries(sessionHeaders)) xhr.setRequestHeader(name, value);
       xhr.upload.onprogress = (event) => {
         if (event.lengthComputable && typeof options.onProgress === "function") {
           options.onProgress(Math.max(0, Math.min(1, event.loaded / event.total)), event.loaded, event.total);

@@ -39,10 +39,12 @@ import {
   accountSessionHeaders,
   clearAccountSessionStorage,
   persistAccountSession,
+  pauseCookieSessionRestore,
   queueNativeBridgeNavigation,
   requestNativeLogout,
   requestNativeSessionRefresh,
   restoreAccountSession,
+  readCookieAccountSession,
   subscribeAccountSessionChanges,
 } from "./js/core/session.js?release=20261118-aeris-task30-web-release";
 import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?release=20261118-aeris-task30-web-release";
@@ -1830,8 +1832,11 @@ async function logoutAccount() {
   try {
     if (session) await api("/api/logout");
   } catch (_) {
-    // Local cleanup still signs the browser out when the network is unavailable.
+    if (state.session && state.session !== session) return;
+    // Keep a still-valid server cookie from restoring after an offline logout.
+    pauseCookieSessionRestore();
   }
+  if (state.session && state.session !== session) return;
   clearSavedWordDrafts(account);
   clearSession();
   if (requestNativeLogout()) return;
@@ -7294,12 +7299,22 @@ async function login(event) {
 }
 
 async function performBackendRefresh() {
-  const owner = state.session;
+  let owner = state.session;
   try {
     const data = await checkBackendStatus();
     if (owner !== state.session) return;
     applyBackendStatus(data);
 
+    if (!owner && data.features?.task12_cloud_accounts === true && !isThewyjAndroidApp()) {
+      const restored = await readCookieAccountSession(AbortSignal.timeout(STATUS_TIMEOUT_MS));
+      if (owner !== state.session) return;
+      if (restored) {
+        owner = restored;
+        state.session = restored;
+        sessionRestorePending = true;
+        persistAccountSession(restored);
+      }
+    }
     if (owner) {
       const healthResponse = await fetchWithTimeout(
         "/api/health",

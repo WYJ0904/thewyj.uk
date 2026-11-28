@@ -614,12 +614,18 @@ async function main() {
   };
 
   try {
-    await send("Page.navigate", { url: `${BASE_URL}/login?tool-matrix=1` });
-    await waitFor("document.querySelector('#usernameInput')", 12_000, "login page");
-    await evaluate(`localStorage.setItem('wyjAccountSession', ${JSON.stringify(member.session)}); location.href = '/tools?tool-matrix=1'; true`);
-    // Task 24.1: the catalog gained the canonical "文件传输" entry (104 total,
-    // 103 visible after the retired legacy temporary-file share).
-    await waitFor("localStorage.getItem('wyjAccountSession') && window.WYJTools?.tools?.length === 104 && !document.querySelector('#toolsPanel')?.classList.contains('hidden') && window.WYJTools?.isReady?.() === true", 15_000, "toolbox dashboard");
+    const toolboxUrl = new URL("/tools?tool-matrix=1", BASE_URL).href;
+    const { identifier } = await send("Page.addScriptToEvaluateOnNewDocument", {
+      source: `if (location.href === ${JSON.stringify(toolboxUrl)}) localStorage.setItem('wyjAccountSession', ${JSON.stringify(member.session)});`,
+    });
+    try {
+      await send("Page.navigate", { url: toolboxUrl });
+      // Task 24.1: the catalog gained the canonical "文件传输" entry (104 total,
+      // 103 visible after the retired legacy temporary-file share).
+      await waitFor("localStorage.getItem('wyjAccountSession') && window.WYJTools?.tools?.length === 104 && !document.querySelector('#toolsPanel')?.classList.contains('hidden') && window.WYJTools?.isReady?.() === true", 15_000, "toolbox dashboard");
+    } finally {
+      await send("Page.removeScriptToEvaluateOnNewDocument", { identifier });
+    }
     await evaluate(`(() => {
       const notice = document.querySelector('#versionNotice');
       if (notice && !notice.classList.contains('hidden')) document.querySelector('#dismissVersionNoticeBtn')?.click();

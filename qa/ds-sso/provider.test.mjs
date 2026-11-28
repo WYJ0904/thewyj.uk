@@ -361,6 +361,34 @@ test('renewal is capped by the original and current source expiry and denies exp
   assert.equal((await renewalState(shortened.grant)).revoke_reason, 'expired');
 });
 
+test('DS native registration and password change share the Aeris eight-character boundary', async () => {
+  const username = 'native-password-boundary';
+  const seven = 'Abcd1!x';
+  const eight = 'Abcde1!x';
+  const signup = (secret, ip) => identity('register', {
+    username, secret, confirm_secret: secret, terms_accepted: true, policy_versions: POLICY_VERSIONS,
+  }, {}, { ip });
+  const denied = await signup(seven, '192.0.2.210');
+  assert.equal(denied.status, 400);
+  assert.equal(denied.body.error, 'secret_too_short');
+  assert.equal((await signup(eight, '192.0.2.211')).status, 201);
+
+  const original = await login(username, eight);
+  const proof = await stepup({ grant: original.grant }, 'password_change', eight);
+  const update = (secret) => identity('password_change', {
+    ref: proof.ref, new_secret: secret, confirm_secret: secret,
+  }, { grant: original.grant });
+  const rejected = await update(seven);
+  assert.equal(rejected.status, 400);
+  assert.equal(rejected.body.error, 'secret_too_short');
+  const next = 'Zx7!fghi';
+  const changed = await update(next);
+  assert.equal(changed.status, 200);
+  assert.equal(changed.body.session_invalidated, true);
+  assert.equal((await identity('introspect', {}, { grant: original.grant })).body.active, false);
+  assert.ok((await login(username, next)).grant);
+});
+
 test('renewal preserves Aeris source expiry, security version, bans, logout and canonical password revocation', async () => {
   const user = await register('native-renewal-security');
   const expiredSource = await login('native-renewal-security', password, 2);

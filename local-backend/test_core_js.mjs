@@ -43,6 +43,8 @@ const {
   clearAccountSessionStorage,
   isThewyjAndroidApp,
   persistAccountSession,
+  pauseCookieSessionRestore,
+  readCookieAccountSession,
   requestNativeLogout,
   requestNativeSessionRefresh,
   restoreAccountSession,
@@ -108,6 +110,10 @@ assert.equal(restoreAccountSession(), "legacy-session");
 assert.equal(localStorage.getItem(ACCOUNT_SESSION_KEY), "legacy-session");
 assert.equal(localStorage.getItem("vocabSession"), null);
 assert.equal(sessionStorage.getItem("vocabSession"), null);
+assert.equal(persistAccountSession("new-session"), true);
+pauseCookieSessionRestore();
+clearAccountSessionStorage();
+assert.equal(await readCookieAccountSession(), "", "failed logout cannot rehydrate from the persistent cookie");
 assert.equal(persistAccountSession("new-session"), true);
 localStorage.setItem(ACCOUNT_CACHE_KEY, "cached-account");
 clearAccountSessionStorage();

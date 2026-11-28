@@ -1,4 +1,4 @@
-import { apiError } from "../_lib/cloudflare-foundation.mjs";
+import { apiError, featureFlags, jsonResponse } from "../_lib/cloudflare-foundation.mjs";
 import { handleTask11Request } from "../_lib/task11-api.mjs";
 import { handleTask12Request } from "../_lib/task12-api.mjs";
 import { handleTask13Request } from "../_lib/task13-api.mjs";
@@ -16,7 +16,7 @@ import { handlePublicUiRequest } from "../_lib/p07-ui-api.mjs";
 import { handleTask26Request } from "../_lib/task26-api.mjs";
 import { handleTtsRequest } from "../_lib/tts-api.mjs";
 import { handleEmailRequest } from "../_lib/email-api.mjs";
-import { resolveTask12Account } from "../_lib/task12-auth.mjs";
+import { cookieOnlyWebSession, resolveTask12Account, WEB_SESSION_CONTEXT_HEADER, webSessionContext } from "../_lib/task12-auth.mjs";
 import { recordAdminAction } from "../_lib/task18-service.mjs";
 
 import { handleTask27Request } from '../_lib/task27-api.mjs';
@@ -86,7 +86,33 @@ async function auditSensitiveAdminRequest(context, response, bodyRequest, descri
 }
 
 export async function onRequest(context) {
-  const pathname = new URL(context.request.url).pathname;
+  const url = new URL(context.request.url);
+  const pathname = url.pathname;
+  const requestedContext = context.request.headers.get(WEB_SESSION_CONTEXT_HEADER);
+  const requestId = context.data?.requestId || "";
+  const route = `${context.request.method} ${pathname}`;
+  if (route === "GET /api/auth/session") {
+    const token = requestedContext === "restore" && !url.search && cookieOnlyWebSession(context.request);
+    if (!token) return apiError("authentication_required", "请先登录", 401, requestId);
+    if (!featureFlags(context.env).task12CloudAccounts) return apiError("cloud_accounts_disabled", "云端账户服务当前未启用", 503, requestId);
+    const auth = await resolveTask12Account(context, { token, touch: false });
+    if (!auth.authenticated) return apiError(auth.code, "账户会话不可用", auth.status, requestId);
+    return jsonResponse({ account_context: await webSessionContext(token) }, 200, requestId);
+  }
+  if (pathname === "/api/auth/session") {
+    return apiError("method_not_allowed", "仅支持读取会话", 405, requestId, { headers: { Allow: "GET" } });
+  }
+  if (requestedContext !== null) {
+    const token = cookieOnlyWebSession(context.request);
+    if (!token || requestedContext !== await webSessionContext(token)) {
+      return apiError("canonical_session_invalid", "登录会话已变更，请重新验证", 401, requestId);
+    }
+    // Use the already verified session through the existing API and step-up guards.
+    const headers = new Headers(context.request.headers);
+    headers.delete(WEB_SESSION_CONTEXT_HEADER);
+    headers.set("X-Session-Token", token);
+    context = { ...context, request: new Request(context.request, { headers }) };
+  }
   const sensitiveDescriptor = context.request.method.toUpperCase() === "POST"
     ? SENSITIVE_ADMIN_ACTIONS[pathname]
     : null;

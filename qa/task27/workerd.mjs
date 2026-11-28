@@ -24,6 +24,34 @@ try{
   assert.equal((await db.prepare('SELECT COUNT(*) AS count FROM task27_policy_consents WHERE user_id=?1').bind(result.body.account.id).first()).count,1);
   session=(await call('/api/login',{username,secret:password})).body.session;assert.ok(session);
  });
+ await check('cookie-only browser restores without exposing the session bearer',async()=>{
+  const login=await call('/api/login',{username,secret:password});
+  const setCookie=login.headers.get('Set-Cookie');
+  assert.match(setCookie,/Max-Age=604800; Secure; HttpOnly; SameSite=Strict/);
+  const cookie=setCookie.split(';',1)[0];
+  const origin='https://task27.local';
+  const site={'Sec-Fetch-Site':'same-origin',Origin:origin};
+  const request=(route,headers,method='GET')=>mf.dispatchFetch(origin+route,{method,headers});
+  const restore=await request('/api/auth/session',{...site,Cookie:cookie,'X-Aeris-Session-Context':'restore'});
+  assert.equal(restore.status,200);
+  assert.equal(restore.headers.get('Set-Cookie'),null);
+  const context=await restore.json();
+  assert.deepEqual(Object.keys(context).sort(),['account_context','request_id']);
+  assert.match(context.account_context,/^[a-f0-9]{64}$/);
+  const auth={Cookie:cookie,'X-Aeris-Session-Context':context.account_context};
+  assert.equal((await request('/api/me',{...site,...auth})).status,200);
+  assert.equal((await request('/api/me',{...site,Cookie:cookie})).status,401);
+  assert.equal((await request('/api/me',{...site,...auth,'X-Aeris-Session-Context':'0'.repeat(64)})).status,401);
+  assert.equal((await request('/api/auth/session',{...site,Cookie:cookie+'; '+cookie,'X-Aeris-Session-Context':'restore'})).status,401);
+  assert.equal((await request('/api/auth/session',{...site,Cookie:cookie,'Sec-Fetch-Site':'same-site','X-Aeris-Session-Context':'restore'})).status,401);
+  assert.equal((await request('/api/logout',auth,'POST')).status,401);
+  assert.equal((await request('/api/logout',{...site,...auth,Origin:'https://ds.thewyj.uk'},'POST')).status,403);
+  const signout=await request('/api/logout',{...site,...auth},'POST');
+  assert.equal(signout.status,200);
+  assert.match(signout.headers.get('Set-Cookie'),/__Host-wyj_web_download=; Path=\/; Max-Age=0/);
+  assert.equal((await request('/api/me',{...site,...auth})).status,401);
+  assert.equal((await request('/api/auth/session',{...site,Cookie:cookie,'X-Aeris-Session-Context':'restore'})).status,401);
+ });
  await check('actual worker AES-GCM TOTP enrollment and one-time recovery output',async()=>{
   const step=await call('/api/security/stepup',{password,scope:'mfa_change'},session);assert.equal(step.status,200);
   setup=await call('/api/security/mfa/start',{method:'totp',grant:step.body.grant},session);assert.equal(setup.status,200);
