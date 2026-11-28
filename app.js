@@ -7305,7 +7305,7 @@ async function performBackendRefresh() {
     if (owner !== state.session) return;
     applyBackendStatus(data);
 
-    if (!owner && !isThewyjAndroidApp()) {
+    if (!owner && data.features?.task12_cloud_accounts === true && !isThewyjAndroidApp()) {
       const restored = await readCookieAccountSession(AbortSignal.timeout(STATUS_TIMEOUT_MS));
       if (owner !== state.session) return;
       if (restored) {

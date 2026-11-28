@@ -374,9 +374,9 @@ try {
   await check("account switch clears stale state & rejects cross-account backup import in UI", async () => {
     // Log out and log in as User B
     await page.evaluate("document.querySelector('#task29BackupModal [data-task27-close]').click()");
-    await page.evaluate(`(() => { localStorage.clear(); sessionStorage.clear(); })()`);
-    await page.navigate("/login");
-    await page.waitFor("document.getElementById('usernameInput')?.checkVisibility()", 20_000);
+    await page.click("#accountMenu > summary");
+    await page.click("#logoutBtn");
+    await page.waitFor("location.pathname === '/login' && document.getElementById('usernameInput')?.checkVisibility()", 20_000);
     await page.setFields({ "#usernameInput": "task29browserb", "#secretInput": password });
     await page.click("#loginSubmitBtn");
     await page.waitFor("location.pathname === '/' && document.getElementById('notificationBellBtn')?.checkVisibility()", 30_000);
