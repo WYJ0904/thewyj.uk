@@ -185,6 +185,8 @@ try {
     await page.click("#loginSubmitBtn");
     await page.waitFor("!document.querySelector('#accountMenu')?.classList.contains('hidden')");
     await page.navigate("/account");
+    await page.waitFor("document.querySelector('#accountTabData')?.checkVisibility()");
+    await page.click("#accountTabData");
     await page.waitFor("document.querySelector('#accountPrivacyOpen') && !document.querySelector('#accountPrivacyOpen').classList.contains('hidden')");
     await page.click("#accountPrivacyOpen");
     await page.waitFor("document.querySelector('#task30PrivacyModal') && !document.querySelector('#task30PrivacyModal').classList.contains('hidden')");

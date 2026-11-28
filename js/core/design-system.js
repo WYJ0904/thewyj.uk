@@ -49,16 +49,18 @@ export function syncSystemNoticeLayout(doc = globalThis.document) {
   }
   root.style.setProperty("--ds-hud-save-offset", `${saveOffset}px`);
 
-  const verEl = doc.getElementById("versionNotice");
-  let versionOffset = 0;
-  if (verEl && !verEl.classList?.contains("hidden") && !verEl.hidden) {
-    const style = view?.getComputedStyle?.(verEl);
+  const measureTopNotice = (el) => {
+    if (!el || el.classList?.contains("hidden") || el.hidden) return 0;
+    const style = view?.getComputedStyle?.(el);
     if (!style || style.position === "fixed") {
-      const h = Math.ceil(verEl.getBoundingClientRect?.().height || 0);
-      if (h > 0) versionOffset = h;
+      return Math.ceil(el.getBoundingClientRect?.().height || 0);
     }
-  }
-  root.style.setProperty("--ds-hud-version-offset", `${versionOffset}px`);
+    return 0;
+  };
+  const versionBarHeight = measureTopNotice(doc.getElementById("versionNotice"));
+  const expiryBarHeight = measureTopNotice(doc.getElementById("membershipExpiryNotice"));
+  root.style.setProperty("--ds-hud-version-bar-height", `${versionBarHeight}px`);
+  root.style.setProperty("--ds-hud-version-offset", `${versionBarHeight + expiryBarHeight}px`);
 
   const financeModal = doc.getElementById("financeTransactionModal");
   const rightDrawerOpen = Boolean(
@@ -172,6 +174,11 @@ function setupTheme() {
       node.setAttribute("aria-label", `${description}，点击切换`);
       if (node === button) node.title = `${description}，点击切换`;
     });
+    document.querySelectorAll("[data-account-theme]").forEach((node) => {
+      const active = node.dataset.accountTheme === preference;
+      node.setAttribute("aria-pressed", String(active));
+      node.classList.toggle("active", active);
+    });
     updateMeta(resolved);
     // Native shell follows the web preference: one theme source of truth.
     document.dispatchEvent(new CustomEvent("wyj:theme-changed", { detail: { preference, resolved } }));
@@ -186,13 +193,22 @@ function setupTheme() {
     updateMeta(resolved);
   };
 
-  const cycleTheme = () => {
-    preference = THEME_ORDER[(THEME_ORDER.indexOf(preference) + 1) % THEME_ORDER.length];
+  const setPreference = (next) => {
+    if (!THEME_ORDER.includes(next)) return;
+    preference = next;
     try { window.localStorage.setItem(THEME_STORAGE_KEY, preference); } catch (_) { /* Appearance remains usable in memory. */ }
     apply();
   };
 
+  const cycleTheme = () => {
+    setPreference(THEME_ORDER[(THEME_ORDER.indexOf(preference) + 1) % THEME_ORDER.length]);
+  };
+
   [button, menuButton, guestButton].forEach((node) => node?.addEventListener("click", cycleTheme));
+  document.addEventListener("click", (event) => {
+    const btn = event.target?.closest?.("[data-account-theme]");
+    if (btn) setPreference(btn.dataset.accountTheme);
+  });
   colorScheme?.addEventListener?.("change", () => {
     if (preference === "system") apply();
   });

@@ -78,8 +78,9 @@ class StaticSiteTests(unittest.TestCase):
             "moduleAccessMessage", "paymentMethodList", "paymentMethod",
             "paymentQrWrap", "paymentQrImage", "paymentQrMessage", "aiSearchInput",
             "aiSearchResults", "cancelPaymentOrderBtn",
-            "membershipGoalField", "membershipGoalList", "membershipGoalHint",
-            "membershipPlanStep", "membershipPlanHeading",
+            "membershipPlansView", "membershipRecommendedPlanList", "membershipShowAllPlansBtn",
+            "membershipCheckoutView", "paymentAgreementCheckbox", "paymentAgreementModal",
+            "membershipOrdersView", "membershipPlanStep", "membershipPlanHeading",
             "navGuestActions", "navLoginBtn", "navRegisterBtn", "accountMenu",
             "dashboardGreeting", "dashboardMembershipName", "dashboardEntitlements",
             "dashboardAccountStatus", "v3Sidebar", "sidebarCollapseBtn",
@@ -984,11 +985,18 @@ class StaticSiteTests(unittest.TestCase):
         )
 
     def test_membership_ui_filters_plans_by_purpose_without_replacing_server_checks(self):
-        goal_values = re.findall(r'data-membership-goal="([^"]+)"', self.html)
-        self.assertEqual(
-            goal_values,
-            ["english", "japanese", "bilingual", "tools", "finance", "notifications", "all"],
-        )
+        self.assertIn("MEMBERSHIP_CARD_FAMILIES", self.app)
+        for plan_code in (
+            "trial_single_language",
+            "notification_archive_access",
+            "finance_monthly",
+            "tools_monthly",
+            "dual_language_monthly",
+            "japanese_lifetime",
+            "all_access_monthly",
+            "all_access_lifetime",
+        ):
+            self.assertIn(plan_code, self.app)
         self.assertIn("const MEMBERSHIP_GOALS = Object.freeze", self.membership)
         self.assertIn(
             'plans: ["notification_archive_access", "all_access_monthly", "all_access_lifetime"]',
@@ -998,9 +1006,9 @@ class StaticSiteTests(unittest.TestCase):
         self.assertIn("function membershipGoalForPlan", self.membership)
         self.assertIn('openMembershipModal({ goal: "tools" })', self.app)
         self.assertIn('openRecharge("finance")', self.finance)
-        self.assertGreaterEqual(
-            self.app.count("membershipGoalAllowsPlan(selectedMembershipGoal"), 3
-        )
+        self.assertIn('id="paymentAgreementCheckbox"', self.html)
+        self.assertIn('id="paymentAgreementModal"', self.html)
+        self.assertIn('paymentAgreementCheckbox', self.app)
         self.assertIn('trial_language: selectedRechargePlan === "trial_single_language"', self.app)
         self.assertIn('await api("/api/recharge/request"', self.app)
 

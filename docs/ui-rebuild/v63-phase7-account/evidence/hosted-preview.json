@@ -1,0 +1,52 @@
+{
+  "preview_url": "https://v63-phase7.thewyj-v63-p6p9-preview.pages.dev",
+  "p6_preserved_url": "https://v63-phase6.thewyj-v63-p6p9-preview.pages.dev",
+  "verified_at": "2026-11-28T07:40:23.012Z",
+  "release_detected": "20261128-aeris-p7-account-v4",
+  "accounts": {
+    "free": {
+      "username": "v63p1_free",
+      "tabs_width": 1121,
+      "initial_view": "plans",
+      "grid": {
+        "count": 3,
+        "rowTopDelta": 0,
+        "buyTopDelta": 0,
+        "priceTopDelta": 0,
+        "allDefault": "all_access_lifetime",
+        "badgeCount": 1,
+        "singleShadow": "none",
+        "singleSelected": false
+      },
+      "all4": {
+        "order": [
+          "single",
+          "tools",
+          "bilingual",
+          "all"
+        ],
+        "rowTopDelta": 0
+      },
+      "orders_preserved": true
+    },
+    "vip": {
+      "username": "v63p1_vip",
+      "role_pill": "普通用户",
+      "plan_badge": "全功能永久会员"
+    },
+    "admin": {
+      "username": "v63p1_admin",
+      "role_pill": "站点所有者",
+      "admin_nav_visible": true
+    },
+    "temp_checkout_user": {
+      "username": "p7tmpx03p7qq",
+      "agreement_blocked": true,
+      "checkout_order_created": true,
+      "qr_state": "error",
+      "cancelled_cleanly": true
+    }
+  },
+  "runtimeErrors": [],
+  "status": "PASS"
+}

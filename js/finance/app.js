@@ -1,11 +1,11 @@
-import { randomId as capabilityRandomId } from "../core/capabilities.js?release=20261127-aeris-p6-transfer-v2";
-import { createFinanceDisclosure } from "./disclosure.js?release=20261127-aeris-p6-transfer-v2";
-import { mergeLocalNotificationLedger } from "./notification-ledger.js?release=20261127-aeris-p6-transfer-v2";
-import { reconcileKeyedRows } from "../core/keyed-list.js?release=20261127-aeris-p6-transfer-v2";
-import { formatFinanceMoney } from "./format.js?release=20261127-aeris-p6-transfer-v2";
-import { createParkedRows } from "../core/parked-rows.js?release=20261127-aeris-p6-transfer-v2";
-import { moneyText, referenceValue, SUPPORTED_CURRENCIES, currencyDigits } from "./money.js?release=20261127-aeris-p6-transfer-v2";
-export { formatFinanceMoney } from "./format.js?release=20261127-aeris-p6-transfer-v2";
+import { randomId as capabilityRandomId } from "../core/capabilities.js?release=20261128-aeris-p7-account-v4";
+import { createFinanceDisclosure } from "./disclosure.js?release=20261128-aeris-p7-account-v4";
+import { mergeLocalNotificationLedger } from "./notification-ledger.js?release=20261128-aeris-p7-account-v4";
+import { reconcileKeyedRows } from "../core/keyed-list.js?release=20261128-aeris-p7-account-v4";
+import { formatFinanceMoney } from "./format.js?release=20261128-aeris-p7-account-v4";
+import { createParkedRows } from "../core/parked-rows.js?release=20261128-aeris-p7-account-v4";
+import { moneyText, referenceValue, SUPPORTED_CURRENCIES, currencyDigits } from "./money.js?release=20261128-aeris-p7-account-v4";
+export { formatFinanceMoney } from "./format.js?release=20261128-aeris-p7-account-v4";
 // Authorization holds/releases are lifecycle controls, never real spending.
 const AUTHORIZATION_CONTROL_STATES = new Set(["pending_authorization", "authorization_release", "authorization_expired"]);
 const AUTHORIZATION_CONTROL_DIRECTIONS = new Set(["authorization_release", "authorization_expired"]);

@@ -1,6 +1,6 @@
-import { updateCopyrightYear } from './policy-page.js?release=20261127-aeris-p6-transfer-v2';
-import { POLICY_VERSIONS } from './policy-version.js?release=20261127-aeris-p6-transfer-v2';
-import { wireNewPasswordField,wirePasswordVisibility } from './password-fields.js?release=20261127-aeris-p6-transfer-v2';
+import { updateCopyrightYear } from './policy-page.js?release=20261128-aeris-p7-account-v4';
+import { POLICY_VERSIONS } from './policy-version.js?release=20261128-aeris-p7-account-v4';
+import { wireNewPasswordField,wirePasswordVisibility } from './password-fields.js?release=20261128-aeris-p7-account-v4';
 
 const esc=value=>String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const date=value=>value?new Date(value).toLocaleString():'尚无记录';
@@ -212,6 +212,43 @@ export function createSecurityCenter({api,apiGet,publicApi,getSession,getAccount
     onInvalidated(message,{deferNative:Boolean(result.recovery_codes?.length)});
     if(result.recovery_codes?.length){await showCodes(result.recovery_codes);onNativeLogout();}
   }
+  async function handleEmailChangeFlow(data, statusTarget) {
+    const allowlistHint=data.email_test_allowlist_active?'步骤 1/3：请输入要绑定的邮箱。完成身份验证并输入 6 位邮箱验证码前，邮箱不会保存。（注意：当前测试环境启用了收件人白名单限制，仅授权测试邮箱可收信。）':'步骤 1/3：请输入要绑定的邮箱。完成身份验证并输入 6 位邮箱验证码前，邮箱不会保存。';
+    const email=(await prompt('绑定并验证邮箱',[{name:'email',label:'新邮箱地址',type:'email',autocomplete:'email'}],{message:allowlistHint,button:'下一步：验证身份'})).email;
+    const grant=await stepup('email_change');
+    status(statusTarget,`步骤 2/3：已完成身份验证，正在向 ${email} 请求发送 6 位验证码（当前尚未绑定邮箱），请稍候。`,'info');
+    const start=await api('/api/security/email/start',{email,grant});
+    const sentHint=`步骤 3/3：验证码已提交邮件服务（状态：${start.delivery_status||'accepted'}，尚未确认送达收件箱）。请输入发往 ${email} 的 6 位数字验证码确认绑定；取消不会保存。`;
+    status(statusTarget,sentHint,'info');
+    const result=await api('/api/security/email/confirm',{challenge:start.challenge,code:await codePrompt('email','步骤 3/3：确认邮箱验证码')});
+    await invalidate(result,'邮箱已验证并更新，旧会话已撤销，请重新登录');
+  }
+
+  async function handleMfaSetupFlow(data, method, statusTarget) {
+    if(method==='email'&&!data.email){status(statusTarget,'无法切换为邮箱双重验证：请先点击“绑定并验证邮箱”。现有双重验证保持不变，请勿提前删除验证器。','error');return;}
+    const grant=await stepup('mfa_change');
+    if(method==='email')status(statusTarget,`步骤 2/3：已完成身份验证，正在向已验证邮箱 ${data.email} 请求发送开启验证码（当前双重验证方式尚未变更），请稍候。`,'info');
+    const start=await api('/api/security/mfa/start',{method,grant});
+    let code;
+    if(method==='totp') {
+      const uri=new URL(start.otpauth_uri);
+      if(uri.protocol!=='otpauth:'||uri.hostname!=='totp'||uri.searchParams.get('secret')!==start.secret||uri.searchParams.get('issuer')!=='Aeris'||uri.searchParams.get('algorithm')!=='SHA1'||uri.searchParams.get('digits')!=='6'||uri.searchParams.get('period')!=='30')throw new Error('验证器配置无效，请重新开始');
+      const answer=prompt('绑定 TOTP 验证器',[{name:'code',label:'验证器当前六位验证码',autocomplete:'one-time-code'}],{message:'任选二维码、验证器链接或手动密钥添加账户。输入正确验证码后才会启用；取消不会改变现有登录保护。',content:`<div class="task27-qr" id="task27TotpQr"></div><p><a id="task27OpenAuthenticator" rel="noreferrer noopener" class="button-secondary">在验证器 App 中打开</a></p><p id="task27AuthenticatorFallback" role="status">如未打开验证器或提示没有可处理的应用，请扫描二维码，或复制下面密钥手动添加。</p><p>账户标签：Aeris · ${esc(getAccount()?.username || '')}<br>参数：TOTP · SHA-1 · 6 位验证码 · 30 秒周期</p><p class="task27-key" tabindex="0">${esc(start.secret)}</p><button type="button" id="task27CopyTotpSecret">复制设置密钥</button><p class="meta-line">若复制不可用，可选中密钥手动复制；添加后验证码仍不匹配时，请确认验证器时间自动同步并重新输入当前验证码。</p>`});
+      const target=$('task27TotpQr');
+      if(typeof window.qrcode==='function'){const qr=window.qrcode(0,'M');qr.addData(start.otpauth_uri);qr.make();target.innerHTML=qr.createSvgTag({cellSize:4,margin:16});target.setAttribute('role','img');target.setAttribute('aria-label','Aeris 验证器绑定二维码');}
+      else target.textContent='二维码暂不可用，请使用验证器链接或手动密钥。';
+      $('task27OpenAuthenticator').href=start.otpauth_uri;
+      $('task27OpenAuthenticator').addEventListener('click',()=>{$('task27AuthenticatorFallback').textContent='已请求系统打开验证器；如没有打开，请使用二维码或手动复制密钥。此步骤尚未启用双重验证。';});
+      $('task27CopyTotpSecret').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(start.secret);$('task27AuthenticatorFallback').textContent='设置密钥已复制。请在验证器中手动添加 Aeris 账户，然后输入当前六位验证码。';}catch(_){$('task27AuthenticatorFallback').textContent='当前环境无法自动复制，请选中上方设置密钥手动复制。';}});
+      code=(await answer).code;
+    } else {
+      status(statusTarget,`步骤 3/3：验证码已提交邮件服务（状态：${start.delivery_status||'accepted'}，尚未确认送达收件箱），请输入发往 ${data.email} 的 6 位验证码确认切换；确认前原有双重验证不会改变。`,'info');
+      code=await codePrompt('email','步骤 3/3：确认开启邮箱双重验证');
+    }
+    const result=await api('/api/security/mfa/confirm',{challenge:start.challenge,code:code.trim()});
+    await invalidate(result,'双重验证已更新，请重新登录');
+  }
+
   async function openSecurity() {
     const snapshot=key(),node=modal('task27Security','账户安全');body(node).textContent='正在读取安全状态…';status(node,'');openModal('task27Security');
     try {
@@ -247,42 +284,8 @@ export function createSecurityCenter({api,apiGet,publicApi,getSession,getAccount
         const values=await prompt('修改登录密码',[{name:'new_secret',label:'新密码（至少 9 位混合密码）',type:'password',autocomplete:'new-password'},{name:'confirm_secret',label:'再次输入新密码',type:'password',autocomplete:'new-password'}]);
         await invalidate(await api('/api/account/secret',{grant,...values}),'密码已修改，请重新登录');
       });
-      bind(node,'[data-security-email]',async()=>{
-        const allowlistHint=data.email_test_allowlist_active?'步骤 1/3：请输入要绑定的邮箱。完成身份验证并输入 6 位邮箱验证码前，邮箱不会保存。（注意：当前测试环境启用了收件人白名单限制，仅授权测试邮箱可收信。）':'步骤 1/3：请输入要绑定的邮箱。完成身份验证并输入 6 位邮箱验证码前，邮箱不会保存。';
-        const email=(await prompt('绑定并验证邮箱',[{name:'email',label:'新邮箱地址',type:'email',autocomplete:'email'}],{message:allowlistHint,button:'下一步：验证身份'})).email;
-        const grant=await stepup('email_change');
-        status(node,`步骤 2/3：已完成身份验证，正在向 ${email} 请求发送 6 位验证码（当前尚未绑定邮箱），请稍候。`,'info');
-        const start=await api('/api/security/email/start',{email,grant});
-        const sentHint=`步骤 3/3：验证码已提交邮件服务（状态：${start.delivery_status||'accepted'}，尚未确认送达收件箱）。请输入发往 ${email} 的 6 位数字验证码确认绑定；取消不会保存。`;
-        status(node,sentHint,'info');
-        const result=await api('/api/security/email/confirm',{challenge:start.challenge,code:await codePrompt('email','步骤 3/3：确认邮箱验证码')});
-        await invalidate(result,'邮箱已验证并更新，旧会话已撤销，请重新登录');
-      });
-      bind(node,'[data-security-mfa]',async button=>{
-        const method=button.dataset.securityMfa;
-        if(method==='email'&&!data.email){status(node,'无法切换为邮箱双重验证：请先点击“绑定并验证邮箱”。现有双重验证保持不变，请勿提前删除验证器。','error');return;}
-        const grant=await stepup('mfa_change');
-        if(method==='email')status(node,`步骤 2/3：已完成身份验证，正在向已验证邮箱 ${data.email} 请求发送开启验证码（当前双重验证方式尚未变更），请稍候。`,'info');
-        const start=await api('/api/security/mfa/start',{method,grant});
-        let code;
-        if(method==='totp') {
-          const uri=new URL(start.otpauth_uri);
-          if(uri.protocol!=='otpauth:'||uri.hostname!=='totp'||uri.searchParams.get('secret')!==start.secret||uri.searchParams.get('issuer')!=='Aeris'||uri.searchParams.get('algorithm')!=='SHA1'||uri.searchParams.get('digits')!=='6'||uri.searchParams.get('period')!=='30')throw new Error('验证器配置无效，请重新开始');
-          const answer=prompt('绑定 TOTP 验证器',[{name:'code',label:'验证器当前六位验证码',autocomplete:'one-time-code'}],{message:'任选二维码、验证器链接或手动密钥添加账户。输入正确验证码后才会启用；取消不会改变现有登录保护。',content:`<div class="task27-qr" id="task27TotpQr"></div><p><a id="task27OpenAuthenticator" rel="noreferrer noopener" class="button-secondary">在验证器 App 中打开</a></p><p id="task27AuthenticatorFallback" role="status">如未打开验证器或提示没有可处理的应用，请扫描二维码，或复制下面密钥手动添加。</p><p>账户标签：Aeris · ${esc(getAccount()?.username || '')}<br>参数：TOTP · SHA-1 · 6 位验证码 · 30 秒周期</p><p class="task27-key" tabindex="0">${esc(start.secret)}</p><button type="button" id="task27CopyTotpSecret">复制设置密钥</button><p class="meta-line">若复制不可用，可选中密钥手动复制；添加后验证码仍不匹配时，请确认验证器时间自动同步并重新输入当前验证码。</p>`});
-          const target=$('task27TotpQr');
-          if(typeof window.qrcode==='function'){const qr=window.qrcode(0,'M');qr.addData(start.otpauth_uri);qr.make();target.innerHTML=qr.createSvgTag({cellSize:4,margin:16});target.setAttribute('role','img');target.setAttribute('aria-label','Aeris 验证器绑定二维码');}
-          else target.textContent='二维码暂不可用，请使用验证器链接或手动密钥。';
-          $('task27OpenAuthenticator').href=start.otpauth_uri;
-          $('task27OpenAuthenticator').addEventListener('click',()=>{$('task27AuthenticatorFallback').textContent='已请求系统打开验证器；如没有打开，请使用二维码或手动复制密钥。此步骤尚未启用双重验证。';});
-          $('task27CopyTotpSecret').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(start.secret);$('task27AuthenticatorFallback').textContent='设置密钥已复制。请在验证器中手动添加 Aeris 账户，然后输入当前六位验证码。';}catch(_){$('task27AuthenticatorFallback').textContent='当前环境无法自动复制，请选中上方设置密钥手动复制。';}});
-          code=(await answer).code;
-        } else {
-          status(node,`步骤 3/3：验证码已提交邮件服务（状态：${start.delivery_status||'accepted'}，尚未确认送达收件箱），请输入发往 ${data.email} 的 6 位验证码确认切换；确认前原有双重验证不会改变。`,'info');
-          code=await codePrompt('email','步骤 3/3：确认开启邮箱双重验证');
-        }
-        const result=await api('/api/security/mfa/confirm',{challenge:start.challenge,code:code.trim()});
-        await invalidate(result,'双重验证已更新，请重新登录');
-      });
+      bind(node,'[data-security-email]',()=>handleEmailChangeFlow(data,node));
+      bind(node,'[data-security-mfa]',button=>handleMfaSetupFlow(data,button.dataset.securityMfa,node));
       bind(node,'[data-security-disable]',async()=>{await prompt('确认关闭双重验证',[{name:'confirm',label:'我确认关闭双重验证',type:'checkbox'}],{button:'继续验证'});await invalidate(await api('/api/security/mfa/disable',{grant:await stepup('mfa_change')}),'双重验证已关闭，请重新登录');});
       bind(node,'[data-security-recovery]',async()=>{const result=await api('/api/security/recovery/regenerate',{grant:await stepup('recovery_regenerate')});await showCodes(result.recovery_codes);});
       bind(node,'[data-security-backup]',()=>{closeModal('task27Security',true);void openBackupCenter();});
@@ -590,8 +593,200 @@ export function createSecurityCenter({api,apiGet,publicApi,getSession,getAccount
     const snapshot=key();badgeAt=Date.now();
     badgePromise=apiGet('/api/notifications?filter=unread').then(data=>{if(snapshot===key())setBadge(data.unread_count);}).catch(()=>{}).finally(()=>{badgePromise=null;});return badgePromise;
   }
-  function updateAccount(){const current=key();if(current!==owner){owner=current;badgeAt=0;inboxState=null;mailState=null;backupPrecheckState=null;privacyState=null;privacyPreviewState=null;privacyRequestsState=null;setBadge(0);for(const id of ['task27Security','task27Inbox','task27Mail','task27Prompt','task27Secrets','task29BackupModal','task30PrivacyModal'])if($(id))closeModal(id,true);}
-    void isSupported().then(supported=>{if(current!==key())return;const authenticated=Boolean(getSession()&&getAccount());$('notificationBellBtn')?.classList.toggle('hidden',!authenticated||!supported);$('securityCenterMenuBtn')?.classList.toggle('hidden',!authenticated||!supported);$('openSecurityCenterBtn')?.classList.toggle('hidden',!supported);$('accountBackupOpen')?.classList.toggle('hidden',!authenticated);$('accountPrivacyOpen')?.classList.toggle('hidden',!authenticated);$('finOpenBackupBtn')?.classList.toggle('hidden',!authenticated);$('task27MailOpenBtn')?.classList.toggle('hidden',!getAccount()?.is_admin||!supported||policyConfig?.mail_center_integrated===true);$('forgotPasswordBtn')?.classList.toggle('hidden',!supported);$('adminNewSecretInput')?.closest('.admin-secret-field')?.classList.toggle('hidden',supported);$('adminNewSecretInput')?.closest('.admin-secret-field')?.setAttribute('aria-hidden',String(supported));$('generateAdminSecretBtn')?.classList.toggle('hidden',supported);if($('generateAdminSecretBtn'))$('generateAdminSecretBtn').disabled=supported;if(authenticated&&supported)void refreshBadge();}).catch(()=>{});}
+  let inlineSecurityPromise=null,inlineSecurityData=null,inlineProfileData=null;
+  function setOverviewEmailLabel(text){
+    const el=$('accountOverviewEmailStatus');
+    if(el)el.textContent=text;
+  }
+  function inlineStatus(text,tone='error'){
+    const box=$('accountSecurityInlineStatus');
+    if(!box)return;
+    box.textContent=text||'';
+    box.dataset.tone=tone;
+    box.className=tone==='info'?'task27-status is-info':'error task27-status is-error';
+    box.hidden=!text;
+  }
+  function renderInlineSecurity(data,profile){
+    const container=$('accountSecurityInlineBody');
+    if(!container||!data)return;
+    const valid=(data.sessions||[]).filter(session=>session.valid);
+    const currentSessions=valid.filter(s=>s.current);
+    const otherSessions=valid.filter(s=>!s.current);
+    const sortedSessions=[...currentSessions,...otherSessions];
+    const events=Array.isArray(data.events)?data.events:[];
+    container.innerHTML=`
+      <p class="error task27-status" id="accountSecurityInlineStatus" data-tone="error" role="status" aria-live="polite" hidden></p>
+      <div class="account-security-rows">
+        <div class="account-setting-item">
+          <div class="account-setting-main">
+            <strong>账号名</strong>
+            <small id="accountInlineUsernameText">${esc(profile?.username || getAccount()?.username || '-')}</small>
+          </div>
+          ${profile?.username_editable?'<button class="button-secondary" type="button" data-inline-security-profile>修改账号名</button>':'<span class="meta-line">当前不可自助修改</span>'}
+        </div>
+        <div class="account-setting-item">
+          <div class="account-setting-main">
+            <strong>登录密码状态</strong>
+            <small>${data.password_changed_at?`最近修改：${esc(date(data.password_changed_at))}`:'历史修改时间未知，建议定期检查强度（30 天提醒仅作参考）。'}</small>
+          </div>
+          <button class="button-ghost" type="button" data-inline-focus-password>前往下方修改</button>
+        </div>
+        <div class="account-setting-item">
+          <div class="account-setting-main">
+            <strong>绑定邮箱与验证</strong>
+            <small>${data.email?`${esc(data.email)}（已验证）`:'尚未绑定已验证邮箱'}${data.email_test_allowlist_active?' · 当前环境仅允许授权测试收件邮箱':''}</small>
+          </div>
+          <button class="button-secondary" type="button" data-inline-security-email>${data.email?'更换邮箱':'绑定并验证邮箱'}</button>
+        </div>
+        <div class="account-setting-item">
+          <div class="account-setting-main">
+            <strong>双重验证（2FA）</strong>
+            <small>当前方式：${esc(labels[data.mfa_method] || '未开启')}${data.enrollment_enabled&&!data.email?' · 开启邮箱验证需先绑定并验证邮箱':''}</small>
+          </div>
+          <div class="action-row compact">
+            ${data.enrollment_enabled?'<button class="button-secondary" type="button" data-inline-security-mfa="totp">配置验证器</button><button class="button-secondary" type="button" data-inline-security-mfa="email">使用邮箱验证</button>':'<span class="meta-line">暂未开放</span>'}
+            ${data.mfa_method!=='none'?'<button class="button-ghost danger-text" type="button" data-inline-security-disable>关闭双重验证</button>':''}
+          </div>
+        </div>
+        <div class="account-setting-item">
+          <div class="account-setting-main">
+            <strong>一次性恢复码</strong>
+            <small>${data.mfa_method==='totp'?`当前剩余 ${Number(data.recovery_codes_remaining)} 个未使用的恢复码；已有恢复码无法再次查看。`:'开启 TOTP 验证器后将自动生成一次性恢复码。'}</small>
+          </div>
+          ${data.mfa_method==='totp'?'<button class="button-secondary" type="button" data-inline-security-recovery>重新生成</button>':'<span class="meta-line">需先开启 TOTP</span>'}
+        </div>
+      </div>
+      <div class="account-security-subsection">
+        <div class="account-group-head">
+          <div>
+            <h3>登录设备与活跃会话</h3>
+            <p class="meta-line">仅显示可确认的客户端类型与活动时间，不推测未知设备型号。</p>
+          </div>
+          <div class="action-row compact">
+            <button class="button-secondary" type="button" data-inline-revoke-mode="others" ${otherSessions.length?'':'disabled'}>退出其他设备</button>
+            <button class="button-ghost danger-text" type="button" data-inline-revoke-mode="all" ${valid.length?'':'disabled'}>退出全部设备</button>
+          </div>
+        </div>
+        <div class="account-session-list">
+          ${sortedSessions.map(session=>`<article class="account-session-row${session.current?' is-current':''}">
+            <div class="account-session-meta">
+              <div class="account-session-title">
+                <strong>${esc(session.client || '浏览器会话')}</strong>
+                ${session.current?'<span class="status-badge">当前会话</span>':''}
+                <span class="meta-line">${session.kind==='android'?'Android 客户端':'Web 浏览器'}</span>
+              </div>
+              <small>登录：${esc(date(session.created_at))} · 最近活动：${esc(date(session.last_seen_at))}</small>
+            </div>
+            <button class="button-ghost" type="button" data-inline-revoke-id="${esc(session.id)}" data-kind="${esc(session.kind)}">退出此会话</button>
+          </article>`).join('') || '<p class="meta-line">暂无有效登录会话。</p>'}
+        </div>
+      </div>
+      <div class="account-security-subsection">
+        <div class="account-group-head">
+          <div>
+            <h3>最近安全活动</h3>
+            <p class="meta-line">密码、邮箱、双重验证与会话撤销记录（仅展示本人账户）。</p>
+          </div>
+          <button class="button-ghost" type="button" data-inline-forgot-password>账户恢复入口</button>
+        </div>
+        <ul class="account-security-events">
+          ${events.slice(0,12).map(event=>`<li><span>${esc(eventLabels[event.event_type] || '账户安全操作')}</span><time>${esc(date(event.created_at))}</time></li>`).join('') || '<li class="meta-line">暂无安全事件记录</li>'}
+        </ul>
+      </div>
+    `;
+    const proxyHost={querySelector:sel=>sel==='[data-task27-status]'?$('accountSecurityInlineStatus'):container.querySelector(sel)};
+    const bindInline=(selector,fn)=>{
+      container.querySelectorAll(selector).forEach(btn=>btn.addEventListener('click',async()=>{
+        if(btn.disabled)return;
+        btn.disabled=true;inlineStatus('');
+        try{await fn(btn);}
+        catch(err){const cancelled=err?.message==='操作已取消';inlineStatus(cancelled?'已取消验证，安全设置未改变。':(err?.message||'操作失败'),cancelled?'info':'error');}
+        finally{if(btn.isConnected)btn.disabled=false;}
+      }));
+    };
+    bindInline('[data-inline-focus-password]',()=>{
+      const form=$('changeSecretForm');
+      form?.scrollIntoView?.({behavior:'smooth',block:'nearest'});
+      $('currentSecretInput')?.focus();
+    });
+    bindInline('[data-inline-forgot-password]',()=>forgotPassword());
+    bindInline('[data-inline-security-profile]',async()=>{
+      const snapshot=key();
+      const latest=await apiGet('/api/account/profile');
+      const values=await prompt('修改账号名',[{name:'username',label:'新账号名',autocomplete:'username'}]);
+      const grant=await stepup('profile_change');
+      const saved=await api('/api/account/profile',{username:values.username,expected_revision:latest.revision,grant});
+      if(snapshot===key()){
+        inlineProfileData=saved;
+        const nameEl=$('accountInlineUsernameText');if(nameEl)nameEl.textContent=saved.username;
+        const headerName=$('accountProfileUsername');if(headerName)headerName.textContent=saved.username;
+        inlineStatus('账号名已更新，下次登录请使用新账号名。','info');
+      }
+    });
+    bindInline('[data-inline-security-email]',()=>handleEmailChangeFlow(data,proxyHost));
+    bindInline('[data-inline-security-mfa]',btn=>handleMfaSetupFlow(data,btn.dataset.inlineSecurityMfa,proxyHost));
+    bindInline('[data-inline-security-disable]',async()=>{
+      await prompt('确认关闭双重验证',[{name:'confirm',label:'我确认关闭双重验证',type:'checkbox'}],{button:'继续验证'});
+      await invalidate(await api('/api/security/mfa/disable',{grant:await stepup('mfa_change')}),'双重验证已关闭，请重新登录');
+    });
+    bindInline('[data-inline-security-recovery]',async()=>{
+      const result=await api('/api/security/recovery/regenerate',{grant:await stepup('recovery_regenerate')});
+      await showCodes(result.recovery_codes);
+      await loadInlineSecurity({force:true});
+    });
+    const revokeInline=async payload=>{
+      await prompt('确认退出登录会话',[{name:'confirm',label:'我确认退出所选设备',type:'checkbox'}]);
+      const result=await api('/api/security/sessions/revoke',{...payload,grant:await stepup('sessions_revoke')});
+      if(result.session_invalidated)await invalidate(result,'会话已退出，请重新登录');
+      else await loadInlineSecurity({force:true});
+    };
+    bindInline('[data-inline-revoke-id]',btn=>revokeInline({mode:'single',id:btn.dataset.inlineRevokeId,kind:btn.dataset.kind}));
+    bindInline('[data-inline-revoke-mode]',btn=>revokeInline({mode:btn.dataset.inlineRevokeMode}));
+  }
+  async function loadInlineSecurity({force=false}={}) {
+    const container=$('accountSecurityInlineBody');
+    if(!getSession()||!getAccount()){
+      setOverviewEmailLabel('未登录');
+      if(container)container.innerHTML='';
+      return null;
+    }
+    const snapshot=key();
+    if(!force && inlineSecurityData && snapshot===owner){
+      setOverviewEmailLabel(inlineSecurityData.email?`${inlineSecurityData.email}（已验证）`:'未绑定邮箱');
+      renderInlineSecurity(inlineSecurityData,inlineProfileData);
+      return inlineSecurityData;
+    }
+    if(inlineSecurityPromise && !force)return inlineSecurityPromise;
+    setOverviewEmailLabel('读取中…');
+    if(container && !inlineSecurityData)container.innerHTML='<p class="meta-line">正在读取账户安全状态…</p>';
+    inlineSecurityPromise=(async()=>{
+      const supported=await isSupported();
+      if(snapshot!==key())return null;
+      if(!supported){
+        setOverviewEmailLabel('基础模式');
+        if(container)container.innerHTML='<p class="meta-line">当前运行环境仅启用基础密码管理，可使用下方表单修改密码。</p>';
+        return null;
+      }
+      const [overviewRes,profileRes]=await Promise.allSettled([apiGet('/api/security/overview'),apiGet('/api/account/profile')]);
+      if(snapshot!==key())return null;
+      if(overviewRes.status==='rejected')throw overviewRes.reason;
+      inlineSecurityData=overviewRes.value;
+      inlineProfileData=profileRes.status==='fulfilled'?profileRes.value:null;
+      setOverviewEmailLabel(inlineSecurityData.email?`${inlineSecurityData.email}（已验证）`:'未绑定邮箱');
+      renderInlineSecurity(inlineSecurityData,inlineProfileData);
+      return inlineSecurityData;
+    })().catch(error=>{
+      if(snapshot===key()){
+        setOverviewEmailLabel('读取失败');
+        if(container)container.innerHTML=`<p class="error">${esc(error?.message||'无法读取账户安全概览，请稍后重试。')}</p><button class="button-secondary" type="button" id="retryInlineSecurityBtn">重新加载安全状态</button>`;
+        $('retryInlineSecurityBtn')?.addEventListener('click',()=>{void loadInlineSecurity({force:true});});
+      }
+      return null;
+    }).finally(()=>{inlineSecurityPromise=null;});
+    return inlineSecurityPromise;
+  }
+  function updateAccount(){const current=key();if(current!==owner){owner=current;badgeAt=0;inboxState=null;mailState=null;backupPrecheckState=null;privacyState=null;privacyPreviewState=null;privacyRequestsState=null;inlineSecurityData=null;inlineProfileData=null;inlineSecurityPromise=null;setBadge(0);setOverviewEmailLabel(getSession()&&getAccount()?'读取中…':'未登录');for(const id of ['task27Security','task27Inbox','task27Mail','task27Prompt','task27Secrets','task29BackupModal','task30PrivacyModal'])if($(id))closeModal(id,true);}
+    void isSupported().then(supported=>{if(current!==key())return;const authenticated=Boolean(getSession()&&getAccount());$('notificationBellBtn')?.classList.toggle('hidden',!authenticated||!supported);$('securityCenterMenuBtn')?.classList.toggle('hidden',!authenticated||!supported);$('openSecurityCenterBtn')?.classList.toggle('hidden',!supported);$('accountBackupOpen')?.classList.toggle('hidden',!authenticated);$('accountPrivacyOpen')?.classList.toggle('hidden',!authenticated);$('finOpenBackupBtn')?.classList.toggle('hidden',!authenticated);$('task27MailOpenBtn')?.classList.toggle('hidden',!getAccount()?.is_admin||!supported||policyConfig?.mail_center_integrated===true);$('forgotPasswordBtn')?.classList.toggle('hidden',!supported);$('adminNewSecretInput')?.closest('.admin-secret-field')?.classList.toggle('hidden',supported);$('adminNewSecretInput')?.closest('.admin-secret-field')?.setAttribute('aria-hidden',String(supported));$('generateAdminSecretBtn')?.classList.toggle('hidden',supported);if($('generateAdminSecretBtn'))$('generateAdminSecretBtn').disabled=supported;if(authenticated&&supported)void refreshBadge();if(authenticated&&!$('accountModal')?.classList.contains('hidden'))void loadInlineSecurity();}).catch(()=>{});}
   async function policies(){if(!policyConfig){const response=await fetch('/api/policies',{cache:'no-store'});if(response.status===404){policyConfig={legacy:true,versions:POLICY_VERSIONS,security_center_ready:false};return policyConfig;}if(!response.ok)throw new Error('无法读取当前政策版本，请稍后重试');policyConfig=await response.json();}return policyConfig;}
   async function isSupported(){return (await policies()).security_center_ready===true;}
   async function registrationConsent(){if(!$('registerTermsConsent')?.checked)throw new Error('请主动勾选同意使用条款');return {terms_accepted:true,policy_versions:(await policies()).versions};}
@@ -831,12 +1026,12 @@ export function createSecurityCenter({api,apiGet,publicApi,getSession,getAccount
     });
   }
   $('notificationBellBtn')?.addEventListener('click',()=>void openInbox());
-  wireNewPasswordField($('registerSecretInput'));wirePasswordVisibility($('registerConfirmInput'));wireNewPasswordField($('newSecretInput'));
+  wirePasswordVisibility($('secretInput'));wireNewPasswordField($('registerSecretInput'));wirePasswordVisibility($('registerConfirmInput'));wireNewPasswordField($('newSecretInput'));
   $('securityCenterMenuBtn')?.addEventListener('click',()=>void openSecurity());$('openSecurityCenterBtn')?.addEventListener('click',()=>void openSecurity());
   $('accountBackupOpen')?.addEventListener('click',()=>void openBackupCenter());$('finOpenBackupBtn')?.addEventListener('click',()=>void openBackupCenter());
   $('accountPrivacyOpen')?.addEventListener('click',()=>void openPrivacyCenter());
   $('forgotPasswordBtn')?.addEventListener('click',()=>void forgotPassword());$('task27MailOpenBtn')?.addEventListener('click',()=>void openMail());
   window.addEventListener('focus',()=>void refreshBadge(true));document.addEventListener('visibilitychange',()=>{if(!document.hidden)void refreshBadge(true);});window.setInterval(()=>void refreshBadge(),60000);
   updateCopyrightYear();
-  return {stepup,completeLogin,openSecurity,openBackupCenter,openPrivacyCenter,openInbox,updateAccount,registrationConsent,reaccept,forgotPassword,openMail,refreshBadge,isSupported};
+  return {stepup,completeLogin,openSecurity,loadInlineSecurity,openBackupCenter,openPrivacyCenter,openInbox,updateAccount,registrationConsent,reaccept,forgotPassword,openMail,refreshBadge,isSupported};
 }

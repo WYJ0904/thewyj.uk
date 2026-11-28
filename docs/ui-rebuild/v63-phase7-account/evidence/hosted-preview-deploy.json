@@ -1,0 +1,12 @@
+{
+  "project": "thewyj-v63-p6p9-preview",
+  "branch": "v63-phase7",
+  "branch_alias_url": "https://v63-phase7.thewyj-v63-p6p9-preview.pages.dev",
+  "latest_deployment_url": "https://0cbc1c69.thewyj-v63-p6p9-preview.pages.dev",
+  "d1_name": "aeris-v63-p6p9-preview",
+  "d1_id": "a1550b63-acd2-42bb-9358-b44bedd88d68",
+  "r2_name": "aeris-v63-p6p9-storage",
+  "deployed_commit": "c0d965b9f8b2568a56575b092a70a19862e8f9f4",
+  "deployed_at": "2026-11-28T07:40:08.732Z",
+  "p6_branch_preserved": "v63-phase6"
+}

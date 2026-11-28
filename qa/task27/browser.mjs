@@ -106,7 +106,7 @@ try {
   });
   await check('ordinary login and account security render in the existing shell',async()=>{
     await page.setFields({'#usernameInput':'browser-fixture','#secretInput':password});await page.click('#loginSubmitBtn');await page.waitFor("location.pathname==='/'&&document.getElementById('notificationBellBtn').checkVisibility()",45000);
-    await closeBroadcast();await page.navigate('/account');await page.waitFor("document.getElementById('openSecurityCenterBtn').checkVisibility()",20000);await closeBroadcast();await page.click('#openSecurityCenterBtn');await page.waitFor("document.querySelector('[data-security-mfa=totp]')",20000);await screenshot('security-desktop');
+    await closeBroadcast();await page.navigate('/account');await page.waitFor("document.getElementById('accountTabSecurity')?.checkVisibility()",20000);await page.click('#accountTabSecurity');await page.waitFor("document.getElementById('openSecurityCenterBtn').checkVisibility()",20000);await closeBroadcast();await page.click('#openSecurityCenterBtn');await page.waitFor("document.querySelector('[data-security-mfa=totp]')",20000);await screenshot('security-desktop');
   });
   let codes,secret;
   await check('TOTP setup uses local QR, requires confirmation and shows recovery codes once',async()=>{
@@ -143,6 +143,7 @@ try {
   });
   await check('375px and 390px light and dark security layout wraps full status banner with zero clipping or horizontal overflow and passes axe',async()=>{
     await page.click('#task27Inbox [data-task27-close]');await page.navigate('/account');
+    await page.waitFor("document.getElementById('accountTabSecurity')?.checkVisibility()",20000);await page.click('#accountTabSecurity');
     profileDelayMs=2400;
     await page.click('#openSecurityCenterBtn');await page.waitFor("document.querySelector('[data-security-mfa=totp]')",20000);
     await page.click('[data-security-mfa=email]');

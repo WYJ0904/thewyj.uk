@@ -194,8 +194,10 @@ async function main() {
     });
 
     await check("learning sync now shows feedback before the upload", async () => {
-      await page.navigate("/");
-      await page.waitFor("document.querySelector('#learningSyncNowBtn')", 25_000, "learning sync button");
+      await page.navigate("/account");
+      await page.waitFor("document.querySelector('#accountTabSync')?.checkVisibility()", 25_000, "account sync tab");
+      await page.click("#accountTabSync");
+      await page.waitFor("document.querySelector('#learningSyncNowBtn')?.checkVisibility()", 25_000, "learning sync button");
       await page.evaluate("document.querySelector('#learningSyncNowBtn')?.scrollIntoView()");
       await clickWithImmediateFeedback("#learningSyncNowBtn", "learning sync");
       await page.waitFor(
@@ -333,15 +335,11 @@ async function main() {
       })()`);
       // The membership form needs a goal, then a plan, then a payment method
       // before the submit button becomes usable - the same path a user takes.
-      await page.waitFor("document.querySelector('[data-membership-goal]')", 30_000, "membership goals");
+      await page.waitFor("document.querySelector('[data-card-variant=\"finance_monthly\"], [data-plan=\"finance_monthly\"]')", 30_000, "membership card switcher or plan");
       await page.evaluate(`(() => {
-        const goals = Array.from(document.querySelectorAll('[data-membership-goal]'));
-        const goal = goals.find((button) => button.dataset.membershipGoal === 'finance') || goals[0];
-        goal.click();
+        const variant = document.querySelector('[data-card-variant="finance_monthly"]');
+        if (variant) variant.click();
       })()`);
-      // Plans only render once a goal is selected, and the page may have failed
-      // its own (real) catalog request before this step installed the controlled
-      // one - so retry through the app's recovery button and then wait again.
       const planVisible = () => page.waitFor("document.querySelector('[data-plan=\"finance_monthly\"]')", 12_000, "controlled plan")
         .then(() => true)
         .catch(() => false);
@@ -351,10 +349,6 @@ async function main() {
           const retry = document.querySelector('#retryMembershipPlansBtn');
           if (retry) retry.click();
           return true;
-        })()`);
-        await page.evaluate(`(() => {
-          const goals = Array.from(document.querySelectorAll('[data-membership-goal]'));
-          (goals.find((button) => button.dataset.membershipGoal === 'finance') || goals[0]).click();
         })()`);
         hasPlans = await planVisible();
       }
@@ -369,13 +363,18 @@ async function main() {
         }))()`);
         throw new Error(`the controlled plan catalog was not used by the membership page: ${JSON.stringify(surface)}`);
       }
-      await page.evaluate("(document.querySelector('[data-plan=\"finance_monthly\"]') || document.querySelector('[data-plan]')).click()");
+      await page.evaluate("(document.querySelector('[data-plan=\"finance_monthly\"] [data-plan-buy]') || document.querySelector('[data-plan]')).click()");
       await page.waitFor("document.querySelector('input[name=\"paymentMethod\"]')", 25_000, "payment methods");
       await page.evaluate(`(() => {
         const method = document.querySelector('input[name="paymentMethod"]');
         if (method) {
           method.checked = true;
           method.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        const agreement = document.querySelector('#paymentAgreementCheckbox');
+        if (agreement) {
+          agreement.checked = true;
+          agreement.dispatchEvent(new Event('change', { bubbles: true }));
         }
       })()`);
       await page.waitFor("!document.querySelector('#submitRechargeBtn')?.disabled", 25_000, "recharge submit enabled");
@@ -425,23 +424,19 @@ async function main() {
         await errorPage.click("#accountBtn");
         await errorPage.waitFor("document.querySelector('#membershipBtn')", 10_000, "account menu for the error path");
         await errorPage.evaluate("document.querySelector('#membershipBtn').click(); true");
-        await errorPage.waitFor("document.querySelector('[data-membership-goal]')", 25_000, "goals for the error path");
+        await errorPage.waitFor("document.querySelector('[data-card-variant=\"finance_monthly\"], [data-plan=\"finance_monthly\"]')", 25_000, "card switcher or plan for the error path");
         await errorPage.evaluate(`(() => {
-          const goals = Array.from(document.querySelectorAll('[data-membership-goal]'));
-          (goals.find((button) => button.dataset.membershipGoal === 'finance') || goals[0]).click();
+          const variant = document.querySelector('[data-card-variant="finance_monthly"]');
+          if (variant) variant.click();
         })()`);
         const errorPlanVisible = () => errorPage.waitFor(
           "document.querySelector('[data-plan=\"finance_monthly\"]')", 12_000, "controlled plan for the error path",
         ).then(() => true).catch(() => false);
         let hasErrorPlan = await errorPlanVisible();
         if (!hasErrorPlan) {
-          // The fresh tab can finish a real catalog request before its
-          // interceptor is active. Use the same in-page recovery as above.
           await errorPage.evaluate(`(() => {
             const retry = document.querySelector('#retryMembershipPlansBtn');
             if (retry) retry.click();
-            const goals = Array.from(document.querySelectorAll('[data-membership-goal]'));
-            (goals.find((button) => button.dataset.membershipGoal === 'finance') || goals[0]).click();
           })()`);
           hasErrorPlan = await errorPlanVisible();
         }
@@ -453,13 +448,18 @@ async function main() {
           }))()`);
           throw new Error(`controlled error-path catalog unavailable: ${JSON.stringify(surface)}`);
         }
-        await errorPage.evaluate("document.querySelector('[data-plan=\"finance_monthly\"]').click()");
+        await errorPage.evaluate("(document.querySelector('[data-plan=\"finance_monthly\"] [data-plan-buy]') || document.querySelector('[data-plan=\"finance_monthly\"]')).click()");
         await errorPage.waitFor("document.querySelector('input[name=\"paymentMethod\"]')", 25_000, "payment methods for the error path");
         await errorPage.evaluate(`(() => {
           const method = document.querySelector('input[name="paymentMethod"]');
           if (method) {
             method.checked = true;
             method.dispatchEvent(new Event("change", { bubbles: true }));
+          }
+          const agreement = document.querySelector('#paymentAgreementCheckbox');
+          if (agreement) {
+            agreement.checked = true;
+            agreement.dispatchEvent(new Event("change", { bubbles: true }));
           }
         })()`);
         await errorPage.waitFor("!document.querySelector('#submitRechargeBtn')?.disabled", 25_000, "submit enabled for the error path");

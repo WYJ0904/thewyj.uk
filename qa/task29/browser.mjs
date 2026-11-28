@@ -243,6 +243,8 @@ try {
     await page.waitFor("location.pathname === '/' && document.getElementById('notificationBellBtn')?.checkVisibility()", 30_000);
 
     await page.navigate("/account");
+    await page.waitFor("document.getElementById('accountTabData')?.checkVisibility()", 15_000);
+    await page.click("#accountTabData");
     await page.waitFor("document.getElementById('accountBackupOpen')?.checkVisibility()", 15_000);
     await page.click("#accountBackupOpen");
     await page.waitFor("document.getElementById('task29BackupModal') && !document.getElementById('task29BackupModal').classList.contains('hidden') && document.getElementById('backupExportSubmitBtn')", 15_000);
@@ -382,6 +384,8 @@ try {
     await page.waitFor("location.pathname === '/' && document.getElementById('notificationBellBtn')?.checkVisibility()", 30_000);
 
     await page.navigate("/account");
+    await page.waitFor("document.getElementById('accountTabData')?.checkVisibility()", 15_000);
+    await page.click("#accountTabData");
     await page.waitFor("document.getElementById('accountBackupOpen')?.checkVisibility()", 15_000);
     await page.click("#accountBackupOpen");
     await page.waitFor("document.getElementById('backupRestoreFileInput')", 15_000);
