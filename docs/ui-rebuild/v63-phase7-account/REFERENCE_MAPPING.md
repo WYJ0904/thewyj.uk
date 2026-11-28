@@ -42,9 +42,10 @@
 - **Aeris 独立映射**：
   - 保留并增强 `password-fields.js`、`generateOwnSecret()`、`task27Secrets` 一次性恢复码确认门禁及 Task29 浏览器端 `Web Crypto AES-256-GCM` 加密备份与只读预检流水线。
 
-### 6. ChatGPT Pricing & Upgrade Modal (`chatgpt.com/pricing`) + Stripe Customer Portal (`docs.stripe.com/customer-management`)
+### 6. ChatGPT Pricing & Upgrade (`chatgpt.com/pricing` & 参考录屏对比) + ChatGPT Two-Column Checkout (`chatgpt.com/checkout`)
 - **研究要点**：
-  - **套餐并列比较结构**：首屏直接展示推荐方案对比卡片，名称、副标题、醒目价格/周期、全宽圆角主购买按钮、勾选权益清单与页脚说明保持统一行基准与等高对齐；明确标记「当前已拥有 / Current Plan」，底部提供全量展开入口，不强迫用户在看到价格前先填写冗长用途选择大卡片。
-  - **三状态独立流程与等待审核聚焦**：选择方案后切换独立结账视口，仅聚焦已选方案、支付方式及受保护二维码（预览/离线无码时如实提示）；提交「我已付款」后聚焦等待人工审核与历史订单，严格禁止在管理员确认前伪造会员已生效。
+  - **GPT Pro 式卡内切换与纯净画布**：默认以宽敞画布并排展示 3 张核心对比卡（绝不在桌面端意外换行成 2+1），将同类变体收拢于卡片顶部滑块切换器（如 `单语言 | 通知保存 | 财务`、`包月 | 永久`），标题、副标题、全宽胶囊购买按钮、价格与周期、3–5 条正常字重主要权益保持同排水平对齐，底部「查看所有方案」页内平滑展开剩余合并卡，同时支持卡内折叠完整权益清单。
+  - **ChatGPT 两栏独立结账与协议门禁**：点击购买后脱离方案列表进入两栏结账：左栏放返回导航、档位切换与支付方式选择器，并设未默认勾选的支付协议确认及协议说明弹窗；右栏用独立高对比摘要卡片承接方案摘要、关键权益、金额明细、全宽确认按钮与人工审核提示，避免自动续费或虚假扣款文案。
+  - **专注等待审核与订单管理**：会员现状卡、历史订单及待审核进度集中于「订单管理」分类，页签名称保持静态稳定，人工审核确认前严禁显示会员已生效。
 - **Aeris 独立映射**：
-  - `#membershipModal` 重构为三大互斥视图（`#membershipPlansView`、`#membershipCheckoutView`、`#membershipOrdersView`），并按第 36 项方案 A 默认呈现 4 款主流推荐对比卡、明确标注 `当前已拥有`、于卡片网格底部居中提供「查看所有套餐」直达全部 8 款方案，保留轻量化 7 类用途筛选标签、带锁未开通入口与全站顶部临近到期公告栏 `#membershipExpiryNotice`（严格豁免永久会员）。
+  - `#membershipModal` 重构为纯净 3 态切换（`#membershipPlansView`、`#membershipCheckoutView`、`#membershipOrdersView`），严格按第 36 项方案 A 与最终整改规范落地固定 3 列桌面对比、CSP 安全属性滑块切换、页内平滑展开 `双语言套餐`（全部 8 套餐完整可达）、两栏结账 + `#paymentAgreementModal` 同意门禁、顶部临近到期公告 `#membershipExpiryNotice`（豁免永久会员）与订单管理聚焦视图。

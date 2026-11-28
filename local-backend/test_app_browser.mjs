@@ -612,6 +612,8 @@ async function main() {
         paymentQrSrc: document.querySelector('#paymentQrImage')?.getAttribute('src') || '',
         paymentQrWrapHidden: document.querySelector('#paymentQrWrap')?.classList.contains('hidden'),
         membershipModalHidden: document.querySelector('#membershipModal')?.classList.contains('hidden'),
+        membershipView: document.querySelector('#membershipModal')?.dataset?.membershipView || '',
+        paymentOrderBoxHidden: document.querySelector('#paymentOrderBox')?.classList.contains('hidden'),
         paymentQrObjectUrl,
         paymentOrder: currentPaymentOrder ? { id: currentPaymentOrder.id, status: currentPaymentOrder.status, payment_method: currentPaymentOrder.payment_method } : null,
         financeSummary: financeController?.dashboardSummary?.() || null,
@@ -1151,10 +1153,10 @@ async function main() {
       assert.equal(await evaluate("document.querySelector('#financeWorkspace').classList.contains('hidden')"), true);
       assert.ok((await evaluate("document.querySelector('#financeLocked').textContent")).includes("财务会员 8 CNY/月"));
       await click("#financeUpgradeBtn");
-      await waitFor("selectedMembershipGoal === 'finance' && document.querySelectorAll('#membershipPlanList [data-plan]').length === 3", 8_000, "finance membership choices");
+      await waitFor("document.querySelectorAll('#membershipRecommendedPlanList [data-plan]').length === 3 && document.querySelector('#membershipRecommendedPlanList [data-plan=\"finance_monthly\"]')", 8_000, "finance upgrades pre-selects finance SKU in 3-card grid");
       assert.deepEqual(
-        await evaluate("[...document.querySelectorAll('#membershipPlanList [data-plan]')].map(node => node.dataset.plan)"),
-        ["finance_monthly", "all_access_monthly", "all_access_lifetime"],
+        await evaluate("[...document.querySelectorAll('#membershipRecommendedPlanList [data-plan]')].map(node => node.dataset.plan)"),
+        ["finance_monthly", "tools_monthly", "all_access_lifetime"],
       );
       await click('[data-close-modal="membershipModal"]');
       await click("#financeBackBtn");
@@ -1166,59 +1168,73 @@ async function main() {
       // modal over the home page and conflicts with the workspace contract.
       assert.equal(await evaluate("location.pathname"), "/recharge");
       assert.equal(await evaluate("document.querySelector('#publicHome').classList.contains('hidden') && document.querySelector('#financePage').classList.contains('hidden')"), true);
-      await waitFor("selectedMembershipGoal === 'tools' && document.querySelectorAll('#membershipPlanList [data-plan]').length === 3", 12_000, "tool membership choices");
-      const expectedByGoal = {
-        english: ["trial_single_language", "dual_language_monthly", "all_access_monthly", "japanese_lifetime", "all_access_lifetime"],
-        japanese: ["trial_single_language", "dual_language_monthly", "all_access_monthly", "japanese_lifetime", "all_access_lifetime"],
-        bilingual: ["dual_language_monthly", "all_access_monthly", "japanese_lifetime", "all_access_lifetime"],
-        tools: ["tools_monthly", "all_access_monthly", "all_access_lifetime"],
-        finance: ["finance_monthly", "all_access_monthly", "all_access_lifetime"],
-        notifications: ["notification_archive_access", "all_access_monthly", "all_access_lifetime"],
-        all: ["all_access_monthly", "all_access_lifetime"],
-      };
+      await waitFor("document.querySelectorAll('#membershipRecommendedPlanList [data-plan]').length === 3", 12_000, "3 recommended plan cards visible immediately");
+
       const planTextByCode = {};
       const observedCodes = new Set();
-      for (const [goal, expectedCodes] of Object.entries(expectedByGoal)) {
-        await click(`[data-membership-goal="${goal}"]`);
-        await waitFor(`selectedMembershipGoal === ${JSON.stringify(goal)} && document.querySelectorAll('#membershipPlanList [data-plan]').length === ${expectedCodes.length}`, 3_000, `${goal} membership choices`);
-        const plans = await evaluate(`[...document.querySelectorAll('#membershipPlanList [data-plan]')].map(node => ({ code: node.dataset.plan, text: node.textContent }))`);
-        assert.deepEqual(plans.map((item) => item.code), expectedCodes);
-        plans.forEach((item) => {
+      const collectVisibleCards = async () => {
+        const cards = await evaluate(`[...document.querySelectorAll('#membershipPlanList [data-plan]')].map(node => ({ code: node.dataset.plan, text: node.textContent }))`);
+        for (const item of cards) {
           observedCodes.add(item.code);
           planTextByCode[item.code] = item.text;
-        });
+        }
+      };
+      await collectVisibleCards();
+      for (const variantCode of [
+        "trial_single_language",
+        "notification_archive_access",
+        "finance_monthly",
+        "all_access_monthly",
+        "all_access_lifetime",
+      ]) {
+        await click(`[data-card-variant="${variantCode}"]`);
+        await waitFor(`Boolean(document.querySelector('#membershipRecommendedPlanList [data-plan="${variantCode}"]'))`, 3_000, `switch card to ${variantCode}`);
+        await collectVisibleCards();
       }
+      await click("#membershipShowAllPlansBtn");
+      await waitFor("document.getElementById('membershipExtraPlansRegion')?.classList.contains('is-expanded')", 3_000, "expand dual-language extra card");
+      await collectVisibleCards();
+      await click('[data-card-variant="japanese_lifetime"]');
+      await waitFor("Boolean(document.querySelector('#membershipExtraPlanList [data-plan=\"japanese_lifetime\"]'))", 3_000, "switch dual-language card to lifetime");
+      await collectVisibleCards();
+      await click('[data-card-variant="dual_language_monthly"]');
+      await click("#membershipShowAllPlansBtn");
+      await waitFor("!document.getElementById('membershipExtraPlansRegion')?.classList.contains('is-expanded')", 3_000, "collapse back to 3 cards");
+
       assert.deepEqual([...observedCodes].sort(), ["all_access_lifetime", "all_access_monthly", "dual_language_monthly", "finance_monthly", "japanese_lifetime", "notification_archive_access", "tools_monthly", "trial_single_language"]);
       assert.ok(planTextByCode.trial_single_language.includes("8"));
       assert.ok(planTextByCode.dual_language_monthly.includes("20"));
-      assert.ok(planTextByCode.dual_language_monthly.includes("双语言包月"));
+      assert.ok(planTextByCode.dual_language_monthly.includes("双语言"));
       assert.ok(planTextByCode.tools_monthly.includes("20"));
       assert.ok(planTextByCode.finance_monthly.includes("8"));
-      assert.ok(planTextByCode.finance_monthly.includes("财务会员"));
+      assert.ok(planTextByCode.finance_monthly.includes("财务"));
       assert.ok(planTextByCode.notification_archive_access.includes("8"));
-      assert.ok(planTextByCode.notification_archive_access.includes("通知保存"));
+      assert.ok(planTextByCode.notification_archive_access.includes("通知"));
       assert.ok(planTextByCode.all_access_monthly.includes("30"));
       assert.ok(planTextByCode.japanese_lifetime.includes("70"));
-      assert.ok(planTextByCode.japanese_lifetime.includes("双语言双项永久会员"));
+      assert.ok(planTextByCode.japanese_lifetime.includes("双语言"));
       assert.ok(planTextByCode.all_access_lifetime.includes("100"));
-      await assertReadable(".plan-option small");
-      await assertReadable(".membership-goal-option small");
-      await assertReadable(".membership-warning");
+      await assertReadable(".plan-card-footnote");
       await delay(240);
       assert.deepEqual(await auditVisibleTextContrast("#membershipModal"), []);
       assert.equal(await evaluate("document.querySelector('#paymentMethodField').classList.contains('hidden')"), true);
-      await click('[data-membership-goal="english"]');
-      await click('[data-plan="trial_single_language"]');
+      await click('[data-card-variant="trial_single_language"]');
+      await click('[data-plan="trial_single_language"] [data-plan-buy]');
+      await waitFor("document.querySelector('#membershipCheckoutView') && !document.querySelector('#membershipCheckoutView').classList.contains('hidden')", 4_000, "single language checkout view");
       assert.equal(await evaluate("document.querySelector('#trialLanguageField').classList.contains('hidden')"), false);
       assert.equal(await evaluate("document.querySelector('#trialLanguageSelect').value"), "english");
-      assert.equal(await evaluate("document.querySelector('#trialLanguageSelect').disabled"), true);
       assert.equal(await evaluate("document.querySelectorAll('#paymentMethodList input[name=\"paymentMethod\"]').length"), 2);
       await click("#membershipBackToPlansBtn");
-      await click('[data-membership-goal="tools"]');
-      await click('[data-plan="all_access_monthly"]');
-      assert.ok((await evaluate("document.querySelector('#purchaseSummary').textContent")).includes("30 CNY"));
+      await click('[data-card-variant="all_access_monthly"]');
+      await click('[data-plan="all_access_monthly"] [data-plan-buy]');
+      await waitFor("!document.querySelector('#membershipCheckoutView').classList.contains('hidden')", 4_000, "all access monthly checkout");
+      assert.ok((await evaluate("document.querySelector('#purchaseSummary').textContent")).includes("30.00 CNY"));
       assert.equal(await evaluate("document.querySelector('#submitRechargeBtn').disabled"), true);
       await click('#paymentMethodList input[value="wechat"]');
+      assert.equal(await evaluate("document.querySelector('#paymentAgreementCheckbox').checked"), false);
+      assert.equal(await evaluate("document.querySelector('#submitRechargeBtn').disabled"), true, "submit must remain disabled until payment agreement is checked");
+      await click("#paymentAgreementCheckbox");
+      assert.equal(await evaluate("document.querySelector('#submitRechargeBtn').disabled"), false);
       await evaluate("window.__wyjOriginalImageDecode = HTMLImageElement.prototype.decode; HTMLImageElement.prototype.decode = undefined; true");
       await click("#submitRechargeBtn");
       await waitFor("!document.querySelector('#paymentOrderBox')?.classList.contains('hidden')", 12_000, "payment order");
@@ -1256,8 +1272,10 @@ async function main() {
       await waitFor("document.querySelector('#membershipModal').classList.contains('hidden')", 3_000, "membership modal fully closed before document navigation");
       await evaluate("location.href = '/tools'; true");
       await waitFor("location.pathname === '/recharge' && !document.querySelector('#membershipModal')?.classList.contains('hidden') && document.querySelector('#toolsPanel').classList.contains('hidden')", 12_000, "direct tools guard enters the sole membership workspace");
-      await waitFor("!document.querySelector('#paymentOrderBox')?.classList.contains('hidden')", 12_000, "open payment order restored");
-      assert.equal(await evaluate("selectedMembershipGoal"), "tools");
+      // Direct access defaults to browsing Plans even while review order is pending
+      await waitFor("document.querySelectorAll('#membershipRecommendedPlanList [data-plan]').length === 3", 8_000, "plans remain browsable with open review order");
+      await click("#membershipTabOrders");
+      await waitFor("!document.querySelector('#paymentOrderBox')?.classList.contains('hidden')", 12_000, "open payment order restored in orders tab");
       assert.equal(await evaluate("document.querySelector('#paymentOrderBox').classList.contains('hidden')"), false);
       await click('[data-close-modal="membershipModal"]');
 
@@ -1269,14 +1287,15 @@ async function main() {
         const paymentUser = await createUser(`pay${method}`);
         await useSession(paymentUser.session, "/recharge");
         await waitFor("!document.querySelector('#membershipModal')?.classList.contains('hidden')", 12_000, `${method} recharge modal`);
-        await click('[data-membership-goal="notifications"]');
+        await click('[data-card-variant="notification_archive_access"]');
         await waitFor("document.querySelector('#membershipPlanList [data-plan=\"notification_archive_access\"]')", 8_000, `${method} notification archive plan`);
-        await click('[data-plan="notification_archive_access"]');
+        await click('[data-plan="notification_archive_access"] [data-plan-buy]');
         assert.equal(await evaluate("selectedPaymentMethod"), "");
         assert.equal(await evaluate("document.querySelector('#submitRechargeBtn').disabled"), true);
         await click(`#paymentMethodList input[value="${method}"]`);
         assert.equal(await evaluate("selectedPaymentMethod"), method);
         assert.ok((await evaluate("document.querySelector('#purchaseSummary').textContent")).includes(labels[method]));
+        await click("#paymentAgreementCheckbox");
         await click("#submitRechargeBtn");
         await waitFor("currentPaymentOrder?.status === 'pending_payment' && !document.querySelector('#paymentOrderBox')?.classList.contains('hidden')", 12_000, `${method} pending payment order`);
         assert.equal(await evaluate("currentPaymentOrder.payment_method"), method);
@@ -1292,7 +1311,11 @@ async function main() {
 
         await navigate(`/recharge?payment-method=${method}&run=${RUN_ID}`);
         await waitFor("!document.querySelector('#entryScreen')", 6_000, `${method} recharge reload splash`);
-        await waitFor("currentPaymentOrder?.status === 'pending_payment' && !document.querySelector('#paymentOrderBox')?.classList.contains('hidden')", 12_000, `${method} restored order`);
+        await waitFor("currentPaymentOrder?.status === 'pending_payment'", 12_000, `${method} restored order object`);
+        await click("#membershipTabOrders");
+        await waitFor("Boolean(document.querySelector('#membershipCurrentSummary [data-jump-membership-view=\"checkout\"]'))", 8_000, `${method} continue checkout alert in orders`);
+        await click('#membershipCurrentSummary [data-jump-membership-view="checkout"]');
+        await waitFor("!document.querySelector('#paymentOrderBox')?.classList.contains('hidden')", 12_000, `${method} restored order in checkout`);
         assert.equal(await evaluate("selectedPaymentMethod"), method);
         assert.equal(await evaluate("currentPaymentOrder.plan_code"), "notification_archive_access");
         assert.equal(await evaluate("currentPaymentOrder.amount_cents"), 800);

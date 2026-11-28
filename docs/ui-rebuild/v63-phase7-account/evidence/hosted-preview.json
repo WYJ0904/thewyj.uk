@@ -1,15 +1,22 @@
 {
   "preview_url": "https://v63-phase7.thewyj-v63-p6p9-preview.pages.dev",
   "p6_preserved_url": "https://v63-phase6.thewyj-v63-p6p9-preview.pages.dev",
-  "verified_at": "2026-11-28T04:02:23.004Z",
-  "release_detected": "20261128-aeris-p7-account-v2",
+  "verified_at": "2026-11-28T06:12:02.678Z",
+  "release_detected": "20261128-aeris-p7-account-v3",
   "accounts": {
     "free": {
       "username": "v63p1_free",
       "tabs_width": 1121,
-      "initial_view": "orders",
-      "all_8_plans_visible": true,
-      "checkout_tested": false
+      "initial_view": "plans",
+      "grid": {
+        "count": 3,
+        "rowTopDelta": 0,
+        "buyTopDelta": 0,
+        "priceTopDelta": 0,
+        "allDefault": "all_access_lifetime",
+        "badgeCount": 1
+      },
+      "orders_preserved": true
     },
     "vip": {
       "username": "v63p1_vip",
@@ -20,6 +27,13 @@
       "username": "v63p1_admin",
       "role_pill": "站点所有者",
       "admin_nav_visible": true
+    },
+    "temp_checkout_user": {
+      "username": "p7tmpx00jqt9",
+      "agreement_blocked": true,
+      "checkout_order_created": true,
+      "qr_state": "error",
+      "cancelled_cleanly": true
     }
   },
   "runtimeErrors": [],

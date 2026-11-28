@@ -14,13 +14,13 @@
 - **Applied Recommendations**:
   - Preserved native password manager compatibility (`autocomplete="username"`, `current-password`, `new-password`, explicit `<label for>` + `name`), live password confirmation feedback (`#registerConfirmHint` `aria-live="polite"`), and real button loading states (`aria-busy="true"`) without clearing `#usernameInput` on failure.
   - Full WAI-ARIA `tablist` / `tab` / `tabpanel` semantics with `ArrowLeft` / `ArrowRight` / `Home` / `End` keyboard navigation across `#accountSubnav` and `.auth-tabs`.
-  - Split Membership & Recharge into clear visual tiers: equal-height comparison cards with aligned price/period/CTA rows, isolated checkout without stacked card clutter, and a calm focus-only waiting-for-review & order history screen.
+  - Refactored Membership & Recharge after the ChatGPT Pro & Checkout screen recording study into 3 crisp horizontal comparison cards (`repeat(3, minmax(0, 1fr))` on desktop) with CSP-safe sliding `data-variant-count`/`data-variant-index` switchers, smooth in-place Row 2 reveal (`查看所有套餐`), two-column isolated GPT Checkout with explicit payment-agreement checkbox gating, and calm Order Management.
 
 ## 3. design-taste-frontend
 - **Script Executed**: `node <skills-root>/design-taste-frontend/scripts/copy-lint.mjs index.html app.js js/membership/plans.js js/membership/recharge.js js/membership/account.js`
 - **Findings & Assessment**:
   - `index.html`, `js/membership/plans.js`, `js/membership/recharge.js`: **0 FAIL, 0 WARN**.
-  - Added neutral plain-Chinese labels across auth, account subnav, security rows, 4 recommended comparison cards, bottom `查看所有套餐` toggle, honest 503 QR unavailable warning, and payment review timeline without marketing superlatives or fake active states.
+  - Plain, factual Chinese copy across GPT Pro comparison cards, 1-line taglines, regular-weight (`14px`) concise bullets, structured `#paymentAgreementModal` terms, honest 503 QR unavailable warning, and review status without marketing superlatives or fake active states.
 
 ## 4. impeccable
 - **Commands Executed**:
@@ -33,8 +33,7 @@
 
 ## 5. hallmark (`sloplint`)
 - **Static Check**: `node <skills-root>/hallmark/scripts/sloplint.mjs spatial-experience.css` (and `.`):
-  - Caught initial off-scale spacings (`6px`, `10px`, `14px`), bare `1fr` track on `.payment-order-dual-grid`, missing text color on `.auth-logo`, and `overflow: hidden` on `.account-settings-rows`.
-  - Fixed all spacings to exact 4px multiples, changed bare `1fr` -> `minmax(0, 1fr)`, added `color: var(--ds-text)` on `.auth-logo`, switched to `overflow: clip`, achieving **0 findings** across the entire Phase 7 CSS section.
+  - Caught off-scale padding (`4px 10px` -> `4px 12px`), `overflow: hidden` inside `.membership-extra-plans-inner` (switched to `overflow: clip`), bare `1fr` track on `.payment-order-dual-grid`, missing text color on `.auth-logo`, and `overflow: hidden` on `.account-settings-rows`; achieved **0 findings** across all Phase 7 membership CSS (`>= 17650`).
 - **Live Render Check (`--url` Floor Tier)**:
   - Executed `sloplint.mjs --url http://127.0.0.1:8895/login --url http://127.0.0.1:8895/register --scope app --tier floor --json` against Miniflare with `p07_accessibility` enabled.
   - Caught 5 real rendered defects on first run: Gate `40` input border contrast `1.53:1 < 3:1`, and Gate `49a` 2-line button wrapping at `320px` on `.auth-recovery-link` & `#viewVersionDetailsBtn`.

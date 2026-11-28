@@ -1,4 +1,4 @@
-import { sanitizeProfile } from "./quiz.js?release=20261128-aeris-p7-account-v2";
+import { sanitizeProfile } from "./quiz.js?release=20261128-aeris-p7-account-v3";
 
 export function createLearningSyncAdapter(getApi) {
   const api = () => getApi() || null;

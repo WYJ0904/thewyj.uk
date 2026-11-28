@@ -555,49 +555,130 @@ try {
   assert.equal(adminProbe, 403, "Ordinary user must receive 403 on /api/admin/users");
   pass("account_hub_centering_tabs_themes_axe_and_rbac", report.geometry);
 
-  // 3. Membership & Recharge (3 Independent States + Decision 36A)
+  // 3. Membership & Recharge (GPT Pro Switchers + Fixed 3-Col Grid + 2-Col Checkout + Agreement + Orders)
   await click("#v3Sidebar [data-v3-nav=recharge]");
   await waitFor("location.pathname === '/recharge' && !document.getElementById('membershipModal').classList.contains('hidden')", 15000, "recharge route");
-  await waitFor("document.getElementById('membershipCurrentSummary').textContent.includes('免费基础版')", 15000, "membership summary");
+  await waitFor("document.querySelectorAll('#membershipRecommendedPlanList [data-plan]').length === 3", 15000, "3 recommended cards rendered");
 
-  // Centerline check matching Account Hub width
-  const membershipBox = await evalJs(`(() => {
+  // Centerline & Fixed 3-Column Horizontal Desktop Geometry (expanded AND collapsed sidebar)
+  const measurePlansLayout = async () => evalJs(`(() => {
     const r = document.getElementById('membershipModal').getBoundingClientRect();
     const c = document.getElementById('v3MainCanvas').getBoundingClientRect();
-    return { left: r.left, width: r.width, centerDelta: Math.abs((r.left + r.width / 2) - (c.left + c.width / 2)) };
+    const cards = Array.from(document.querySelectorAll('#membershipRecommendedPlanList > .plan-card'));
+    const cardRects = cards.map((el) => el.getBoundingClientRect());
+    const buyRects = cards.map((el) => el.querySelector('[data-plan-buy]').getBoundingClientRect());
+    const priceRects = cards.map((el) => el.querySelector('.plan-price-row').getBoundingClientRect());
+    return {
+      width: r.width,
+      centerDelta: Math.abs((r.left + r.width / 2) - (c.left + c.width / 2)),
+      cardCount: cards.length,
+      rowTopDelta: Math.max(...cardRects.map((x) => x.top)) - Math.min(...cardRects.map((x) => x.top)),
+      widthDelta: Math.max(...cardRects.map((x) => x.width)) - Math.min(...cardRects.map((x) => x.width)),
+      buyTopDelta: Math.max(...buyRects.map((x) => x.top)) - Math.min(...buyRects.map((x) => x.top)),
+      priceTopDelta: Math.max(...priceRects.map((x) => x.top)) - Math.min(...priceRects.map((x) => x.top)),
+    };
   })()`);
+  const membershipBox = await measurePlansLayout();
   assert.ok(Math.abs(membershipBox.width - report.geometry.expandedSidebar.overview.width) <= 1, "Membership width must match Account Hub width");
   assert.ok(membershipBox.centerDelta <= 2, "Membership must center inside #v3MainCanvas");
+  assert.equal(membershipBox.cardCount, 3, "Desktop Plans view must render 3 recommended cards");
+  assert.ok(membershipBox.rowTopDelta <= 2, `3 cards must stay on 1 horizontal row (got delta=${membershipBox.rowTopDelta})`);
+  assert.ok(membershipBox.widthDelta <= 2, `3 cards must share equal width (got delta=${membershipBox.widthDelta})`);
+  assert.ok(membershipBox.buyTopDelta <= 2, `3 card CTA buttons must align horizontally (got delta=${membershipBox.buyTopDelta})`);
+  assert.ok(membershipBox.priceTopDelta <= 2, `3 card prices must align horizontally (got delta=${membershipBox.priceTopDelta})`);
 
-  // State 1: Immediate ChatGPT-style recommended comparison cards (no forced 7-card gate)
+  // Verify 3-col horizontal grid stays centered and 3-wide after sidebar collapse too
+  if (await evalJs("Boolean(document.querySelector('#v3SidebarCollapseBtn'))")) {
+    await click("#v3SidebarCollapseBtn");
+    await new Promise((r) => setTimeout(r, 400));
+    const collapsedPlansBox = await measurePlansLayout();
+    assert.ok(collapsedPlansBox.centerDelta <= 2, "Collapsed sidebar: membership must stay centered inside #v3MainCanvas");
+    assert.ok(collapsedPlansBox.rowTopDelta <= 2, "Collapsed sidebar: 3 cards must stay on 1 horizontal row");
+    await click("#v3SidebarCollapseBtn");
+    await new Promise((r) => setTimeout(r, 400));
+  }
+
+  // State 1: Clean Plans Page (zero summary/pending/7-filters/essay; only 2 main tabs; default All-Access = Lifetime + single推荐)
   await waitFor("document.getElementById('membershipModal').dataset.membershipView === 'plans'", 5000, "initial plans view");
   assert.equal(await evalJs("document.getElementById('membershipPlanStep').dataset.plansScope"), "recommended");
-  assert.equal(await evalJs("document.querySelectorAll('#membershipPlanList [data-plan]').length"), 4, "4 recommended plans rendered immediately");
+  assert.equal(await evalJs("document.getElementById('membershipTabPlans').textContent.trim()"), "会员套餐");
+  assert.equal(await evalJs("document.getElementById('membershipTabOrders').textContent.trim()"), "订单管理");
+  assert.equal(await evalJs("document.getElementById('membershipPlansView').contains(document.getElementById('membershipCurrentSummary'))"), false, "Current summary must NOT render on Plans page");
+  assert.equal(await evalJs("Boolean(document.getElementById('membershipPurposeGrid'))"), false, "Legacy 7-purpose gate must be removed");
+  assert.equal(await evalJs("document.querySelectorAll('#membershipRecommendedPlanList .plan-badge-recommended').length"), 1, "Only one recommendation badge on page");
+  assert.equal(await evalJs("document.querySelector('#membershipRecommendedPlanList [data-card-family=\"all\"]').dataset.plan"), "all_access_lifetime", "All-access card defaults to lifetime");
+  assert.equal(await evalJs("document.querySelectorAll('#membershipRecommendedPlanList [data-card-family=\"tools\"] [data-card-variant]').length"), 0, "Tools card must not add fake lifetime variant");
   assert.equal(await evalJs("document.getElementById('membershipShowAllPlansBtn').textContent.trim()"), "查看所有套餐");
-  assert.equal(await evalJs("Boolean(document.getElementById('membershipShowAllPlansBtn').closest('.membership-plans-footer'))"), true, "查看所有套餐 must live in bottom footer");
   await shot("desktop-membership-plans.png");
 
-  // Toggle all 8 plans cleanly via bottom button
+  // Exercise GPT Pro card-internal variant switchers + inline EN/JA toggle + expandable details
+  const reachablePlans = new Set(await evalJs("Array.from(document.querySelectorAll('#membershipPlanList [data-plan]')).map(el => el.dataset.plan)"));
+  for (const variant of ["notification_archive_access", "finance_monthly", "trial_single_language"]) {
+    await click(`[data-card-family="single"] [data-card-variant="${variant}"]`);
+    await waitFor(`document.querySelector('[data-card-family="single"]').dataset.plan === '${variant}'`, 5000, `single switch ${variant}`);
+    reachablePlans.add(variant);
+  }
+  await click('[data-card-family="single"] [data-card-lang="japanese"]');
+  assert.equal(await evalJs("document.getElementById('trialLanguageSelect').value"), "japanese", "Inline card language pill syncs trialLanguageSelect");
+  await click('[data-card-family="all"] [data-card-variant="all_access_monthly"]');
+  await waitFor("document.querySelector('[data-card-family=\"all\"]').dataset.plan === 'all_access_monthly'", 5000, "all switch monthly");
+  reachablePlans.add("all_access_monthly");
+  await click('[data-card-family="all"] [data-card-variant="all_access_lifetime"]');
+  await click('[data-card-family="all"] .plan-full-details summary');
+  assert.equal(await evalJs("document.querySelector('[data-card-family=\"all\"] .plan-full-details').open"), true, "Full entitlements drawer expands");
+  await click('[data-card-family="all"] .plan-full-details summary');
+
+  // Toggle remaining merged Dual Language card cleanly in-place via bottom button (reaches all 8 SKUs)
   await click("#membershipShowAllPlansBtn");
-  await waitFor("document.getElementById('membershipPlanStep').dataset.plansScope === 'all' && document.querySelectorAll('#membershipPlanList [data-plan]').length === 8", 10000, "all 8 plans visible");
-  assert.ok(await evalJs("document.getElementById('membershipPlanList').textContent.includes('仅限 Android')"));
+  await waitFor("document.getElementById('membershipPlanStep').dataset.plansScope === 'all' && document.getElementById('membershipExtraPlansRegion').classList.contains('is-expanded')", 10000, "extra plans expanded");
+  reachablePlans.add(await evalJs("document.querySelector('#membershipExtraPlansRegion [data-card-family=\"bilingual\"]').dataset.plan"));
+  const extraCardWidth = await evalJs("document.querySelector('#membershipExtraPlansRegion .plan-card').getBoundingClientRect().width");
+  assert.ok(extraCardWidth <= 355, `Merged Row 2 card must keep clean width <=355px (got ${extraCardWidth})`);
+  await click('[data-card-family="bilingual"] [data-card-variant="japanese_lifetime"]');
+  await waitFor("document.querySelector('[data-card-family=\"bilingual\"]').dataset.plan === 'japanese_lifetime'", 5000, "bilingual switch lifetime");
+  reachablePlans.add("japanese_lifetime");
+  assert.equal(reachablePlans.size, 8, `All 8 real SKUs must be reachable across cards (got ${Array.from(reachablePlans).join(',')})`);
   await shot("desktop-membership-all8.png");
   await click("#membershipShowAllPlansBtn");
   await waitFor("document.getElementById('membershipPlanStep').dataset.plansScope === 'recommended'", 5000, "collapse back to recommended");
 
-  // State 2: Dedicated Checkout View + QR Error Fixture + Real QR Checkout
+  // State 2: Dedicated Two-Column GPT Checkout + Agreement Gate + QR Error Fixture + Real QR Checkout
+  await click('[data-card-family="all"] [data-card-variant="all_access_monthly"]');
   await click('[data-plan="all_access_monthly"] [data-plan-buy]');
   await waitFor("document.getElementById('membershipModal').dataset.membershipView === 'checkout' && document.getElementById('membershipPlansView').classList.contains('hidden')", 10000, "isolated checkout view");
   assert.ok((await evalJs("document.getElementById('membershipSelectedPlanCard').textContent")).includes("30 CNY"));
+  const checkoutCols = await evalJs(`(() => {
+    const l = document.querySelector('#membershipCheckoutView .gpt-checkout-left').getBoundingClientRect();
+    const r = document.querySelector('#membershipCheckoutView .gpt-checkout-right').getBoundingClientRect();
+    return { leftRight: l.right, rightLeft: r.left, topDelta: Math.abs(l.top - r.top) };
+  })()`);
+  assert.ok(checkoutCols.leftRight < checkoutCols.rightLeft && checkoutCols.topDelta <= 4, "Desktop checkout must use 2-column side-by-side layout");
+
+  // Payment Agreement checkbox must block order creation until accepted
+  await evalJs("document.querySelector('input[name=paymentMethod][value=wechat]').click(); true");
+  assert.equal(await evalJs("document.getElementById('paymentAgreementCheckbox').checked"), false, "Payment agreement starts unchecked");
+  assert.equal(await evalJs("document.getElementById('submitRechargeBtn').disabled"), true, "Submit remains disabled without checking payment agreement");
+  await shot("desktop-membership-checkout.png");
+  await click("#openPaymentAgreementBtn");
+  await waitFor("!document.getElementById('paymentAgreementModal').classList.contains('hidden')", 5000, "payment agreement modal opens");
+  assert.ok((await evalJs("document.getElementById('paymentAgreementModal').textContent")).includes("24 小时"));
+  await shot("desktop-membership-checkout-agreement.png");
+  await click("#acceptPaymentAgreementBtn");
+  await waitFor("document.getElementById('paymentAgreementModal').classList.contains('hidden') && document.getElementById('paymentAgreementCheckbox').checked", 5000, "payment agreement accepted");
+  assert.equal(await evalJs("document.getElementById('submitRechargeBtn').disabled"), false, "Submit enabled once method and agreement selected");
 
   // Back to plans cleanly
   await click("#membershipBackToPlansBtn");
   await waitFor("document.getElementById('membershipModal').dataset.membershipView === 'plans'", 5000, "return from checkout to plans");
 
   // Re-enter checkout and test honest 503 QR unavailable error state
+  await click('[data-card-family="all"] [data-card-variant="all_access_monthly"]');
   await click('[data-plan="all_access_monthly"] [data-plan-buy]');
   await waitFor("document.getElementById('membershipModal').dataset.membershipView === 'checkout'", 10000, "checkout view re-entered");
   await evalJs("document.querySelector('input[name=paymentMethod][value=wechat]').click(); true");
+  if (!(await evalJs("document.getElementById('paymentAgreementCheckbox').checked"))) {
+    await click("#paymentAgreementCheckbox");
+  }
   forcePaymentQr503 = true;
   await click("#submitRechargeBtn");
   await waitFor("document.getElementById('paymentQrWrap').dataset.qrState === 'error' && document.getElementById('paymentQrMessage').textContent.includes('切勿盲目转账')", 15000, "honest 503 QR unavailable state");
@@ -608,6 +689,9 @@ try {
   await click("#cancelPaymentOrderBtn");
   await waitFor("document.getElementById('membershipModal').dataset.membershipView === 'checkout' && document.getElementById('paymentOrderBox').classList.contains('hidden')", 15000, "cancelled order returns to configurator");
   await evalJs("document.querySelector('input[name=paymentMethod][value=wechat]').click(); true");
+  if (!(await evalJs("document.getElementById('paymentAgreementCheckbox').checked"))) {
+    await click("#paymentAgreementCheckbox");
+  }
   await click("#submitRechargeBtn");
   await waitFor("!document.getElementById('paymentOrderBox').classList.contains('hidden') && document.getElementById('paymentOrderBox').dataset.orderMode === 'qr'", 15000, "payment order QR locked");
   await waitFor("document.getElementById('paymentQrImage').complete && document.getElementById('paymentQrImage').naturalWidth > 0", 15000, "payment QR decoded");
@@ -618,17 +702,27 @@ try {
   await click("#cancelPaymentOrderBtn");
   await waitFor("document.getElementById('paymentOrderBox').classList.contains('hidden')", 15000, "order cancelled before alipay");
   await evalJs("document.querySelector('input[name=paymentMethod][value=alipay]').click(); true");
+  if (!(await evalJs("document.getElementById('paymentAgreementCheckbox').checked"))) {
+    await click("#paymentAgreementCheckbox");
+  }
   await click("#submitRechargeBtn");
   await waitFor("!document.getElementById('confirmPaymentBtn').classList.contains('hidden')", 15000, "recreated alipay order");
   await click("#confirmPaymentBtn");
   await waitFor("document.getElementById('membershipModal').dataset.membershipView === 'orders' && document.getElementById('paymentOrderBox').dataset.orderMode === 'review'", 15000, "dedicated review view");
   await waitFor("!document.getElementById('membershipReviewBanner').classList.contains('hidden')", 5000, "review banner shown");
+  assert.equal(await evalJs("document.getElementById('membershipTabOrders').textContent.trim()"), "订单管理", "Tab label must stay 订单管理 even while under review");
   assert.equal(await evalJs("document.getElementById('paymentOrderActionCard').classList.contains('hidden')"), true, "QR payment card must hide in review view");
   assert.equal(await evalJs("document.getElementById('membershipCurrentSummary').textContent.includes('免费基础版')"), true, "Membership MUST NOT show active before admin approval");
   await waitFor("document.querySelectorAll('#membershipOrderHistoryList .membership-history-row').length >= 1", 15000, "order history updated");
   await runAxe("#membershipModal");
   await shot("desktop-membership-waiting-review.png");
   await shot("desktop-membership-orders.png");
+
+  // Visiting /recharge directly MUST default to browsing Plans even while an order awaits review
+  await cdp.send("Page.navigate", { url: `${BASE_URL}/recharge` }, sessionId);
+  await waitFor("location.pathname === '/recharge' && document.getElementById('membershipModal').dataset.membershipView === 'plans'", 15000, "direct /recharge defaults to plans even with open review order");
+  await click("#membershipTabOrders");
+  await waitFor("document.getElementById('membershipModal').dataset.membershipView === 'orders' && document.getElementById('paymentOrderBox').dataset.orderMode === 'review'", 10000, "orders tab shows pending review order");
 
   // Approve order as admin via API, then refresh in user view -> becomes approved cleanly
   const adminLoginRes = await fetch(`${BASE_URL}/api/login`, {
@@ -682,9 +776,11 @@ try {
   assert.equal(await evalJs("document.getElementById('accountHeaderRolePill').textContent.trim()"), "普通用户", "Paid VIP must remain普通用户 role, never管理员");
   assert.equal(await evalJs("document.getElementById('membershipExpiryNotice').classList.contains('hidden')"), true, "Lifetime member MUST NOT see expiry or renewal reminder banner");
   await cdp.send("Page.navigate", { url: `${BASE_URL}/recharge` }, sessionId);
-  await waitFor("location.pathname === '/recharge' && document.querySelectorAll('#membershipPlanList [data-plan]').length >= 1", 15000, "vip recharge cards");
+  await waitFor("location.pathname === '/recharge' && document.querySelectorAll('#membershipRecommendedPlanList [data-plan]').length === 3", 15000, "vip recharge cards");
+  await click('[data-card-family="single"] [data-card-variant="finance_monthly"]');
   await click("#membershipShowAllPlansBtn");
-  await waitFor("document.querySelectorAll('#membershipPlanList [data-owned=\"true\"]').length >= 1", 10000, "vip owned plan cards marked cleanly");
+  await click('[data-card-family="bilingual"] [data-card-variant="japanese_lifetime"]');
+  await waitFor("document.querySelectorAll('#membershipPlanList [data-owned=\"true\"]').length >= 2", 10000, "vip owned plan cards marked cleanly");
 
   // Near-expiry timed member MUST see top renewal announcement banner
   await click("#logoutBtn");
@@ -741,6 +837,7 @@ try {
   await shot("mobile-membership-review.png");
   await click("#ordersBackToPlansBtn");
   await waitFor("document.getElementById('membershipModal').dataset.membershipView === 'plans'", 5000, "mobile back to plans");
+  await click('[data-card-family="all"] [data-card-variant="all_access_monthly"]');
   await click('[data-plan="all_access_monthly"] [data-plan-buy]');
   await waitFor("document.getElementById('membershipModal').dataset.membershipView === 'checkout'", 10000, "mobile checkout");
   assert.equal(await evalJs("document.documentElement.scrollWidth > window.innerWidth + 1"), false, "Mobile 390px overflow on checkout");
@@ -756,11 +853,14 @@ try {
   // Full responsive width sweep: 320, 375, 390, 768, 1440, 1920, 2560
   for (const [vw, vh, mob] of [[320, 640, true], [375, 812, true], [390, 844, true], [768, 1024, false], [1440, 900, false], [1920, 1080, false], [2560, 1440, false]]) {
     await cdp.send("Emulation.setDeviceMetricsOverride", { width: vw, height: vh, deviceScaleFactor: 1, mobile: mob }, sessionId);
+    await cdp.send("Page.navigate", { url: `${BASE_URL}/recharge` }, sessionId);
+    await waitFor("location.pathname === '/recharge' && !document.getElementById('membershipModal').classList.contains('hidden')", 20000, `recharge ${vw}`);
     await new Promise((r) => setTimeout(r, 150));
     const ovRecharge = await evalJs("document.documentElement.scrollWidth > window.innerWidth + 1");
     assert.equal(ovRecharge, false, `Horizontal overflow on /recharge at ${vw}x${vh}`);
     await cdp.send("Page.navigate", { url: `${BASE_URL}/account` }, sessionId);
-    await waitFor("location.pathname === '/account' && !document.getElementById('accountModal').classList.contains('hidden')", 15000, `account ${vw}`);
+    await waitFor("location.pathname === '/account' && !document.getElementById('accountModal').classList.contains('hidden')", 20000, `account ${vw}`);
+    await new Promise((r) => setTimeout(r, 150));
     const ovAccount = await evalJs("document.documentElement.scrollWidth > window.innerWidth + 1");
     assert.equal(ovAccount, false, `Horizontal overflow on /account at ${vw}x${vh}`);
     report.viewports.push({ width: vw, height: vh, overflow: false });

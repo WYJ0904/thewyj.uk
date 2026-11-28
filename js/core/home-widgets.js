@@ -1,9 +1,9 @@
-import { getSafeStorage, safeStorageSet } from "./storage.js?release=20261128-aeris-p7-account-v2";
+import { getSafeStorage, safeStorageSet } from "./storage.js?release=20261128-aeris-p7-account-v3";
 import {
   captureFlipSnapshot,
   playFlipSnapshot,
   createDragSortController,
-} from "./motion.js?release=20261128-aeris-p7-account-v2";
+} from "./motion.js?release=20261128-aeris-p7-account-v3";
 import {
   HOME_WIDGET_VERSION,
   WIDGET_IDS,
@@ -31,7 +31,7 @@ import {
   applyWorkspaceVisibleOrder,
   setWorkspaceModuleHidden,
   diffWorkspaceDraftFields,
-} from "./home-widget-layout.js?release=20261128-aeris-p7-account-v2";
+} from "./home-widget-layout.js?release=20261128-aeris-p7-account-v3";
 
 export {
   HOME_WIDGET_VERSION,

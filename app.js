@@ -1,4 +1,4 @@
-import { createSecurityCenter } from './js/account/security-center.js?release=20261128-aeris-p7-account-v2';
+import { createSecurityCenter } from './js/account/security-center.js?release=20261128-aeris-p7-account-v3';
 let task27Ui = null;
 import {
   AI_TIMEOUT_MS,
@@ -11,27 +11,27 @@ import {
   BUSINESS_TIME_ZONE,
   STATUS_RETRY_BASE_DELAYS_MS,
   STATUS_TIMEOUT_MS,
-} from "./js/core/config.js?release=20261128-aeris-p7-account-v2";
-import { reconcileKeyedRows } from "./js/core/keyed-list.js?release=20261128-aeris-p7-account-v2";
+} from "./js/core/config.js?release=20261128-aeris-p7-account-v3";
+import { reconcileKeyedRows } from "./js/core/keyed-list.js?release=20261128-aeris-p7-account-v3";
 import {
   capabilityProblems,
   detectCapabilities,
   randomId,
-} from "./js/core/capabilities.js?release=20261128-aeris-p7-account-v2";
+} from "./js/core/capabilities.js?release=20261128-aeris-p7-account-v3";
 import {
   createApiClient,
   fetchWithTimeout,
   isCanonicalSessionFailure,
   retryDelayWithJitter,
   waitForDelay,
-} from "./js/core/api.js?release=20261128-aeris-p7-account-v2";
+} from "./js/core/api.js?release=20261128-aeris-p7-account-v3";
 import {
   createChangelogSelection,
   loadCloudChangelog,
   mergeChangelogEntries,
   staticChangelogEntries,
-} from "./js/core/changelog.js?release=20261128-aeris-p7-account-v2";
-import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation, nativeAppRoute } from "./js/core/router.js?release=20261128-aeris-p7-account-v2";
+} from "./js/core/changelog.js?release=20261128-aeris-p7-account-v3";
+import { APP_ROUTE_MANIFEST, createRouter, createNativeNavigation, nativeAppRoute } from "./js/core/router.js?release=20261128-aeris-p7-account-v3";
 import {
   ACCOUNT_CACHE_KEY,
   NATIVE_ACCOUNT_SESSION,
@@ -44,33 +44,33 @@ import {
   requestNativeSessionRefresh,
   restoreAccountSession,
   subscribeAccountSessionChanges,
-} from "./js/core/session.js?release=20261128-aeris-p7-account-v2";
-import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?release=20261128-aeris-p7-account-v2";
-import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?release=20261128-aeris-p7-account-v2";
-import { initDesignSystem, setExperienceMode, setInterfaceEnhancementsEnabled, dialogFocusTargets, focusDialog, workspaceRouteMeta, syncWorkspaceShell, syncSidebarActiveIndicator, syncSystemNoticeLayout, closeAccountPopover, closeActiveSelectPopover } from "./js/core/design-system.js?release=20261128-aeris-p7-account-v2";
-import { createPublicUiPolicyController } from "./js/core/public-ui-policy.js?release=20261128-aeris-p7-account-v2";
-import { completeStartupSplash, canPresentWorkspace, waitForPresentation } from "./js/core/startup.js?release=20261128-aeris-p7-account-v2";
-import { installMotionSystem, motionDuration, prefersReducedMotion, attachSheetAdapter, syncModalScrollLock, setControlFeedbackState, getSharedToastManager, showToast, dismissToastByKey, invalidateToastContext, animateRouteViewEntrance, createAssetPrefetcher } from "./js/core/motion.js?release=20261128-aeris-p7-account-v2";
-import { initPublicExperience, renderPublicPlanCatalog } from "./js/core/public-experience.js?release=20261128-aeris-p7-account-v2";
-import { createAndroidDownloadController } from "./js/core/download.js?release=20261128-aeris-p7-account-v2";
-import { createFeatureController } from "./js/core/feature-flags.js?release=20261128-aeris-p7-account-v2";
-import { createFeatureConsole } from "./js/core/feature-console.js?release=20261128-aeris-p7-account-v2";
-import { createMasteryController } from "./js/language/mastery.js?release=20261128-aeris-p7-account-v2";
-import { createWrongReviewController } from './js/language/wrong-review-sync.js?release=20261128-aeris-p7-account-v2';
-import { wrongEntryWord, wrongEntryKey, findWrongEntry } from './js/language/wrong-book.js?release=20261128-aeris-p7-account-v2';
-import { orderWrongReview, wrongReviewView, mergeWrongReview, wrongReviewDigest, wrongReviewSource, reviewDictationOptions } from './js/language/wrong-review.js?release=20261128-aeris-p7-account-v2';
-import { clearMasteryJournalAccount } from "./js/language/mastery-journal.js?release=20261128-aeris-p7-account-v2";
-import { masteryStorageKey, parseIssuedQuestion } from "./js/language/mastery-state.js?release=20261128-aeris-p7-account-v2";
-import { speakText, stopSpeech } from "./js/language/speech.js?release=20261128-aeris-p7-account-v2";
+} from "./js/core/session.js?release=20261128-aeris-p7-account-v3";
+import { getSafeStorage, hasStorageWriteFailure, loadJson, safeStorageSet } from "./js/core/storage.js?release=20261128-aeris-p7-account-v3";
+import { $, escapeHtml, formatLocalDateTime, writeClipboardText } from "./js/core/ui.js?release=20261128-aeris-p7-account-v3";
+import { initDesignSystem, setExperienceMode, setInterfaceEnhancementsEnabled, dialogFocusTargets, focusDialog, workspaceRouteMeta, syncWorkspaceShell, syncSidebarActiveIndicator, syncSystemNoticeLayout, closeAccountPopover, closeActiveSelectPopover } from "./js/core/design-system.js?release=20261128-aeris-p7-account-v3";
+import { createPublicUiPolicyController } from "./js/core/public-ui-policy.js?release=20261128-aeris-p7-account-v3";
+import { completeStartupSplash, canPresentWorkspace, waitForPresentation } from "./js/core/startup.js?release=20261128-aeris-p7-account-v3";
+import { installMotionSystem, motionDuration, prefersReducedMotion, attachSheetAdapter, syncModalScrollLock, setControlFeedbackState, getSharedToastManager, showToast, dismissToastByKey, invalidateToastContext, animateRouteViewEntrance, createAssetPrefetcher } from "./js/core/motion.js?release=20261128-aeris-p7-account-v3";
+import { initPublicExperience, renderPublicPlanCatalog } from "./js/core/public-experience.js?release=20261128-aeris-p7-account-v3";
+import { createAndroidDownloadController } from "./js/core/download.js?release=20261128-aeris-p7-account-v3";
+import { createFeatureController } from "./js/core/feature-flags.js?release=20261128-aeris-p7-account-v3";
+import { createFeatureConsole } from "./js/core/feature-console.js?release=20261128-aeris-p7-account-v3";
+import { createMasteryController } from "./js/language/mastery.js?release=20261128-aeris-p7-account-v3";
+import { createWrongReviewController } from './js/language/wrong-review-sync.js?release=20261128-aeris-p7-account-v3';
+import { wrongEntryWord, wrongEntryKey, findWrongEntry } from './js/language/wrong-book.js?release=20261128-aeris-p7-account-v3';
+import { orderWrongReview, wrongReviewView, mergeWrongReview, wrongReviewDigest, wrongReviewSource, reviewDictationOptions } from './js/language/wrong-review.js?release=20261128-aeris-p7-account-v3';
+import { clearMasteryJournalAccount } from "./js/language/mastery-journal.js?release=20261128-aeris-p7-account-v3";
+import { masteryStorageKey, parseIssuedQuestion } from "./js/language/mastery-state.js?release=20261128-aeris-p7-account-v3";
+import { speakText, stopSpeech } from "./js/language/speech.js?release=20261128-aeris-p7-account-v3";
 import {
   loadSpeechRate,
   saveSpeechRate,
-} from "./js/language/speech-rate.js?release=20261128-aeris-p7-account-v2";
-import { formatFinanceMoney } from "./js/finance/format.js?release=20261128-aeris-p7-account-v2";
-import { createLazyController, installLazyTools, createRetryableImport } from "./js/core/lazy-controller.js?release=20261128-aeris-p7-account-v2";
-import { createDashboardView } from "./js/core/dashboard.js?release=20261128-aeris-p7-account-v2";
-import { TOOLS, CATEGORY_DEFINITIONS, searchTools } from "./js/tools/catalog.js?release=20261128-aeris-p7-account-v2";
-import { homeWidgetStorageKey } from "./js/core/home-widget-layout.js?release=20261128-aeris-p7-account-v2";
+} from "./js/language/speech-rate.js?release=20261128-aeris-p7-account-v3";
+import { formatFinanceMoney } from "./js/finance/format.js?release=20261128-aeris-p7-account-v3";
+import { createLazyController, installLazyTools, createRetryableImport } from "./js/core/lazy-controller.js?release=20261128-aeris-p7-account-v3";
+import { createDashboardView } from "./js/core/dashboard.js?release=20261128-aeris-p7-account-v3";
+import { TOOLS, CATEGORY_DEFINITIONS, searchTools } from "./js/tools/catalog.js?release=20261128-aeris-p7-account-v3";
+import { homeWidgetStorageKey } from "./js/core/home-widget-layout.js?release=20261128-aeris-p7-account-v3";
 import {
   INTERACTION_STAGES,
   beginInteraction,
@@ -78,15 +78,15 @@ import {
   interactionTraceApi,
   withInteractionFeedback,
   withInteractionFeedbackQuiet,
-} from "./js/core/perf.js?release=20261128-aeris-p7-account-v2";
-import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?release=20261128-aeris-p7-account-v2";
+} from "./js/core/perf.js?release=20261128-aeris-p7-account-v3";
+import { ACHIEVEMENTS, ACHIEVEMENT_TIERS, achievementMetrics as calculateAchievementMetrics } from "./js/language/achievements.js?release=20261128-aeris-p7-account-v3";
 import {
   calculateStudyStreak,
   formatDuration,
   localDayKey,
   sanitizeStudyRecords,
   studyDaySeries,
-} from "./js/language/history.js?release=20261128-aeris-p7-account-v2";
+} from "./js/language/history.js?release=20261128-aeris-p7-account-v3";
 import {
   DEFAULT_PROFILE,
   LANGUAGE_LABELS,
@@ -123,16 +123,16 @@ import {
   trimRubricCache,
   wordIdentity,
   wordMatchesLanguage,
-} from "./js/language/quiz.js?release=20261128-aeris-p7-account-v2";
-import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?release=20261128-aeris-p7-account-v2";
-import { createWrongBookPdf } from "./js/language/pdf.js?release=20261128-aeris-p7-account-v2";
+} from "./js/language/quiz.js?release=20261128-aeris-p7-account-v3";
+import { createLearningSyncAdapter } from "./js/language/sync-adapter.js?release=20261128-aeris-p7-account-v3";
+import { createWrongBookPdf } from "./js/language/pdf.js?release=20261128-aeris-p7-account-v3";
 import {
   filterWrongBookByLanguage as filterWrongBookByLanguageModel,
   mergeWrongBooks,
   removeLanguageFromWrongBook as removeLanguageFromWrongBookModel,
   sanitizeWrongBook,
   updateWrongEntry as updateWrongEntryModel,
-} from "./js/language/wrong-book.js?release=20261128-aeris-p7-account-v2";
+} from "./js/language/wrong-book.js?release=20261128-aeris-p7-account-v3";
 import {
   accountEntitlements as accountEntitlementsModel,
   accountMembershipSummary as accountMembershipSummaryModel,
@@ -141,7 +141,7 @@ import {
   isAdmin as isAdminModel,
   isSuperAdmin as isSuperAdminModel,
   membershipLabel,
-} from "./js/membership/account.js?release=20261128-aeris-p7-account-v2";
+} from "./js/membership/account.js?release=20261128-aeris-p7-account-v3";
 import {
   MEMBERSHIP_GOALS,
   MEMBERSHIP_PLAN_ORDER,
@@ -149,20 +149,20 @@ import {
   membershipGoalForPlan,
   normalizedMembershipGoal,
   planDetails as planDetailsModel,
-} from "./js/membership/plans.js?release=20261128-aeris-p7-account-v2";
+} from "./js/membership/plans.js?release=20261128-aeris-p7-account-v3";
 import {
   DEFAULT_PAYMENT_METHODS,
   normalizedPaymentMethod as normalizedPaymentMethodModel,
   paymentMethodLabel as paymentMethodLabelModel,
   paymentStatusLabel,
   rechargeStatusLabel,
-} from "./js/membership/recharge.js?release=20261128-aeris-p7-account-v2";
+} from "./js/membership/recharge.js?release=20261128-aeris-p7-account-v3";
 import {
   createAdminEmailCenter,
   loginLocationLabel,
   loginReasonLabel,
   membershipDateValue as membershipDateValueModel,
-} from "./js/admin/formatters.js?release=20261128-aeris-p7-account-v2";
+} from "./js/admin/formatters.js?release=20261128-aeris-p7-account-v3";
 
 const localStorage = getSafeStorage("localStorage");
 const sessionStorage = getSafeStorage("sessionStorage");
@@ -272,9 +272,59 @@ let selectedRechargePlan = "";
 let currentPaymentOrder = null;
 let membershipPlans = [];
 let showAllMembershipPlans = false;
-const MEMBERSHIP_VIEWS = ["plans", "checkout", "orders"];
-const DEFAULT_FEATURED_PLANS = ["dual_language_monthly", "tools_monthly", "finance_monthly", "all_access_monthly"];
-let membershipViewState = "plans";
+const MEMBERSHIP_VIEWS = Object.freeze({ PLANS: "plans", CHECKOUT: "checkout", ORDERS: "orders" });
+const MEMBERSHIP_CARD_FAMILIES = Object.freeze([
+  {
+    id: "single",
+    section: "recommended",
+    title: "单功能套餐",
+    subtitle: "按月灵活开通单个独立模块",
+    defaultPlan: "trial_single_language",
+    variants: [
+      { label: "单语言", planCode: "trial_single_language" },
+      { label: "通知保存", planCode: "notification_archive_access" },
+      { label: "财务", planCode: "finance_monthly" },
+    ],
+  },
+  {
+    id: "tools",
+    section: "recommended",
+    title: "工具箱套餐",
+    subtitle: "解锁全站 104 款在线工具与文件传输",
+    defaultPlan: "tools_monthly",
+    variants: [],
+  },
+  {
+    id: "all",
+    section: "recommended",
+    title: "全功能套餐",
+    subtitle: "一站解锁语言、工具箱与财务账本",
+    defaultPlan: "all_access_lifetime",
+    recommended: true,
+    variants: [
+      { label: "包月", planCode: "all_access_monthly" },
+      { label: "永久", planCode: "all_access_lifetime" },
+    ],
+  },
+  {
+    id: "bilingual",
+    section: "extra",
+    title: "双语言套餐",
+    subtitle: "同时开通英语与日语完整测验",
+    defaultPlan: "dual_language_monthly",
+    variants: [
+      { label: "包月", planCode: "dual_language_monthly" },
+      { label: "永久", planCode: "japanese_lifetime" },
+    ],
+  },
+]);
+const membershipCardSelections = {
+  single: "trial_single_language",
+  tools: "tools_monthly",
+  all: "all_access_lifetime",
+  bilingual: "dual_language_monthly",
+};
+let membershipViewState = MEMBERSHIP_VIEWS.PLANS;
 let membershipOrderHistory = [];
 let membershipOrderHistoryLoaded = false;
 let membershipOrderHistoryError = "";
@@ -2257,18 +2307,19 @@ function membershipGoalForCurrentContext() {
 function updateMembershipPurchaseSummary() {
   const summary = $("purchaseSummary");
   if (!summary) return;
-  const goal = MEMBERSHIP_GOALS[selectedMembershipGoal];
-  if (!goal) {
-    summary.textContent = "请先选择需要的功能";
-    return;
-  }
   if (!selectedRechargePlan) {
-    summary.textContent = `已选择：${goal.label}。请选择适合的套餐。`;
+    summary.innerHTML = '<div class="checkout-summary-total"><span>应付金额</span><strong>请先选择套餐</strong></div>';
     return;
   }
-  const [name, price, description] = planDetails(selectedRechargePlan);
+  const item = membershipPlans.find((candidate) => candidate.code === selectedRechargePlan);
+  const [name, priceText] = planDetails(selectedRechargePlan);
+  const priceDisplay = item ? `${Number(item.price).toFixed(2)} ${item.currency || "CNY"}` : priceText;
+  const periodLabel = item?.lifetime ? "永久买断（一次性付款）" : item?.duration_months ? `${item.duration_months} 个月` : "1 个月";
   const method = normalizedPaymentMethod(selectedPaymentMethod);
-  summary.textContent = `${name} · ${price} · ${method ? paymentMethodLabel(method) : "请选择支付方式"} · ${description}`;
+  summary.innerHTML = `<div class="checkout-summary-line"><span>所选方案</span><span>${escapeHtml(name)}</span></div>
+    <div class="checkout-summary-line"><span>有效周期</span><span>${escapeHtml(periodLabel)}</span></div>
+    <div class="checkout-summary-line"><span>支付方式</span><span>${escapeHtml(method ? paymentMethodLabel(method) : "请选择微信支付或支付宝")}</span></div>
+    <div class="checkout-summary-total"><span>应付金额</span><strong>${escapeHtml(priceDisplay)}</strong></div>`;
 }
 
 function normalizedPaymentMethod(value) {
@@ -2279,22 +2330,33 @@ function paymentMethodLabel(value) {
   return paymentMethodLabelModel(value, paymentMethods);
 }
 
+function syncRechargeSubmitState() {
+  const submitBtn = $("submitRechargeBtn");
+  if (!submitBtn) return;
+  const hasActiveOrder = Boolean(currentPaymentOrder && ["pending_payment", "user_paid", "processing"].includes(currentPaymentOrder.status));
+  const agreed = Boolean($("paymentAgreementCheckbox")?.checked);
+  submitBtn.disabled = hasActiveOrder || !selectedRechargePlan || !selectedPaymentMethod || !agreed;
+}
+
 function renderPaymentMethods() {
   const list = $("paymentMethodList");
   if (!list) return;
   const methods = paymentMethods.length ? paymentMethods : DEFAULT_PAYMENT_METHODS;
   selectedPaymentMethod = normalizedPaymentMethod(selectedPaymentMethod);
-  list.innerHTML = methods.map((item) => `<label>
+  list.innerHTML = methods.map((item) => `<label class="gpt-payment-method-card ${item.code === selectedPaymentMethod ? "selected" : ""}">
     <input type="radio" name="paymentMethod" value="${escapeHtml(item.code)}" ${item.code === selectedPaymentMethod ? "checked" : ""} />
-    <span>${escapeHtml(item.name)}</span>
+    <span class="gpt-payment-method-title">${escapeHtml(item.name)}</span>
   </label>`).join("");
   list.querySelectorAll('input[name="paymentMethod"]').forEach((input) => {
     input.addEventListener("change", () => {
       selectedPaymentMethod = normalizedPaymentMethod(input.value);
+      list.querySelectorAll(".gpt-payment-method-card").forEach((card) => {
+        card.classList.toggle("selected", Boolean(card.querySelector("input:checked")));
+      });
       updateMembershipPurchaseSummary();
-      $("submitRechargeBtn").disabled = !selectedRechargePlan || !selectedPaymentMethod;
+      syncRechargeSubmitState();
       $("rechargeMessage").textContent = selectedPaymentMethod
-        ? `已选择${paymentMethodLabel(selectedPaymentMethod)}，确认套餐后即可创建订单。`
+        ? `已选择${paymentMethodLabel(selectedPaymentMethod)}，同意《支付协议》后即可生成订单二维码。`
         : "请先选择微信支付或支付宝。";
     });
   });
@@ -2306,23 +2368,100 @@ const MEMBERSHIP_VIEW_PANELS = Object.freeze({
   orders: "membershipOrdersView",
 });
 
-function planFeatureListFor(item) {
+function planCardFamilyForCode(planCode) {
+  return MEMBERSHIP_CARD_FAMILIES.find((family) =>
+    family.defaultPlan === planCode || family.variants.some((v) => v.planCode === planCode),
+  ) || null;
+}
+
+function planConciseFeaturesFor(item) {
+  if (!item) return [];
+  const summaryMap = {
+    trial_single_language: [
+      "任选英语或日语单语言学习与测验",
+      "支持词表练习、错题本与本地复习",
+      "有效期 1 个月，不含工具箱或财务",
+    ],
+    notification_archive_access: [
+      "Android 端本机通知历史归档与检索",
+      "按来源筛选与查看本机消息快照",
+      "仅限 Android 端使用，Web 端不采集",
+    ],
+    finance_monthly: [
+      "Web 与 Android 共享个人财务账本",
+      "收支流水分类、对账统计与加密导出",
+      "按月授权，不含语言测验或在线工具箱",
+    ],
+    tools_monthly: [
+      "解锁全部 104 款在线工具与批处理流",
+      "支持临时文件传输与保存工具预设配置",
+      "Web 全端即用，不含语言或财务账本",
+    ],
+    dual_language_monthly: [
+      "同时解锁英语与日语完整学习与测验",
+      "包含词表复习、错题巩固与云端同步",
+      "按月授权，不含工具箱或财务账本",
+    ],
+    japanese_lifetime: [
+      "一次购买，永久持有英语与日语双语言权益",
+      "长期可用词表学习、错题记录与云同步",
+      "不含在线工具箱或财务账本",
+    ],
+    all_access_monthly: [
+      "解锁英语/日语全套学习、错题巩固与同步",
+      "解锁 104 款在线工具、批处理与临时传输",
+      "含财务账本与 Android 通知保存全部权益",
+    ],
+    all_access_lifetime: [
+      "一次购买，永久解锁双语言、工具箱与财务",
+      "包含 Android 通知保存与全部核心权益",
+      "后续同源已开放核心模块持续可用",
+    ],
+  };
+  if (summaryMap[item.code]) return summaryMap[item.code];
+  const entitlements = Array.isArray(item.entitlements) ? item.entitlements : [];
+  return entitlements.slice(0, 4).map((code) => entitlementLabel(code));
+}
+
+function planFullEntitlementsFor(item) {
   if (!item) return [];
   const entitlements = Array.isArray(item.entitlements) ? item.entitlements : [];
-  if (entitlements.length) {
-    return entitlements.map((code) => entitlementLabel(code));
+  return entitlements.map((code) => entitlementLabel(code));
+}
+
+function renderCheckoutVariants() {
+  const field = $("checkoutVariantField");
+  const list = $("checkoutVariantList");
+  if (!field || !list) return;
+  const family = planCardFamilyForCode(selectedRechargePlan);
+  if (!family || !family.variants.length) {
+    field.classList.add("hidden");
+    list.innerHTML = "";
+    return;
   }
-  const byCode = {
-    trial_single_language: ["任选英语或日语单语言测试（1 个月）", "支持词汇测验、错题本与本地复习"],
-    finance_monthly: ["Web 与 Android 共用个人财务账本", "月度收支统计与加密备份导出支持"],
-    notification_archive_access: ["仅限 Android 端本地通知历史归档与检索", "桌面 Web 不提供该本地通知捕获能力"],
-    dual_language_monthly: ["同时解锁英语与日语完整学习及测验", "不含在线工具箱与财务账本"],
-    tools_monthly: ["解锁全部 104 款在线工具及批处理", "支持临时文件传输与保存工具配置"],
-    all_access_monthly: ["涵盖语言学习、在线工具箱与财务账本", "包含 Android 本地通知保存权益"],
-    japanese_lifetime: ["英语与日语双语言功能永久有效", "不含在线工具箱或财务账本"],
-    all_access_lifetime: ["永久解锁全部语言、工具箱、财务与通知保存", "后续同源已开放核心模块持续可用"],
-  };
-  return byCode[item.code] || [item.description || "按当前方案实际权益授权"];
+  const hasActiveOrder = Boolean(currentPaymentOrder && ["pending_payment", "user_paid", "processing"].includes(currentPaymentOrder.status));
+  field.classList.remove("hidden");
+  list.innerHTML = family.variants.map((variant) => {
+    const planItem = membershipPlans.find((p) => p.code === variant.planCode);
+    const priceSuffix = planItem ? ` (${planItem.price} ${planItem.currency})` : "";
+    const active = variant.planCode === selectedRechargePlan;
+    return `<button class="gpt-checkout-variant-btn ${active ? "active" : ""}" type="button" data-checkout-variant="${escapeHtml(variant.planCode)}" aria-pressed="${active}" ${hasActiveOrder ? "disabled" : ""}>${escapeHtml(variant.label + priceSuffix)}</button>`;
+  }).join("");
+  list.querySelectorAll("[data-checkout-variant]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      if (hasActiveOrder) return;
+      const nextCode = btn.dataset.checkoutVariant;
+      membershipCardSelections[family.id] = nextCode;
+      selectedRechargePlan = nextCode;
+      selectedMembershipGoal = membershipGoalForPlan(nextCode, $("trialLanguageSelect")?.value);
+      $("trialLanguageField")?.classList.toggle("hidden", nextCode !== "trial_single_language");
+      if ($("trialLanguageSelect")) $("trialLanguageSelect").disabled = nextCode !== "trial_single_language";
+      renderCheckoutVariants();
+      renderSelectedCheckoutPlanCard();
+      updateMembershipPurchaseSummary();
+      syncRechargeSubmitState();
+    });
+  });
 }
 
 function renderSelectedCheckoutPlanCard() {
@@ -2330,27 +2469,32 @@ function renderSelectedCheckoutPlanCard() {
   if (!card) return;
   const item = membershipPlans.find((candidate) => candidate.code === selectedRechargePlan);
   if (!item) {
-    card.innerHTML = '<p class="meta-line">请先从方案列表中选择要开通的会员套餐。</p>';
+    card.innerHTML = '<p class="meta-line">请先从会员套餐中选择需要开通的方案。</p>';
     return;
   }
-  const owned = Array.isArray(state.account?.memberships) && state.account.memberships.some((m) => m.plan_code === item.code);
-  const cycle = item.lifetime ? "永久有效" : item.duration_months ? `/ ${item.duration_months} 个月` : "/ 月";
-  const features = planFeatureListFor(item);
+  const activeMemberships = Array.isArray(state.account?.memberships) ? state.account.memberships : [];
+  const ownedRecord = activeMemberships.find((m) => m.plan_code === item.code) || null;
+  const owned = Boolean(ownedRecord);
+  const cycle = item.lifetime ? "永久买断（一次性付款）" : item.duration_months ? `/ ${item.duration_months} 个月` : "/ 1 个月";
+  const features = planConciseFeaturesFor(item);
   const checkSvg = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg>';
   card.innerHTML = `<div class="plan-card-header">
-    <div class="plan-option-head"><h3>${escapeHtml(item.name)}</h3>${owned ? '<span class="plan-option-badges"><em class="plan-badge-owned">已开通</em></span>' : ""}</div>
+    <div class="plan-option-head"><h2>${escapeHtml(item.name)}</h2>${owned ? `<span class="plan-option-badges"><em class="plan-badge-owned">${ownedRecord?.is_lifetime ? "当前已拥有 · 永久" : "当前已拥有"}</em></span>` : ""}</div>
     <p class="plan-card-tagline">${escapeHtml(item.description || "")}</p>
   </div>
   <div class="plan-price-row">
     <strong class="plan-price-value">${escapeHtml(item.price)} ${escapeHtml(item.currency)}</strong>
     <span class="plan-price-cycle">${escapeHtml(cycle)}</span>
   </div>
-  <ul class="plan-features-list">${features.map((label) => `<li>${checkSvg}<span>${escapeHtml(label)}</span></li>`).join("")}</ul>`;
+  <div class="gpt-checkout-features-block">
+    <p class="gpt-checkout-features-title">主要权益</p>
+    <ul class="plan-features-list">${features.map((label) => `<li>${checkSvg}<span>${escapeHtml(label)}</span></li>`).join("")}</ul>
+  </div>`;
 }
 
 function setMembershipView(view) {
   const previousView = membershipViewState;
-  const target = MEMBERSHIP_VIEWS.includes(view) ? view : "plans";
+  const target = Object.values(MEMBERSHIP_VIEWS).includes(view) ? view : MEMBERSHIP_VIEWS.PLANS;
   membershipViewState = target;
   const modal = $("membershipModal");
   if (modal) modal.dataset.membershipView = target;
@@ -2368,32 +2512,24 @@ function setMembershipView(view) {
 
   const hasPending = currentPaymentOrder?.status === "pending_payment";
   const hasReview = ["user_paid", "processing"].includes(currentPaymentOrder?.status);
-  const checkoutAvailable = Boolean(selectedRechargePlan || hasPending);
 
   const tabPlans = $("membershipTabPlans");
-  const tabCheckout = $("membershipTabCheckout");
   const tabOrders = $("membershipTabOrders");
   if (tabPlans) {
-    tabPlans.classList.toggle("active", target === "plans");
-    tabPlans.setAttribute("aria-selected", String(target === "plans"));
-  }
-  if (tabCheckout) {
-    tabCheckout.classList.toggle("hidden", !checkoutAvailable);
-    tabCheckout.hidden = !checkoutAvailable;
-    tabCheckout.classList.toggle("active", target === "checkout");
-    tabCheckout.setAttribute("aria-selected", String(target === "checkout"));
+    tabPlans.classList.toggle("active", target === MEMBERSHIP_VIEWS.PLANS);
+    tabPlans.setAttribute("aria-selected", String(target === MEMBERSHIP_VIEWS.PLANS));
   }
   if (tabOrders) {
-    tabOrders.classList.toggle("active", target === "orders");
-    tabOrders.setAttribute("aria-selected", String(target === "orders"));
-    tabOrders.textContent = hasReview ? "审核中 · 订单管理" : "订单管理";
+    tabOrders.classList.toggle("active", target === MEMBERSHIP_VIEWS.ORDERS);
+    tabOrders.setAttribute("aria-selected", String(target === MEMBERSHIP_VIEWS.ORDERS));
+    tabOrders.textContent = "订单管理";
   }
 
   const configurator = $("membershipCheckoutConfigurator");
   const backBtn = $("membershipBackToPlansBtn");
   const stepLabel = $("membershipCheckoutStepLabel");
   if (configurator) {
-    const showConfigurator = target === "checkout" && !hasPending && !hasReview;
+    const showConfigurator = target === MEMBERSHIP_VIEWS.CHECKOUT && !hasPending && !hasReview;
     configurator.classList.toggle("hidden", !showConfigurator);
     configurator.hidden = !showConfigurator;
   }
@@ -2403,15 +2539,15 @@ function setMembershipView(view) {
     backBtn.hidden = hideBack;
   }
   if (stepLabel) {
-    stepLabel.textContent = hasPending ? "订单已锁定 · 请扫码付款并点击“我已付款”" : "确认所选套餐与支付方式";
+    stepLabel.textContent = hasPending ? "订单已锁定 · 请扫码付款并点击“我已付款”" : "确认套餐与支付方式";
   }
 
   const orderBox = $("paymentOrderBox");
   const reviewBanner = $("membershipReviewBanner");
   const actionCard = $("paymentOrderActionCard");
   if (orderBox) {
-    const showOrderInCheckout = target === "checkout" && hasPending;
-    const showOrderInOrders = target === "orders" && Boolean(currentPaymentOrder && ["pending_payment", "user_paid", "processing"].includes(currentPaymentOrder.status));
+    const showOrderInCheckout = target === MEMBERSHIP_VIEWS.CHECKOUT && hasPending;
+    const showOrderInOrders = target === MEMBERSHIP_VIEWS.ORDERS && Boolean(currentPaymentOrder && ["pending_payment", "user_paid", "processing"].includes(currentPaymentOrder.status));
     const showOrderBox = showOrderInCheckout || showOrderInOrders;
     orderBox.classList.toggle("hidden", !showOrderBox);
     const inReviewMode = showOrderBox && hasReview;
@@ -2425,7 +2561,12 @@ function setMembershipView(view) {
       actionCard.hidden = inReviewMode;
     }
   }
-  if (target === "checkout") renderSelectedCheckoutPlanCard();
+  if (target === MEMBERSHIP_VIEWS.CHECKOUT) {
+    renderCheckoutVariants();
+    renderSelectedCheckoutPlanCard();
+    updateMembershipPurchaseSummary();
+    syncRechargeSubmitState();
+  }
   return target;
 }
 
@@ -2455,11 +2596,11 @@ function renderMembershipCurrentSummary() {
   if (currentPaymentOrder?.status === "pending_payment") {
     openAlertHtml = `<div class="membership-summary-order-alert"><span>你有 1 笔待付款订单（${escapeHtml(currentPaymentOrder.order_number || "-")}），请前往完成扫码付款。</span><button class="button-secondary" type="button" data-jump-membership-view="checkout">继续付款</button></div>`;
   } else if (["user_paid", "processing"].includes(currentPaymentOrder?.status)) {
-    openAlertHtml = `<div class="membership-summary-order-alert"><span>你有 1 笔等待人工核对的订单（${escapeHtml(currentPaymentOrder.order_number || "-")} · 会员尚未生效）。</span><button class="button-secondary" type="button" data-jump-membership-view="orders">查看审核进度</button></div>`;
+    openAlertHtml = `<div class="membership-summary-order-alert"><span>你有 1 笔等待人工核对的订单（${escapeHtml(currentPaymentOrder.order_number || "-")} · 会员尚未生效）。</span></div>`;
   }
   box.innerHTML = `<div class="membership-summary-top">
-    <div><strong>当前状态：${escapeHtml(planHeadline)}</strong><p class="meta-line">身份：${escapeHtml(roleLabel)} · 多方案权益自动叠加</p></div>
-    <span class="status-badge">${escapeHtml(summary.active ? "会员生效中" : "免费基础版")}</span>
+    <div><strong>当前状态：${escapeHtml(planHeadline)}</strong><p class="meta-line">身份：${escapeHtml(roleLabel)} · 多方案权益自动叠加${summary.permanent ? " · 永久有效" : ""}</p></div>
+    <span class="status-badge">${escapeHtml(summary.permanent ? "永久会员" : summary.active ? "会员生效中" : "免费基础版")}</span>
   </div>
   <div class="membership-summary-chips">${stackedHtml}</div>
   <div class="membership-entitlement-row">${entitlementHtml}</div>
@@ -2471,17 +2612,14 @@ function setMembershipStepperStage() {
 }
 
 function setPaymentControlsLocked(locked) {
-  document.querySelectorAll("[data-plan]").forEach((card) => {
-    card.setAttribute("aria-disabled", String(locked));
-  });
-  document.querySelectorAll("[data-plan-buy]").forEach((button) => {
-    button.disabled = locked;
-  });
   document.querySelectorAll('input[name="paymentMethod"]').forEach((input) => {
     input.disabled = locked;
   });
+  if ($("paymentAgreementCheckbox")) {
+    $("paymentAgreementCheckbox").disabled = locked;
+  }
   if ($("trialLanguageSelect")) {
-    $("trialLanguageSelect").disabled = locked || selectedRechargePlan === "trial_single_language";
+    $("trialLanguageSelect").disabled = locked;
   }
 }
 
@@ -2609,23 +2747,11 @@ async function loadPaymentQr(record, modalSequence = membershipModalLoadSequence
 }
 
 function renderMembershipGoals() {
-  document.querySelectorAll("[data-membership-goal]").forEach((button) => {
-    const selected = button.dataset.membershipGoal === selectedMembershipGoal && !showAllMembershipPlans;
-    button.classList.toggle("selected", selected);
-    button.setAttribute("aria-pressed", String(selected));
-  });
-  const config = MEMBERSHIP_GOALS[selectedMembershipGoal];
-  if ($("membershipGoalHint")) {
-    $("membershipGoalHint").textContent = showAllMembershipPlans
-      ? "当前处于全部套餐视图（共 8 款）；点击任一卡片按钮即可进入独立结账。"
-      : config
-        ? `${config.label}：${config.description}`
-        : "当前直接展示主流推荐套餐；点击上方标签可按用途筛选，或点击底部「查看所有套餐」浏览全部 8 款。";
-  }
+  // Retained as a safe compatibility no-op: the 7-purpose filter UI was replaced by GPT Pro card switchers.
 }
 
 function resetRechargeOrderUi() {
-  $("submitRechargeBtn").textContent = "确认订单并显示二维码";
+  $("submitRechargeBtn").textContent = "确认订单并获取付款二维码";
   $("confirmPaymentBtn").classList.add("hidden");
   $("cancelPaymentOrderBtn").classList.add("hidden");
   $("paymentOrderBox").classList.add("hidden");
@@ -2633,107 +2759,214 @@ function resetRechargeOrderUi() {
   if ($("paymentOrderTimeline")) $("paymentOrderTimeline").innerHTML = "";
 }
 
+function renderCardDynamicBody(card, family, item, activeMemberships) {
+  if (!card || !family || !item) return;
+  const PLAN_OWNERSHIP_ALIASES = {
+    dual_language_lifetime: "japanese_lifetime",
+    legacy_all_monthly: "all_access_monthly",
+    legacy_all_lifetime: "all_access_lifetime",
+  };
+  const ownedRecord = activeMemberships.find(
+    (candidate) => (PLAN_OWNERSHIP_ALIASES[candidate.plan_code] || candidate.plan_code) === item.code
+  ) || null;
+  const owned = Boolean(ownedRecord);
+  const checkSvg = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg>';
+  const chevronSvg = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m6 9 6 6 6-6"/></svg>';
+  const cycleLabel = item.lifetime ? "一次性付款 · 永久" : item.duration_months ? `/ ${item.duration_months} 个月` : "/ 1 个月";
+  const taglineMap = {
+    trial_single_language: "任选英语或日语按月体验学习与测验",
+    notification_archive_access: "Android 端本机通知历史归档与检索",
+    finance_monthly: "Web 与 Android 共用个人财务记账对账",
+    tools_monthly: "解锁全部 104 款在线工具与临时传输",
+    dual_language_monthly: "英语与日语完整学习、测验与错题巩固",
+    japanese_lifetime: "一次购买，永久解锁英语与日语双语言",
+    all_access_monthly: "语言学习、在线工具箱与财务账本全包含",
+    all_access_lifetime: "一次购买，全站核心模块永久可用",
+  };
+  const tagline = taglineMap[item.code] || family.subtitle;
+  const ctaText = owned ? (item.lifetime ? "当前永久方案" : "续费此套餐") : "选择此套餐";
+  const features = planConciseFeaturesFor(item);
+  const fullEntitlements = planFullEntitlementsFor(item);
+  const selectedLang = $("trialLanguageSelect")?.value === "japanese" ? "japanese" : "english";
+
+  card.dataset.plan = item.code;
+  card.dataset.planCard = item.code;
+  card.dataset.owned = owned ? "true" : "false";
+  card.classList.toggle("is-owned", owned);
+  card.classList.toggle("selected", item.code === selectedRechargePlan);
+
+  const badgeSlot = card.querySelector("[data-plan-badges]");
+  if (badgeSlot) {
+    const badges = [
+      owned ? `<em class="plan-badge-owned">${ownedRecord?.is_lifetime ? "当前已拥有 · 永久" : "当前已拥有"}</em>` : "",
+      family.recommended && !owned ? '<em class="plan-badge-recommended">推荐</em>' : "",
+      item.code === "notification_archive_access" ? '<em class="plan-badge-platform">仅 Android</em>' : "",
+    ].filter(Boolean).join("");
+    badgeSlot.innerHTML = badges;
+  }
+
+  const bodyEl = card.querySelector("[data-plan-body]");
+  if (!bodyEl) return;
+  const langPickerHtml = item.code === "trial_single_language"
+    ? `<div class="plan-card-lang-row" role="group" aria-label="选择体验语言">
+        <span class="plan-card-lang-label">体验语言</span>
+        <div class="plan-card-lang-pills">
+          <button type="button" class="plan-lang-chip ${selectedLang === "english" ? "active" : ""}" data-card-lang="english" aria-pressed="${selectedLang === "english"}">英语</button>
+          <button type="button" class="plan-lang-chip ${selectedLang === "japanese" ? "active" : ""}" data-card-lang="japanese" aria-pressed="${selectedLang === "japanese"}">日语</button>
+        </div>
+      </div>`
+    : "";
+
+  bodyEl.innerHTML = `<p class="plan-card-tagline">${escapeHtml(tagline)}</p>
+    <button class="primary plan-buy-btn" data-plan-buy="${escapeHtml(item.code)}" type="button">${escapeHtml(ctaText)}</button>
+    <div class="plan-price-row">
+      <strong class="plan-price-value">${escapeHtml(item.price)} ${escapeHtml(item.currency)}</strong>
+      <span class="plan-price-cycle">${escapeHtml(cycleLabel)}</span>
+    </div>
+    <div class="plan-features-block">
+      ${langPickerHtml}
+      <ul class="plan-features-list">${features.map((label) => `<li>${checkSvg}<span>${escapeHtml(label)}</span></li>`).join("")}</ul>
+      <details class="plan-full-details">
+        <summary><span>查看完整权益</span>${chevronSvg}</summary>
+        <div class="plan-full-details-body">
+          ${fullEntitlements.length ? `<div class="plan-entitlement-chips">${fullEntitlements.map((label) => `<span>${escapeHtml(label)}</span>`).join("")}</div>` : ""}
+          <p class="plan-card-footnote">${escapeHtml(item.description || "")}</p>
+        </div>
+      </details>
+    </div>`;
+
+  bodyEl.classList.remove("is-updating");
+  void bodyEl.offsetWidth;
+  bodyEl.classList.add("is-updating");
+
+  bodyEl.querySelectorAll("[data-plan-buy]").forEach((btn) => {
+    btn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      selectRechargePlan(btn.dataset.planBuy);
+    });
+  });
+  bodyEl.querySelectorAll("[data-card-lang]").forEach((btn) => {
+    btn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const lang = btn.dataset.cardLang === "japanese" ? "japanese" : "english";
+      if ($("trialLanguageSelect")) $("trialLanguageSelect").value = lang;
+      bodyEl.querySelectorAll("[data-card-lang]").forEach((chip) => {
+        const active = chip.dataset.cardLang === lang;
+        chip.classList.toggle("active", active);
+        chip.setAttribute("aria-pressed", String(active));
+      });
+    });
+  });
+}
+
+function buildMembershipFamilyCard(family, plansByCode, activeMemberships) {
+  const availableVariants = family.variants.filter((v) => plansByCode.has(v.planCode));
+  const chosenCode = membershipCardSelections[family.id] || family.defaultPlan;
+  const item = plansByCode.get(chosenCode)
+    || plansByCode.get(family.defaultPlan)
+    || (availableVariants[0] && plansByCode.get(availableVariants[0].planCode))
+    || null;
+  if (!item) return null;
+  const activeIdx = Math.max(0, availableVariants.findIndex((v) => v.planCode === item.code));
+  const article = document.createElement("article");
+  article.className = `plan-option plan-card${family.recommended ? " is-featured" : ""}`;
+  article.dataset.cardFamily = family.id;
+
+  const switcherHtml = availableVariants.length > 1
+    ? `<div class="plan-variant-switch" role="group" aria-label="${escapeHtml(family.title)}套餐切换" data-variant-count="${availableVariants.length}" data-variant-index="${activeIdx}">
+        <span class="plan-variant-thumb" aria-hidden="true"></span>
+        ${availableVariants.map((variant) => `<button class="plan-variant-btn ${variant.planCode === item.code ? "active" : ""}" type="button" data-card-variant="${escapeHtml(variant.planCode)}" aria-pressed="${variant.planCode === item.code}">${escapeHtml(variant.label)}</button>`).join("")}
+      </div>`
+    : `<span class="plan-single-mode-pill">${escapeHtml(availableVariants[0]?.label || "月付方案")}</span>`;
+
+  article.innerHTML = `<div class="plan-card-top">
+      <div class="plan-card-title-wrap">
+        <h3>${escapeHtml(family.title)}</h3>
+        <span class="plan-option-badges" data-plan-badges></span>
+      </div>
+      ${switcherHtml}
+    </div>
+    <div class="plan-card-body" data-plan-body></div>`;
+
+  renderCardDynamicBody(article, family, item, activeMemberships);
+
+  article.querySelectorAll("[data-card-variant]").forEach((btn, idx) => {
+    btn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const nextCode = btn.dataset.cardVariant;
+      const nextPlan = plansByCode.get(nextCode);
+      if (!nextPlan) return;
+      membershipCardSelections[family.id] = nextCode;
+      const switchEl = article.querySelector(".plan-variant-switch");
+      if (switchEl) switchEl.dataset.variantIndex = String(idx);
+      article.querySelectorAll("[data-card-variant]").forEach((candidate) => {
+        const active = candidate.dataset.cardVariant === nextCode;
+        candidate.classList.toggle("active", active);
+        candidate.setAttribute("aria-pressed", String(active));
+      });
+      renderCardDynamicBody(article, family, nextPlan, activeMemberships);
+    });
+  });
+
+  article.addEventListener("click", (event) => {
+    if (event.target.closest("button, details, summary, input, select")) return;
+    const activeCode = article.dataset.plan;
+    if (activeCode) selectRechargePlan(activeCode);
+  });
+  return article;
+}
+
 function renderMembershipPlans() {
-  const list = $("membershipPlanList");
+  const recommendedList = $("membershipRecommendedPlanList");
+  const extraList = $("membershipExtraPlanList");
+  const extraRegion = $("membershipExtraPlansRegion");
   const stepSection = $("membershipPlanStep");
-  const config = MEMBERSHIP_GOALS[selectedMembershipGoal];
   const showingAll = Boolean(showAllMembershipPlans);
+
   stepSection?.classList.remove("hidden");
   if (stepSection) stepSection.dataset.plansScope = showingAll ? "all" : "recommended";
-  if ($("membershipPlanHeading")) {
-    $("membershipPlanHeading").textContent = showingAll
-      ? "全部 8 款会员套餐"
-      : config
-        ? `${config.label} · 推荐方案`
-        : "推荐套餐";
+  if (extraRegion) {
+    extraRegion.classList.toggle("is-expanded", showingAll);
+    extraRegion.setAttribute("aria-hidden", String(!showingAll));
   }
   const showAllBtn = $("membershipShowAllPlansBtn");
   if (showAllBtn) {
-    showAllBtn.setAttribute("aria-pressed", String(showingAll));
-    showAllBtn.textContent = showingAll ? "收起部分套餐（仅看推荐）" : "查看所有套餐";
+    showAllBtn.setAttribute("aria-expanded", String(showingAll));
+    showAllBtn.textContent = showingAll ? "收起部分套餐" : "查看所有套餐";
   }
-  if (list) {
-    const visiblePlans = showingAll
-      ? membershipPlans
-      : config
-        ? membershipPlans.filter((item) => config.plans.includes(item.code))
-        : membershipPlans.filter((item) => DEFAULT_FEATURED_PLANS.includes(item.code));
-    if ($("membershipPlanCount")) {
-      $("membershipPlanCount").textContent = membershipPlans.length
-        ? `共 ${visiblePlans.length} 款方案${showingAll ? "（全部 8 款）" : config ? `（${config.label}）` : "（主流推荐）"}`
-        : "";
-    }
+
+  if (recommendedList && extraList) {
     if (membershipPlans.length) {
+      const plansByCode = new Map(membershipPlans.map((item) => [item.code, item]));
       const activeMemberships = Array.isArray(state.account?.memberships) ? state.account.memberships : [];
-      const ownedByCode = new Map(activeMemberships.map((item) => [item.plan_code, item]));
-      const checkSvg = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg>';
-      list.innerHTML = visiblePlans.map((item) => {
-        const ownedRecord = ownedByCode.get(item.code) || null;
-        const owned = Boolean(ownedRecord);
-        const androidOnly = item.code === "notification_archive_access";
-        const featured = item.code === "all_access_monthly" || item.code === "all_access_lifetime";
-        const cycleLabel = item.lifetime ? "永久买断" : item.duration_months ? `/ ${item.duration_months} 个月` : "/ 月";
-        const tagline = item.code === "all_access_monthly"
-          ? "适合同时使用语言、工具与财务的用户"
-          : item.code === "all_access_lifetime"
-            ? "一次购买，长期解锁全部核心模块"
-            : item.lifetime
-              ? "一次购买，永久持有对应权限"
-              : "按月灵活开通对应独立模块";
-        const badges = [
-          owned ? `<em class="plan-badge-owned">${ownedRecord?.is_lifetime ? "当前已拥有 · 永久" : "当前已拥有"}</em>` : "",
-          featured && !owned ? '<em class="plan-badge-owned">推荐选择</em>' : "",
-          androidOnly ? '<em class="plan-badge-platform">仅限 Android</em>' : "",
-        ].filter(Boolean).join("");
-        const features = planFeatureListFor(item);
-        const ctaText = owned
-          ? (item.lifetime ? "当前已拥有（永久有效）" : "续费此套餐")
-          : "选择此方案";
-        const isSelected = item.code === selectedRechargePlan;
-        return `<article class="plan-option plan-card ${isSelected ? "selected" : ""} ${featured ? "is-featured" : ""} ${owned ? "is-owned" : ""}" data-plan="${escapeHtml(item.code)}" data-plan-card="${escapeHtml(item.code)}" data-owned="${owned ? "true" : "false"}">
-          <div class="plan-card-header">
-            <div class="plan-option-head"><h3>${escapeHtml(item.name)}</h3>${badges ? `<span class="plan-option-badges">${badges}</span>` : ""}</div>
-            <p class="plan-card-tagline">${escapeHtml(tagline)}</p>
-          </div>
-          <div class="plan-price-row">
-            <strong class="plan-price-value">${escapeHtml(item.price)} ${escapeHtml(item.currency)}</strong>
-            <span class="plan-price-cycle">${escapeHtml(cycleLabel)}</span>
-          </div>
-          <button class="primary plan-buy-btn" data-plan-buy="${escapeHtml(item.code)}" type="button" aria-pressed="${isSelected}">${escapeHtml(ctaText)}</button>
-          <ul class="plan-features-list">${features.map((label) => `<li>${checkSvg}<span>${escapeHtml(label)}</span></li>`).join("")}</ul>
-          <small class="plan-card-footnote">${escapeHtml(item.description)}</small>
-        </article>`;
-      }).join("");
-      list.querySelectorAll("[data-plan-buy]").forEach((button) => {
-        button.classList.toggle("selected", button.dataset.planBuy === selectedRechargePlan);
-        button.addEventListener("click", (event) => {
-          event.stopPropagation();
-          selectRechargePlan(button.dataset.planBuy);
-        });
-      });
-      list.querySelectorAll("[data-plan]").forEach((card) => {
-        card.classList.toggle("selected", card.dataset.plan === selectedRechargePlan);
-        card.addEventListener("click", (event) => {
-          if (event.target.closest("button")) return;
-          selectRechargePlan(card.dataset.plan);
-        });
-      });
+      recommendedList.innerHTML = "";
+      extraList.innerHTML = "";
+      for (const family of MEMBERSHIP_CARD_FAMILIES) {
+        const card = buildMembershipFamilyCard(family, plansByCode, activeMemberships);
+        if (!card) continue;
+        if (family.section === "extra") extraList.append(card);
+        else recommendedList.append(card);
+      }
+      $("membershipPlanRecovery")?.classList.add("hidden");
+    } else if (!membershipPlansPromise) {
+      recommendedList.innerHTML = "";
+      extraList.innerHTML = "";
     }
   }
+
   const singleLanguage = selectedRechargePlan === "trial_single_language";
   $("trialLanguageField")?.classList.toggle("hidden", !singleLanguage);
   if ($("trialLanguageSelect")) {
     $("trialLanguageSelect").required = singleLanguage;
-    if (singleLanguage && config?.trialLanguage) $("trialLanguageSelect").value = config.trialLanguage;
   }
   $("paymentMethodField")?.classList.toggle("hidden", !selectedRechargePlan);
   renderPaymentMethods();
+  renderCheckoutVariants();
   renderSelectedCheckoutPlanCard();
   updateMembershipPurchaseSummary();
-  $("submitRechargeBtn").disabled = !selectedRechargePlan || !selectedPaymentMethod;
   const orderLocked = Boolean(currentPaymentOrder && ["pending_payment", "user_paid", "processing"].includes(currentPaymentOrder.status));
   setPaymentControlsLocked(orderLocked);
-  if (membershipPlans.length) $("membershipPlanRecovery")?.classList.add("hidden");
+  syncRechargeSubmitState();
 }
 
 function selectMembershipGoal(goal, options = {}) {
@@ -2744,20 +2977,25 @@ function selectMembershipGoal(goal, options = {}) {
     selectedPaymentMethod = "";
     resetRechargeOrderUi();
   }
-  showAllMembershipPlans = false;
   selectedMembershipGoal = normalized;
+  if (normalized === "finance") membershipCardSelections.single = "finance_monthly";
+  else if (normalized === "notifications") membershipCardSelections.single = "notification_archive_access";
+  else if (normalized === "english" || normalized === "japanese") membershipCardSelections.single = "trial_single_language";
+  const trialLanguage = MEMBERSHIP_GOALS[normalized]?.trialLanguage;
+  if (trialLanguage && $("trialLanguageSelect")) $("trialLanguageSelect").value = trialLanguage;
   if (!options.preservePlan || !membershipGoalAllowsPlan(normalized, selectedRechargePlan)) {
     selectedRechargePlan = "";
   }
-  const trialLanguage = MEMBERSHIP_GOALS[normalized]?.trialLanguage;
-  if (trialLanguage && $("trialLanguageSelect")) $("trialLanguageSelect").value = trialLanguage;
   renderMembershipGoals();
   renderMembershipPlans();
   if (!options.preserveOrder) $("rechargeMessage").textContent = "";
 }
 
 function showMembershipPlanRecovery(message) {
-  if (!membershipPlans.length) $("membershipPlanList").innerHTML = "";
+  if (!membershipPlans.length) {
+    if ($("membershipRecommendedPlanList")) $("membershipRecommendedPlanList").innerHTML = "";
+    if ($("membershipExtraPlanList")) $("membershipExtraPlanList").innerHTML = "";
+  }
   $("membershipPlanError").textContent = message || "会员方案暂时无法加载。";
   $("membershipPlanRecovery").classList.remove("hidden");
 }
@@ -2769,8 +3007,9 @@ async function loadMembershipPlans(force = false, options = {}) {
   }
   if (membershipPlansPromise) return membershipPlansPromise;
   const list = $("membershipPlanList");
+  const recommendedList = $("membershipRecommendedPlanList");
   list?.setAttribute("aria-busy", "true");
-  if (!membershipPlans.length && list) list.innerHTML = '<p class="plan-loading">正在连接服务器并加载会员方案…</p>';
+  if (!membershipPlans.length && recommendedList) recommendedList.innerHTML = '<p class="plan-loading">正在加载会员方案…</p>';
   $("membershipPlanRecovery")?.classList.add("hidden");
 
   membershipPlansPromise = (async () => {
@@ -2896,9 +3135,15 @@ async function loadMembershipWorkspace(options = {}) {
   selectedRechargePlan = "";
   selectedPaymentMethod = "";
   showAllMembershipPlans = false;
+  if ($("paymentAgreementCheckbox")) $("paymentAgreementCheckbox").checked = false;
   selectedMembershipGoal = normalizedMembershipGoal(options.goal);
+  if (selectedMembershipGoal === "finance") membershipCardSelections.single = "finance_monthly";
+  else if (selectedMembershipGoal === "notifications") membershipCardSelections.single = "notification_archive_access";
+  else if (selectedMembershipGoal === "english" || selectedMembershipGoal === "japanese") membershipCardSelections.single = "trial_single_language";
+  const initialLang = MEMBERSHIP_GOALS[selectedMembershipGoal]?.trialLanguage;
+  if (initialLang && $("trialLanguageSelect")) $("trialLanguageSelect").value = initialLang;
   resetRechargeOrderUi();
-  setMembershipView("plans");
+  setMembershipView(options.view === "orders" ? MEMBERSHIP_VIEWS.ORDERS : MEMBERSHIP_VIEWS.PLANS);
   renderMembershipCurrentSummary();
   renderMembershipGoals();
   renderMembershipPlans();
@@ -2938,15 +3183,15 @@ async function loadMembershipWorkspace(options = {}) {
     return membershipPlans;
   }
   if (openOrder) {
-    selectedMembershipGoal = membershipGoalAllowsPlan(selectedMembershipGoal, openOrder.plan_code)
-      ? selectedMembershipGoal
-      : membershipGoalForPlan(openOrder.plan_code, openOrder.trial_language);
-    renderPaymentOrder(openOrder);
-    $("rechargeMessage").textContent = {
-      pending_payment: "订单金额和支付方式已锁定。请扫码付款，再点击“我已付款”。",
-      user_paid: "已通知管理员，正在等待人工核对付款。",
-      processing: "管理员正在核对付款，请稍候。",
-    }[openOrder.status] || "订单处理中。";
+    // Direct /recharge always allows browsing Plans first even if an open/review order exists; switch view only if requested explicitly.
+    renderPaymentOrder(openOrder, { preserveView: options.view !== "orders" && options.view !== "checkout" });
+    $("rechargeMessage").textContent = options.view === "orders"
+      ? ({
+        pending_payment: "你有 1 笔待付款订单，可前往完成扫码或取消重选。",
+        user_paid: "已通知管理员，正在等待人工核对付款。",
+        processing: "管理员正在核对付款，请稍候。",
+      }[openOrder.status] || "")
+      : "";
   } else if (loadErrors.length) {
     $("rechargeMessage").textContent = `${[...new Set(loadErrors)].join("；")} 已加载的内容仍可使用。`;
   } else {
@@ -2958,12 +3203,26 @@ async function loadMembershipWorkspace(options = {}) {
 
 function selectRechargePlan(plan, options = {}) {
   const planCode = String(plan || "").trim();
-  if (planCode && (!selectedMembershipGoal || !membershipGoalAllowsPlan(selectedMembershipGoal, planCode))) {
+  if (planCode && currentPaymentOrder && ["pending_payment", "user_paid", "processing"].includes(currentPaymentOrder.status) && !options.preserveOrder) {
+    if (currentPaymentOrder.status === "pending_payment") {
+      renderPaymentOrder(currentPaymentOrder);
+      $("rechargeMessage").textContent = "你当前已有待付款订单，可扫码付款或先取消订单后再更换套餐。";
+    } else {
+      renderPaymentOrder(currentPaymentOrder, { preserveView: false });
+      $("rechargeMessage").textContent = "你当前已有等待审核的订单，请等待管理员核对完成后再新购或续费。";
+    }
+    return;
+  }
+  if (planCode) {
+    const family = planCardFamilyForCode(planCode);
+    if (family) membershipCardSelections[family.id] = planCode;
     selectedMembershipGoal = membershipGoalForPlan(planCode, $("trialLanguageSelect")?.value);
   }
-  if (planCode && membershipPlans.some((item) => item.code === planCode) && !membershipGoalAllowsPlan(selectedMembershipGoal, planCode)) return;
   if (!options.preserveOrder) releasePaymentQr();
-  if (!options.preserveOrder && planCode !== selectedRechargePlan) selectedPaymentMethod = "";
+  if (!options.preserveOrder && planCode !== selectedRechargePlan) {
+    selectedPaymentMethod = "";
+    if ($("paymentAgreementCheckbox")) $("paymentAgreementCheckbox").checked = false;
+  }
   selectedRechargePlan = planCode;
   if (!options.preserveOrder) {
     currentPaymentOrder = null;
@@ -2972,14 +3231,14 @@ function selectRechargePlan(plan, options = {}) {
   renderMembershipGoals();
   renderMembershipPlans();
   if (planCode && !options.preserveOrder) {
-    setMembershipView("checkout");
+    setMembershipView(MEMBERSHIP_VIEWS.CHECKOUT);
   } else if (!planCode && !options.preserveOrder) {
-    setMembershipView("plans");
+    setMembershipView(MEMBERSHIP_VIEWS.PLANS);
   }
   if (!options.preserveOrder) $("rechargeMessage").textContent = "";
 }
 
-function renderPaymentOrder(record) {
+function renderPaymentOrder(record, options = {}) {
   if (!record) return;
   const orderPaymentMethod = normalizedPaymentMethod(record.payment_method);
   if (!orderPaymentMethod) {
@@ -2988,14 +3247,14 @@ function renderPaymentOrder(record) {
     selectedPaymentMethod = "";
     resetRechargeOrderUi();
     renderMembershipPlans();
-    setMembershipView("plans");
+    setMembershipView(MEMBERSHIP_VIEWS.PLANS);
     $("rechargeMessage").textContent = "该旧订单没有有效支付方式，不能恢复或确认付款。请重新创建订单。";
     return;
   }
   currentPaymentOrder = record;
-  selectedMembershipGoal = membershipGoalAllowsPlan(selectedMembershipGoal, record.plan_code)
-    ? selectedMembershipGoal
-    : membershipGoalForPlan(record.plan_code, record.trial_language);
+  const orderFamily = planCardFamilyForCode(record.plan_code);
+  if (orderFamily) membershipCardSelections[orderFamily.id] = record.plan_code;
+  selectedMembershipGoal = membershipGoalForPlan(record.plan_code, record.trial_language);
   selectedRechargePlan = record.plan_code;
   selectedPaymentMethod = orderPaymentMethod;
   renderMembershipGoals();
@@ -3034,20 +3293,22 @@ function renderPaymentOrder(record) {
     pending_payment: "订单已锁定",
     user_paid: "等待管理员确认",
     processing: "管理员核对中",
-  }[record.status] || "确认订单并显示二维码";
+  }[record.status] || "确认订单并获取付款二维码";
   $("submitRechargeBtn").disabled = isActiveOrder;
 
-  if (record.status === "pending_payment") {
-    setMembershipView("checkout");
+  if (options.preserveView && membershipViewState === MEMBERSHIP_VIEWS.PLANS) {
+    setMembershipView(MEMBERSHIP_VIEWS.PLANS);
+  } else if (record.status === "pending_payment") {
+    setMembershipView(MEMBERSHIP_VIEWS.CHECKOUT);
     loadPaymentQr(record, membershipModalLoadSequence);
   } else if (["user_paid", "processing"].includes(record.status)) {
     releasePaymentQr();
-    setMembershipView("orders");
+    setMembershipView(MEMBERSHIP_VIEWS.ORDERS);
   } else {
     releasePaymentQr();
     currentPaymentOrder = null;
     setPaymentControlsLocked(false);
-    setMembershipView("orders");
+    setMembershipView(MEMBERSHIP_VIEWS.ORDERS);
   }
   renderMembershipCurrentSummary();
 }
@@ -3116,6 +3377,11 @@ async function submitRechargeRequest() {
     $("rechargeMessage").textContent = "请先选择会员套餐。";
     return;
   }
+  if (!$("paymentAgreementCheckbox")?.checked) {
+    $("rechargeMessage").textContent = "请先阅读并勾选同意《支付协议》。";
+    $("paymentAgreementCheckbox")?.focus();
+    return;
+  }
   const paymentMethod = normalizedPaymentMethod(selectedPaymentMethod);
   if (!paymentMethod) {
     $("rechargeMessage").textContent = "请先选择微信支付或支付宝。";
@@ -3140,7 +3406,7 @@ async function submitRechargeRequest() {
   } catch (error) {
     $("rechargeMessage").textContent = error.message;
   } finally {
-    button.disabled = !selectedRechargePlan || !selectedPaymentMethod || ["pending_payment", "user_paid", "processing"].includes(currentPaymentOrder?.status);
+    syncRechargeSubmitState();
   }
 }
 
@@ -6170,14 +6436,14 @@ async function apiGet(path,options={}) {
 }
 
 installLazyTools({
-  loadTools: createRetryableImport(new URL("./tools.js?release=20261128-aeris-p7-account-v2", import.meta.url)),
-  loadWorkflows: createRetryableImport(new URL("./workflows.js?release=20261128-aeris-p7-account-v2", import.meta.url)),
+  loadTools: createRetryableImport(new URL("./tools.js?release=20261128-aeris-p7-account-v3", import.meta.url)),
+  loadWorkflows: createRetryableImport(new URL("./workflows.js?release=20261128-aeris-p7-account-v3", import.meta.url)),
   onReady: () => renderDashboard(),
 });
 
-const loadFinanceModule = createRetryableImport(new URL("./js/finance/app.js?release=20261128-aeris-p7-account-v2", import.meta.url));
-const loadCandidateModule = createRetryableImport(new URL("./js/finance/candidates.js?release=20261128-aeris-p7-account-v2", import.meta.url));
-const loadTransferModule = createRetryableImport(new URL("./js/transfer/app.js?release=20261128-aeris-p7-account-v2", import.meta.url));
+const loadFinanceModule = createRetryableImport(new URL("./js/finance/app.js?release=20261128-aeris-p7-account-v3", import.meta.url));
+const loadCandidateModule = createRetryableImport(new URL("./js/finance/candidates.js?release=20261128-aeris-p7-account-v3", import.meta.url));
+const loadTransferModule = createRetryableImport(new URL("./js/transfer/app.js?release=20261128-aeris-p7-account-v3", import.meta.url));
 
 financeController = createLazyController({
   methods: ["syncNow", "verifyTransaction", "render", "setSubView"],
@@ -8476,7 +8742,7 @@ function showAuthTransition(message = "正在验证身份与权限…") {
     overlay.setAttribute("aria-label", message);
     overlay.setAttribute("aria-hidden", "false");
     overlay.innerHTML = '<div class="entry-content">' +
-      '<img class="entry-logo" src="/icon-192.png?release=20261128-aeris-p7-account-v2" width="76" height="76" alt="" />' +
+      '<img class="entry-logo" src="/icon-192.png?release=20261128-aeris-p7-account-v3" width="76" height="76" alt="" />' +
       '<strong>Aeris</strong>' +
       '<span class="entry-progress" aria-hidden="true"></span>' +
       '</div>';
@@ -9353,12 +9619,16 @@ async function boot() {
   $("accountOpenMembershipBtn")?.addEventListener("click", () => void showMembership(true));
   $("membershipAccountLinkBtn")?.addEventListener("click", () => showAccount(true));
   document.querySelectorAll("#membershipViewTabs [data-membership-view-tab]").forEach((button) => {
-    button.addEventListener("click", () => setMembershipView(button.dataset.membershipViewTab));
+    button.addEventListener("click", () => {
+      const targetTab = button.dataset.membershipViewTab;
+      if (targetTab === MEMBERSHIP_VIEWS.ORDERS && currentPaymentOrder?.status === "pending_payment") {
+        // Ensure QR preview only stays on checkout; Orders lists all orders safely.
+      }
+      setMembershipView(targetTab);
+    });
   });
   $("membershipShowAllPlansBtn")?.addEventListener("click", () => {
-    if ($("membershipShowAllPlansBtn")?.disabled) return;
     showAllMembershipPlans = !showAllMembershipPlans;
-    renderMembershipGoals();
     renderMembershipPlans();
   });
   $("membershipBackToPlansBtn")?.addEventListener("click", () => selectRechargePlan(""));
@@ -9367,15 +9637,38 @@ async function boot() {
   $("refreshPaymentOrderBtn")?.addEventListener("click", refreshPaymentOrder);
   $("refreshReviewOrderBtn")?.addEventListener("click", refreshPaymentOrder);
   $("refreshOrderHistoryBtn")?.addEventListener("click", refreshOrderHistory);
+  $("paymentAgreementCheckbox")?.addEventListener("change", syncRechargeSubmitState);
+  $("openPaymentAgreementBtn")?.addEventListener("click", () => openModal("paymentAgreementModal"));
+  $("acceptPaymentAgreementBtn")?.addEventListener("click", () => {
+    if ($("paymentAgreementCheckbox")) $("paymentAgreementCheckbox").checked = true;
+    syncRechargeSubmitState();
+    closeModal("paymentAgreementModal", true);
+    $("submitRechargeBtn")?.focus();
+  });
+  $("trialLanguageSelect")?.addEventListener("change", () => {
+    renderMembershipPlans();
+    renderSelectedCheckoutPlanCard();
+    updateMembershipPurchaseSummary();
+  });
   $("membershipCurrentSummary")?.addEventListener("click", (event) => {
     const trigger = event.target instanceof Element ? event.target.closest("[data-jump-membership-view]") : null;
     if (!trigger) return;
-    setMembershipView(trigger.dataset.jumpMembershipView);
+    const view = trigger.dataset.jumpMembershipView;
+    if (view === "checkout" && currentPaymentOrder?.status === "pending_payment") {
+      renderPaymentOrder(currentPaymentOrder);
+    } else {
+      setMembershipView(view);
+    }
   });
   $("membershipOrderHistoryList")?.addEventListener("click", (event) => {
     const trigger = event.target instanceof Element ? event.target.closest("[data-jump-membership-view]") : null;
     if (!trigger) return;
-    setMembershipView(trigger.dataset.jumpMembershipView);
+    const view = trigger.dataset.jumpMembershipView;
+    if (view === "checkout" && currentPaymentOrder?.status === "pending_payment") {
+      renderPaymentOrder(currentPaymentOrder);
+    } else {
+      setMembershipView(view);
+    }
   });
   $('notificationInboxMenuBtn')?.addEventListener('click', () => { closeAccountMenu(); void task27Ui?.openInbox(); });
   $("homeBtn").addEventListener("click", () => { closeAccountMenu(); showModulePicker(true); });
